@@ -116,3 +116,12 @@ aside .card { padding: 19px; }
   .benchmark-aside { display: grid; grid-template-columns: 1fr 1fr; }
   .benchmark-options { grid-template-columns: 1fr; }
 }
+
+.job-actions { position: absolute; right: 12px; bottom: 10px; display: flex; gap: 4px; }
+.job-actions button { border: 0; background: transparent; color: #667061; cursor: pointer; font-size: 11px; padding: 4px 6px; }
+.job-actions .delete-button { position: static; color: #a05b55; }
+.system-grid { display: grid; grid-template-columns: 1fr; gap: 1px; margin: 18px 0 12px; border: 1px solid #e5e4de; border-radius: 11px; overflow: hidden; background: #e5e4de; }
+.system-grid > div { display: flex; justify-content: space-between; gap: 18px; padding: 10px 11px; background: #faf9f5; font-size: 11px; }
+.system-grid span { color: #85877f; }
+.cleanup-button { width: 100%; margin-bottom: 8px; }
+.cleanup-message { margin: 0 0 18px !important; font-size: 11px !important; }
