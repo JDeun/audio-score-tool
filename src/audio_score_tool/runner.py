@@ -6,15 +6,18 @@ import shutil
 import subprocess
 from collections.abc import Iterable
 from pathlib import Path
+from threading import Event
 
 
 class CommandError(RuntimeError):
     pass
 
 
+class CommandCancelled(CommandError):
+    pass
+
+
 def split_command(value: str) -> list[str]:
-    # An explicit executable path may legitimately contain spaces (notably the
-    # default MuseScore macOS app bundle). Treat an existing path atomically.
     expanded = str(Path(value).expanduser())
     if Path(expanded).is_file():
         return [expanded]
@@ -37,6 +40,7 @@ def run_command(
     *,
     cwd: Path | None = None,
     env: dict[str, str] | None = None,
+    cancel_event: Event | None = None,
 ) -> subprocess.CompletedProcess[str]:
     parts = split_command(command)
     if not parts:
@@ -48,20 +52,41 @@ def run_command(
         merged_env.update(env)
 
     try:
-        proc = subprocess.run(
+        proc = subprocess.Popen(
             argv,
             cwd=cwd,
             env=merged_env,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            check=False,
         )
     except OSError as exc:
         raise CommandError(f"Could not start command: {argv[0]} ({exc})") from exc
 
+    output = ""
+    while True:
+        try:
+            stdout, _ = proc.communicate(timeout=0.25)
+            output = stdout or output
+            break
+        except subprocess.TimeoutExpired as exc:
+            if exc.output:
+                output = exc.output if isinstance(exc.output, str) else exc.output.decode()
+            if cancel_event is not None and cancel_event.is_set():
+                proc.terminate()
+                try:
+                    stdout, _ = proc.communicate(timeout=3)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    stdout, _ = proc.communicate()
+                output = stdout or output
+                raise CommandCancelled(
+                    f"Command cancelled: {' '.join(argv)}\n\n{output}"
+                )
+
+    completed = subprocess.CompletedProcess(argv, proc.returncode, output)
     if proc.returncode != 0:
         raise CommandError(
-            f"Command failed ({proc.returncode}): {' '.join(argv)}\n\n{proc.stdout}"
+            f"Command failed ({proc.returncode}): {' '.join(argv)}\n\n{output}"
         )
-    return proc
+    return completed
