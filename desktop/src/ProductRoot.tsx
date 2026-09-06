@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import App from "./App";
 import SongWorkspace from "./SongWorkspace";
+import YoutubeImport from "./YoutubeImport";
 import "./song-workspace.css";
 
 type ProductMode = "transcribe" | "songs";
@@ -17,7 +18,14 @@ export default function ProductRoot() {
 
   return (
     <>
-      {mode === "transcribe" ? <App /> : <SongWorkspace />}
+      {mode === "transcribe" ? (
+        <>
+          <YoutubeImport />
+          <App />
+        </>
+      ) : (
+        <SongWorkspace />
+      )}
       <nav className="product-mode-switch" aria-label="제품 작업공간 전환">
         <button className={mode === "transcribe" ? "active" : ""} onClick={() => setMode("transcribe")}>채보</button>
         <button className={mode === "songs" ? "active" : ""} onClick={() => setMode("songs")}>곡 라이브러리</button>
