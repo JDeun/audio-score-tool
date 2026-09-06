@@ -1,19 +1,19 @@
 # AudioScoreTool
 
-Local-first **audio → sheet music** pipeline built around MuScriptor, with optional lyric extraction and note-aligned MusicXML output.
+Local-first desktop **audio → sheet music** transcription built around MuScriptor, with optional vocal isolation, lyric ASR, lyric-to-note alignment, MusicXML/MIDI export, and model A/B benchmarking.
 
-## What v0.1 does
+## Architecture
 
 ```text
 Audio
- ├─ MuScriptor ───────────────→ score.mid / score.musicxml / full_score.pdf
+ ├─ MuScriptor ───────────────→ MIDI / MusicXML / score PDF
  └─ Demucs → vocals.wav
               ↓
            WhisperX
               ↓
       word-level lyric timings
               ↓
-      MusicXML lyric alignment
+      lyric ↔ note alignment
               ↓
       score_with_lyrics.musicxml
               ↓
@@ -22,7 +22,38 @@ Audio
       score_with_lyrics.pdf
 ```
 
-The application automatically chooses compute backends:
+Desktop:
+
+```text
+Tauri 2
+└─ React + TypeScript + Vite
+   └─ local FastAPI/Python sidecar
+      ├─ persistent SQLite job store
+      ├─ MuScriptor
+      ├─ Demucs
+      ├─ WhisperX
+      └─ MuseScore
+```
+
+## v0.3 desktop features
+
+- audio drag-and-drop
+- Transcribe / Benchmark / History / Setup workspaces
+- Auto / Fast / Balanced / Quality model presets
+- manual MuScriptor/WhisperX model overrides
+- CUDA / Apple MPS / CPU detection
+- persistent job history across app restarts
+- queued heavy inference (one model job at a time to avoid VRAM contention)
+- real cancellation that terminates the full child-process tree
+- retry, delete, output-folder reveal, and storage cleanup
+- persistent executable-path overrides for GUI launches where shell `PATH` is unavailable
+- Hugging Face authentication status without exposing token values
+- local disk usage/free-space diagnostics
+- JSON/CSV model benchmark reports
+- optional reference MIDI metrics: note precision, recall, F1, and onset MAE
+- unsigned macOS/Windows/Linux packaging workflow
+
+## Hardware policy
 
 | Hardware | MuScriptor | Demucs | WhisperX |
 |---|---|---|---|
@@ -30,147 +61,186 @@ The application automatically chooses compute backends:
 | Apple Silicon | MPS | CPU | CPU / INT8 |
 | CPU-only | CPU | CPU | CPU / INT8 |
 
-WhisperX currently documents CUDA/CPU execution rather than MPS, so Apple Silicon intentionally falls back to CPU for the lyric-ASR stage.
+WhisperX is intentionally kept on CUDA/CPU rather than MPS in the current policy.
 
-## Important license note
+The Auto preset currently resolves to:
 
-AudioScoreTool itself does **not** redistribute MuScriptor weights.
+- CPU-only → `fast`
+- Apple Silicon → `balanced`
+- NVIDIA CUDA → `balanced`
 
-MuScriptor source code is MIT-licensed, but its published model weights are **CC BY-NC 4.0 (non-commercial)**. Before using the local models, accept the relevant MuScriptor model license on Hugging Face and authenticate locally.
+Use the built-in benchmark on your target machine before treating this preset as an empirically optimal choice.
 
-Do not assume the current MuScriptor weights are suitable for commercial deployment.
+## License constraint
 
-## Requirements
+AudioScoreTool does **not** redistribute MuScriptor weights.
+
+MuScriptor source code is MIT-licensed, but the published MuScriptor model weights are **CC BY-NC 4.0 (non-commercial)**. Do not ship the current weights in a commercial product unless the upstream license changes or you obtain separate permission.
+
+## What the user must do
+
+These steps depend on the user's account, hardware, or signing identity and therefore cannot be completed by the repository itself:
+
+1. Open the MuScriptor Hugging Face model page and accept the CC BY-NC 4.0 model license.
+2. Authenticate Hugging Face locally:
+
+   ```bash
+   uvx hf auth login
+   ```
+
+   or provide `HF_TOKEN` in the local environment.
+
+3. Install MuseScore 4+.
+4. Ensure `uvx` or the individual model CLIs are available. The app prefers installed commands and automatically falls back to `uvx` when possible.
+5. Run the built-in benchmark with representative real audio on the target CPU/GPU/Mac.
+6. For signed public distribution, provide the appropriate Apple Developer / Windows code-signing credentials.
+
+Everything else in the current application workflow is implemented in the repository.
+
+## MuScriptor runtime behavior
+
+AudioScoreTool follows MuScriptor's current upstream local-run guidance.
+
+If an installed `muscriptor` CLI is not found and `uvx` exists, the app uses `uvx muscriptor`.
+
+Platform-specific fallback:
+
+- Windows + NVIDIA: `uvx --torch-backend=cu128 muscriptor`
+- Apple Silicon: `uvx muscriptor`
+- Intel Mac: `uvx --python 3.12 muscriptor`
+
+Equivalent `uvx` fallback is also used for Demucs and WhisperX when their standalone CLIs are not available.
+
+The Setup screen lets you override any executable/command path. These paths are stored locally in the AudioScoreTool application-data directory.
+
+## Development setup
+
+Requirements:
 
 - Python 3.10+
-- [uv](https://docs.astral.sh/uv/)
-- FFmpeg
+- uv / uvx
+- Node.js 22+
+- Rust toolchain
 - MuseScore 4+
-- MuScriptor
-- Demucs
-- WhisperX
-- Hugging Face authentication for MuScriptor weights
+- FFmpeg as required by the model tools
 
-### 1. Install AudioScoreTool
+Clone:
 
 ```bash
 git clone https://github.com/JDeun/audio-score-tool.git
 cd audio-score-tool
-
 uv sync --extra dev
 ```
 
-### 2. Install model tools
-
-The model tools are intentionally kept outside the application dependency graph because their PyTorch/CUDA requirements can conflict across platforms.
-
-Typical local setup:
-
-```bash
-uv tool install muscriptor
-uv tool install demucs
-uv tool install whisperx
-```
-
-If you prefer a shared environment, installing them with pip/uv into that environment also works.
-
-### Windows + NVIDIA
-
-MuScriptor's upstream documentation currently requires an explicit CUDA PyTorch backend when installed/run via uv on Windows. Follow the current MuScriptor installation instructions for your CUDA version.
-
-### 3. Authenticate to Hugging Face
-
-Accept the MuScriptor model license first, then:
+Authenticate MuScriptor weights:
 
 ```bash
 uvx hf auth login
 ```
 
-or set:
-
-```bash
-export HF_TOKEN=hf_...
-```
-
-### 4. Configure MuseScore if necessary
-
-If MuseScore is not discoverable on `PATH`, set:
-
-```bash
-export AST_MUSESCORE_CMD="/path/to/mscore"
-```
-
-macOS example:
-
-```bash
-export AST_MUSESCORE_CMD="/Applications/MuseScore 4.app/Contents/MacOS/mscore"
-```
-
 ## CLI
 
-### Check the environment
+Environment check:
 
 ```bash
 uv run audio-score doctor
 ```
 
-Example:
-
-```json
-{
-  "ok": true,
-  "missing": [],
-  "device_plan": {
-    "torch_device": "cuda",
-    "muscriptor_device": "cuda",
-    "demucs_device": "cuda",
-    "whisperx_device": "cuda",
-    "whisperx_compute_type": "float16"
-  }
-}
-```
-
-### Run the full pipeline
-
-Korean:
+Run Korean transcription:
 
 ```bash
 uv run audio-score run song.mp3 --language ko --output outputs
 ```
 
-English:
-
-```bash
-uv run audio-score run song.mp3 --language en --output outputs
-```
-
-Score only, without lyrics:
+Run score-only mode:
 
 ```bash
 uv run audio-score run song.mp3 --skip-lyrics
 ```
 
-## Output
+## Model benchmark
 
-A full run creates:
+Without reference MIDI:
 
-```text
-outputs/<song>/
-├── score/
-│   ├── score.mid
-│   ├── score.musicxml
-│   ├── full_score.pdf
-│   └── ...
-├── stems/
-│   └── .../vocals.wav
-├── lyrics/
-│   └── vocals.json
-├── alignment.json
-├── score_with_lyrics.musicxml
-└── score_with_lyrics.pdf
+```bash
+uv run audio-score benchmark song.wav --language ko --profile all
 ```
 
-If AudioScoreTool cannot directly invoke MuseScore for the final lyric-enriched PDF, it still writes `score_with_lyrics.musicxml` and returns MuScriptor's original `full_score.pdf` with a warning.
+With Ground Truth MIDI:
+
+```bash
+uv run audio-score benchmark song.wav \
+  --language ko \
+  --profile all \
+  --reference-midi reference.mid
+```
+
+Profiles:
+
+- `score`: MuScriptor small / medium / large, lyrics disabled
+- `lyrics`: balanced / medium-ASR / quality combinations
+- `all`: both matrices
+
+Outputs:
+
+```text
+benchmark-results/
+├── benchmark.json
+└── benchmark.csv
+```
+
+Recorded fields include:
+
+- model combination
+- wall-clock runtime
+- success/failure
+- lyric attachment ratio
+- note precision
+- note recall
+- note F1
+- onset MAE in milliseconds
+
+Reference-based metrics are only populated when a Ground Truth MIDI file is supplied.
+
+## Desktop development
+
+```bash
+cd desktop
+npm install
+npm run desktop:dev
+```
+
+This launches the local Python API and the Tauri development window together.
+
+## Desktop build
+
+```bash
+uv sync --extra desktop
+
+cd desktop
+npm install
+npm run desktop:build
+```
+
+The build command:
+
+1. generates platform icon assets,
+2. creates the Python FastAPI orchestration sidecar with PyInstaller,
+3. builds the Tauri desktop bundle.
+
+Model CLIs, MuseScore, and gated model weights intentionally remain external local dependencies.
+
+## Cross-platform package CI
+
+`.github/workflows/desktop-packages.yml` builds unsigned bundles on:
+
+- Windows
+- macOS
+- Linux
+
+It runs for product PRs, manual dispatch, and version tags. The resulting bundles are uploaded as GitHub Actions artifacts.
+
+Code signing/notarization is intentionally not hard-coded because it requires owner-specific credentials.
 
 ## Local API
 
@@ -180,153 +250,91 @@ Start:
 uv run audio-score-api
 ```
 
-Default address:
+Default:
 
 ```text
 http://127.0.0.1:8080
 ```
 
-### Health / device check
+Main routes:
 
-```http
-GET /api/health
-```
+| Method | Route | Purpose |
+|---|---|---|
+| GET | `/api/health` | device/tool/system status |
+| GET | `/api/setup` | first-run setup state |
+| GET | `/api/presets` | model presets |
+| GET | `/api/jobs` | persistent history |
+| POST | `/api/jobs` | transcription job |
+| POST | `/api/benchmarks` | model benchmark job |
+| GET | `/api/jobs/{id}` | job status |
+| POST | `/api/jobs/{id}/cancel` | cancel queued/running job |
+| POST | `/api/jobs/{id}/retry` | rerun saved input |
+| POST | `/api/jobs/{id}/reveal` | reveal job folder |
+| DELETE | `/api/jobs/{id}` | delete completed job |
+| POST | `/api/storage/cleanup` | remove old job data |
+| PUT | `/api/settings/tool-paths` | persist executable overrides |
 
-### Submit a job
-
-```http
-POST /api/jobs
-Content-Type: multipart/form-data
-
-file=<audio file>
-language=ko
-skip_lyrics=false
-```
-
-Response:
-
-```json
-{
-  "job_id": "...",
-  "status": "queued"
-}
-```
-
-### Poll
-
-```http
-GET /api/jobs/{job_id}
-```
-
-### Download outputs
+Artifacts:
 
 ```text
-GET /api/jobs/{job_id}/files/midi
-GET /api/jobs/{job_id}/files/musicxml
-GET /api/jobs/{job_id}/files/pdf
-GET /api/jobs/{job_id}/files/transcript
+GET /api/jobs/{id}/files/midi
+GET /api/jobs/{id}/files/musicxml
+GET /api/jobs/{id}/files/pdf
+GET /api/jobs/{id}/files/transcript
+GET /api/jobs/{id}/files/benchmark_json
+GET /api/jobs/{id}/files/benchmark_csv
 ```
 
-## Configuration
+## Persistent application data
 
-Environment variables:
+The app stores history/settings in the platform-standard user data location:
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `AST_MUSCRIPTOR_CMD` | `muscriptor` | MuScriptor command |
-| `AST_DEMUCS_CMD` | `demucs` | Demucs command |
-| `AST_WHISPERX_CMD` | `whisperx` | WhisperX command |
-| `AST_MUSESCORE_CMD` | auto | Explicit MuseScore executable |
-| `AST_MUSCRIPTOR_MODEL` | `medium` | MuScriptor model size |
-| `AST_WHISPERX_MODEL` | `small` | WhisperX ASR model |
+- macOS: `~/Library/Application Support/AudioScoreTool`
+- Windows: `%LOCALAPPDATA%\AudioScoreTool`
+- Linux: `$XDG_DATA_HOME/audio-score-tool` or `~/.local/share/audio-score-tool`
 
-See `.env.example`.
+Stored data includes:
 
-## Lyric alignment in v0.1
+- SQLite job metadata
+- input audio retained for retry
+- stems and transcription artifacts
+- benchmark reports
+- local executable-path settings
 
-The current implementation is deliberately modular and conservative:
+The Setup screen reports current storage usage and can remove old jobs while retaining the latest 30.
 
-1. Demucs isolates the vocal stem.
-2. WhisperX produces word-level timestamps.
-3. Korean Hangul words are split into syllable tokens using equal-duration subdivision.
-4. AudioScoreTool looks for an explicit `Voice/Vocal` part in MuScriptor's MusicXML.
-5. If there is no explicit vocal part, it selects the score part whose note attacks best match the ASR word starts.
-6. Tokens are attached monotonically to note onsets.
+## Lyric alignment
 
-This is a functional first version, **not yet singing-specific forced alignment**. Long melismas, English syllabification, pickup measures, tempo changes, rubato, and imperfect vocal separation can require manual correction.
+Current alignment remains deliberately modular:
 
-The alignment layer is isolated so it can later be replaced with a phoneme/singing alignment model without changing the API or transcription pipeline.
+1. Demucs isolates vocals.
+2. WhisperX produces word timings.
+3. Korean Hangul words are expanded into timed syllables.
+4. AudioScoreTool selects a vocal-like MusicXML part.
+5. Chord tones sharing an onset are collapsed for lyric placement.
+6. Lyric tokens are matched monotonically with binary-search nearest-onset lookup.
 
-## Development
+This is not yet a singing-specific phoneme aligner. Long melismas, rubato, pickup measures, imperfect source separation, and English syllabification can still require manual correction.
+
+The alignment layer is isolated so a dedicated singing/phoneme aligner can replace it later without changing the desktop/API contract.
+
+## Tests
 
 ```bash
 uv sync --extra dev
-uv run ruff check src tests
+uv run ruff check src tests scripts
 uv run pytest -q
 ```
 
-## Current scope
+CI also validates:
 
-v0.1 focuses on:
+- React/TypeScript/Vite production build
+- Tauri Rust shell
+- fixture-driven end-to-end orchestration without downloading gated model weights
+- persistent settings/job database behavior
+- cancellation
+- MIDI reference metrics
+- API validation
+- local system diagnostics
 
-- local inference
-- automatic CUDA/MPS/CPU selection
-- full-score transcription
-- vocal isolation
-- lyric ASR
-- lyric-enriched MusicXML
-- PDF rendering when MuseScore is callable
-- CLI
-- local FastAPI API
-- deterministic unit tests for device policy and MusicXML lyric insertion
-
-Planned follow-up work includes singing-specific lyric alignment, manual lyric input/correction, progress streaming, persistent job storage, and an interactive score editor.
-
-
-## Desktop app (Tauri 2)
-
-AudioScoreTool now includes a React + Tauri desktop client under `desktop/`.
-
-Development:
-
-```bash
-# backend + Vite/Tauri together
-cd desktop
-npm install
-npm run desktop:dev
-```
-
-The desktop UI provides audio drag-and-drop, MuScriptor/WhisperX model selection,
-automatic accelerator status, pipeline progress, local-tool diagnostics, and direct
-downloads for PDF, MusicXML, MIDI, and lyric JSON.
-
-For packaged builds, install the desktop Python extra and build the Python API sidecar first:
-
-```bash
-uv sync --extra desktop
-cd desktop
-npm install
-npm run desktop:build
-```
-
-The packaged orchestration backend is a PyInstaller sidecar. MuScriptor, Demucs,
-WhisperX, MuseScore, and model weights remain external local dependencies in v0.2
-so the application does not redistribute gated/non-commercial model assets.
-
-## Model A/B benchmark
-
-Once the local model tools are installed, compare model combinations on the same source:
-
-```bash
-uv run audio-score benchmark song.wav --language ko --profile all
-```
-
-Profiles:
-
-- `score`: MuScriptor small / medium / large with lyrics disabled.
-- `lyrics`: balanced, medium-ASR, and quality-oriented model combinations.
-- `all`: both matrices.
-
-Results are written to `benchmark.json` and `benchmark.csv`, including wall time,
-success/failure, selected models, and lyric attachment ratio. This allows the same
-benchmark harness to be run on CPU, Apple Silicon, or NVIDIA hardware.
+Real MuScriptor/WhisperX quality evaluation is intentionally left to the target hardware because gated model access and representative audio are user/environment-specific.
