@@ -4,8 +4,8 @@ import os
 import shlex
 import shutil
 import subprocess
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 
 class CommandError(RuntimeError):
@@ -49,6 +49,7 @@ def run_command(
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
+        check=False,
     )
     if proc.returncode != 0:
         raise CommandError(
