@@ -65,6 +65,18 @@ def _runtime_settings(
     )
 _cancel_events: dict[str, Event] = {}
 _runtime_lock = Lock()
+_inference_lock = Lock()
+
+
+def _acquire_inference_slot(job_id: str, cancel_event: Event) -> bool:
+    _store.update(job_id, status="queued", stage="queued")
+    while not cancel_event.is_set():
+        if _inference_lock.acquire(timeout=0.25):
+            if cancel_event.is_set():
+                _inference_lock.release()
+                return False
+            return True
+    return False
 
 
 def _worker(
@@ -78,6 +90,12 @@ def _worker(
     cancel_event = Event()
     with _runtime_lock:
         _cancel_events[job_id] = cancel_event
+
+    if not _acquire_inference_slot(job_id, cancel_event):
+        _store.update(job_id, status="cancelled", stage="cancelled")
+        with _runtime_lock:
+            _cancel_events.pop(job_id, None)
+        return
 
     _store.update(job_id, status="running", stage="starting")
     try:
@@ -112,6 +130,7 @@ def _worker(
     except Exception as exc:
         _store.update(job_id, status="failed", stage="failed", error=str(exc))
     finally:
+        _inference_lock.release()
         with _runtime_lock:
             _cancel_events.pop(job_id, None)
 
@@ -126,6 +145,12 @@ def _benchmark_worker(
     cancel_event = Event()
     with _runtime_lock:
         _cancel_events[job_id] = cancel_event
+
+    if not _acquire_inference_slot(job_id, cancel_event):
+        _store.update(job_id, status="cancelled", stage="cancelled")
+        with _runtime_lock:
+            _cancel_events.pop(job_id, None)
+        return
 
     _store.update(job_id, status="running", stage="benchmark:starting")
     output_root = jobs_dir() / job_id / "benchmark"
@@ -162,6 +187,7 @@ def _benchmark_worker(
     except Exception as exc:
         _store.update(job_id, status="failed", stage="failed", error=str(exc))
     finally:
+        _inference_lock.release()
         with _runtime_lock:
             _cancel_events.pop(job_id, None)
 
