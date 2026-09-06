@@ -13,6 +13,11 @@ class CommandError(RuntimeError):
 
 
 def split_command(value: str) -> list[str]:
+    # An explicit executable path may legitimately contain spaces (notably the
+    # default MuseScore macOS app bundle). Treat an existing path atomically.
+    expanded = str(Path(value).expanduser())
+    if Path(expanded).is_file():
+        return [expanded]
     return shlex.split(value, posix=os.name != "nt")
 
 
