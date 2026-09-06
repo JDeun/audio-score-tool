@@ -9,12 +9,26 @@ from typing import Any
 
 import uvicorn
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from .devices import detect_device_plan
 from .pipeline import preflight, transcribe
 
-app = FastAPI(title="AudioScoreTool", version="0.1.0")
+app = FastAPI(title="AudioScoreTool", version="0.2.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "tauri://localhost",
+        "http://tauri.localhost",
+        "https://tauri.localhost",
+    ],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 _jobs: dict[str, dict[str, Any]] = {}
 _lock = Lock()
@@ -35,6 +49,11 @@ def _worker(job_id: str, audio: Path, language: str | None, skip_lyrics: bool) -
             _upload_root / job_id / "outputs",
             language=language,
             skip_lyrics=skip_lyrics,
+            progress=lambda stage, percent: _set_job(
+                job_id,
+                stage=stage,
+                progress=percent,
+            ),
         )
         _set_job(job_id, status="done", result=result.as_dict())
     except Exception as exc:
@@ -68,6 +87,8 @@ async def create_job(
     _set_job(
         job_id,
         status="queued",
+        stage="queued",
+        progress=0,
         filename=file.filename,
         language=language,
         skip_lyrics=skip_lyrics,
