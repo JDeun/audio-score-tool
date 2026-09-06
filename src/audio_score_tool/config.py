@@ -43,6 +43,7 @@ def _uvx_command(package: str) -> str | None:
         "muscriptor",
         "demucs",
         "whisperx",
+        "mt3-infer",
     }:
         flags.append("--torch-backend=cu128")
     if (
@@ -93,9 +94,13 @@ def _optional_path(key: str, env_name: str) -> Path | None:
 class Settings:
     transcription_engine: str = field(
         default_factory=lambda: _saved_or_env(
-            "transcription_engine", "AST_TRANSCRIPTION_ENGINE", "muscriptor"
+            "transcription_engine", "AST_TRANSCRIPTION_ENGINE", "yourmt3"
         )
-        or "muscriptor"
+        or "yourmt3"
+    )
+    yourmt3_cmd: str = field(
+        default_factory=lambda: _saved_or_env("yourmt3_cmd", "AST_YOURMT3_CMD")
+        or _default_command("mt3-infer")
     )
     muscriptor_cmd: str = field(
         default_factory=lambda: _saved_or_env("muscriptor_cmd", "AST_MUSCRIPTOR_CMD")
