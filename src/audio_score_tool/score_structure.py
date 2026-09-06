@@ -19,12 +19,29 @@ _NOTE_QUARTERS = {
 }
 _ARTICULATIONS = {"staccato", "tenuto", "accent", "strong-accent"}
 _BEAMS = {"begin", "continue", "end", "forward hook", "backward hook"}
+_ATTRIBUTE_ORDER = [
+    "divisions",
+    "key",
+    "time",
+    "staves",
+    "part-symbol",
+    "instruments",
+    "clef",
+    "staff-details",
+    "transpose",
+    "directive",
+    "measure-style",
+]
 
 
 def _namespace(root: ET.Element) -> str:
     if root.tag.startswith("{"):
         return root.tag.split("}", 1)[0] + "}"
     return ""
+
+
+def _local_name(tag: str) -> str:
+    return tag.split("}", 1)[-1]
 
 
 def _write(tree: ET.ElementTree, path: Path) -> None:
@@ -116,12 +133,22 @@ def _duration_for_type(divisions: int, note_type: str, dots: int) -> int:
 
 
 def _insert_before(parent: ET.Element, child: ET.Element, before_tags: set[str]) -> None:
-    children = list(parent)
-    for index, existing in enumerate(children):
+    for index, existing in enumerate(list(parent)):
         if existing.tag in before_tags:
             parent.insert(index, child)
             return
     parent.append(child)
+
+
+def _insert_attribute_child(attrs: ET.Element, child: ET.Element) -> None:
+    target_name = _local_name(child.tag)
+    target_order = _ATTRIBUTE_ORDER.index(target_name)
+    for index, existing in enumerate(list(attrs)):
+        name = _local_name(existing.tag)
+        if name in _ATTRIBUTE_ORDER and _ATTRIBUTE_ORDER.index(name) > target_order:
+            attrs.insert(index, child)
+            return
+    attrs.append(child)
 
 
 def _ensure_notations(note: ET.Element, ns: str) -> ET.Element:
@@ -186,19 +213,29 @@ def _set_note_type_and_dots(
     duration_node = note.find(f"{ns}duration")
     if duration_node is None:
         duration_node = ET.Element(f"{ns}duration")
-        _insert_before(duration_node if False else note, duration_node, {f"{ns}tie", f"{ns}voice"})
+        _insert_before(note, duration_node, {f"{ns}tie", f"{ns}voice"})
     duration_node.text = str(duration)
 
     type_node = note.find(f"{ns}type")
     if type_node is None:
         type_node = ET.Element(f"{ns}type")
-        _insert_before(note, type_node, {f"{ns}dot", f"{ns}accidental", f"{ns}staff", f"{ns}beam", f"{ns}notations", f"{ns}lyric"})
+        _insert_before(
+            note,
+            type_node,
+            {
+                f"{ns}dot",
+                f"{ns}accidental",
+                f"{ns}staff",
+                f"{ns}beam",
+                f"{ns}notations",
+                f"{ns}lyric",
+            },
+        )
     type_node.text = note_type
 
     for dot in list(note.findall(f"{ns}dot")):
         note.remove(dot)
-    children = list(note)
-    type_index = children.index(type_node)
+    type_index = list(note).index(type_node)
     for offset in range(dots):
         note.insert(type_index + 1 + offset, ET.Element(f"{ns}dot"))
 
@@ -226,11 +263,9 @@ def _set_ties(note: ET.Element, ns: str, values: list[str]) -> None:
     for tie in list(note.findall(f"{ns}tie")):
         note.remove(tie)
     duration = note.find(f"{ns}duration")
-    children = list(note)
-    insert_index = children.index(duration) + 1 if duration is not None else 0
+    insert_index = list(note).index(duration) + 1 if duration is not None else 0
     for offset, value in enumerate(normalized):
-        tie = ET.Element(f"{ns}tie", {"type": value})
-        note.insert(insert_index + offset, tie)
+        note.insert(insert_index + offset, ET.Element(f"{ns}tie", {"type": value}))
 
     notations = _ensure_notations(note, ns)
     for tied in list(notations.findall(f"{ns}tied")):
@@ -336,6 +371,12 @@ def insert_note(
         alter=int(alter),
         octave=int(octave),
     )
+    voice = anchor.find(f"{ns}voice")
+    if voice is not None and voice.text:
+        ET.SubElement(new_note, f"{ns}voice").text = voice.text
+    staff = anchor.find(f"{ns}staff")
+    if staff is not None and staff.text:
+        ET.SubElement(new_note, f"{ns}staff").text = staff.text
     _set_note_type_and_dots(
         new_note,
         ns,
@@ -343,12 +384,6 @@ def insert_note(
         note_type=note_type,
         dots=dots,
     )
-    voice = anchor.find(f"{ns}voice")
-    if voice is not None and voice.text:
-        ET.SubElement(new_note, f"{ns}voice").text = voice.text
-    staff = anchor.find(f"{ns}staff")
-    if staff is not None and staff.text:
-        ET.SubElement(new_note, f"{ns}staff").text = staff.text
     if lyric:
         lyric_node = ET.SubElement(new_note, f"{ns}lyric")
         ET.SubElement(lyric_node, f"{ns}syllabic").text = "single"
@@ -367,9 +402,11 @@ def insert_note(
 def delete_note(path: Path, note_id: str) -> None:
     tree = ET.parse(path)
     root = tree.getroot()
-    _part, measure, note, _pi, _mi, _ni, _ns = _find_note_context(root, note_id)
-    if len(measure.findall(f"{_namespace(root)}note")) <= 1:
-        raise MusicXMLEditError("마디의 마지막 음표는 바로 삭제할 수 없습니다. 마디를 삭제하거나 쉼표로 바꾸세요.")
+    _part, measure, note, _pi, _mi, _ni, ns = _find_note_context(root, note_id)
+    if len(measure.findall(f"{ns}note")) <= 1:
+        raise MusicXMLEditError(
+            "마디의 마지막 음표는 바로 삭제할 수 없습니다. 마디를 삭제하거나 쉼표로 바꾸세요."
+        )
     measure.remove(note)
     _write(tree, path)
 
@@ -391,9 +428,9 @@ def insert_measure(path: Path, after_measure_index: int) -> int:
     target_index = max(0, after_measure_index + 1)
     for part in parts:
         measures = part.findall(f"{ns}measure")
-        if after_measure_index >= len(measures):
+        if after_measure_index < 0 or after_measure_index >= len(measures):
             raise MusicXMLEditError("마디 위치가 범위를 벗어났습니다.")
-        attrs = _effective_attributes(part, max(0, after_measure_index), ns)
+        attrs = _effective_attributes(part, after_measure_index, ns)
         new_measure = ET.Element(f"{ns}measure", {"number": str(target_index + 1)})
         latest_attrs = attrs.get("attributes")
         if latest_attrs is not None:
@@ -430,6 +467,24 @@ def delete_measure(path: Path, measure_index: int) -> None:
     _write(tree, path)
 
 
+def _ensure_attributes(measure: ET.Element, ns: str) -> ET.Element:
+    attrs = measure.find(f"{ns}attributes")
+    if attrs is not None:
+        return attrs
+    attrs = ET.Element(f"{ns}attributes")
+    measure.insert(0, attrs)
+    return attrs
+
+
+def _ensure_attribute_node(attrs: ET.Element, ns: str, name: str) -> ET.Element:
+    node = attrs.find(f"{ns}{name}")
+    if node is not None:
+        return node
+    node = ET.Element(f"{ns}{name}")
+    _insert_attribute_child(attrs, node)
+    return node
+
+
 def set_measure_signature(
     path: Path,
     measure_index: int,
@@ -439,9 +494,11 @@ def set_measure_signature(
     beats: int | None = None,
     beat_type: int | None = None,
 ) -> None:
-    if fifths is not None and (fifths < -7 or fifths > 7):
+    if fifths is not None and not -7 <= fifths <= 7:
         raise MusicXMLEditError("조표 fifths는 -7에서 7 사이여야 합니다.")
-    if beats is not None and (beats < 1 or beats > 32):
+    if mode is not None and mode not in {"major", "minor"}:
+        raise MusicXMLEditError("조성 mode는 major/minor만 지원합니다.")
+    if beats is not None and not 1 <= beats <= 32:
         raise MusicXMLEditError("박자 분자는 1-32 범위여야 합니다.")
     if beat_type is not None and beat_type not in {1, 2, 4, 8, 16, 32}:
         raise MusicXMLEditError("박자 분모는 1, 2, 4, 8, 16, 32 중 하나여야 합니다.")
@@ -453,20 +510,15 @@ def set_measure_signature(
         measures = part.findall(f"{ns}measure")
         if measure_index < 0 or measure_index >= len(measures):
             raise MusicXMLEditError("마디 위치가 범위를 벗어났습니다.")
-        measure = measures[measure_index]
-        attrs = measure.find(f"{ns}attributes")
-        if attrs is None:
-            attrs = ET.Element(f"{ns}attributes")
-            measure.insert(0, attrs)
+        attrs = _ensure_attributes(measures[measure_index], ns)
 
         if fifths is not None or mode is not None:
-            key = attrs.find(f"{ns}key")
-            if key is None:
-                key = ET.SubElement(attrs, f"{ns}key")
+            key = _ensure_attribute_node(attrs, ns, "key")
             if fifths is not None:
                 fifths_node = key.find(f"{ns}fifths")
                 if fifths_node is None:
-                    fifths_node = ET.SubElement(key, f"{ns}fifths")
+                    fifths_node = ET.Element(f"{ns}fifths")
+                    key.insert(0, fifths_node)
                 fifths_node.text = str(fifths)
             if mode is not None:
                 mode_node = key.find(f"{ns}mode")
@@ -475,9 +527,7 @@ def set_measure_signature(
                 mode_node.text = mode
 
         if beats is not None or beat_type is not None:
-            time = attrs.find(f"{ns}time")
-            if time is None:
-                time = ET.SubElement(attrs, f"{ns}time")
+            time = _ensure_attribute_node(attrs, ns, "time")
             if beats is not None:
                 beats_node = time.find(f"{ns}beats")
                 if beats_node is None:
