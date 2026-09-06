@@ -92,3 +92,10 @@ aside .card { padding: 19px; }
   .setup-grid { grid-template-columns: 1fr; }
   .tabs { width: 100%; }
 }
+
+.path-fields { display: grid; gap: 9px; margin: 12px 0; }
+.path-field { display: grid; gap: 5px; }
+.path-field span { font-size: 11px; color: #777a72; font-weight: 650; }
+.path-field input { width: 100%; height: 38px; border: 1px solid #d9d8d1; border-radius: 9px; background: #f8f7f3; padding: 0 10px; color: #333630; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.save-settings { margin: 2px 0 24px; }
+.data-label { display: block; margin-top: 4px; }
