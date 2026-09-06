@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 from threading import Lock
 from typing import Any
@@ -43,3 +44,27 @@ class PublicationStore:
             )
             temp.replace(path)
         return merged
+
+    def snapshot(self, song_id: str, revisions_dir: Path, revision: int) -> Path:
+        revisions_dir.mkdir(parents=True, exist_ok=True)
+        source = self.path(song_id)
+        if not source.exists():
+            self.write(song_id, self.read(song_id))
+        target = revisions_dir / f"rev-{revision:04d}.publication.json"
+        shutil.copy2(self.path(song_id), target)
+        return target
+
+    def restore_snapshot(
+        self,
+        song_id: str,
+        revisions_dir: Path,
+        revision: int,
+    ) -> bool:
+        source = revisions_dir / f"rev-{revision:04d}.publication.json"
+        if not source.exists():
+            return False
+        target = self.path(song_id)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+        source.unlink(missing_ok=True)
+        return True
