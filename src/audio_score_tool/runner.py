@@ -21,7 +21,10 @@ def split_command(value: str) -> list[str]:
     expanded = str(Path(value).expanduser())
     if Path(expanded).is_file():
         return [expanded]
-    return shlex.split(value, posix=os.name != "nt")
+    parts = shlex.split(value, posix=os.name != "nt")
+    if os.name == "nt":
+        parts = [part[1:-1] if len(part) >= 2 and part[0] == part[-1] == '"' else part for part in parts]
+    return parts
 
 
 def command_exists(command: str) -> bool:
