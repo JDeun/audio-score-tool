@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 from .benchmark import configs_for_profile, run_benchmark_matrix
 from .config import Settings
+from .desktop_utils import reveal_in_file_manager
 from .devices import detect_device_plan
 from .job_store import JobStore
 from .paths import jobs_dir
@@ -458,6 +459,21 @@ def cancel_job(job_id: str) -> dict:
             event.set()
     _store.update(job_id, status="cancelling", stage="cancelling")
     return {"job_id": job_id, "status": "cancelling", "cancelled": True}
+
+
+@app.post("/api/jobs/{job_id}/reveal")
+def reveal_job(job_id: str) -> dict:
+    job = _store.get(job_id)
+    if not job:
+        raise HTTPException(404, "Job not found")
+    path = jobs_dir() / job_id
+    if not path.exists():
+        raise HTTPException(404, "Job directory is missing")
+    try:
+        reveal_in_file_manager(path)
+    except OSError as exc:
+        raise HTTPException(500, f"Could not open file manager: {exc}") from exc
+    return {"job_id": job_id, "revealed": True}
 
 
 @app.delete("/api/jobs/{job_id}")
