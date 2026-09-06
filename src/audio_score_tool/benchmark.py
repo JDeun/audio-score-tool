@@ -7,6 +7,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from .config import Settings
+from .metrics import evaluate_midi_files
 from .pipeline import PipelineError, transcribe
 
 
@@ -28,6 +29,10 @@ class BenchmarkResult:
     success: bool
     attached_ratio: float | None = None
     error: str | None = None
+    note_precision: float | None = None
+    note_recall: float | None = None
+    note_f1: float | None = None
+    onset_mae_ms: float | None = None
 
 
 SCORE_CONFIGS = [
@@ -69,6 +74,7 @@ def run_benchmark_matrix(
     *,
     language: str | None,
     configs: list[BenchmarkConfig],
+    reference_midi: Path | None = None,
 ) -> list[BenchmarkResult]:
     output_root.mkdir(parents=True, exist_ok=True)
     results: list[BenchmarkResult] = []
@@ -87,6 +93,11 @@ def run_benchmark_matrix(
                     whisperx_model=config.whisperx_model,
                 ),
             )
+            metrics = (
+                evaluate_midi_files(result.midi_path, reference_midi)
+                if reference_midi is not None
+                else None
+            )
             results.append(
                 BenchmarkResult(
                     config=config.name,
@@ -96,6 +107,10 @@ def run_benchmark_matrix(
                     wall_seconds=time.perf_counter() - started,
                     success=True,
                     attached_ratio=_alignment_ratio(result.work_dir),
+                    note_precision=metrics.precision if metrics else None,
+                    note_recall=metrics.recall if metrics else None,
+                    note_f1=metrics.f1 if metrics else None,
+                    onset_mae_ms=metrics.onset_mae_ms if metrics else None,
                 )
             )
         except (PipelineError, OSError, ValueError) as exc:
