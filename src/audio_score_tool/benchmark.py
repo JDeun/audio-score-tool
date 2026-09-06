@@ -3,8 +3,10 @@ from __future__ import annotations
 import csv
 import json
 import time
-from dataclasses import asdict, dataclass
+from collections.abc import Callable
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
+from threading import Event
 
 from .config import Settings
 from .metrics import evaluate_midi_files
@@ -75,11 +77,21 @@ def run_benchmark_matrix(
     language: str | None,
     configs: list[BenchmarkConfig],
     reference_midi: Path | None = None,
+    base_settings: Settings | None = None,
+    progress: Callable[[str, int], None] | None = None,
+    cancel_event: Event | None = None,
 ) -> list[BenchmarkResult]:
     output_root.mkdir(parents=True, exist_ok=True)
     results: list[BenchmarkResult] = []
 
-    for config in configs:
+    total = max(1, len(configs))
+    base = base_settings or Settings()
+
+    for index, config in enumerate(configs):
+        if cancel_event is not None and cancel_event.is_set():
+            break
+        if progress is not None:
+            progress(f"benchmark:{config.name}", int(index / total * 100))
         started = time.perf_counter()
         target = output_root / config.name
         try:
@@ -88,10 +100,12 @@ def run_benchmark_matrix(
                 target,
                 language=language,
                 skip_lyrics=config.skip_lyrics,
-                settings=Settings(
+                settings=replace(
+                    base,
                     muscriptor_model=config.muscriptor_model,
                     whisperx_model=config.whisperx_model,
                 ),
+                cancel_event=cancel_event,
             )
             metrics = (
                 evaluate_midi_files(result.midi_path, reference_midi)
@@ -125,7 +139,11 @@ def run_benchmark_matrix(
                     error=str(exc),
                 )
             )
+            if cancel_event is not None and cancel_event.is_set():
+                break
 
+    if progress is not None:
+        progress("benchmark:complete", 100)
     write_reports(output_root, results)
     return results
 
