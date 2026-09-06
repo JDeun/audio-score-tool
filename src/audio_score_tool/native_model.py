@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from .native_events import BOS, EOS, PAD, VOCAB_SIZE
@@ -82,6 +82,8 @@ def build_model(config: NativeModelConfig):
 
         def decode(self, tokens, memory):
             length = tokens.shape[1]
+            if length > config.max_tokens:
+                raise ValueError(f"token sequence exceeds max_tokens={config.max_tokens}")
             positions = torch.arange(length, device=tokens.device).unsqueeze(0)
             hidden = self.token_embedding(tokens) + self.token_position(positions)
             causal = torch.triu(
@@ -119,7 +121,7 @@ def save_checkpoint(path: Path, model, config: NativeModelConfig, **metadata) ->
     torch.save(
         {
             "format": "audio-score-native-v1",
-            "config": config.__dict__,
+            "config": asdict(config),
             "state_dict": model.state_dict(),
             "metadata": metadata,
         },
