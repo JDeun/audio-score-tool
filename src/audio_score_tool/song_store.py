@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import shutil
 import sqlite3
 from datetime import datetime, timezone
@@ -8,6 +9,7 @@ from threading import Lock
 from typing import Any
 
 from .paths import app_data_dir, database_path, jobs_dir
+from .publication_layout import merged_publication_settings
 
 
 def _now() -> str:
@@ -196,6 +198,34 @@ class SongStore:
         path = self.song_dir(song_id) / "exports"
         path.mkdir(parents=True, exist_ok=True)
         return path
+
+    def publication_settings(self, song_id: str) -> dict[str, Any]:
+        path = self.song_dir(song_id) / "publication.json"
+        if not path.exists():
+            return merged_publication_settings(None)
+        try:
+            loaded = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return merged_publication_settings(None)
+        if not isinstance(loaded, dict):
+            return merged_publication_settings(None)
+        return merged_publication_settings(loaded)
+
+    def write_publication_settings(
+        self,
+        song_id: str,
+        settings: dict[str, Any],
+    ) -> dict[str, Any]:
+        merged = merged_publication_settings(settings)
+        path = self.song_dir(song_id) / "publication.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temp = path.with_suffix(".json.tmp")
+        temp.write_text(
+            json.dumps(merged, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        temp.replace(path)
+        return merged
 
     def clear_exports(self, song_id: str) -> None:
         export_dir = self.song_dir(song_id) / "exports"
