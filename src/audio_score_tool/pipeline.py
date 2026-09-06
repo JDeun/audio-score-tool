@@ -6,15 +6,21 @@ import platform
 import shutil
 from collections.abc import Callable
 from pathlib import Path
+from threading import Event
 
 from .config import Settings
 from .devices import detect_device_plan
 from .lyrics import attach_lyrics_to_musicxml, expand_korean_syllables, load_whisperx_words
 from .models import PipelineResult
-from .runner import CommandError, command_exists, run_command
+from .runner import CommandCancelled, CommandError, command_exists, run_command
+from .system_status import huggingface_authenticated
 
 
 class PipelineError(RuntimeError):
+    pass
+
+
+class PipelineCancelled(PipelineError):
     pass
 
 
@@ -53,7 +59,12 @@ def _resolve_musescore(settings: Settings) -> str | None:
     return None
 
 
-def _render_pdf(musicxml: Path, pdf: Path, settings: Settings) -> bool:
+def _render_pdf(
+    musicxml: Path,
+    pdf: Path,
+    settings: Settings,
+    cancel_event: Event | None = None,
+) -> bool:
     cmd = _resolve_musescore(settings)
     if not cmd:
         return False
@@ -64,8 +75,10 @@ def _render_pdf(musicxml: Path, pdf: Path, settings: Settings) -> bool:
                 "QT_QPA_PLATFORM": "offscreen",
                 "MU_QT_QPA_PLATFORM": "offscreen",
             }
-        run_command(cmd, ["-o", pdf, musicxml], env=env)
+        run_command(cmd, ["-o", pdf, musicxml], env=env, cancel_event=cancel_event)
         return pdf.exists()
+    except CommandCancelled:
+        raise
     except CommandError:
         return False
 
@@ -83,10 +96,14 @@ def preflight(settings: Settings | None = None, *, require_lyrics: bool = True) 
         missing.append("musescore")
     if require_lyrics:
         missing += [name for name in ("demucs", "whisperx") if not tools[name]]
+    hf_ready = huggingface_authenticated()
+    if not hf_ready:
+        missing.append("huggingface_auth")
     return {
         "ok": not missing,
         "missing": missing,
         "tools": tools,
+        "huggingface_authenticated": hf_ready,
         "device_plan": detect_device_plan().as_dict(),
     }
 
@@ -99,6 +116,7 @@ def transcribe(
     skip_lyrics: bool = False,
     settings: Settings | None = None,
     progress: Callable[[str, int], None] | None = None,
+    cancel_event: Event | None = None,
 ) -> PipelineResult:
     settings = settings or Settings()
 
@@ -144,7 +162,9 @@ def transcribe(
         "best-effort",
     ]
     try:
-        run_command(settings.muscriptor_cmd, muscriptor_args)
+        run_command(settings.muscriptor_cmd, muscriptor_args, cancel_event=cancel_event)
+    except CommandCancelled as exc:
+        raise PipelineCancelled("Transcription cancelled.") from exc
     except CommandError as exc:
         raise PipelineError(f"MuScriptor failed.\n{exc}") from exc
 
@@ -183,7 +203,10 @@ def transcribe(
                 stems_dir,
                 audio_path,
             ],
+            cancel_event=cancel_event,
         )
+    except CommandCancelled as exc:
+        raise PipelineCancelled("Vocal separation cancelled.") from exc
     except CommandError as exc:
         raise PipelineError(f"Demucs failed.\n{exc}") from exc
 
@@ -210,7 +233,9 @@ def transcribe(
         whisper_args += ["--language", language]
 
     try:
-        run_command(settings.whisperx_cmd, whisper_args)
+        run_command(settings.whisperx_cmd, whisper_args, cancel_event=cancel_event)
+    except CommandCancelled as exc:
+        raise PipelineCancelled("Lyrics transcription cancelled.") from exc
     except CommandError as exc:
         raise PipelineError(f"WhisperX failed.\n{exc}") from exc
 
@@ -248,7 +273,12 @@ def transcribe(
 
     # 5) Re-render the lyric-enriched MusicXML if MuseScore is directly callable.
     lyric_pdf = work_dir / "score_with_lyrics.pdf"
-    if not _render_pdf(lyric_musicxml, lyric_pdf, settings):
+    try:
+        rendered = _render_pdf(lyric_musicxml, lyric_pdf, settings, cancel_event)
+    except CommandCancelled as exc:
+        raise PipelineCancelled("Score rendering cancelled.") from exc
+
+    if not rendered:
         lyric_pdf = full_pdf
         warnings.append(
             "Could not directly invoke MuseScore for score_with_lyrics.pdf; "

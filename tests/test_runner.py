@@ -1,8 +1,17 @@
+import sys
+import threading
+import time
 from pathlib import Path
 
 import pytest
 
-from audio_score_tool.runner import CommandError, command_exists, run_command, split_command
+from audio_score_tool.runner import (
+    CommandCancelled,
+    CommandError,
+    command_exists,
+    run_command,
+    split_command,
+)
 
 
 def test_split_command_handles_normal_command():
@@ -26,3 +35,22 @@ def test_run_command_returns_output_for_success():
     )
     assert proc.returncode == 0
     assert proc.stdout.strip() == "ok"
+
+
+
+def test_run_command_can_be_cancelled():
+    event = threading.Event()
+
+    def cancel() -> None:
+        time.sleep(0.2)
+        event.set()
+
+    thread = threading.Thread(target=cancel)
+    thread.start()
+    with pytest.raises(CommandCancelled):
+        run_command(
+            sys.executable,
+            ["-c", "import time; time.sleep(10)"],
+            cancel_event=event,
+        )
+    thread.join()

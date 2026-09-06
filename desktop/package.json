@@ -1,13 +1,13 @@
 {
   "name": "audio-score-tool-desktop",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "desktop:dev": "concurrently \"uv run --project .. audio-score-api\" \"tauri dev\"",
-    "desktop:build": "uv run --project .. --extra desktop python ../scripts/build_sidecar.py && tauri build"
+    "desktop:build": "tauri icon src-tauri/icons/icon.png && uv run --project .. --extra desktop python ../scripts/build_sidecar.py && tauri build"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.8.0",

@@ -52,6 +52,7 @@ def benchmark(
     output: Path = typer.Option(Path("benchmark-results"), "--output", "-o"),
     language: str | None = typer.Option(None, "--language", "-l"),
     profile: str = typer.Option("all", "--profile", help="score | lyrics | all"),
+    reference_midi: Path | None = typer.Option(None, "--reference-midi"),
 ) -> None:
     """Run a local A/B matrix across MuScriptor and WhisperX model sizes."""
     try:
@@ -65,6 +66,7 @@ def benchmark(
         output,
         language=language,
         configs=configs,
+        reference_midi=reference_midi,
     )
     typer.echo(json.dumps([result.__dict__ if hasattr(result, "__dict__") else {
         "config": result.config,

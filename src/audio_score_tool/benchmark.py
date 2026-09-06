@@ -3,10 +3,13 @@ from __future__ import annotations
 import csv
 import json
 import time
-from dataclasses import asdict, dataclass
+from collections.abc import Callable
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
+from threading import Event
 
 from .config import Settings
+from .metrics import evaluate_midi_files
 from .pipeline import PipelineError, transcribe
 
 
@@ -28,6 +31,10 @@ class BenchmarkResult:
     success: bool
     attached_ratio: float | None = None
     error: str | None = None
+    note_precision: float | None = None
+    note_recall: float | None = None
+    note_f1: float | None = None
+    onset_mae_ms: float | None = None
 
 
 SCORE_CONFIGS = [
@@ -69,11 +76,22 @@ def run_benchmark_matrix(
     *,
     language: str | None,
     configs: list[BenchmarkConfig],
+    reference_midi: Path | None = None,
+    base_settings: Settings | None = None,
+    progress: Callable[[str, int], None] | None = None,
+    cancel_event: Event | None = None,
 ) -> list[BenchmarkResult]:
     output_root.mkdir(parents=True, exist_ok=True)
     results: list[BenchmarkResult] = []
 
-    for config in configs:
+    total = max(1, len(configs))
+    base = base_settings or Settings()
+
+    for index, config in enumerate(configs):
+        if cancel_event is not None and cancel_event.is_set():
+            break
+        if progress is not None:
+            progress(f"benchmark:{config.name}", int(index / total * 100))
         started = time.perf_counter()
         target = output_root / config.name
         try:
@@ -82,10 +100,25 @@ def run_benchmark_matrix(
                 target,
                 language=language,
                 skip_lyrics=config.skip_lyrics,
-                settings=Settings(
+                settings=replace(
+                    base,
                     muscriptor_model=config.muscriptor_model,
                     whisperx_model=config.whisperx_model,
                 ),
+                cancel_event=cancel_event,
+                progress=(
+                    (lambda stage, percent, i=index, name=config.name: progress(
+                        f"benchmark:{name}:{stage}",
+                        min(99, int((i + percent / 100) / total * 100)),
+                    ))
+                    if progress is not None
+                    else None
+                ),
+            )
+            metrics = (
+                evaluate_midi_files(result.midi_path, reference_midi)
+                if reference_midi is not None
+                else None
             )
             results.append(
                 BenchmarkResult(
@@ -96,6 +129,10 @@ def run_benchmark_matrix(
                     wall_seconds=time.perf_counter() - started,
                     success=True,
                     attached_ratio=_alignment_ratio(result.work_dir),
+                    note_precision=metrics.precision if metrics else None,
+                    note_recall=metrics.recall if metrics else None,
+                    note_f1=metrics.f1 if metrics else None,
+                    onset_mae_ms=metrics.onset_mae_ms if metrics else None,
                 )
             )
         except (PipelineError, OSError, ValueError) as exc:
@@ -110,7 +147,11 @@ def run_benchmark_matrix(
                     error=str(exc),
                 )
             )
+            if cancel_event is not None and cancel_event.is_set():
+                break
 
+    if progress is not None:
+        progress("benchmark:complete", 100)
     write_reports(output_root, results)
     return results
 

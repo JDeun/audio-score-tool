@@ -51,6 +51,15 @@ jobs:
             libssl-dev \
             libayatana-appindicator3-dev \
             librsvg2-dev
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Install desktop tooling
+        working-directory: desktop
+        run: npm install
+      - name: Generate Tauri icons
+        working-directory: desktop
+        run: npx tauri icon src-tauri/icons/icon.png
       - uses: dtolnay/rust-toolchain@stable
       - name: Create CI sidecar placeholder
         run: |

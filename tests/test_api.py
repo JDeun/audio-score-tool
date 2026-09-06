@@ -17,3 +17,43 @@ def test_unknown_job_is_404():
     client = TestClient(app)
     response = client.get("/api/jobs/not-a-real-job")
     assert response.status_code == 404
+
+
+
+def test_presets_endpoint():
+    client = TestClient(app)
+    response = client.get("/api/presets")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["recommended"] in {"fast", "balanced", "quality"}
+    assert {item["key"] for item in body["presets"]} == {"fast", "balanced", "quality"}
+
+
+def test_rejects_unsupported_audio_upload():
+    client = TestClient(app)
+    response = client.post(
+        "/api/jobs",
+        files={"file": ("not-audio.txt", b"hello", "text/plain")},
+    )
+    assert response.status_code == 415
+
+
+
+def test_rejects_untrusted_browser_origin_for_mutations():
+    client = TestClient(app)
+    response = client.post(
+        "/api/jobs",
+        headers={"Origin": "https://example.com"},
+        files={"file": ("song.wav", b"fake", "audio/wav")},
+    )
+    assert response.status_code == 403
+
+
+def test_allows_tauri_origin_to_reach_validation():
+    client = TestClient(app)
+    response = client.post(
+        "/api/jobs",
+        headers={"Origin": "http://tauri.localhost"},
+        files={"file": ("not-audio.txt", b"fake", "text/plain")},
+    )
+    assert response.status_code == 415
