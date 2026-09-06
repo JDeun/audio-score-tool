@@ -17,3 +17,18 @@ jobs:
         run: uv run ruff check src tests
       - name: Test
         run: uv run pytest -q
+
+  desktop-ui:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Install frontend
+        run: npm install
+      - name: Typecheck and build frontend
+        run: npm run build
