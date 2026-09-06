@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Event
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from .config import Settings
 from .runner import CommandCancelled, CommandError, command_exists, run_command
@@ -25,6 +25,7 @@ _ALLOWED_HOSTS = {
     "music.youtube.com",
     "youtu.be",
 }
+_VIDEO_PATH_PREFIXES = ("/shorts/", "/live/", "/embed/")
 
 
 @dataclass(slots=True)
@@ -58,12 +59,21 @@ def validate_youtube_url(value: str) -> str:
     if host not in _ALLOWED_HOSTS:
         raise YouTubeSourceError("Only youtube.com and youtu.be URLs are supported.")
 
-    if host == "youtu.be" and not parsed.path.strip("/"):
-        raise YouTubeSourceError("The youtu.be URL does not contain a video id.")
-    if host != "youtu.be" and parsed.path == "/watch" and not parsed.query:
-        raise YouTubeSourceError("The YouTube watch URL does not contain a video id.")
+    if host == "youtu.be":
+        if not parsed.path.strip("/"):
+            raise YouTubeSourceError("The youtu.be URL does not contain a video id.")
+        return value
 
-    return value
+    if parsed.path == "/watch":
+        video_id = parse_qs(parsed.query).get("v", [""])[0].strip()
+        if not video_id:
+            raise YouTubeSourceError("The YouTube watch URL does not contain a video id.")
+        return value
+
+    if any(parsed.path.startswith(prefix) and parsed.path[len(prefix):].strip("/") for prefix in _VIDEO_PATH_PREFIXES):
+        return value
+
+    raise YouTubeSourceError("Use a YouTube watch, Shorts, live, embed, or youtu.be video URL.")
 
 
 def youtube_tool_status(settings: Settings | None = None) -> dict:
@@ -71,7 +81,10 @@ def youtube_tool_status(settings: Settings | None = None) -> dict:
     return {
         "ready": command_exists(settings.yt_dlp_cmd),
         "command": settings.yt_dlp_cmd,
-        "fallback_note": "Installed yt-dlp is preferred; uvx yt-dlp is used automatically when uvx is available.",
+        "fallback_note": (
+            "Installed yt-dlp is preferred; uvx yt-dlp is used automatically "
+            "when uvx is available."
+        ),
     }
 
 
@@ -155,7 +168,8 @@ def download_youtube_audio(
         raise YouTubeSourceError(f"Could not import YouTube audio.\n{exc}") from exc
 
     candidates = sorted(
-        path for path in output_dir.glob("input.*")
+        path
+        for path in output_dir.glob("input.*")
         if path.is_file() and path.suffix.lower() not in {".part", ".ytdl"}
     )
     if not candidates:
