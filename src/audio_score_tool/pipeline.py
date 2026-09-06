@@ -12,8 +12,8 @@ from .config import Settings
 from .devices import detect_device_plan
 from .lyrics import attach_lyrics_to_musicxml, expand_korean_syllables, load_whisperx_words
 from .models import PipelineResult
-from .system_status import huggingface_authenticated
 from .runner import CommandCancelled, CommandError, command_exists, run_command
+from .system_status import huggingface_authenticated
 
 
 class PipelineError(RuntimeError):
