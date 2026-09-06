@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import shlex
 import shutil
+import signal
 import subprocess
 from collections.abc import Iterable
 from pathlib import Path
@@ -37,6 +38,35 @@ def command_exists(command: str) -> bool:
     return shutil.which(first) is not None
 
 
+def _terminate_process_tree(proc: subprocess.Popen[str]) -> None:
+    if proc.poll() is not None:
+        return
+    if os.name == "nt":
+        try:
+            subprocess.run(
+                ["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+                timeout=5,
+            )
+        except (OSError, subprocess.SubprocessError):
+            proc.kill()
+        return
+
+    try:
+        os.killpg(proc.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return
+    try:
+        proc.wait(timeout=3)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+
+
 def run_command(
     command: str,
     args: Iterable[str | Path],
@@ -55,6 +85,12 @@ def run_command(
         merged_env.update(env)
 
     try:
+        popen_kwargs: dict = {}
+        if os.name == "nt":
+            popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+        else:
+            popen_kwargs["start_new_session"] = True
+
         proc = subprocess.Popen(
             argv,
             cwd=cwd,
@@ -62,6 +98,7 @@ def run_command(
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
+            **popen_kwargs,
         )
     except OSError as exc:
         raise CommandError(f"Could not start command: {argv[0]} ({exc})") from exc
@@ -76,12 +113,8 @@ def run_command(
             if exc.output:
                 output = exc.output if isinstance(exc.output, str) else exc.output.decode()
             if cancel_event is not None and cancel_event.is_set():
-                proc.terminate()
-                try:
-                    stdout, _ = proc.communicate(timeout=3)
-                except subprocess.TimeoutExpired:
-                    proc.kill()
-                    stdout, _ = proc.communicate()
+                _terminate_process_tree(proc)
+                stdout, _ = proc.communicate()
                 output = stdout or output
                 raise CommandCancelled(
                     f"Command cancelled: {' '.join(argv)}\n\n{output}"
