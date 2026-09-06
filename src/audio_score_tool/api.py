@@ -12,6 +12,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
+from .config import Settings
 from .devices import detect_device_plan
 from .pipeline import preflight, transcribe
 
@@ -41,7 +42,14 @@ def _set_job(job_id: str, **values: Any) -> None:
         _jobs.setdefault(job_id, {}).update(values)
 
 
-def _worker(job_id: str, audio: Path, language: str | None, skip_lyrics: bool) -> None:
+def _worker(
+    job_id: str,
+    audio: Path,
+    language: str | None,
+    skip_lyrics: bool,
+    muscriptor_model: str,
+    whisperx_model: str,
+) -> None:
     _set_job(job_id, status="running")
     try:
         result = transcribe(
@@ -49,6 +57,10 @@ def _worker(job_id: str, audio: Path, language: str | None, skip_lyrics: bool) -
             _upload_root / job_id / "outputs",
             language=language,
             skip_lyrics=skip_lyrics,
+            settings=Settings(
+                muscriptor_model=muscriptor_model,
+                whisperx_model=whisperx_model,
+            ),
             progress=lambda stage, percent: _set_job(
                 job_id,
                 stage=stage,
@@ -74,6 +86,8 @@ async def create_job(
     file: UploadFile = File(...),
     language: str | None = Form(None),
     skip_lyrics: bool = Form(False),
+    muscriptor_model: str = Form("medium"),
+    whisperx_model: str = Form("small"),
 ) -> dict:
     job_id = uuid.uuid4().hex
     job_dir = _upload_root / job_id
@@ -92,10 +106,12 @@ async def create_job(
         filename=file.filename,
         language=language,
         skip_lyrics=skip_lyrics,
+        muscriptor_model=muscriptor_model,
+        whisperx_model=whisperx_model,
     )
     Thread(
         target=_worker,
-        args=(job_id, audio, language, skip_lyrics),
+        args=(job_id, audio, language, skip_lyrics, muscriptor_model, whisperx_model),
         daemon=True,
     ).start()
     return {"job_id": job_id, "status": "queued"}
