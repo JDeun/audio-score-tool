@@ -6,7 +6,7 @@ from pathlib import Path
 from threading import Event, Lock, Thread
 
 import uvicorn
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -24,19 +24,30 @@ from .setup_info import setup_instructions
 from .system_status import storage_status
 
 app = FastAPI(title="AudioScoreTool", version="0.3.0")
+_ALLOWED_ORIGINS = {
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "tauri://localhost",
+    "http://tauri.localhost",
+    "https://tauri.localhost",
+}
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "tauri://localhost",
-        "http://tauri.localhost",
-        "https://tauri.localhost",
-    ],
+    allow_origins=sorted(_ALLOWED_ORIGINS),
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def protect_local_mutations(request: Request, call_next):
+    if request.method not in {"GET", "HEAD", "OPTIONS"}:
+        origin = request.headers.get("origin")
+        if origin is not None and origin not in _ALLOWED_ORIGINS:
+            raise HTTPException(403, "Untrusted origin")
+    return await call_next(request)
 
 _AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac", ".m4a", ".aac", ".ogg", ".opus"}
 _MIDI_EXTENSIONS = {".mid", ".midi"}
