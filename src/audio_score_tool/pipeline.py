@@ -114,6 +114,7 @@ def preflight(settings: Settings | None = None, *, require_lyrics: bool = True) 
     settings = settings or Settings()
     engine = resolve_transcription_engine(settings)
     tools = {
+        "yourmt3": command_exists(settings.yourmt3_cmd),
         "muscriptor": command_exists(settings.muscriptor_cmd),
         "native_engine": command_exists(settings.native_engine_cmd),
         "transcription_engine": engine.ready(),
@@ -126,8 +127,8 @@ def preflight(settings: Settings | None = None, *, require_lyrics: bool = True) 
         missing.append(f"transcription_engine:{engine.key}")
     if not tools["musescore_override_or_path"]:
         missing.append("musescore")
-    if require_lyrics:
-        missing += [name for name in ("demucs", "whisperx") if not tools[name]]
+    if require_lyrics and not tools["whisperx"]:
+        missing.append("whisperx")
 
     hf_ready = huggingface_authenticated()
     if engine.key == "muscriptor" and not hf_ready:
@@ -137,6 +138,10 @@ def preflight(settings: Settings | None = None, *, require_lyrics: bool = True) 
         "ok": not missing,
         "missing": missing,
         "tools": tools,
+        "optional": {
+            "demucs": tools["demucs"],
+            "demucs_note": "Demucs가 없으면 가사 ASR을 원본 믹스에서 실행합니다.",
+        },
         "huggingface_authenticated": hf_ready,
         "device_plan": detect_device_plan().as_dict(),
         "transcription_engine": engine.key,
@@ -252,36 +257,48 @@ def transcribe(
 
     emit("vocal_separation", 60)
 
-    # 3) Vocal isolation for lyrics ASR. Score parts come from the selected
-    # transcription engine; Demucs is only needed here for lyrics quality.
+    # 3) Vocal isolation is an optional lyrics-quality enhancement. If Demucs is not
+    # installed or its separation fails, WhisperX falls back to the original full mix.
     stems_dir.mkdir()
-    try:
-        run_command(
-            settings.demucs_cmd,
-            [
-                "--two-stems",
-                "vocals",
-                "-d",
-                device.demucs_device,
-                "-o",
-                stems_dir,
-                audio_path,
-            ],
-            cancel_event=cancel_event,
+    vocals_path: Path | None = None
+    lyrics_audio = audio_path
+    if command_exists(settings.demucs_cmd):
+        try:
+            run_command(
+                settings.demucs_cmd,
+                [
+                    "--two-stems",
+                    "vocals",
+                    "-d",
+                    device.demucs_device,
+                    "-o",
+                    stems_dir,
+                    audio_path,
+                ],
+                cancel_event=cancel_event,
+            )
+            vocals_path = _find_one(stems_dir, "vocals.wav")
+            lyrics_audio = vocals_path
+        except CommandCancelled as exc:
+            raise PipelineCancelled("Vocal separation cancelled.") from exc
+        except (CommandError, PipelineError) as exc:
+            warnings.append(
+                "Demucs vocal separation failed; lyrics ASR is using the original mix instead. "
+                f"Details: {exc}"
+            )
+    else:
+        warnings.append(
+            "Demucs is not available; lyrics ASR is using the original mix. "
+            "Install Demucs only if isolated vocals improve your lyric accuracy."
         )
-    except CommandCancelled as exc:
-        raise PipelineCancelled("Vocal separation cancelled.") from exc
-    except CommandError as exc:
-        raise PipelineError(f"Demucs failed.\n{exc}") from exc
 
-    vocals_path = _find_one(stems_dir, "vocals.wav")
     emit("vocal_separation", 70)
     emit("lyrics_asr", 73)
 
     # 4) Singing lyrics transcription + word-level forced alignment.
     lyrics_dir.mkdir()
     whisper_args: list[str | Path] = [
-        vocals_path,
+        lyrics_audio,
         "--model",
         settings.whisperx_model,
         "--device",
@@ -328,6 +345,7 @@ def transcribe(
         "attached_token_count": attached,
         "automatic_chord_count": len(inferred_chords),
         "transcription_engine": engine.key,
+        "vocal_separation": "demucs" if vocals_path else "full_mix_fallback",
         "device_plan": device.as_dict(),
     }
     (work_dir / "alignment.json").write_text(
