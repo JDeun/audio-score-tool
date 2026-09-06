@@ -44,7 +44,8 @@ def _uvx_command(package: str) -> str | None:
         and platform.machine().lower() not in {"arm64", "aarch64"}
     ):
         flags.extend(["--python", "3.12"])
-    return " ".join([uvx, *flags, package])
+    executable = f'"{uvx}"' if " " in uvx else uvx
+    return " ".join([executable, *flags, package])
 
 
 def _default_command(name: str) -> str:
