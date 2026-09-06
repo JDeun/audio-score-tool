@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import OperationsWorkspace from "./OperationsWorkspace";
 import SongWorkspace from "./SongWorkspace";
@@ -45,7 +46,7 @@ const sectionMeta: Record<ProductSection, { label: string; eyebrow: string; desc
 };
 
 function NavIcon({ name }: { name: ProductSection }) {
-  const paths: Record<ProductSection, JSX.Element> = {
+  const paths: Record<ProductSection, ReactNode> = {
     new: <><path d="M12 5v14M5 12h14" /><circle cx="12" cy="12" r="9" /></>,
     songs: <><path d="M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2V4Z" /><path d="M9 9h6M9 13h6" /></>,
     history: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
