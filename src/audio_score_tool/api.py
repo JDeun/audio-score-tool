@@ -9,6 +9,7 @@ import uvicorn
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
 from .config import Settings
 from .devices import detect_device_plan
@@ -16,6 +17,7 @@ from .job_store import JobStore
 from .paths import jobs_dir
 from .pipeline import PipelineCancelled, preflight, transcribe
 from .presets import list_presets, resolve_preset
+from .settings_store import SettingsStore
 from .setup_info import setup_instructions
 
 app = FastAPI(title="AudioScoreTool", version="0.3.0")
@@ -34,6 +36,31 @@ app.add_middleware(
 )
 
 _store = JobStore()
+_settings_store = SettingsStore()
+
+
+class ToolPathSettings(BaseModel):
+    muscriptor_cmd: str | None = None
+    demucs_cmd: str | None = None
+    whisperx_cmd: str | None = None
+    musescore_cmd: str | None = None
+
+
+def _runtime_settings(
+    *,
+    muscriptor_model: str = "medium",
+    whisperx_model: str = "small",
+) -> Settings:
+    saved = _settings_store.read()
+    defaults = Settings()
+    return Settings(
+        muscriptor_cmd=saved.get("muscriptor_cmd") or defaults.muscriptor_cmd,
+        demucs_cmd=saved.get("demucs_cmd") or defaults.demucs_cmd,
+        whisperx_cmd=saved.get("whisperx_cmd") or defaults.whisperx_cmd,
+        musescore_cmd=saved.get("musescore_cmd") or defaults.musescore_cmd,
+        muscriptor_model=muscriptor_model,
+        whisperx_model=whisperx_model,
+    )
 _cancel_events: dict[str, Event] = {}
 _runtime_lock = Lock()
 
@@ -57,7 +84,7 @@ def _worker(
             jobs_dir() / job_id / "outputs",
             language=language,
             skip_lyrics=skip_lyrics,
-            settings=Settings(
+            settings=_runtime_settings(
                 muscriptor_model=muscriptor_model,
                 whisperx_model=whisperx_model,
             ),
@@ -92,7 +119,7 @@ def health() -> dict:
     return {
         "status": "ok",
         "device_plan": detect_device_plan().as_dict(),
-        "preflight": preflight(),
+        "preflight": preflight(_runtime_settings()),
         "presets": list_presets(),
         "data_dir": str(jobs_dir().parent),
     }
@@ -101,8 +128,26 @@ def health() -> dict:
 @app.get("/api/setup")
 def setup() -> dict:
     return {
-        "preflight": preflight(),
+        "preflight": preflight(_runtime_settings()),
         "instructions": setup_instructions(),
+        "tool_paths": _settings_store.read(),
+    }
+
+
+@app.get("/api/settings")
+def get_settings() -> dict:
+    return {
+        "tool_paths": _settings_store.read(),
+        "data_dir": str(jobs_dir().parent),
+    }
+
+
+@app.put("/api/settings/tool-paths")
+def update_tool_paths(payload: ToolPathSettings) -> dict:
+    saved = _settings_store.update(payload.model_dump())
+    return {
+        "tool_paths": saved,
+        "preflight": preflight(_runtime_settings()),
     }
 
 
