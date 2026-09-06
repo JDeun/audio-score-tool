@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
@@ -68,6 +69,16 @@ def test_musicxml_note_edit_and_undo(tmp_path: Path):
     assert restored["notes"][0]["lyric"] == "안"
 
 
+def test_new_alter_is_inserted_before_octave(tmp_path: Path):
+    score = write_score(tmp_path / "score.musicxml")
+    update_note(score, "p0-m0-n0", {"alter": 1})
+
+    root = ET.parse(score).getroot()
+    pitch = root.find("./part/measure/note/pitch")
+    assert pitch is not None
+    assert [child.tag.rsplit("}", 1)[-1] for child in pitch] == ["step", "alter", "octave"]
+
+
 def test_musicxml_rejects_invalid_pitch_step(tmp_path: Path):
     score = write_score(tmp_path / "score.musicxml")
     with pytest.raises(MusicXMLEditError):
@@ -107,3 +118,17 @@ def test_song_store_materializes_completed_jobs(tmp_path: Path):
     assert Path(song["current_musicxml"]).exists()
 
     assert store.sync_completed_jobs([]) == 0
+
+
+def test_song_store_clears_stale_exports(tmp_path: Path):
+    store = SongStore(path=tmp_path / "songs.sqlite3", root=tmp_path / "songs")
+    export_dir = store.export_dir("song-1")
+    pdf = export_dir / "score.pdf"
+    midi = export_dir / "score.mid"
+    pdf.write_bytes(b"%PDF")
+    midi.write_bytes(b"MThd")
+
+    store.clear_exports("song-1")
+
+    assert not pdf.exists()
+    assert not midi.exists()
