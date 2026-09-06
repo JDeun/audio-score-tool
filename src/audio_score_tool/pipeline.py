@@ -72,10 +72,6 @@ def _render_pdf(musicxml: Path, pdf: Path, settings: Settings) -> bool:
 
 def preflight(settings: Settings | None = None, *, require_lyrics: bool = True) -> dict:
     settings = settings or Settings()
-
-    def emit(stage: str, percent: int) -> None:
-        if progress is not None:
-            progress(stage, percent)
     tools = {
         "muscriptor": command_exists(settings.muscriptor_cmd),
         "demucs": command_exists(settings.demucs_cmd),
@@ -105,6 +101,11 @@ def transcribe(
     progress: Callable[[str, int], None] | None = None,
 ) -> PipelineResult:
     settings = settings or Settings()
+
+    def emit(stage: str, percent: int) -> None:
+        if progress is not None:
+            progress(stage, percent)
+
     audio_path = audio_path.expanduser().resolve()
     if not audio_path.exists():
         raise PipelineError(f"Audio file does not exist: {audio_path}")
