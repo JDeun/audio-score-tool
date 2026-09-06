@@ -36,6 +36,13 @@ def _find_one(root: Path, name: str, *, required: bool = True) -> Path | None:
     return None
 
 
+def _require_output(root: Path, name: str) -> Path:
+    result = _find_one(root, name)
+    if result is None:  # pragma: no cover - _find_one raises for required outputs
+        raise TranscriptionEngineError(f"Expected engine output not found: {name} under {root}")
+    return result
+
+
 class BaseTranscriptionEngine:
     key = "base"
     display_name = "Base"
@@ -97,8 +104,8 @@ class MuScriptorEngine(BaseTranscriptionEngine):
         except CommandError as exc:
             raise TranscriptionEngineError(f"MuScriptor failed.\n{exc}") from exc
         return TranscriptionArtifacts(
-            midi_path=_find_one(output_dir, "score.mid"),
-            musicxml_path=_find_one(output_dir, "score.musicxml"),
+            midi_path=_require_output(output_dir, "score.mid"),
+            musicxml_path=_require_output(output_dir, "score.musicxml"),
             initial_pdf_path=_find_one(output_dir, "full_score.pdf", required=False),
         )
 
@@ -132,7 +139,8 @@ class NativeCommandEngine(BaseTranscriptionEngine):
         checkpoint = self.settings.native_checkpoint
         if checkpoint is None or not checkpoint.expanduser().is_file():
             raise TranscriptionEngineUnavailable(
-                "AudioScore Native checkpoint is not configured. Train or provide a project-owned checkpoint first."
+                "AudioScore Native checkpoint is not configured. "
+                "Train or provide a project-owned checkpoint first."
             )
         if not command_exists(self.settings.native_engine_cmd):
             raise TranscriptionEngineUnavailable("AudioScore Native command is unavailable.")
@@ -153,14 +161,17 @@ class NativeCommandEngine(BaseTranscriptionEngine):
         except CommandError as exc:
             raise TranscriptionEngineError(f"AudioScore Native failed.\n{exc}") from exc
         return TranscriptionArtifacts(
-            midi_path=_find_one(output_dir, "score.mid"),
-            musicxml_path=_find_one(output_dir, "score.musicxml"),
+            midi_path=_require_output(output_dir, "score.mid"),
+            musicxml_path=_require_output(output_dir, "score.musicxml"),
             initial_pdf_path=_find_one(output_dir, "full_score.pdf", required=False),
         )
 
 
 def available_engines(settings: Settings) -> list[dict[str, object]]:
-    engines: list[BaseTranscriptionEngine] = [MuScriptorEngine(settings), NativeCommandEngine(settings)]
+    engines: list[BaseTranscriptionEngine] = [
+        MuScriptorEngine(settings),
+        NativeCommandEngine(settings),
+    ]
     return [
         {
             "key": engine.key,
@@ -178,4 +189,6 @@ def resolve_transcription_engine(settings: Settings) -> BaseTranscriptionEngine:
         return MuScriptorEngine(settings)
     if key == "native":
         return NativeCommandEngine(settings)
-    raise TranscriptionEngineUnavailable(f"Unknown transcription engine: {settings.transcription_engine}")
+    raise TranscriptionEngineUnavailable(
+        f"Unknown transcription engine: {settings.transcription_engine}"
+    )
