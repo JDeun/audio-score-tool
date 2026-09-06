@@ -59,6 +59,12 @@ def _score(tmp_path: Path) -> Path:
     return path
 
 
+def _voice_measure_one_notes(root: ET.Element) -> list[ET.Element]:
+    measure = root.find("./part[@id='P1']/measure[@number='1']")
+    assert measure is not None
+    return measure.findall("note")
+
+
 def test_update_note_rhythm_and_expression(tmp_path: Path):
     path = _score(tmp_path)
     update_note_structure(
@@ -74,8 +80,7 @@ def test_update_note_rhythm_and_expression(tmp_path: Path):
         },
     )
     root = ET.parse(path).getroot()
-    note = root.find("./part/measure/note")
-    assert note is not None
+    note = _voice_measure_one_notes(root)[0]
     assert note.findtext("duration") == "3"
     assert note.findtext("type") == "eighth"
     assert len(note.findall("dot")) == 1
@@ -90,15 +95,13 @@ def test_convert_note_to_rest_and_back(tmp_path: Path):
     path = _score(tmp_path)
     update_note_structure(path, "p0-m0-n0", {"rest": True})
     root = ET.parse(path).getroot()
-    note = root.find("./part/measure/note")
-    assert note is not None
+    note = _voice_measure_one_notes(root)[0]
     assert note.find("rest") is not None
     assert note.find("pitch") is None
 
     update_note_structure(path, "p0-m0-n0", {"rest": False})
     root = ET.parse(path).getroot()
-    note = root.find("./part/measure/note")
-    assert note is not None
+    note = _voice_measure_one_notes(root)[0]
     assert note.find("rest") is None
     assert note.findtext("pitch/step") == "C"
 
@@ -118,7 +121,7 @@ def test_insert_and_delete_note(tmp_path: Path):
     )
     assert new_id == "p0-m0-n1"
     root = ET.parse(path).getroot()
-    notes = root.findall("./part/measure/note")
+    notes = _voice_measure_one_notes(root)
     assert len(notes) == 3
     assert notes[1].findtext("pitch/step") == "F"
     assert notes[1].findtext("pitch/alter") == "1"
@@ -126,7 +129,7 @@ def test_insert_and_delete_note(tmp_path: Path):
 
     delete_note(path, new_id)
     root = ET.parse(path).getroot()
-    assert len(root.findall("./part/measure/note")) == 2
+    assert len(_voice_measure_one_notes(root)) == 2
 
 
 def test_insert_delete_measure_across_all_parts(tmp_path: Path):
