@@ -31,6 +31,14 @@ type Health = {
     presets: Preset[];
   };
   data_dir: string;
+  system: {
+    data_dir: string;
+    jobs_bytes: number;
+    disk_total_bytes: number;
+    disk_used_bytes: number;
+    disk_free_bytes: number;
+    hf_authenticated: boolean;
+  };
 };
 
 type SetupInfo = {
@@ -99,6 +107,7 @@ function App() {
   const [setup, setSetup] = useState<SetupInfo | null>(null);
   const [toolPaths, setToolPaths] = useState<Record<string, string>>({});
   const [settingsSaved, setSettingsSaved] = useState(false);
+  const [cleanupMessage, setCleanupMessage] = useState("");
   const [backendError, setBackendError] = useState(false);
   const [tab, setTab] = useState<"transcribe" | "benchmark" | "history" | "setup">("transcribe");
   const [file, setFile] = useState<File | null>(null);
@@ -276,6 +285,39 @@ function App() {
       if (job?.job_id === target.job_id) setJob(null);
       void fetchJobs();
     }
+  };
+
+  const retryJob = async (target: Job) => {
+    const res = await fetch(`${API}/api/jobs/${target.job_id}/retry`, { method: "POST" });
+    if (res.ok) {
+      const created = await res.json();
+      const fresh = await fetch(`${API}/api/jobs/${created.job_id}`);
+      if (fresh.ok) setJob(await fresh.json());
+      setTab(target.kind === "benchmark" ? "benchmark" : "transcribe");
+      void fetchJobs();
+    }
+  };
+
+  const cleanupJobs = async () => {
+    const res = await fetch(`${API}/api/storage/cleanup?keep=30`, { method: "POST" });
+    if (res.ok) {
+      const body = await res.json();
+      setCleanupMessage(`${body.deleted_jobs} old jobs removed`);
+      await refreshHealth();
+      await fetchJobs();
+    }
+  };
+
+  const formatBytes = (bytes?: number) => {
+    if (bytes == null) return "—";
+    const units = ["B", "KB", "MB", "GB", "TB"];
+    let value = bytes;
+    let index = 0;
+    while (value >= 1024 && index < units.length - 1) {
+      value /= 1024;
+      index += 1;
+    }
+    return `${value.toFixed(index < 2 ? 0 : 1)} ${units[index]}`;
   };
 
   const artifactUrl = (target: Job | null, kind: string) =>
@@ -576,7 +618,10 @@ function App() {
                   </button>
                   {item.status === "done" && <div className="history-artifacts">{renderArtifacts(item)}</div>}
                   {!["queued", "running", "cancelling"].includes(item.status) && (
-                    <button className="delete-button" onClick={() => deleteJob(item)}>Delete</button>
+                    <div className="job-actions">
+                      <button onClick={() => retryJob(item)}>Retry</button>
+                      <button className="delete-button" onClick={() => deleteJob(item)}>Delete</button>
+                    </div>
                   )}
                 </article>
               ))}
@@ -647,6 +692,25 @@ function App() {
             <button className="secondary save-settings" onClick={saveToolPaths}>
               {settingsSaved ? "Saved" : "Save paths"}
             </button>
+
+            <div className="system-grid">
+              <div>
+                <span>Hugging Face</span>
+                <strong className={health?.system.hf_authenticated ? "ok" : "missing"}>
+                  {health?.system.hf_authenticated ? "Authenticated" : "Authentication required"}
+                </strong>
+              </div>
+              <div>
+                <span>Job data</span>
+                <strong>{formatBytes(health?.system.jobs_bytes)}</strong>
+              </div>
+              <div>
+                <span>Disk free</span>
+                <strong>{formatBytes(health?.system.disk_free_bytes)}</strong>
+              </div>
+            </div>
+            <button className="secondary cleanup-button" onClick={cleanupJobs}>Keep latest 30 jobs · clean older data</button>
+            {cleanupMessage && <p className="ok cleanup-message">{cleanupMessage}</p>}
 
             <span className="eyebrow data-label">DATA LOCATION</span>
             <code className="path-code">{health?.data_dir ?? "Checking…"}</code>
