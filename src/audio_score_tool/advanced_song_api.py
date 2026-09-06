@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Literal
+from pathlib import Path
+from typing import Callable, Literal
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -27,11 +28,11 @@ from .song_api import (
 
 router = APIRouter(prefix="/api/songs", tags=["advanced-score-editor"])
 _publication_store = PublicationStore()
-_NOTE_TYPES = Literal["whole", "half", "quarter", "eighth", "16th", "32nd", "64th"]
+NoteType = Literal["whole", "half", "quarter", "eighth", "16th", "32nd", "64th"]
 
 
 class NoteStructurePatch(BaseModel):
-    type: _NOTE_TYPES | None = None
+    type: NoteType | None = None
     dots: int | None = Field(default=None, ge=0, le=2)
     rest: bool | None = None
     articulations: list[Literal["staccato", "tenuto", "accent", "strong-accent"]] | None = None
@@ -46,7 +47,7 @@ class InsertNotePayload(BaseModel):
     step: Literal["A", "B", "C", "D", "E", "F", "G"] = "C"
     alter: int = Field(default=0, ge=-2, le=2)
     octave: int = Field(default=4, ge=0, le=9)
-    type: _NOTE_TYPES = "quarter"
+    type: NoteType = "quarter"
     dots: int = Field(default=0, ge=0, le=2)
     lyric: str = Field(default="", max_length=200)
 
@@ -60,13 +61,13 @@ class SignaturePatch(BaseModel):
 
 def _refresh_layout(song: dict) -> None:
     apply_publication_layout(
-        path=__import__("pathlib").Path(song["current_musicxml"]),
+        Path(song["current_musicxml"]),
         title=song["title"],
         settings=_publication_store.read(song["song_id"]),
     )
 
 
-def _mutate(song_id: str, operation) -> dict:
+def _mutate(song_id: str, operation: Callable[[dict], dict]) -> dict:
     song = _require_song(song_id)
     _snapshot_before_edit(song)
     try:
@@ -85,8 +86,6 @@ def _mutate(song_id: str, operation) -> dict:
 @router.get("/{song_id}/structure")
 def get_structure(song_id: str) -> dict:
     song = _require_song(song_id)
-    from pathlib import Path
-
     return {"song": _public(song), **structure_summary(Path(song["current_musicxml"]))}
 
 
@@ -96,9 +95,7 @@ def patch_note_structure(song_id: str, note_id: str, payload: NoteStructurePatch
     if not patch:
         return {"song": _public(_require_song(song_id)), "note_id": note_id}
 
-    def operation(song: dict):
-        from pathlib import Path
-
+    def operation(song: dict) -> dict:
         update_note_structure(Path(song["current_musicxml"]), note_id, patch)
         return {"note_id": note_id}
 
@@ -107,9 +104,7 @@ def patch_note_structure(song_id: str, note_id: str, payload: NoteStructurePatch
 
 @router.post("/{song_id}/notes/{note_id}/insert")
 def insert_score_note(song_id: str, note_id: str, payload: InsertNotePayload) -> dict:
-    def operation(song: dict):
-        from pathlib import Path
-
+    def operation(song: dict) -> dict:
         new_id = insert_note(
             Path(song["current_musicxml"]),
             note_id,
@@ -129,9 +124,7 @@ def insert_score_note(song_id: str, note_id: str, payload: InsertNotePayload) ->
 
 @router.delete("/{song_id}/notes/{note_id}")
 def delete_score_note(song_id: str, note_id: str) -> dict:
-    def operation(song: dict):
-        from pathlib import Path
-
+    def operation(song: dict) -> dict:
         delete_note(Path(song["current_musicxml"]), note_id)
         return {"deleted_note_id": note_id}
 
@@ -140,9 +133,7 @@ def delete_score_note(song_id: str, note_id: str) -> dict:
 
 @router.post("/{song_id}/measures/{measure_index}/insert-after")
 def insert_score_measure(song_id: str, measure_index: int) -> dict:
-    def operation(song: dict):
-        from pathlib import Path
-
+    def operation(song: dict) -> dict:
         new_index = insert_measure(Path(song["current_musicxml"]), measure_index)
         return {"measure_index": new_index}
 
@@ -151,9 +142,7 @@ def insert_score_measure(song_id: str, measure_index: int) -> dict:
 
 @router.delete("/{song_id}/measures/{measure_index}")
 def delete_score_measure(song_id: str, measure_index: int) -> dict:
-    def operation(song: dict):
-        from pathlib import Path
-
+    def operation(song: dict) -> dict:
         delete_measure(Path(song["current_musicxml"]), measure_index)
         return {"deleted_measure_index": measure_index}
 
@@ -166,9 +155,7 @@ def patch_measure_signature(song_id: str, measure_index: int, payload: Signature
     if not patch:
         return {"song": _public(_require_song(song_id)), "measure_index": measure_index}
 
-    def operation(song: dict):
-        from pathlib import Path
-
+    def operation(song: dict) -> dict:
         set_measure_signature(
             Path(song["current_musicxml"]),
             measure_index,
