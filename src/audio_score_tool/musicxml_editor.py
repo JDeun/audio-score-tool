@@ -125,6 +125,28 @@ def _set_child(parent: ET.Element, tag: str, value: str) -> ET.Element:
     return child
 
 
+def _set_pitch_alter(pitch: ET.Element, ns: str, value: int | None) -> None:
+    tag = f"{ns}alter"
+    existing = pitch.find(tag)
+    if value in (None, 0):
+        if existing is not None:
+            pitch.remove(existing)
+        return
+
+    if existing is not None:
+        existing.text = str(value)
+        return
+
+    alter = ET.Element(tag)
+    alter.text = str(value)
+    octave = pitch.find(f"{ns}octave")
+    if octave is None:
+        pitch.append(alter)
+        return
+    children = list(pitch)
+    pitch.insert(children.index(octave), alter)
+
+
 def update_note(path: Path, note_id: str, patch: dict[str, Any]) -> None:
     tree = ET.parse(path)
     root = tree.getroot()
@@ -146,10 +168,8 @@ def update_note(path: Path, note_id: str, patch: dict[str, Any]) -> None:
 
         if "alter" in patch:
             alter = patch["alter"]
-            existing = pitch.find(f"{ns}alter")
             if alter in (None, 0, "", "0"):
-                if existing is not None:
-                    pitch.remove(existing)
+                _set_pitch_alter(pitch, ns, None)
             else:
                 try:
                     value = int(alter)
@@ -157,7 +177,7 @@ def update_note(path: Path, note_id: str, patch: dict[str, Any]) -> None:
                     raise MusicXMLEditError("alter는 정수여야 합니다.") from exc
                 if value < -2 or value > 2:
                     raise MusicXMLEditError("alter는 -2에서 2 사이만 지원합니다.")
-                _set_child(pitch, f"{ns}alter", str(value))
+                _set_pitch_alter(pitch, ns, value)
 
         if "octave" in patch and patch["octave"] is not None:
             try:
