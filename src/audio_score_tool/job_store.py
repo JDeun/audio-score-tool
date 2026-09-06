@@ -32,6 +32,7 @@ class JobStore:
                 """
                 CREATE TABLE IF NOT EXISTS jobs (
                     job_id TEXT PRIMARY KEY,
+                    kind TEXT NOT NULL DEFAULT 'transcription',
                     status TEXT NOT NULL,
                     stage TEXT,
                     progress INTEGER NOT NULL DEFAULT 0,
@@ -48,6 +49,9 @@ class JobStore:
                 )
                 """
             )
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(jobs)").fetchall()}
+            if "kind" not in columns:
+                conn.execute("ALTER TABLE jobs ADD COLUMN kind TEXT NOT NULL DEFAULT 'transcription'")
             conn.execute(
                 "UPDATE jobs SET status='interrupted', stage='interrupted' "
                 "WHERE status IN ('queued', 'running', 'cancelling')"
@@ -56,6 +60,7 @@ class JobStore:
     def create(self, job_id: str, **values: Any) -> None:
         now = _now()
         payload = {
+            "kind": values.get("kind", "transcription"),
             "status": values.get("status", "queued"),
             "stage": values.get("stage", "queued"),
             "progress": int(values.get("progress", 0)),
@@ -72,12 +77,12 @@ class JobStore:
             conn.execute(
                 """
                 INSERT INTO jobs (
-                    job_id,status,stage,progress,filename,language,skip_lyrics,preset,
+                    job_id,kind,status,stage,progress,filename,language,skip_lyrics,preset,
                     muscriptor_model,whisperx_model,error,result_json,created_at,updated_at
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """,
                 (
-                    job_id, payload["status"], payload["stage"], payload["progress"],
+                    job_id, payload["kind"], payload["status"], payload["stage"], payload["progress"],
                     payload["filename"], payload["language"], payload["skip_lyrics"],
                     payload["preset"], payload["muscriptor_model"], payload["whisperx_model"],
                     payload["error"], payload["result_json"], now, now,
