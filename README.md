@@ -281,3 +281,52 @@ v0.1 focuses on:
 - deterministic unit tests for device policy and MusicXML lyric insertion
 
 Planned follow-up work includes singing-specific lyric alignment, manual lyric input/correction, progress streaming, persistent job storage, and an interactive score editor.
+
+
+## Desktop app (Tauri 2)
+
+AudioScoreTool now includes a React + Tauri desktop client under `desktop/`.
+
+Development:
+
+```bash
+# backend + Vite/Tauri together
+cd desktop
+npm install
+npm run desktop:dev
+```
+
+The desktop UI provides audio drag-and-drop, MuScriptor/WhisperX model selection,
+automatic accelerator status, pipeline progress, local-tool diagnostics, and direct
+downloads for PDF, MusicXML, MIDI, and lyric JSON.
+
+For packaged builds, install the desktop Python extra and build the Python API sidecar first:
+
+```bash
+uv sync --extra desktop
+cd desktop
+npm install
+npm run desktop:build
+```
+
+The packaged orchestration backend is a PyInstaller sidecar. MuScriptor, Demucs,
+WhisperX, MuseScore, and model weights remain external local dependencies in v0.2
+so the application does not redistribute gated/non-commercial model assets.
+
+## Model A/B benchmark
+
+Once the local model tools are installed, compare model combinations on the same source:
+
+```bash
+uv run audio-score benchmark song.wav --language ko --profile all
+```
+
+Profiles:
+
+- `score`: MuScriptor small / medium / large with lyrics disabled.
+- `lyrics`: balanced, medium-ASR, and quality-oriented model combinations.
+- `all`: both matrices.
+
+Results are written to `benchmark.json` and `benchmark.csv`, including wall time,
+success/failure, selected models, and lyric attachment ratio. This allows the same
+benchmark harness to be run on CPU, Apple Silicon, or NVIDIA hardware.
