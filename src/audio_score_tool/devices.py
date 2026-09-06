@@ -17,6 +17,7 @@ def _nvidia_available() -> bool:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             timeout=3,
+            check=False,
         )
         return proc.returncode == 0
     except (OSError, subprocess.SubprocessError):
