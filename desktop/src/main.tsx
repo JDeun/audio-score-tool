@@ -1,12 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App";
-import YoutubeImport from "./YoutubeImport";
+import ProductRoot from "./ProductRoot";
 import "./styles.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <YoutubeImport />
-    <App />
+    <ProductRoot />
   </StrictMode>,
 );
