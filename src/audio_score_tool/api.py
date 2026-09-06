@@ -20,6 +20,7 @@ from .pipeline import PipelineCancelled, preflight, transcribe
 from .presets import list_presets, resolve_preset
 from .settings_store import SettingsStore
 from .setup_info import setup_instructions
+from .system_status import storage_status
 
 app = FastAPI(title="AudioScoreTool", version="0.3.0")
 app.add_middleware(
@@ -173,6 +174,7 @@ def health() -> dict:
         "preflight": preflight(_runtime_settings()),
         "presets": list_presets(),
         "data_dir": str(jobs_dir().parent),
+        "system": storage_status(),
     }
 
 
@@ -190,6 +192,34 @@ def get_settings() -> dict:
     return {
         "tool_paths": _settings_store.read(),
         "data_dir": str(jobs_dir().parent),
+        "system": storage_status(),
+    }
+
+
+@app.get("/api/storage")
+def get_storage() -> dict:
+    return storage_status()
+
+
+@app.post("/api/storage/cleanup")
+def cleanup_storage(keep: int = 30) -> dict:
+    keep = max(0, min(keep, 1000))
+    jobs = _store.list(limit=5000)
+    removable = [
+        job for job in jobs[keep:]
+        if job["status"] not in {"queued", "running", "cancelling"}
+    ]
+    deleted = 0
+    for job in removable:
+        path = jobs_dir() / job["job_id"]
+        if path.exists():
+            shutil.rmtree(path, ignore_errors=True)
+        if _store.delete(job["job_id"]):
+            deleted += 1
+    return {
+        "deleted_jobs": deleted,
+        "kept_jobs": keep,
+        "system": storage_status(),
     }
 
 
@@ -308,6 +338,76 @@ async def create_benchmark(
         daemon=True,
     ).start()
     return {"job_id": job_id, "status": "queued", "kind": "benchmark"}
+
+
+@app.post("/api/jobs/{job_id}/retry", status_code=202)
+def retry_job(job_id: str) -> dict:
+    source = _store.get(job_id)
+    if not source:
+        raise HTTPException(404, "Job not found")
+    if source["status"] in {"queued", "running", "cancelling"}:
+        raise HTTPException(409, "Running jobs cannot be retried.")
+
+    source_dir = jobs_dir() / job_id
+    audio_candidates = sorted(source_dir.glob("input.*"))
+    if not audio_candidates:
+        raise HTTPException(404, "Original input audio is missing.")
+
+    new_id = uuid.uuid4().hex
+    target_dir = jobs_dir() / new_id
+    target_dir.mkdir(parents=True, exist_ok=False)
+    audio = target_dir / audio_candidates[0].name
+    shutil.copy2(audio_candidates[0], audio)
+
+    if source.get("kind") == "benchmark":
+        reference_source = source_dir / "reference.mid"
+        reference_target = target_dir / "reference.mid" if reference_source.exists() else None
+        if reference_target is not None:
+            shutil.copy2(reference_source, reference_target)
+        profile = source.get("preset") or "all"
+        _store.create(
+            new_id,
+            kind="benchmark",
+            status="queued",
+            stage="queued",
+            progress=0,
+            filename=source.get("filename"),
+            language=source.get("language"),
+            preset=profile,
+        )
+        Thread(
+            target=_benchmark_worker,
+            args=(new_id, audio, reference_target, source.get("language"), profile),
+            daemon=True,
+        ).start()
+    else:
+        _store.create(
+            new_id,
+            kind="transcription",
+            status="queued",
+            stage="queued",
+            progress=0,
+            filename=source.get("filename"),
+            language=source.get("language"),
+            skip_lyrics=source.get("skip_lyrics", False),
+            preset=source.get("preset"),
+            muscriptor_model=source.get("muscriptor_model"),
+            whisperx_model=source.get("whisperx_model"),
+        )
+        Thread(
+            target=_worker,
+            args=(
+                new_id,
+                audio,
+                source.get("language"),
+                source.get("skip_lyrics", False),
+                source.get("muscriptor_model") or "medium",
+                source.get("whisperx_model") or "small",
+            ),
+            daemon=True,
+        ).start()
+
+    return {"job_id": new_id, "status": "queued", "retried_from": job_id}
 
 
 @app.get("/api/jobs/{job_id}")
