@@ -17,9 +17,17 @@ def runtime_settings(
     saved = (store or SettingsStore()).read()
     defaults = Settings()
     checkpoint = saved.get("native_checkpoint")
+    engine = (saved.get("transcription_engine") or defaults.transcription_engine).strip().lower()
+    if engine == "yourmt3":
+        engine = "mt3_infer"
     return Settings(
-        transcription_engine=saved.get("transcription_engine") or defaults.transcription_engine,
-        yourmt3_cmd=saved.get("yourmt3_cmd") or defaults.yourmt3_cmd,
+        transcription_engine=engine,
+        mt3_infer_cmd=(
+            saved.get("mt3_infer_cmd")
+            or saved.get("yourmt3_cmd")
+            or defaults.mt3_infer_cmd
+        ),
+        mt3_model=saved.get("mt3_model") or defaults.mt3_model,
         muscriptor_cmd=saved.get("muscriptor_cmd") or defaults.muscriptor_cmd,
         native_engine_cmd=saved.get("native_engine_cmd") or defaults.native_engine_cmd,
         native_checkpoint=Path(checkpoint).expanduser() if checkpoint else defaults.native_checkpoint,
