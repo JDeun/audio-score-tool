@@ -16,16 +16,18 @@ from .pipeline import PipelineError, transcribe
 @dataclass(frozen=True, slots=True)
 class BenchmarkConfig:
     name: str
-    muscriptor_model: str
+    transcription_engine: str = "mt3_infer"
+    mt3_model: str = "mr_mt3"
+    muscriptor_model: str = "medium"
     whisperx_model: str = "small"
     skip_lyrics: bool = False
-    transcription_engine: str = "muscriptor"
 
 
 @dataclass(slots=True)
 class BenchmarkResult:
     config: str
     engine: str
+    mt3_model: str
     muscriptor_model: str
     whisperx_model: str
     skip_lyrics: bool
@@ -39,57 +41,92 @@ class BenchmarkResult:
     onset_mae_ms: float | None = None
 
 
-SCORE_CONFIGS = [
-    BenchmarkConfig("score-small", "small", skip_lyrics=True),
-    BenchmarkConfig("score-medium", "medium", skip_lyrics=True),
-    BenchmarkConfig("score-large", "large", skip_lyrics=True),
-]
-
-LYRICS_CONFIGS = [
-    BenchmarkConfig("balanced", "medium", "small"),
-    BenchmarkConfig("lyrics-medium", "medium", "medium"),
-    BenchmarkConfig("quality", "large", "large-v3"),
+MR_MT3_CONFIGS = [
+    BenchmarkConfig(name="mr-mt3-score", mt3_model="mr_mt3", skip_lyrics=True),
+    BenchmarkConfig(name="mr-mt3-lyrics", mt3_model="mr_mt3", skip_lyrics=False),
 ]
 
 YOURMT3_CONFIGS = [
+    BenchmarkConfig(name="yourmt3-score", mt3_model="yourmt3", skip_lyrics=True),
+    BenchmarkConfig(name="yourmt3-lyrics", mt3_model="yourmt3", skip_lyrics=False),
+]
+
+MUSCRIPTOR_SCORE_CONFIGS = [
     BenchmarkConfig(
-        "yourmt3-score",
-        "n/a",
-        "small",
+        name="muscriptor-small",
+        transcription_engine="muscriptor",
+        muscriptor_model="small",
         skip_lyrics=True,
-        transcription_engine="yourmt3",
     ),
     BenchmarkConfig(
-        "yourmt3-lyrics",
-        "n/a",
-        "small",
-        skip_lyrics=False,
-        transcription_engine="yourmt3",
+        name="muscriptor-medium",
+        transcription_engine="muscriptor",
+        muscriptor_model="medium",
+        skip_lyrics=True,
+    ),
+    BenchmarkConfig(
+        name="muscriptor-large",
+        transcription_engine="muscriptor",
+        muscriptor_model="large",
+        skip_lyrics=True,
+    ),
+]
+
+MUSCRIPTOR_LYRICS_CONFIGS = [
+    BenchmarkConfig(
+        name="muscriptor-balanced",
+        transcription_engine="muscriptor",
+        muscriptor_model="medium",
+        whisperx_model="small",
+    ),
+    BenchmarkConfig(
+        name="muscriptor-lyrics-medium",
+        transcription_engine="muscriptor",
+        muscriptor_model="medium",
+        whisperx_model="medium",
+    ),
+    BenchmarkConfig(
+        name="muscriptor-quality",
+        transcription_engine="muscriptor",
+        muscriptor_model="large",
+        whisperx_model="large-v3",
     ),
 ]
 
 NATIVE_CONFIGS = [
     BenchmarkConfig(
-        "native-score",
-        "n/a",
-        "small",
-        skip_lyrics=True,
+        name="native-score",
         transcription_engine="native",
+        mt3_model="n/a",
+        muscriptor_model="n/a",
+        skip_lyrics=True,
     ),
 ]
 
 
 def configs_for_profile(profile: str) -> list[BenchmarkConfig]:
-    if profile == "score":
-        return SCORE_CONFIGS
-    if profile == "lyrics":
-        return LYRICS_CONFIGS
-    if profile == "yourmt3":
+    normalized = profile.strip().lower()
+    if normalized == "score":
+        return [MR_MT3_CONFIGS[0], YOURMT3_CONFIGS[0], *MUSCRIPTOR_SCORE_CONFIGS]
+    if normalized == "lyrics":
+        return [MR_MT3_CONFIGS[1], YOURMT3_CONFIGS[1], *MUSCRIPTOR_LYRICS_CONFIGS]
+    if normalized in {"mt3", "mt3_infer"}:
+        return [*MR_MT3_CONFIGS, *YOURMT3_CONFIGS]
+    if normalized == "mr_mt3":
+        return MR_MT3_CONFIGS
+    if normalized == "yourmt3":
         return YOURMT3_CONFIGS
-    if profile == "native":
+    if normalized == "muscriptor":
+        return [*MUSCRIPTOR_SCORE_CONFIGS, *MUSCRIPTOR_LYRICS_CONFIGS]
+    if normalized == "native":
         return NATIVE_CONFIGS
-    if profile == "all":
-        return [*YOURMT3_CONFIGS, *SCORE_CONFIGS, *LYRICS_CONFIGS]
+    if normalized == "all":
+        return [
+            *MR_MT3_CONFIGS,
+            *YOURMT3_CONFIGS,
+            *MUSCRIPTOR_SCORE_CONFIGS,
+            *MUSCRIPTOR_LYRICS_CONFIGS,
+        ]
     raise ValueError(f"Unknown benchmark profile: {profile}")
 
 
@@ -136,6 +173,7 @@ def run_benchmark_matrix(
                 settings=replace(
                     base,
                     transcription_engine=config.transcription_engine,
+                    mt3_model=config.mt3_model,
                     muscriptor_model=config.muscriptor_model,
                     whisperx_model=config.whisperx_model,
                 ),
@@ -160,6 +198,7 @@ def run_benchmark_matrix(
                 BenchmarkResult(
                     config=config.name,
                     engine=config.transcription_engine,
+                    mt3_model=config.mt3_model,
                     muscriptor_model=config.muscriptor_model,
                     whisperx_model=config.whisperx_model,
                     skip_lyrics=config.skip_lyrics,
@@ -177,6 +216,7 @@ def run_benchmark_matrix(
                 BenchmarkResult(
                     config=config.name,
                     engine=config.transcription_engine,
+                    mt3_model=config.mt3_model,
                     muscriptor_model=config.muscriptor_model,
                     whisperx_model=config.whisperx_model,
                     skip_lyrics=config.skip_lyrics,
@@ -204,6 +244,7 @@ def write_reports(output_root: Path, results: list[BenchmarkResult]) -> None:
     fallback_fields = [
         "config",
         "engine",
+        "mt3_model",
         "muscriptor_model",
         "whisperx_model",
         "skip_lyrics",
