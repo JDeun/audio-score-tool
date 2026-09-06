@@ -234,7 +234,7 @@ Environment variables:
 | Variable | Default | Purpose |
 |---|---|---|
 | `AST_MUSCRIPTOR_CMD` | `muscriptor` | MuScriptor command |
-| `AST_DEMUCS_CMD` | `python -m demucs` | Demucs command |
+| `AST_DEMUCS_CMD` | `demucs` | Demucs command |
 | `AST_WHISPERX_CMD` | `whisperx` | WhisperX command |
 | `AST_MUSESCORE_CMD` | auto | Explicit MuseScore executable |
 | `AST_MUSCRIPTOR_MODEL` | `medium` | MuScriptor model size |
