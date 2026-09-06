@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+
 from audio_score_tool.musicxml_editor import (
     MusicXMLEditError,
     score_summary,
@@ -11,7 +12,6 @@ from audio_score_tool.musicxml_editor import (
     update_note,
 )
 from audio_score_tool.song_store import SongStore
-
 
 MUSICXML = """<?xml version="1.0" encoding="UTF-8"?>
 <score-partwise version="4.0">
