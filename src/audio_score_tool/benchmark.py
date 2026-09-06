@@ -19,11 +19,13 @@ class BenchmarkConfig:
     muscriptor_model: str
     whisperx_model: str = "small"
     skip_lyrics: bool = False
+    transcription_engine: str = "muscriptor"
 
 
 @dataclass(slots=True)
 class BenchmarkResult:
     config: str
+    engine: str
     muscriptor_model: str
     whisperx_model: str
     skip_lyrics: bool
@@ -49,12 +51,24 @@ LYRICS_CONFIGS = [
     BenchmarkConfig("quality", "large", "large-v3"),
 ]
 
+NATIVE_CONFIGS = [
+    BenchmarkConfig(
+        "native-score",
+        "n/a",
+        "small",
+        skip_lyrics=True,
+        transcription_engine="native",
+    ),
+]
+
 
 def configs_for_profile(profile: str) -> list[BenchmarkConfig]:
     if profile == "score":
         return SCORE_CONFIGS
     if profile == "lyrics":
         return LYRICS_CONFIGS
+    if profile == "native":
+        return NATIVE_CONFIGS
     if profile == "all":
         return [*SCORE_CONFIGS, *LYRICS_CONFIGS]
     raise ValueError(f"Unknown benchmark profile: {profile}")
@@ -102,15 +116,18 @@ def run_benchmark_matrix(
                 skip_lyrics=config.skip_lyrics,
                 settings=replace(
                     base,
+                    transcription_engine=config.transcription_engine,
                     muscriptor_model=config.muscriptor_model,
                     whisperx_model=config.whisperx_model,
                 ),
                 cancel_event=cancel_event,
                 progress=(
-                    (lambda stage, percent, i=index, name=config.name: progress(
-                        f"benchmark:{name}:{stage}",
-                        min(99, int((i + percent / 100) / total * 100)),
-                    ))
+                    (
+                        lambda stage, percent, i=index, name=config.name: progress(
+                            f"benchmark:{name}:{stage}",
+                            min(99, int((i + percent / 100) / total * 100)),
+                        )
+                    )
                     if progress is not None
                     else None
                 ),
@@ -123,6 +140,7 @@ def run_benchmark_matrix(
             results.append(
                 BenchmarkResult(
                     config=config.name,
+                    engine=config.transcription_engine,
                     muscriptor_model=config.muscriptor_model,
                     whisperx_model=config.whisperx_model,
                     skip_lyrics=config.skip_lyrics,
@@ -139,6 +157,7 @@ def run_benchmark_matrix(
             results.append(
                 BenchmarkResult(
                     config=config.name,
+                    engine=config.transcription_engine,
                     muscriptor_model=config.muscriptor_model,
                     whisperx_model=config.whisperx_model,
                     skip_lyrics=config.skip_lyrics,
@@ -163,17 +182,26 @@ def write_reports(output_root: Path, results: list[BenchmarkResult]) -> None:
         json.dumps([asdict(result) for result in results], ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+    fallback_fields = [
+        "config",
+        "engine",
+        "muscriptor_model",
+        "whisperx_model",
+        "skip_lyrics",
+        "wall_seconds",
+        "success",
+        "attached_ratio",
+        "error",
+        "note_precision",
+        "note_recall",
+        "note_f1",
+        "onset_mae_ms",
+    ]
     with csv_path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(asdict(results[0]).keys()) if results else [
-            "config",
-            "muscriptor_model",
-            "whisperx_model",
-            "skip_lyrics",
-            "wall_seconds",
-            "success",
-            "attached_ratio",
-            "error",
-        ])
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=list(asdict(results[0]).keys()) if results else fallback_fields,
+        )
         writer.writeheader()
         for result in results:
             writer.writerow(asdict(result))
