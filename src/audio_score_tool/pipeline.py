@@ -6,15 +6,20 @@ import platform
 import shutil
 from collections.abc import Callable
 from pathlib import Path
+from threading import Event
 
 from .config import Settings
 from .devices import detect_device_plan
 from .lyrics import attach_lyrics_to_musicxml, expand_korean_syllables, load_whisperx_words
 from .models import PipelineResult
-from .runner import CommandError, command_exists, run_command
+from .runner import CommandCancelled, CommandError, command_exists, run_command
 
 
 class PipelineError(RuntimeError):
+    pass
+
+
+class PipelineCancelled(PipelineError):
     pass
 
 
@@ -99,6 +104,7 @@ def transcribe(
     skip_lyrics: bool = False,
     settings: Settings | None = None,
     progress: Callable[[str, int], None] | None = None,
+    cancel_event: Event | None = None,
 ) -> PipelineResult:
     settings = settings or Settings()
 
@@ -144,7 +150,9 @@ def transcribe(
         "best-effort",
     ]
     try:
-        run_command(settings.muscriptor_cmd, muscriptor_args)
+        run_command(settings.muscriptor_cmd, muscriptor_args, cancel_event=cancel_event)
+    except CommandCancelled as exc:
+        raise PipelineCancelled("Transcription cancelled.") from exc
     except CommandError as exc:
         raise PipelineError(f"MuScriptor failed.\n{exc}") from exc
 
@@ -183,7 +191,10 @@ def transcribe(
                 stems_dir,
                 audio_path,
             ],
+            cancel_event=cancel_event,
         )
+    except CommandCancelled as exc:
+        raise PipelineCancelled("Vocal separation cancelled.") from exc
     except CommandError as exc:
         raise PipelineError(f"Demucs failed.\n{exc}") from exc
 
@@ -210,7 +221,9 @@ def transcribe(
         whisper_args += ["--language", language]
 
     try:
-        run_command(settings.whisperx_cmd, whisper_args)
+        run_command(settings.whisperx_cmd, whisper_args, cancel_event=cancel_event)
+    except CommandCancelled as exc:
+        raise PipelineCancelled("Lyrics transcription cancelled.") from exc
     except CommandError as exc:
         raise PipelineError(f"WhisperX failed.\n{exc}") from exc
 
