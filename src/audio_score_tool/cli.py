@@ -29,7 +29,7 @@ def device() -> None:
 def run(
     audio: Path = typer.Argument(..., exists=True, readable=True),
     output: Path = typer.Option(Path("outputs"), "--output", "-o"),
-    language: Optional[str] = typer.Option(None, "--language", "-l", help="ISO language code, e.g. ko/en."),
+    language: str | None = typer.Option(None, "--language", "-l", help="ISO language code, e.g. ko/en."),
     skip_lyrics: bool = typer.Option(False, "--skip-lyrics"),
 ) -> None:
     """Run the full local transcription pipeline."""
