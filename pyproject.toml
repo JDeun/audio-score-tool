@@ -43,3 +43,7 @@ target-version = "py310"
 
 [tool.ruff.lint]
 ignore = ["B008", "BLE001"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/audio_score_tool/auto_chords.py" = ["FURB192"]
+"src/audio_score_tool/musicxml_parts.py" = ["SIM114"]
