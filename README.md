@@ -1,34 +1,37 @@
 # AudioScoreTool
 
 > **음원 한 곡을 출판 가능한 악보로.**  
-> 로컬 음원이나 YouTube 링크를 넣으면 보컬·피아노·기타·베이스·드럼 등 감지된 파트를 자동으로 채보하고, 코드와 가사를 정렬한 뒤 앱에서 수정·조판해 PDF / MusicXML / MIDI로 내보내는 로컬 우선 데스크탑 앱입니다.
+> 로컬 음원이나 YouTube 링크를 넣으면 감지된 악기 파트, 코드, 가사를 자동으로 채보하고 앱 안에서 수정·조판해 PDF / MusicXML / MIDI로 내보내는 로컬 우선 데스크탑 악보 제작 도구입니다.
 
-**현재 버전: v0.6.0**
+**현재 버전: v0.7.0**
 
 ---
 
-## 한눈에 보기
+## 무엇을 할 수 있나요?
 
 ```text
 음원 파일 / YouTube URL
           ↓
-      자동 채보
+   채보 엔진 선택
+  ┌───────────────────┐
+  │ AudioScore Native │  ← 상업화용 프로젝트 소유 모델 경로
+  │ MuScriptor        │  ← 호환 provider
+  └───────────────────┘
           ↓
-┌─────────────────────────────┐
-│ 보컬 · 피아노 · 기타 · 베이스 · 드럼 │
-│ 코드 심벌 · 가사 · Full Score       │
-└─────────────────────────────┘
+   다중 악기 자동 채보
+          ↓
+보컬 · 피아노 · 기타 · 베이스 · 드럼 · 기타 감지 파트
+          ↓
+자동 코드 심벌 · 가사 정렬
           ↓
       곡 라이브러리
           ↓
-  악보 미리보기 · 세부 수정
+미리보기 · 세부 편집 · 출판 조판
           ↓
-   출판 레이아웃 · 제목/크레딧
-          ↓
- PDF · MusicXML · MIDI · 파트보
+PDF · MusicXML · MIDI · 파트보
 ```
 
-AudioScoreTool의 기본 철학은 **사용자가 처음부터 악보를 입력하는 것이 아니라, AI가 먼저 최대한 완성된 악보를 만들고 사람은 틀린 부분과 출판 디테일만 수정하는 것**입니다.
+AudioScoreTool의 기본 원칙은 **AI가 먼저 최대한 완성된 악보를 만들고, 사용자는 틀린 부분과 출판 디테일만 수정하는 것**입니다.
 
 ---
 
@@ -41,19 +44,19 @@ AudioScoreTool의 기본 철학은 **사용자가 처음부터 악보를 입력�
 - Full Score와 악기별 파트보 생성
 - 자동 코드 진행 추정 및 마디 위 코드 심벌 표기
 - Demucs + WhisperX 기반 보컬 가사 인식·정렬
-- 로컬 파일과 YouTube URL 입력 지원
+- 로컬 파일과 YouTube URL 입력
+- 교체 가능한 채보 엔진 provider 구조
 
 ### 악보 편집
 
 - MusicXML 기반 실시간 악보 미리보기
-- 음정 / 옥타브 / 샵·플랫 수정
-- 온음표 ~ 64분음표, 점음표 리듬 수정
-- 음표 ↔ 쉼표 변환
+- 음정 / 옥타브 / 샵·플랫
+- 온음표 ~ 64분음표, 점음표
+- 음표 ↔ 쉼표
 - 음표·쉼표 삽입 / 삭제
 - 마디 삽입 / 삭제
-- 조표 / 장·단조 / 박자표 수정
-- 가사 수정
-- 코드 심벌 수정
+- 조표 / 장·단조 / 박자표
+- 가사 / 코드 심벌
 - Tie / Slur / Beam
 - Staccato / Tenuto / Accent / Marcato
 - Revision / Undo / 원본 복원
@@ -80,13 +83,94 @@ AudioScoreTool의 기본 철학은 **사용자가 처음부터 악보를 입력�
 - Auto / Fast / Balanced / Quality 프리셋
 - 작업 큐 및 동시 GPU 작업 방지
 - 실행 중 전체 프로세스 트리 취소
-- SQLite 기반 작업 히스토리
+- SQLite 작업 히스토리
 - 실패 작업 재실행
 - 출력 폴더 열기
 - 저장공간 정리
-- Hugging Face 인증 상태 확인
-- 로컬 실행 파일 경로 설정
-- Windows / macOS / Linux 데스크탑 패키징
+- 로컬 실행 파일 / 채보 엔진 설정
+- Windows / macOS / Linux 패키징
+
+---
+
+# v0.7: 교체 가능한 채보 엔진
+
+AudioScoreTool은 채보 기능을 특정 모델 하나에 고정하지 않습니다.
+
+현재 provider:
+
+| 엔진 | 용도 | 상태 |
+|---|---|---|
+| **AudioScore Native** | 프로젝트 소유 상업화 경로 | 자체 checkpoint 필요 |
+| **MuScriptor** | 호환·비교·개발용 provider | 공개 weights는 비상업 라이선스 |
+
+두 엔진 모두 다음 공통 계약만 만족하면 이후 파이프라인을 그대로 사용합니다.
+
+```text
+score.mid
+score.musicxml
+full_score.pdf   # 선택
+```
+
+이후 단계인 자동 코드, 가사 정렬, 파트 분리, 악보 편집, 출판 조판, PDF export는 채보 엔진과 독립적입니다.
+
+앱 우측 하단의 **채보 엔진** 설정에서 provider를 변경할 수 있습니다.
+
+---
+
+# AudioScore Native
+
+AudioScore Native는 MuScriptor 공개 가중치에 종속되지 않기 위한 프로젝트 자체 AMT(Automatic Music Transcription) 경로입니다.
+
+현재 저장소에는 다음이 구현되어 있습니다.
+
+- multi-instrument autoregressive event vocabulary
+- MIDI → event token encoder
+- event token → MIDI decoder
+- log-Mel audio frontend
+- Transformer encoder / decoder 모델
+- CUDA / MPS / CPU inference
+- `audio-score-native` CLI
+- project-owned checkpoint 포맷 `audio-score-native-v1`
+- manifest 기반 학습 루프
+- validation / best checkpoint 저장
+- 학습 데이터 라이선스 allowlist
+- Slakh2100 manifest 준비 도구
+- 제품 채보 pipeline provider 통합
+
+### Native 런타임 설치
+
+```bash
+uv sync --extra native
+```
+
+### Native 체크포인트 사용
+
+```bash
+export AST_TRANSCRIPTION_ENGINE=native
+export AST_NATIVE_CHECKPOINT=/path/to/audio-score-native.pt
+```
+
+또는 데스크탑 앱의 **채보 엔진** 설정에서 체크포인트 경로를 지정할 수 있습니다.
+
+자세한 내용은 [`docs/NATIVE_MODEL.ko.md`](docs/NATIVE_MODEL.ko.md)를 참고하세요.
+
+---
+
+# 학습 데이터 라이선스 정책
+
+AudioScore Native는 **상업 사용 가능 여부가 명시된 데이터만 학습 manifest에 들어갈 수 있도록** 설계되어 있습니다.
+
+현재 allowlist:
+
+- CC-BY-4.0
+- CC0-1.0
+- MIT
+- Apache-2.0
+- project-owned
+
+예를 들어 `CC-BY-NC-4.0` 데이터가 manifest에 들어가면 학습을 시작하지 않고 오류를 발생시킵니다.
+
+초기 seed dataset으로는 Slakh2100의 mix + aligned MIDI 구조를 지원합니다. 실제 상용 모델을 만들 때는 데이터 출처, 저작권, 파생물 조건을 프로젝트 차원에서 별도로 검토해야 합니다.
 
 ---
 
@@ -100,24 +184,31 @@ cd audio-score-tool
 uv sync --extra dev
 ```
 
-## 2. MuScriptor 모델 사용 권한 승인
+## 2. MuseScore 4 설치
 
-현재 공개 MuScriptor 모델 weights는 Hugging Face에서 라이선스 승인이 필요한 gated model입니다.
+최종 MusicXML/PDF 렌더링에는 MuseScore 4 이상이 필요합니다.
 
-1. Hugging Face의 MuScriptor 모델 페이지에서 라이선스 수락
-2. 로컬 로그인
+앱이 자동으로 찾지 못하면 설정에서 실행 파일 경로를 지정할 수 있습니다.
+
+## 3. 채보 엔진 선택
+
+### MuScriptor provider
+
+MuScriptor 공개 weights를 사용할 경우 upstream Hugging Face 모델 라이선스를 직접 수락하고 인증해야 합니다.
 
 ```bash
 uvx hf auth login
 ```
 
-AudioScoreTool은 토큰 값을 UI에 표시하거나 자체 저장하지 않습니다.
+### AudioScore Native provider
 
-## 3. MuseScore 4 설치
+프로젝트가 직접 학습한 checkpoint가 필요합니다.
 
-최종 PDF / MIDI 렌더링에는 MuseScore 4 이상이 필요합니다.
-
-앱이 자동으로 찾지 못하면 **설정 → 도구 경로**에서 실행 파일을 지정할 수 있습니다.
+```bash
+uv sync --extra native
+export AST_TRANSCRIPTION_ENGINE=native
+export AST_NATIVE_CHECKPOINT=/path/to/audio-score-native.pt
+```
 
 ## 4. 데스크탑 앱 실행
 
@@ -127,8 +218,6 @@ npm install
 npm run desktop:dev
 ```
 
-첫 실행 시 온보딩에서 백엔드, 모델 도구, Hugging Face 인증 상태를 확인할 수 있습니다.
-
 ---
 
 # 사용 흐름
@@ -137,8 +226,8 @@ npm run desktop:dev
 
 ### 로컬 음원
 
-1. WAV / MP3 / FLAC / M4A 등의 파일을 드래그 앤 드롭
-2. 품질 프리셋 선택
+1. WAV / MP3 / FLAC / M4A 등의 파일 선택 또는 드래그 앤 드롭
+2. 채보 엔진 / 품질 프리셋 확인
 3. 가사 언어 및 가사 정렬 여부 선택
 4. **자동 채보 시작**
 5. 완료 후 **곡 라이브러리에서 편집**
@@ -158,8 +247,6 @@ YouTube 콘텐츠는 사용자가 다운로드·처리 권한을 가지고 있�
 ---
 
 # 자동 생성 결과
-
-실제 감지된 파트를 기준으로 다음과 같은 구조가 만들어집니다.
 
 ```text
 곡 이름/
@@ -183,7 +270,7 @@ YouTube 콘텐츠는 사용자가 다운로드·처리 권한을 가지고 있�
 
 # 자동 코드 심벌
 
-MuScriptor가 추출한 pitched part의 음들을 시간축으로 종합해 화성을 추정하고 MusicXML `<harmony>`로 기록합니다.
+채보된 pitched part의 음들을 시간축으로 종합해 화성을 추정하고 MusicXML `<harmony>`로 기록합니다.
 
 예:
 
@@ -192,25 +279,13 @@ MuScriptor가 추출한 pitched part의 음들을 시간축으로 종합해 화�
 | C/E      F        | Dm7      G7       |
 ```
 
-대표 지원 코드:
-
-- Major / Minor
-- 6 / m6
-- 7 / maj7 / m7
-- 9 / maj9 / m9
-- sus2 / sus4
-- dim / dim7
-- aug
-- m7b5
-- slash chord
-
-자동 화성 분석은 사람이 판정한 코드와 항상 같다고 보장하지 않습니다. **코드 편집기는 자동 생성 결과를 보정하기 위한 기능**입니다.
+코드 편집기는 자동 생성 결과를 처음부터 입력하기 위한 기능이 아니라 **틀린 화성을 보정하기 위한 Inspector**입니다.
 
 ---
 
 # 곡 라이브러리와 편집기
 
-완료된 채보는 `Job`이 아니라 별도의 `Song`으로 관리됩니다.
+완료된 채보는 Job이 아니라 Song 단위로 관리됩니다.
 
 ```text
 Song
@@ -224,59 +299,30 @@ Song
 └─ Export
 ```
 
-OpenSheetMusicDisplay(OSMD)가 현재 MusicXML을 앱 안에서 SVG 악보로 렌더링합니다.
+OpenSheetMusicDisplay(OSMD)가 현재 MusicXML을 앱 안에서 렌더링합니다.
 
-미리보기와 Export가 서로 다른 데이터를 사용하지 않도록 **MusicXML을 단일 source of truth**로 유지합니다.
-
-악보 수정 후에는 이전 PDF/MIDI/파트보를 자동으로 구버전 처리하고, 현재 Revision에서 다시 Export해야 합니다.
+MusicXML을 단일 source of truth로 유지하며, 수정 후에는 이전 PDF/MIDI/파트보를 구버전 처리하고 현재 Revision 기준으로 다시 Export합니다.
 
 ---
 
 # 성능 비교
 
-현재 컴퓨터에서 모델 조합을 직접 비교할 수 있습니다.
+Ground Truth MIDI 없이:
 
-비교 대상:
-
-- MuScriptor small / medium / large
-- WhisperX 조합
 - 처리 시간
 - 성공 여부
 - 가사 attachment ratio
 
-Ground Truth MIDI를 제공하면 다음 지표도 계산합니다.
+Ground Truth MIDI를 제공하면:
 
 - Note Precision
 - Note Recall
 - Note F1
 - Onset MAE
 
-CLI에서도 실행할 수 있습니다.
+을 추가 계산합니다.
 
-```bash
-uv run audio-score benchmark song.wav \
-  --language ko \
-  --profile all \
-  --reference-midi reference.mid
-```
-
----
-
-# 하드웨어 정책
-
-| 환경 | MuScriptor | Demucs | WhisperX |
-|---|---|---|---|
-| NVIDIA GPU | CUDA | CUDA | CUDA / FP16 |
-| Apple Silicon | MPS | CPU | CPU / INT8 |
-| CPU only | CPU | CPU | CPU / INT8 |
-
-기본 Auto 프리셋:
-
-- CPU only → `Fast`
-- Apple Silicon → `Balanced`
-- NVIDIA CUDA → `Balanced`
-
-실제 최적 조합은 **성능 비교** 화면에서 대표 음원으로 측정하는 것을 권장합니다.
+Native checkpoint가 준비되면 동일 평가 계약에 연결해 MuScriptor와 직접 비교할 수 있습니다.
 
 ---
 
@@ -289,76 +335,42 @@ npm install
 npm run desktop:build
 ```
 
-빌드 과정:
+GitHub Actions는 Windows / macOS / Linux unsigned bundle을 생성합니다.
 
-1. 플랫폼별 앱 아이콘 생성
-2. PyInstaller로 Python/FastAPI sidecar 생성
-3. Tauri 데스크탑 번들 생성
-
-GitHub Actions는 다음 플랫폼의 unsigned bundle을 실제로 빌드합니다.
-
-- Windows
-- macOS
-- Linux
-
-공개 배포용 코드서명/공증은 저장소에 자격증명을 포함하지 않습니다.
+코드서명과 notarization은 소유자별 인증서가 필요한 별도 배포 단계입니다.
 
 ---
 
-# 개발용 CLI / API
+# 라이선스와 상업화
 
-환경 진단:
+AudioScoreTool 자체 코드와 **외부 모델 가중치의 라이선스는 별개**입니다.
 
-```bash
-uv run audio-score doctor
-```
+- MuScriptor 공개 model weights: 상업 배포 기본 엔진으로 사용하지 않음
+- AudioScore Native: 프로젝트 소유 checkpoint를 목표로 함
+- Native 학습 데이터: manifest allowlist + 별도 provenance 관리 필요
 
-파일 채보:
-
-```bash
-uv run audio-score run song.mp3 --language ko --output outputs
-```
-
-로컬 API:
-
-```bash
-uv run audio-score-api
-```
-
-기본 주소:
+상업 배포를 위한 권장 구성은 다음과 같습니다.
 
 ```text
-http://127.0.0.1:8080
+AudioScoreTool
+   ↓
+AudioScore Native
+   ↓
+상업 사용이 허용된 데이터로 독립 학습
+   ↓
+project-owned checkpoint
 ```
 
----
-
-# 로컬 데이터 위치
-
-- macOS: `~/Library/Application Support/AudioScoreTool`
-- Windows: `%LOCALAPPDATA%\AudioScoreTool`
-- Linux: `$XDG_DATA_HOME/audio-score-tool` 또는 `~/.local/share/audio-score-tool`
-
-저장 항목:
-
-- SQLite 작업 기록
-- 입력 음원 및 retry용 원본
-- stems
-- MusicXML / PDF / MIDI
-- 곡 Revision
-- 출판 설정
-- 벤치마크 결과
-- 도구 실행 경로 설정
+외부 모델의 비상업 weights를 fine-tuning/distillation으로 우회해 프로젝트 소유 모델처럼 취급하는 방식은 사용하지 않습니다.
 
 ---
 
-# 라이선스 주의
+# 문서
 
-AudioScoreTool 코드와 외부 모델 가중치의 라이선스는 별개입니다.
-
-현재 공개 **MuScriptor model weights는 CC BY-NC 4.0**입니다. 따라서 현재 weights를 그대로 상업 서비스나 유료 제품에 재배포하려면 upstream의 별도 허가 또는 상업 사용 가능한 대체 모델이 필요합니다.
-
-AudioScoreTool은 MuScriptor weights를 자체 배포하지 않습니다.
+- [아키텍처](docs/ARCHITECTURE.ko.md)
+- [악보 편집기](docs/EDITOR.ko.md)
+- [벤치마크](docs/BENCHMARK.ko.md)
+- [AudioScore Native](docs/NATIVE_MODEL.ko.md)
 
 ---
 
@@ -366,34 +378,14 @@ AudioScoreTool은 MuScriptor weights를 자체 배포하지 않습니다.
 
 ```bash
 uv sync --extra dev
-uv run ruff check src tests scripts
+uv run ruff check src tests training scripts
 uv run pytest -q
 ```
 
-CI 검증 범위:
+Native 실제 모델 실행/학습:
 
-- Python lint / unit / integration test
-- fixture 기반 전체 transcription orchestration
-- 자동 코드 분석
-- MusicXML 구조 편집
-- Revision / Undo
-- API validation / localhost origin protection
-- React / TypeScript production build
-- Tauri Rust shell
-- Windows / macOS / Linux 실제 desktop bundle
+```bash
+uv sync --extra native
+```
 
----
-
-# 상세 문서
-
-- [`docs/ARCHITECTURE.ko.md`](docs/ARCHITECTURE.ko.md) — 파이프라인·프로세스 구조
-- [`docs/EDITOR.ko.md`](docs/EDITOR.ko.md) — MusicXML 편집·Revision·출판 조판
-- [`docs/BENCHMARK.ko.md`](docs/BENCHMARK.ko.md) — 모델 비교와 평가 지표
-
----
-
-## 프로젝트 상태
-
-v0.6은 기능 구현 위에 **상용 데스크탑 제품 수준의 정보구조·온보딩·한국어 UX·상태 표시·디자인 시스템**을 정리하는 Product UI 릴리스입니다.
-
-실제 채보 품질은 음원 특성, 모델 크기, 하드웨어, 보컬/악기 구성에 따라 달라질 수 있으므로 대표 음원을 이용한 로컬 Benchmark를 권장합니다.
+실제 장시간 학습은 GPU와 데이터셋이 필요하기 때문에 일반 CI에서는 수행하지 않습니다.
