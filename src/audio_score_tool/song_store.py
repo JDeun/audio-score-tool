@@ -197,6 +197,13 @@ class SongStore:
         path.mkdir(parents=True, exist_ok=True)
         return path
 
+    def clear_exports(self, song_id: str) -> None:
+        export_dir = self.song_dir(song_id) / "exports"
+        if not export_dir.exists():
+            return
+        for name in ("score.pdf", "score.mid"):
+            (export_dir / name).unlink(missing_ok=True)
+
     def delete(self, song_id: str) -> bool:
         with self._lock, self._connect() as conn:
             cur = conn.execute("DELETE FROM songs WHERE song_id=?", (song_id,))
