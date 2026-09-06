@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import shutil
-import tempfile
 import uuid
 from pathlib import Path
-from threading import Lock, Thread
-from typing import Any
+from threading import Event, Lock, Thread
 
 import uvicorn
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
@@ -14,9 +12,13 @@ from fastapi.responses import FileResponse
 
 from .config import Settings
 from .devices import detect_device_plan
-from .pipeline import preflight, transcribe
+from .job_store import JobStore
+from .paths import jobs_dir
+from .pipeline import PipelineCancelled, preflight, transcribe
+from .presets import list_presets, resolve_preset
+from .setup_info import setup_instructions
 
-app = FastAPI(title="AudioScoreTool", version="0.2.0")
+app = FastAPI(title="AudioScoreTool", version="0.3.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -31,15 +33,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-_jobs: dict[str, dict[str, Any]] = {}
-_lock = Lock()
-_upload_root = Path(tempfile.gettempdir()) / "audio-score-tool"
-_upload_root.mkdir(parents=True, exist_ok=True)
-
-
-def _set_job(job_id: str, **values: Any) -> None:
-    with _lock:
-        _jobs.setdefault(job_id, {}).update(values)
+_store = JobStore()
+_cancel_events: dict[str, Event] = {}
+_runtime_lock = Lock()
 
 
 def _worker(
@@ -50,26 +46,45 @@ def _worker(
     muscriptor_model: str,
     whisperx_model: str,
 ) -> None:
-    _set_job(job_id, status="running")
+    cancel_event = Event()
+    with _runtime_lock:
+        _cancel_events[job_id] = cancel_event
+
+    _store.update(job_id, status="running", stage="starting")
     try:
         result = transcribe(
             audio,
-            _upload_root / job_id / "outputs",
+            jobs_dir() / job_id / "outputs",
             language=language,
             skip_lyrics=skip_lyrics,
             settings=Settings(
                 muscriptor_model=muscriptor_model,
                 whisperx_model=whisperx_model,
             ),
-            progress=lambda stage, percent: _set_job(
+            progress=lambda stage, percent: _store.update(
                 job_id,
                 stage=stage,
                 progress=percent,
             ),
+            cancel_event=cancel_event,
         )
-        _set_job(job_id, status="done", result=result.as_dict())
+        if cancel_event.is_set():
+            _store.update(job_id, status="cancelled", stage="cancelled")
+        else:
+            _store.update(
+                job_id,
+                status="done",
+                stage="complete",
+                progress=100,
+                result=result.as_dict(),
+            )
+    except PipelineCancelled:
+        _store.update(job_id, status="cancelled", stage="cancelled")
     except Exception as exc:
-        _set_job(job_id, status="failed", error=str(exc))
+        _store.update(job_id, status="failed", stage="failed", error=str(exc))
+    finally:
+        with _runtime_lock:
+            _cancel_events.pop(job_id, None)
 
 
 @app.get("/api/health")
@@ -78,7 +93,27 @@ def health() -> dict:
         "status": "ok",
         "device_plan": detect_device_plan().as_dict(),
         "preflight": preflight(),
+        "presets": list_presets(),
+        "data_dir": str(jobs_dir().parent),
     }
+
+
+@app.get("/api/setup")
+def setup() -> dict:
+    return {
+        "preflight": preflight(),
+        "instructions": setup_instructions(),
+    }
+
+
+@app.get("/api/presets")
+def presets() -> dict:
+    return list_presets()
+
+
+@app.get("/api/jobs")
+def list_jobs(limit: int = 50) -> dict:
+    return {"jobs": _store.list(limit=limit)}
 
 
 @app.post("/api/jobs", status_code=202)
@@ -86,11 +121,20 @@ async def create_job(
     file: UploadFile = File(...),
     language: str | None = Form(None),
     skip_lyrics: bool = Form(False),
-    muscriptor_model: str = Form("medium"),
-    whisperx_model: str = Form("small"),
+    preset: str = Form("auto"),
+    muscriptor_model: str | None = Form(None),
+    whisperx_model: str | None = Form(None),
 ) -> dict:
+    try:
+        selected = resolve_preset(preset)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+    resolved_muscriptor = muscriptor_model or selected.muscriptor_model
+    resolved_whisperx = whisperx_model or selected.whisperx_model
+
     job_id = uuid.uuid4().hex
-    job_dir = _upload_root / job_id
+    job_dir = jobs_dir() / job_id
     job_dir.mkdir(parents=True, exist_ok=False)
     suffix = Path(file.filename or "audio.wav").suffix or ".wav"
     audio = job_dir / f"input{suffix}"
@@ -98,7 +142,7 @@ async def create_job(
     with audio.open("wb") as handle:
         shutil.copyfileobj(file.file, handle)
 
-    _set_job(
+    _store.create(
         job_id,
         status="queued",
         stage="queued",
@@ -106,12 +150,20 @@ async def create_job(
         filename=file.filename,
         language=language,
         skip_lyrics=skip_lyrics,
-        muscriptor_model=muscriptor_model,
-        whisperx_model=whisperx_model,
+        preset=preset,
+        muscriptor_model=resolved_muscriptor,
+        whisperx_model=resolved_whisperx,
     )
     Thread(
         target=_worker,
-        args=(job_id, audio, language, skip_lyrics, muscriptor_model, whisperx_model),
+        args=(
+            job_id,
+            audio,
+            language,
+            skip_lyrics,
+            resolved_muscriptor,
+            resolved_whisperx,
+        ),
         daemon=True,
     ).start()
     return {"job_id": job_id, "status": "queued"}
@@ -119,20 +171,49 @@ async def create_job(
 
 @app.get("/api/jobs/{job_id}")
 def get_job(job_id: str) -> dict:
-    with _lock:
-        job = _jobs.get(job_id)
-        if not job:
-            raise HTTPException(404, "Job not found")
-        return {"job_id": job_id, **job}
+    job = _store.get(job_id)
+    if not job:
+        raise HTTPException(404, "Job not found")
+    return job
+
+
+@app.post("/api/jobs/{job_id}/cancel", status_code=202)
+def cancel_job(job_id: str) -> dict:
+    job = _store.get(job_id)
+    if not job:
+        raise HTTPException(404, "Job not found")
+    if job["status"] not in {"queued", "running", "cancelling"}:
+        return {"job_id": job_id, "status": job["status"], "cancelled": False}
+
+    with _runtime_lock:
+        event = _cancel_events.get(job_id)
+        if event is not None:
+            event.set()
+    _store.update(job_id, status="cancelling", stage="cancelling")
+    return {"job_id": job_id, "status": "cancelling", "cancelled": True}
+
+
+@app.delete("/api/jobs/{job_id}")
+def delete_job(job_id: str) -> dict:
+    job = _store.get(job_id)
+    if not job:
+        raise HTTPException(404, "Job not found")
+    if job["status"] in {"queued", "running", "cancelling"}:
+        raise HTTPException(409, "Cancel the running job before deleting it.")
+
+    path = jobs_dir() / job_id
+    if path.exists():
+        shutil.rmtree(path, ignore_errors=True)
+    _store.delete(job_id)
+    return {"job_id": job_id, "deleted": True}
 
 
 @app.get("/api/jobs/{job_id}/files/{kind}")
 def download(job_id: str, kind: str) -> FileResponse:
-    with _lock:
-        job = _jobs.get(job_id)
-        if not job or job.get("status") != "done":
-            raise HTTPException(404, "Completed job not found")
-        result = job["result"]
+    job = _store.get(job_id)
+    if not job or job.get("status") != "done" or not job.get("result"):
+        raise HTTPException(404, "Completed job not found")
+    result = job["result"]
 
     mapping = {
         "midi": result.get("midi"),
