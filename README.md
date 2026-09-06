@@ -1,108 +1,265 @@
 # AudioScoreTool
 
-AudioScoreTool은 완성된 음원 또는 YouTube 영상을 입력으로 받아 **악보를 자동 채보하고, 곡 단위로 관리하며, 미리보기·수정·조판 후 PDF/MusicXML/MIDI로 내보내는 로컬 우선 데스크탑 애플리케이션**입니다.
+AudioScoreTool은 완성된 음원 또는 YouTube 영상을 입력으로 받아 **다중 파트 악보를 자동 생성하고, 곡 단위로 관리하며, 앱 안에서 수정·조판한 뒤 출판용 PDF/MusicXML/MIDI로 내보내는 로컬 우선 데스크탑 애플리케이션**입니다.
 
-단순히 AI가 만든 초안을 다운로드하는 도구가 아니라 다음 흐름을 목표로 합니다.
+현재 버전: **v0.5.0**
 
 ```text
-음원 / YouTube
-      ↓
-자동 채보
-      ↓
+로컬 음원 / YouTube URL
+        ↓
+오디오 준비
+        ↓
+다중 악기 자동 채보
+        ↓
+자동 코드 추정 + 가사 정렬
+        ↓
+Full Score + 악기별 파트
+        ↓
 곡 라이브러리
-      ↓
-악보 미리보기
-      ↓
-노트 / 가사 / 코드 수정
-      ↓
-출판 레이아웃 조정
-      ↓
-첫 페이지 제목·크레딧 구성
-      ↓
-최종 PDF / MusicXML / MIDI 생성
+        ↓
+악보 미리보기 / 세부 수정 / 출판 조판
+        ↓
+PDF / MusicXML / MIDI
 ```
-
-현재 버전: **v0.4.0**
 
 ---
 
-## 주요 기능
+## 핵심 원칙
 
-### 입력
+AudioScoreTool은 사용자가 처음부터 악보를 입력하는 프로그램이 아닙니다.
 
-- 로컬 오디오 파일
-  - WAV
-  - MP3
-  - FLAC
-  - M4A
-  - AAC
-  - OGG
-  - OPUS
-  - WEBM
-- YouTube URL
-  - 일반 영상
-  - Shorts
-  - Live
-  - YouTube Music
-  - Embed URL
-- YouTube 재생목록 일괄 처리는 현재 의도적으로 지원하지 않음
+**AI가 먼저 최대한 완성된 악보를 생성하고, 사용자는 틀린 부분과 출판 디테일만 수정하는 흐름**을 기본으로 합니다.
 
-### 자동 채보
+자동 생성 대상:
 
-- MuScriptor 기반 악기/보컬 채보
-- MIDI 생성
-- MusicXML 생성
-- PDF 악보 생성
-- Demucs 기반 보컬 분리
-- WhisperX 기반 가사 인식
-- 가사-노트 정렬
-- CUDA / Apple MPS / CPU 자동 실행 정책
+- 보컬/Voice
+- 피아노/Keyboard
+- 기타
+- 베이스
+- 드럼
+- 그 외 MuScriptor가 감지한 악기 파트
+- 코드 심벌
+- 가사
+- Full Score
+- 파트별 MusicXML/PDF
 
-### 곡 라이브러리
+음원에 없는 악기를 임의로 추가하지 않고, 모델이 감지한 실제 파트를 기준으로 악보를 생성합니다.
 
-완료된 채보 Job은 별도의 `Song` 단위로 자동 등록됩니다.
+---
+
+# 입력
+
+## 로컬 파일
+
+지원 형식:
+
+- WAV
+- MP3
+- FLAC
+- M4A
+- AAC
+- OGG
+- OPUS
+- WEBM
+
+## YouTube
+
+앱의 YouTube Import에서 URL을 입력하면:
+
+1. URL 검증
+2. 제목/채널/길이 확인
+3. yt-dlp로 오디오 준비
+4. 기존 자동 채보 파이프라인 실행
+
+지원 URL:
+
+- 일반 YouTube 영상
+- `youtu.be`
+- Shorts
+- Live
+- YouTube Music
+- Embed
+
+한 번에 한 곡을 관리하는 제품 흐름을 유지하기 위해 재생목록 일괄 처리는 의도적으로 지원하지 않습니다.
+
+YouTube 콘텐츠는 사용자가 다운로드·처리 권한을 가진 경우에만 사용해야 합니다.
+
+---
+
+# 자동 채보 파이프라인
+
+```text
+Audio
+  ↓
+MuScriptor
+  ├─ 다중 악기 note event 추정
+  ├─ MIDI
+  └─ MusicXML
+       ↓
+  자동 화성 분석
+       ↓
+  MusicXML <harmony> 코드 심벌
+
+Audio
+  ↓
+Demucs
+  ↓
+vocals.wav
+  ↓
+WhisperX
+  ↓
+가사 + word timestamp
+  ↓
+보컬 노트에 가사 정렬
+
+최종 MusicXML
+  ↓
+MuseScore
+  ├─ Full Score PDF/MIDI
+  └─ 감지된 악기별 MusicXML/PDF
+```
+
+## 자동 코드
+
+MuScriptor가 추출한 피아노/기타/베이스/보컬 등 pitched part의 음들을 시간축으로 종합해 코드 후보를 추정하고 MusicXML `<harmony>`로 삽입합니다.
+
+예:
+
+```text
+| C       Am7      | F       G/B      |
+| C/E     F        | Dm7     G7       |
+```
+
+지원하는 대표 코드 품질:
+
+- Major / Minor
+- 6 / m6
+- 7 / maj7 / m7
+- 9 / maj9 / m9
+- sus2 / sus4
+- dim / dim7
+- aug
+- m7b5
+- slash chord
+
+자동 화성 분석은 사람이 판정한 코드와 항상 일치한다고 보장하지 않습니다. 앱의 코드 Inspector는 **자동 생성 코드를 보정하기 위한 기능**입니다.
+
+---
+
+# 곡 라이브러리
+
+실행 이력인 Job과 실제 편집 대상인 Song을 구분합니다.
 
 ```text
 Song
-├─ 곡 제목
-├─ 아티스트 / 메모
+├─ 제목 / 아티스트 메모
 ├─ 원본 MusicXML
-├─ 현재 편집 MusicXML
-├─ 곡별 출판 설정
+├─ 현재 MusicXML
+├─ 자동 코드
+├─ 감지된 악기 파트
+├─ 출판 설정
 ├─ Revision
 ├─ 수정 이력
-├─ 코드 심벌
-└─ 최종 Export
+└─ Export
 ```
 
-Job은 실행 이력이고 Song은 실제로 관리·편집하는 곡 단위입니다.
+곡을 삭제하면 해당 Job으로부터 다시 자동 생성되지 않도록 tombstone을 유지합니다.
 
-### 악보 미리보기
+---
 
-MusicXML은 OpenSheetMusicDisplay(OSMD)를 사용해 앱 내부에서 SVG 악보로 렌더링합니다.
+# 악보 미리보기
 
-PDF를 만들기 전에 현재 편집 상태를 바로 확인할 수 있습니다.
+OpenSheetMusicDisplay(OSMD)로 현재 MusicXML을 앱 안에서 SVG 악보로 렌더링합니다.
 
-- 미리보기 확대/축소
-- 수정 후 즉시 다시 렌더링
-- 제목/크레딧 확인
-- 코드 심벌 확인
-- 시스템/페이지 나눔 확인
+- PDF 생성 전 실시간 확인
+- 확대/축소
+- 파트명 표시
+- 가사 표시
+- 코드 심벌 표시
+- 제목/크레딧 표시
+- 페이지/시스템 나눔 확인
 
-### 노트와 가사 편집
+편집은 SVG 자체를 임의로 변형하는 방식이 아니라 **MusicXML 구조를 Inspector에서 수정하고 동일 MusicXML을 다시 렌더링하는 방식**입니다. 따라서 미리보기와 최종 Export가 서로 다른 데이터를 사용하는 문제를 피합니다.
 
-현재 지원하는 노트 단위 수정:
+---
 
-- 음 이름 A-G
-- 더블 플랫 / 플랫 / 내추럴 / 샵 / 더블 샵
+# 노트 편집
+
+선택한 노트/쉼표에서 다음을 수정할 수 있습니다.
+
+## 음정
+
+- A-G
+- 더블 플랫
+- 플랫
+- 내추럴
+- 샵
+- 더블 샵
 - 옥타브
-- 노트에 연결된 가사
 
-현재 리듬 길이, 쉼표 추가/삭제, 마디 추가/삭제, 조표/박자표를 GUI에서 직접 편집하는 기능은 아직 포함하지 않습니다.
+## 리듬
 
-### 코드 심벌
+- 온음표
+- 2분음표
+- 4분음표
+- 8분음표
+- 16분음표
+- 32분음표
+- 64분음표
+- 1점음표
+- 2점음표
 
-선택한 음표의 시점 위에 MusicXML `<harmony>` 코드 심벌을 삽입합니다.
+현재 MusicXML의 `divisions`로 정확히 표현할 수 없는 리듬 조합은 잘못된 MusicXML을 만드는 대신 편집을 거부합니다.
+
+## 노트/쉼표
+
+- 기존 노트 → 쉼표 변환
+- 쉼표 → 노트 변환
+- 선택 위치 앞에 음표/쉼표 삽입
+- 선택 위치 뒤에 음표/쉼표 삽입
+- 선택 음표 삭제
+
+마디의 마지막 음표를 무작정 삭제해 빈 마디를 만드는 대신, 필요하면 마디 삭제 또는 쉼표 변환을 사용합니다.
+
+## 가사
+
+선택 노트에 연결된 가사를 수정하거나 제거할 수 있습니다.
+
+## 표현기호
+
+- Staccato
+- Tenuto
+- Accent
+- Marcato / Strong Accent
+- Tie start / stop
+- Slur start / stop
+- Beam begin / continue / end
+- Forward hook / Backward hook
+
+MusicXML의 실제 `notations`, `tie`, `beam` 요소를 수정합니다.
+
+---
+
+# 마디 · 조표 · 박자표 편집
+
+Full Score에서 특정 마디를 선택해 다음을 수정할 수 있습니다.
+
+- 조표: fifths -7 ~ +7
+- Major / Minor
+- 박자 분자
+- 박자 분모: 1 / 2 / 4 / 8 / 16 / 32
+- 선택 마디 뒤 새 마디 삽입
+- 선택 마디 삭제
+
+다중 파트 악보에서 구조가 어긋나지 않도록 **마디 삽입·삭제와 조표/박자표 변경은 모든 파트에 같은 위치로 적용**됩니다.
+
+새 마디는 현재 박자에 맞는 전마디 쉼표로 생성됩니다.
+
+---
+
+# 코드 수정
+
+자동 생성된 코드 중 틀린 위치를 선택해 수정합니다.
 
 예:
 
@@ -112,50 +269,35 @@ Cm
 C7
 Cmaj7
 Cm7
-C6
-Cm6
 C9
 Cmaj9
-Cm9
-Csus2
 Csus4
-Cdim
 Cdim7
-Caug
-Cm7b5
-F#maj7
+F#m7b5
 Bb7
 G/B
 ```
 
-코드는 특정 음표 시점에 연결되므로 한 마디 안에서도 여러 번 바꿀 수 있습니다.
-
-```text
-| C        Am7       | F        G7        |
-  1박      3박         1박      3박
-```
-
-MusicXML에서는 실제 `<harmony placement="above">` 요소로 저장되므로 OSMD 미리보기와 MuseScore PDF 출력이 같은 악보 데이터를 사용합니다.
+코드는 음표 시점에 anchor되므로 한 마디 안에서도 여러 번 바꿀 수 있습니다.
 
 ---
 
-# 출판용 악보 조판
+# 출판용 조판
 
-AudioScoreTool v0.4에서는 상용 악보 사이트에서 판매하는 악보처럼 페이지 레이아웃을 조정할 수 있는 출판 설정을 제공합니다.
+상용 악보 사이트에서 판매하는 악보에 가까운 페이지 구성을 만들기 위한 설정입니다.
 
-## 한 줄당 마디 수
+## 페이지
 
-예:
+- A4 / Letter
+- 세로 / 가로
+- 위/아래/왼쪽/오른쪽 여백
 
-```text
-한 줄당 4마디
-| 1 | 2 | 3 | 4 |
-| 5 | 6 | 7 | 8 |
-```
+## 시스템
 
-MusicXML의 `new-system`을 사용해 시스템 나눔을 저장합니다.
-
-## 한 페이지당 악보 줄 수
+- 한 줄당 마디 수
+- 한 페이지당 악보 줄(System) 수
+- 시스템 간격
+- 첫 페이지 제목 영역 높이
 
 예:
 
@@ -165,40 +307,11 @@ MusicXML의 `new-system`을 사용해 시스템 나눔을 저장합니다.
 → 약 20마디 / 페이지
 ```
 
-MusicXML의 `new-page`를 사용해 페이지 나눔을 저장합니다.
+MusicXML의 `new-system`, `new-page`, `system-layout`, `page-layout` 등을 이용해 조판 정보를 저장합니다.
 
-## 줄 간격
+## 첫 페이지 제목/크레딧
 
-악보 시스템 간 세로 간격을 mm 단위로 조정할 수 있습니다.
-
-일반 문서의 행간에 해당하는 설정입니다.
-
-## 페이지 여백
-
-각 곡마다 다음 값을 따로 저장합니다.
-
-- 위
-- 아래
-- 왼쪽
-- 오른쪽
-
-지원 용지:
-
-- A4
-- Letter
-
-지원 방향:
-
-- 세로
-- 가로
-
-## 첫 페이지 제목 영역
-
-첫 페이지의 악보 시작 위치를 아래로 내리고 상단에 출판용 제목 영역을 구성할 수 있습니다.
-
-지원 항목:
-
-- 곡 제목
+- 제목
 - 부제 / 버전
 - 작곡
 - 작사
@@ -208,154 +321,82 @@ MusicXML의 `new-page`를 사용해 페이지 나눔을 저장합니다.
 - 부제 글자 크기
 - 크레딧 글자 크기
 
-예:
-
-```text
-                  My Song
-               Piano & Vocal
-
-                              작곡  Composer
-                              작사  Lyricist
-                              편곡  Arranger
-
-──────────────────────────────────────
-             악보 시작
-```
-
-이 정보는 단순 화면 오버레이가 아니라 MusicXML의 `credit`, `identification`, `rights`에 기록됩니다.
-
-따라서 현재 MusicXML과 최종 PDF의 출판 정보가 일치하도록 설계되어 있습니다.
+이 정보는 화면 오버레이가 아니라 MusicXML의 `credit`, `identification`, `rights`에 기록됩니다.
 
 ---
 
-# Revision과 실행 취소
+# Revision / Undo
 
-악보가 수정되기 직전에 현재 MusicXML과 출판 설정을 함께 저장합니다.
-
-```text
-songs/<song-id>/
-├─ original.musicxml
-├─ score.musicxml
-├─ publication.json
-├─ revisions/
-│  ├─ rev-0001.musicxml
-│  ├─ rev-0001.publication.json
-│  ├─ rev-0002.musicxml
-│  ├─ rev-0002.publication.json
-│  └─ ...
-└─ exports/
-```
+악보 변경 전 현재 상태를 snapshot합니다.
 
 Revision 대상:
 
-- 노트 수정
-- 가사 수정
-- 코드 수정
-- 곡 제목 변경
-- 페이지 레이아웃 변경
-- 제목/크레딧 변경
+- 음정
+- 리듬
+- 노트/쉼표 삽입·삭제
+- 마디 삽입·삭제
+- 조표/박자표
+- 가사
+- 코드
+- 타이/슬러/빔/아티큘레이션
+- 제목
+- 출판 레이아웃
+- 크레딧
 
-`실행 취소`를 누르면 악보 내용뿐 아니라 해당 시점의 출판 설정도 함께 복원됩니다.
+구조 편집은 한 번의 사용자 저장을 하나의 Revision으로 처리하도록 API를 원자적으로 구성합니다.
 
-`원본 복원`은 자동 채보 원본의 음악 내용을 복원하되 현재 출판 설정은 유지합니다.
+`실행 취소`는 MusicXML과 해당 시점의 출판 설정을 함께 되돌립니다.
 
----
-
-# Export 일관성
-
-편집 후 이전 PDF/MIDI가 그대로 남아 있으면 오래된 파일을 실수로 배포할 수 있습니다.
-
-AudioScoreTool은 MusicXML이 변경되는 즉시 기존 PDF/MIDI Export를 무효화합니다.
-
-```text
-Revision 4
-PDF 생성
-   ↓
-노트 또는 레이아웃 수정
-   ↓
-Revision 5
-   ↓
-Revision 4 PDF/MIDI 자동 폐기
-   ↓
-최종 파일 생성 필요
-```
-
-`최종 파일 생성`을 실행하면 현재 Revision의 MusicXML을 기준으로 MuseScore가 PDF와 MIDI를 다시 생성합니다.
+`원본 복원`은 자동 채보 원본으로 악보 내용을 복원한 뒤 현재 출판 설정을 다시 적용합니다.
 
 ---
 
-# 전체 구조
+# Export
+
+현재 Revision에서 생성:
 
 ```text
-[입력]
- ├─ 로컬 음원
- └─ YouTube URL
-       ↓
-     yt-dlp
-       ↓
-   오디오 파일
-       ↓
-┌─────────────────────────────────────┐
-│ MuScriptor                          │
-│ → MIDI / MusicXML / 초안 PDF        │
-└─────────────────────────────────────┘
-       │
-       └─ Demucs → vocals.wav
-                     ↓
-                  WhisperX
-                     ↓
-                가사 타이밍
-                     ↓
-                노트-가사 정렬
-                     ↓
-                Song Library
-                     ↓
-┌─────────────────────────────────────┐
-│ Score Publishing Workspace          │
-│                                     │
-│ 노트 수정                            │
-│ 가사 수정                            │
-│ 코드 심벌                            │
-│ 페이지 조판                          │
-│ 제목 / 크레딧                        │
-│ Revision / Undo                     │
-└─────────────────────────────────────┘
-                     ↓
-                 MuseScore
-                     ↓
-          PDF / MusicXML / MIDI
+Full Score
+├─ MusicXML
+├─ PDF
+└─ MIDI
+
+Parts
+├─ Voice.musicxml / Voice.pdf
+├─ Piano.musicxml / Piano.pdf
+├─ Guitar.musicxml / Guitar.pdf
+├─ Bass.musicxml / Bass.pdf
+├─ Drums.musicxml / Drums.pdf
+└─ 기타 감지 파트
 ```
 
-데스크탑:
+악보가 수정되면 이전 PDF/MIDI/파트 Export는 자동 무효화됩니다.
 
-```text
-Tauri 2
-└─ React + TypeScript + Vite
-   ├─ 채보
-   ├─ YouTube 가져오기
-   ├─ 벤치마크
-   ├─ 작업 이력
-   ├─ 설정
-   └─ 곡 라이브러리
-       └─ 악보 편집/출판 작업공간
-            ├─ OSMD 미리보기
-            ├─ 노트 편집
-            ├─ 코드 편집
-            ├─ 출판 레이아웃
-            ├─ 제목/크레딧
-            ├─ Revision
-            └─ Export
+따라서 구버전 파일을 현재 악보로 착각해 배포하는 것을 방지합니다.
 
-Python FastAPI sidecar
-├─ MuScriptor
-├─ Demucs
-├─ WhisperX
-├─ yt-dlp
-├─ MuseScore
-├─ Job Store
-├─ Song Store
-├─ Publication Store
-└─ MusicXML 편집 계층
+---
+
+# 모델 Benchmark
+
+같은 음원을 여러 모델 조합으로 비교할 수 있습니다.
+
+- MuScriptor small / medium / large
+- WhisperX 조합
+- 실행 시간
+- 성공/실패
+- 가사 attachment ratio
+- Note Precision / Recall / F1
+- Onset MAE
+
+Ground Truth MIDI가 있으면 reference 기반 지표를 계산합니다.
+
+CLI:
+
+```bash
+uv run audio-score benchmark song.wav \
+  --language ko \
+  --profile all \
+  --reference-midi reference.mid
 ```
 
 ---
@@ -374,28 +415,36 @@ Auto 프리셋 기본값:
 - Apple Silicon → `balanced`
 - NVIDIA CUDA → `balanced`
 
-실제 최적 조합은 내장 Benchmark 기능으로 확인하는 것을 권장합니다.
+실제 최적 조합은 앱의 Benchmark로 측정해 확정하는 것을 권장합니다.
 
 ---
 
-# 설치 전 사용자 작업
+# 사용자가 직접 해야 하는 부분
 
-MuScriptor 모델 가중치는 공개 코드와 별도의 라이선스를 사용합니다.
+다음은 계정 또는 실제 하드웨어 소유자만 수행할 수 있습니다.
 
-현재 공개 MuScriptor 모델 weights는 **CC BY-NC 4.0**이며 Hugging Face에서 사용자가 직접 라이선스를 수락해야 합니다.
+1. Hugging Face에서 MuScriptor 모델 라이선스 수락
+2. 로컬 Hugging Face 인증
+3. MuseScore 4 설치
+4. 실제 사용하는 CPU/GPU/Mac에서 모델 다운로드 및 첫 inference
+5. 대표 음원으로 실제 품질 Benchmark
+6. 공개 배포 시 Apple/Windows 코드서명 자격증명 제공
+
+Hugging Face 인증:
 
 ```bash
 uvx hf auth login
 ```
 
-필요 항목:
+AudioScoreTool은 Hugging Face 토큰 값을 UI에 노출하거나 자체 저장하지 않습니다.
 
-1. Hugging Face에서 MuScriptor 모델 라이선스 수락
-2. Hugging Face 로컬 인증
-3. MuseScore 4 설치
-4. 필요 시 실행 파일 경로를 앱 Setup에서 지정
+---
 
-AudioScoreTool은 Hugging Face 토큰 값을 읽어 UI에 표시하거나 자체 저장하지 않습니다.
+# 라이선스 주의
+
+AudioScoreTool 프로젝트 코드의 라이선스와 외부 모델 가중치 라이선스는 별개입니다.
+
+현재 공개 MuScriptor 모델 weights는 **CC BY-NC 4.0**입니다. 따라서 현재 weights를 그대로 상업 서비스/유료 제품에 재배포하려면 upstream의 별도 허가 또는 상업 사용 가능한 대체 모델이 필요합니다.
 
 ---
 
@@ -407,7 +456,7 @@ cd audio-score-tool
 uv sync --extra dev
 ```
 
-데스크탑 개발 모드:
+데스크탑 개발:
 
 ```bash
 cd desktop
@@ -421,7 +470,6 @@ npm run desktop:dev
 
 ```bash
 uv sync --extra desktop
-
 cd desktop
 npm install
 npm run desktop:build
@@ -429,87 +477,44 @@ npm run desktop:build
 
 빌드 과정:
 
-1. 플랫폼별 앱 아이콘 생성
-2. FastAPI backend를 PyInstaller sidecar로 패키징
-3. Tauri 앱 빌드
+1. 플랫폼별 아이콘 생성
+2. Python/FastAPI backend PyInstaller sidecar 생성
+3. Tauri desktop bundle 생성
 
-모델 weights와 MuseScore 자체는 설치 파일에 재배포하지 않습니다.
+모델 weights와 MuseScore는 라이선스/용량 문제 때문에 앱 설치 파일에 재배포하지 않습니다.
 
 ---
 
 # CI
 
-GitHub Actions에서 다음을 검사합니다.
+GitHub Actions에서 검증:
 
 - Ruff
-- Python 단위/통합 테스트
-- MusicXML 편집 테스트
-- 코드 심벌 테스트
-- 출판 레이아웃 테스트
-- Revision 테스트
+- Python unit/integration tests
+- fixture 기반 전체 파이프라인
+- 자동 코드 추정
+- 파트 분리
+- MusicXML pitch/lyric editing
+- 리듬/쉼표/삽입/삭제 편집
+- 마디/조표/박자표 편집
+- 타이/슬러/빔/아티큘레이션 편집
+- Revision / Undo
+- 출판 레이아웃
 - React / TypeScript build
 - Vite production build
 - Tauri Rust shell
-- Windows 실제 desktop bundle
-- macOS 실제 desktop bundle
-- Linux 실제 desktop bundle
+- Windows desktop bundle
+- macOS desktop bundle
+- Linux desktop bundle
 
-실제 gated 모델 품질 평가는 사용자 인증과 실제 하드웨어가 필요하므로 로컬 Benchmark에서 수행합니다.
-
----
-
-# 모델 벤치마크
-
-앱의 Benchmark 화면 또는 CLI에서 같은 음원을 여러 모델 조합으로 비교할 수 있습니다.
-
-지원 지표:
-
-- 실행 시간
-- 성공/실패
-- 가사 attachment ratio
-- Note Precision
-- Note Recall
-- Note F1
-- Onset MAE(ms)
-
-Ground Truth MIDI를 넣으면 reference 기반 정량 지표가 추가됩니다.
-
-CLI 예:
-
-```bash
-uv run audio-score benchmark song.wav \
-  --language ko \
-  --profile all \
-  --reference-midi reference.mid
-```
+실제 gated 모델의 음악적 정확도는 사용자 인증과 실제 target hardware가 필요하므로 내장 Benchmark에서 수행합니다.
 
 ---
 
-# 현재 범위와 한계
+# 편집 방식에 대한 범위
 
-AudioScoreTool v0.4의 목표는 **자동 채보 결과를 판매용 악보에 가까운 형태로 보정·조판할 수 있는 데스크탑 작업공간**입니다.
+AudioScoreTool의 내장 편집기는 **OSMD를 렌더러로 사용하고 MusicXML을 구조적으로 수정하는 Inspector 방식**입니다.
 
-현재 GUI에서 지원하지 않는 고급 편집:
+즉 SVG 음표를 마우스로 자유롭게 끌어 배치하는 별도의 작곡 프로그램을 구현하는 것이 아니라, 자동 채보 결과를 수정하고 판매 가능한 형태로 조판하는 목적에 맞춰 MusicXML을 직접 수정합니다.
 
-- 리듬값 직접 변경
-- 쉼표 삽입/삭제
-- 음표 삽입/삭제
-- 마디 삽입/삭제
-- 조표 직접 편집
-- 박자표 직접 편집
-- 빔/슬러/아티큘레이션 세부 편집
-- 마우스로 악보 음표 자체를 직접 드래그하는 WYSIWYG 편집
-
-이 기능들은 MusicXML 구조상 확장 가능하지만, 현재 v0.4에서는 노트/가사/코드/출판 조판에 우선 집중합니다.
-
-자동 채보 및 자동 가사 정렬 역시 최종 출판 전에 사람이 검토하는 것을 전제로 합니다.
-
----
-
-# 라이선스 주의
-
-AudioScoreTool 자체 코드와 각 외부 구성요소의 라이선스는 별도로 확인해야 합니다.
-
-특히 MuScriptor 공개 모델 weights는 현재 **CC BY-NC 4.0**이므로 현재 weights를 포함한 상업 서비스 또는 유료 배포에는 별도의 검토가 필요합니다.
-
-YouTube 입력 기능 역시 사용자가 다운로드·가공 권한을 보유한 콘텐츠에 대해서만 사용해야 합니다.
+이 방식의 장점은 미리보기, MusicXML, MuseScore PDF/MIDI가 항상 같은 악보 데이터를 공유한다는 점입니다.
