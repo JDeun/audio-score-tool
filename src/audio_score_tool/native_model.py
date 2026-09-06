@@ -83,7 +83,8 @@ def build_model(config: NativeModelConfig):
         def decode(self, tokens, memory):
             length = tokens.shape[1]
             if length > config.max_tokens:
-                raise ValueError(f"token sequence exceeds max_tokens={config.max_tokens}")
+                tokens = tokens[:, -config.max_tokens :]
+                length = tokens.shape[1]
             positions = torch.arange(length, device=tokens.device).unsqueeze(0)
             hidden = self.token_embedding(tokens) + self.token_position(positions)
             causal = torch.triu(
