@@ -6,7 +6,7 @@ from typing import Callable, Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from .musicxml_editor import MusicXMLEditError
+from .musicxml_editor import MusicXMLEditError, update_note
 from .publication_layout import apply_publication_layout
 from .publication_store import PublicationStore
 from .score_structure import (
@@ -32,6 +32,10 @@ NoteType = Literal["whole", "half", "quarter", "eighth", "16th", "32nd", "64th"]
 
 
 class NoteStructurePatch(BaseModel):
+    step: Literal["A", "B", "C", "D", "E", "F", "G"] | None = None
+    alter: int | None = Field(default=None, ge=-2, le=2)
+    octave: int | None = Field(default=None, ge=0, le=9)
+    lyric: str | None = Field(default=None, max_length=200)
     type: NoteType | None = None
     dots: int | None = Field(default=None, ge=0, le=2)
     rest: bool | None = None
@@ -96,7 +100,24 @@ def patch_note_structure(song_id: str, note_id: str, payload: NoteStructurePatch
         return {"song": _public(_require_song(song_id)), "note_id": note_id}
 
     def operation(song: dict) -> dict:
-        update_note_structure(Path(song["current_musicxml"]), note_id, patch)
+        path = Path(song["current_musicxml"])
+        structure_fields = {
+            key: value
+            for key, value in patch.items()
+            if key in {"type", "dots", "rest", "articulations", "ties", "slurs", "beam"}
+        }
+        if structure_fields:
+            update_note_structure(path, note_id, structure_fields)
+        basic_fields = {
+            key: value
+            for key, value in patch.items()
+            if key in {"step", "alter", "octave", "lyric"}
+        }
+        if basic_fields:
+            if patch.get("rest") is True:
+                basic_fields = {key: value for key, value in basic_fields.items() if key == "lyric"}
+            if basic_fields:
+                update_note(path, note_id, basic_fields)
         return {"note_id": note_id}
 
     return _mutate(song_id, operation)
