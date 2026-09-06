@@ -46,6 +46,7 @@ type SetupInfo = {
 
 type Job = {
   job_id: string;
+  kind?: "transcription" | "benchmark";
   status:
     | "queued"
     | "running"
@@ -71,6 +72,10 @@ type Job = {
     pdf?: string;
     transcript_json?: string;
     warnings?: string[];
+    benchmark_json?: string;
+    benchmark_csv?: string;
+    runs?: number;
+    successful_runs?: number;
   };
 };
 
@@ -95,7 +100,7 @@ function App() {
   const [toolPaths, setToolPaths] = useState<Record<string, string>>({});
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [backendError, setBackendError] = useState(false);
-  const [tab, setTab] = useState<"transcribe" | "history" | "setup">("transcribe");
+  const [tab, setTab] = useState<"transcribe" | "benchmark" | "history" | "setup">("transcribe");
   const [file, setFile] = useState<File | null>(null);
   const [language, setLanguage] = useState("ko");
   const [lyrics, setLyrics] = useState(true);
@@ -105,7 +110,12 @@ function App() {
   const [job, setJob] = useState<Job | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [dragging, setDragging] = useState(false);
+  const [benchmarkFile, setBenchmarkFile] = useState<File | null>(null);
+  const [referenceMidi, setReferenceMidi] = useState<File | null>(null);
+  const [benchmarkProfile, setBenchmarkProfile] = useState("all");
   const inputRef = useRef<HTMLInputElement>(null);
+  const benchmarkInputRef = useRef<HTMLInputElement>(null);
+  const referenceInputRef = useRef<HTMLInputElement>(null);
 
   const fetchJobs = async () => {
     try {
@@ -237,6 +247,20 @@ function App() {
     void fetchJobs();
   };
 
+  const submitBenchmark = async () => {
+    if (!benchmarkFile) return;
+    const body = new FormData();
+    body.append("file", benchmarkFile);
+    if (referenceMidi) body.append("reference_midi", referenceMidi);
+    body.append("language", language);
+    body.append("profile", benchmarkProfile);
+
+    const res = await fetch(`${API}/api/benchmarks`, { method: "POST", body });
+    if (!res.ok) throw new Error(await res.text());
+    setJob(await res.json());
+    void fetchJobs();
+  };
+
   const cancelJob = async () => {
     if (!job) return;
     const res = await fetch(`${API}/api/jobs/${job.job_id}/cancel`, { method: "POST" });
@@ -259,8 +283,17 @@ function App() {
 
   const running = job && ["queued", "running", "cancelling"].includes(job.status);
 
-  const renderArtifacts = (target: Job) =>
-    target.status === "done" ? (
+  const renderArtifacts = (target: Job) => {
+    if (target.status !== "done") return null;
+    if (target.kind === "benchmark") {
+      return (
+        <div className="artifacts benchmark-artifacts">
+          <a href={artifactUrl(target, "benchmark_json")} target="_blank">Benchmark JSON</a>
+          <a href={artifactUrl(target, "benchmark_csv")} target="_blank">Benchmark CSV</a>
+        </div>
+      );
+    }
+    return (
       <div className="artifacts">
         <a href={artifactUrl(target, "pdf")} target="_blank">PDF Score</a>
         <a href={artifactUrl(target, "musicxml")} target="_blank">MusicXML</a>
@@ -269,7 +302,8 @@ function App() {
           <a href={artifactUrl(target, "transcript")} target="_blank">Lyrics JSON</a>
         )}
       </div>
-    ) : null;
+    );
+  };
 
   return (
     <main className="shell">
@@ -281,6 +315,7 @@ function App() {
         <div className="header-actions">
           <nav className="tabs">
             <button className={tab === "transcribe" ? "active" : ""} onClick={() => setTab("transcribe")}>Transcribe</button>
+            <button className={tab === "benchmark" ? "active" : ""} onClick={() => setTab("benchmark")}>Benchmark</button>
             <button className={tab === "history" ? "active" : ""} onClick={() => setTab("history")}>History</button>
             <button className={tab === "setup" ? "active" : ""} onClick={() => setTab("setup")}>Setup</button>
           </nav>
@@ -431,6 +466,89 @@ function App() {
         </section>
       )}
 
+
+      {tab === "benchmark" && (
+        <section className="benchmark-grid">
+          <section className="card setup-card">
+            <span className="eyebrow">MODEL A/B</span>
+            <h2>Local benchmark</h2>
+            <p className="muted">같은 음원으로 MuScriptor / WhisperX 조합을 순차 실행합니다. Reference MIDI를 넣으면 Note Precision/Recall/F1과 onset MAE를 계산합니다.</p>
+
+            <div className="benchmark-picker">
+              <input ref={benchmarkInputRef} type="file" accept="audio/*" hidden onChange={(e) => setBenchmarkFile(e.target.files?.[0] ?? null)} />
+              <button className="file-button" onClick={() => benchmarkInputRef.current?.click()}>
+                <span>Audio</span>
+                <strong>{benchmarkFile?.name ?? "Select test audio"}</strong>
+              </button>
+              <input ref={referenceInputRef} type="file" accept=".mid,.midi,audio/midi" hidden onChange={(e) => setReferenceMidi(e.target.files?.[0] ?? null)} />
+              <button className="file-button optional" onClick={() => referenceInputRef.current?.click()}>
+                <span>Ground Truth MIDI · optional</span>
+                <strong>{referenceMidi?.name ?? "Select reference MIDI"}</strong>
+              </button>
+            </div>
+
+            <div className="benchmark-options">
+              <div className="field">
+                <label>Benchmark profile</label>
+                <select value={benchmarkProfile} onChange={(e) => setBenchmarkProfile(e.target.value)}>
+                  <option value="score">Score only · MuScriptor S/M/L</option>
+                  <option value="lyrics">Lyrics combinations</option>
+                  <option value="all">All combinations</option>
+                </select>
+              </div>
+              <div className="field">
+                <label>가사 언어</label>
+                <select value={language} onChange={(e) => setLanguage(e.target.value)}>
+                  <option value="ko">한국어</option>
+                  <option value="en">English</option>
+                  <option value="">자동 감지</option>
+                </select>
+              </div>
+              <button className="run-button" disabled={!benchmarkFile || backendError || !!running} onClick={submitBenchmark}>
+                Run benchmark
+              </button>
+            </div>
+
+            {job?.kind === "benchmark" && (
+              <div className="benchmark-progress">
+                <div className="progress-title">
+                  <div>
+                    <span className="eyebrow">BENCHMARK JOB</span>
+                    <h3>{job.filename ?? benchmarkFile?.name}</h3>
+                    <p className="muted">{job.stage ?? job.status}</p>
+                  </div>
+                  <strong>{job.progress ?? 0}%</strong>
+                </div>
+                <div className="progress-track">
+                  <div className="progress-fill" style={{ width: `${job.progress ?? 0}%` }} />
+                </div>
+                {running && job.status !== "cancelling" && (
+                  <button className="secondary danger" onClick={cancelJob}>Cancel benchmark</button>
+                )}
+                {job.error && <pre className="error">{job.error}</pre>}
+                {job.status === "done" && (
+                  <>
+                    <p className="muted">{job.result?.successful_runs ?? 0} / {job.result?.runs ?? 0} runs succeeded</p>
+                    {renderArtifacts(job)}
+                  </>
+                )}
+              </div>
+            )}
+          </section>
+
+          <aside className="benchmark-aside">
+            <section className="card note">
+              <span className="eyebrow">WITHOUT REFERENCE</span>
+              <p>실행 시간, 성공 여부, 가사 attachment ratio를 비교합니다.</p>
+            </section>
+            <section className="card note">
+              <span className="eyebrow">WITH REFERENCE MIDI</span>
+              <p>Note Precision / Recall / F1과 onset MAE(ms)를 추가로 계산합니다. 모델 선택에는 이 경로가 더 유효합니다.</p>
+            </section>
+          </aside>
+        </section>
+      )}
+
       {tab === "history" && (
         <section className="card history-card">
           <div className="history-head">
@@ -446,10 +564,10 @@ function App() {
             <div className="job-list">
               {jobs.map((item) => (
                 <article className="job-row" key={item.job_id}>
-                  <button className="job-main" onClick={() => { setJob(item); setTab("transcribe"); }}>
+                  <button className="job-main" onClick={() => { setJob(item); setTab(item.kind === "benchmark" ? "benchmark" : "transcribe"); }}>
                     <div>
-                      <strong>{item.filename ?? "Untitled audio"}</strong>
-                      <span>{item.muscriptor_model} · {item.whisperx_model} · {item.language || "auto"}</span>
+                      <strong>{item.kind === "benchmark" ? "Benchmark · " : ""}{item.filename ?? "Untitled audio"}</strong>
+                      <span>{item.kind === "benchmark" ? (item.preset ?? "all") : `${item.muscriptor_model} · ${item.whisperx_model}`} · {item.language || "auto"}</span>
                     </div>
                     <div className="job-state">
                       <span className={`state state-${item.status}`}>{stageLabel[item.status] ?? item.status}</span>
