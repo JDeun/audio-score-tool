@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import shutil
 import sqlite3
 from datetime import datetime, timezone
@@ -133,9 +132,7 @@ class SongStore:
 
     def list(self) -> list[dict[str, Any]]:
         with self._connect() as conn:
-            rows = conn.execute(
-                "SELECT * FROM songs ORDER BY updated_at DESC"
-            ).fetchall()
+            rows = conn.execute("SELECT * FROM songs ORDER BY updated_at DESC").fetchall()
         return [self._row(row) for row in rows]
 
     def get(self, song_id: str) -> dict[str, Any] | None:
@@ -148,7 +145,13 @@ class SongStore:
             row = conn.execute("SELECT * FROM songs WHERE job_id=?", (job_id,)).fetchone()
         return self._row(row) if row else None
 
-    def update_metadata(self, song_id: str, *, title: str | None = None, artist: str | None = None) -> dict[str, Any] | None:
+    def update_metadata(
+        self,
+        song_id: str,
+        *,
+        title: str | None = None,
+        artist: str | None = None,
+    ) -> dict[str, Any] | None:
         fields: dict[str, Any] = {}
         if title is not None:
             fields["title"] = title.strip() or "제목 없는 곡"
