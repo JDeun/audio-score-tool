@@ -2,7 +2,7 @@ from audio_score_tool.api_ext import app
 
 
 def test_song_workspace_routes_are_registered():
-    paths = {route.path for route in app.routes}
+    paths = {route.path for route in app.routes if hasattr(route, "path")}
     assert "/api/songs" in paths
     assert "/api/songs/{song_id}/score" in paths
     assert "/api/songs/{song_id}/notes/{note_id}" in paths
