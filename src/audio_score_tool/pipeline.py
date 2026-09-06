@@ -58,7 +58,12 @@ def _resolve_musescore(settings: Settings) -> str | None:
     return None
 
 
-def _render_pdf(musicxml: Path, pdf: Path, settings: Settings) -> bool:
+def _render_pdf(
+    musicxml: Path,
+    pdf: Path,
+    settings: Settings,
+    cancel_event: Event | None = None,
+) -> bool:
     cmd = _resolve_musescore(settings)
     if not cmd:
         return False
@@ -69,8 +74,10 @@ def _render_pdf(musicxml: Path, pdf: Path, settings: Settings) -> bool:
                 "QT_QPA_PLATFORM": "offscreen",
                 "MU_QT_QPA_PLATFORM": "offscreen",
             }
-        run_command(cmd, ["-o", pdf, musicxml], env=env)
+        run_command(cmd, ["-o", pdf, musicxml], env=env, cancel_event=cancel_event)
         return pdf.exists()
+    except CommandCancelled:
+        raise
     except CommandError:
         return False
 
@@ -261,7 +268,12 @@ def transcribe(
 
     # 5) Re-render the lyric-enriched MusicXML if MuseScore is directly callable.
     lyric_pdf = work_dir / "score_with_lyrics.pdf"
-    if not _render_pdf(lyric_musicxml, lyric_pdf, settings):
+    try:
+        rendered = _render_pdf(lyric_musicxml, lyric_pdf, settings, cancel_event)
+    except CommandCancelled as exc:
+        raise PipelineCancelled("Score rendering cancelled.") from exc
+
+    if not rendered:
         lyric_pdf = full_pdf
         warnings.append(
             "Could not directly invoke MuseScore for score_with_lyrics.pdf; "
