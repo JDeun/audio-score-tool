@@ -16,13 +16,15 @@ def setup_instructions() -> dict:
 
     return {
         "runtime": {
-            "recommended": "AudioScore Native / MuScriptor provider",
+            "recommended": "YourMT3+ via MT3-Infer",
             "note": (
                 "AudioScoreTool v0.7부터 채보 엔진은 교체 가능한 provider 구조입니다. "
-                "상업 배포는 프로젝트 소유 체크포인트를 사용하는 AudioScore Native를 권장합니다."
+                "기본 권장 엔진은 별도 학습이 필요 없는 YourMT3+이며, mt3-infer가 checkpoint를 "
+                "첫 사용 시 로컬 캐시에 자동 다운로드합니다."
             ),
         },
         "python_tools": [
+            {"name": "YourMT3+ / MT3-Infer", "command": settings.yourmt3_cmd},
             {"name": "AudioScore Native", "command": settings.native_engine_cmd},
             {"name": "MuScriptor", "command": settings.muscriptor_cmd},
             {"name": "Demucs", "command": settings.demucs_cmd},
@@ -32,12 +34,16 @@ def setup_instructions() -> dict:
         "hf_required": settings.transcription_engine == "muscriptor",
         "hf_login_command": "uvx hf auth login",
         "hf_note": (
-            "MuScriptor 공개 가중치를 사용하는 경우에만 Hugging Face의 upstream CC BY-NC 4.0 "
-            "모델 라이선스 수락과 로컬 인증이 필요합니다. AudioScore Native는 Hugging Face 인증을 "
-            "요구하지 않으며 프로젝트 소유 체크포인트를 사용합니다."
+            "MuScriptor 공개 가중치를 선택한 경우에만 Hugging Face의 upstream 비상업 모델 "
+            "라이선스 수락과 로컬 인증이 필요합니다. YourMT3+ 기본 경로에는 이 승인이 필요하지 않습니다."
+        ),
+        "yourmt3_note": (
+            "MT3-Infer는 MIT 라이선스이며 YourMT3+ checkpoint 저장소는 Apache-2.0으로 명시되어 "
+            "있습니다. 모델은 앱에 번들하지 않고 upstream에서 첫 사용 시 내려받습니다. 상용 릴리스 전에는 "
+            "THIRD_PARTY_NOTICES와 upstream 라이선스 상태를 재확인하세요."
         ),
         "native_note": (
-            "AudioScore Native 체크포인트는 상업 사용이 명시적으로 허용된 데이터만으로 독립 학습해야 합니다. "
-            "학습 manifest는 허용되지 않은 라이선스를 자동 거부합니다."
+            "AudioScore Native는 장기적으로 모델까지 직접 소유하고 싶은 경우를 위한 R&D 경로입니다. "
+            "기본 앱 사용을 위해 Native 모델을 처음부터 학습할 필요는 없습니다."
         ),
     }
