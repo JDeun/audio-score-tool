@@ -27,6 +27,9 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "externalBin": ["binaries/audio-score-backend"]
+    "externalBin": [
+      "binaries/audio-score-backend"
+    ],
+    "icon": []
   }
 }
