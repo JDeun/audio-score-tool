@@ -134,9 +134,14 @@ def get_notes(song_id: str) -> dict:
 @router.patch("/{song_id}")
 def update_song(song_id: str, payload: SongMetadataPatch) -> dict:
     song = _require_song(song_id)
-    if payload.title is not None and payload.title.strip() != song["title"]:
+    title_changed = payload.title is not None and (payload.title.strip() or "제목 없는 곡") != song["title"]
+    if title_changed:
         _snapshot_before_edit(song)
-        set_score_title(Path(song["current_musicxml"]), payload.title.strip() or "제목 없는 곡")
+        set_score_title(
+            Path(song["current_musicxml"]),
+            payload.title.strip() or "제목 없는 곡",
+        )
+        _song_store.clear_exports(song_id)
         _song_store.bump_revision(song_id)
     updated = _song_store.update_metadata(
         song_id,
@@ -151,14 +156,22 @@ def update_song(song_id: str, payload: SongMetadataPatch) -> dict:
 @router.patch("/{song_id}/notes/{note_id}")
 def patch_note(song_id: str, note_id: str, payload: NotePatch) -> dict:
     song = _require_song(song_id)
-    _snapshot_before_edit(song)
     patch = payload.model_dump(exclude_unset=True)
+    if not patch:
+        return {"song": _public(song), "note_id": note_id}
+
+    _snapshot_before_edit(song)
     try:
         update_note(Path(song["current_musicxml"]), note_id, patch)
     except MusicXMLEditError as exc:
-        revision_path = _song_store.revision_dir(song_id) / f"rev-{int(song.get('revision', 1)):04d}.musicxml"
+        revision_path = (
+            _song_store.revision_dir(song_id)
+            / f"rev-{int(song.get('revision', 1)):04d}.musicxml"
+        )
         revision_path.unlink(missing_ok=True)
         raise HTTPException(422, str(exc)) from exc
+
+    _song_store.clear_exports(song_id)
     updated = _song_store.bump_revision(song_id)
     return {"song": _public(updated or song), "note_id": note_id}
 
@@ -172,6 +185,7 @@ def undo_song(song_id: str) -> dict:
     )
     if restored is None:
         raise HTTPException(409, "되돌릴 수정 이력이 없습니다.")
+    _song_store.clear_exports(song_id)
     updated = _song_store.set_revision(song_id, int(song.get("revision", 1)) - 1)
     return _public(updated or song)
 
@@ -185,6 +199,7 @@ def restore_original(song_id: str) -> dict:
     if not original.exists():
         raise HTTPException(404, "Original MusicXML is missing")
     shutil.copy2(original, current)
+    _song_store.clear_exports(song_id)
     updated = _song_store.bump_revision(song_id)
     return _public(updated or song)
 
@@ -195,7 +210,10 @@ def build_exports(song_id: str) -> dict:
     settings = _runtime_settings()
     musescore = _resolve_musescore(settings)
     if not musescore:
-        raise HTTPException(409, "MuseScore 4 실행 파일을 찾을 수 없습니다. Setup에서 경로를 지정하세요.")
+        raise HTTPException(
+            409,
+            "MuseScore 4 실행 파일을 찾을 수 없습니다. Setup에서 경로를 지정하세요.",
+        )
 
     current = Path(song["current_musicxml"])
     export_dir = _song_store.export_dir(song_id)
