@@ -8,7 +8,7 @@ from threading import Event, Lock, Thread
 import uvicorn
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
 from .benchmark import configs_for_profile, run_benchmark_matrix
@@ -46,7 +46,7 @@ async def protect_local_mutations(request: Request, call_next):
     if request.method not in {"GET", "HEAD", "OPTIONS"}:
         origin = request.headers.get("origin")
         if origin is not None and origin not in _ALLOWED_ORIGINS:
-            raise HTTPException(403, "Untrusted origin")
+            return JSONResponse({"detail": "Untrusted origin"}, status_code=403)
     return await call_next(request)
 
 _AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac", ".m4a", ".aac", ".ogg", ".opus"}
