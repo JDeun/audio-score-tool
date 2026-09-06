@@ -1,130 +1,405 @@
 # AudioScoreTool
 
-Local-first desktop **audio → sheet music** transcription built around MuScriptor, with optional vocal isolation, lyric ASR, lyric-to-note alignment, MusicXML/MIDI export, and model A/B benchmarking.
+AudioScoreTool은 완성된 음원 또는 YouTube 영상을 입력으로 받아 **악보를 자동 채보하고, 곡 단위로 관리하며, 미리보기·수정·조판 후 PDF/MusicXML/MIDI로 내보내는 로컬 우선 데스크탑 애플리케이션**입니다.
 
-## Architecture
+단순히 AI가 만든 초안을 다운로드하는 도구가 아니라 다음 흐름을 목표로 합니다.
 
 ```text
-Audio
- ├─ MuScriptor ───────────────→ MIDI / MusicXML / score PDF
- └─ Demucs → vocals.wav
-              ↓
-           WhisperX
-              ↓
-      word-level lyric timings
-              ↓
-      lyric ↔ note alignment
-              ↓
-      score_with_lyrics.musicxml
-              ↓
-           MuseScore
-              ↓
-      score_with_lyrics.pdf
+음원 / YouTube
+      ↓
+자동 채보
+      ↓
+곡 라이브러리
+      ↓
+악보 미리보기
+      ↓
+노트 / 가사 / 코드 수정
+      ↓
+출판 레이아웃 조정
+      ↓
+첫 페이지 제목·크레딧 구성
+      ↓
+최종 PDF / MusicXML / MIDI 생성
 ```
 
-Desktop:
+현재 버전: **v0.4.0**
+
+---
+
+## 주요 기능
+
+### 입력
+
+- 로컬 오디오 파일
+  - WAV
+  - MP3
+  - FLAC
+  - M4A
+  - AAC
+  - OGG
+  - OPUS
+  - WEBM
+- YouTube URL
+  - 일반 영상
+  - Shorts
+  - Live
+  - YouTube Music
+  - Embed URL
+- YouTube 재생목록 일괄 처리는 현재 의도적으로 지원하지 않음
+
+### 자동 채보
+
+- MuScriptor 기반 악기/보컬 채보
+- MIDI 생성
+- MusicXML 생성
+- PDF 악보 생성
+- Demucs 기반 보컬 분리
+- WhisperX 기반 가사 인식
+- 가사-노트 정렬
+- CUDA / Apple MPS / CPU 자동 실행 정책
+
+### 곡 라이브러리
+
+완료된 채보 Job은 별도의 `Song` 단위로 자동 등록됩니다.
+
+```text
+Song
+├─ 곡 제목
+├─ 아티스트 / 메모
+├─ 원본 MusicXML
+├─ 현재 편집 MusicXML
+├─ 곡별 출판 설정
+├─ Revision
+├─ 수정 이력
+├─ 코드 심벌
+└─ 최종 Export
+```
+
+Job은 실행 이력이고 Song은 실제로 관리·편집하는 곡 단위입니다.
+
+### 악보 미리보기
+
+MusicXML은 OpenSheetMusicDisplay(OSMD)를 사용해 앱 내부에서 SVG 악보로 렌더링합니다.
+
+PDF를 만들기 전에 현재 편집 상태를 바로 확인할 수 있습니다.
+
+- 미리보기 확대/축소
+- 수정 후 즉시 다시 렌더링
+- 제목/크레딧 확인
+- 코드 심벌 확인
+- 시스템/페이지 나눔 확인
+
+### 노트와 가사 편집
+
+현재 지원하는 노트 단위 수정:
+
+- 음 이름 A-G
+- 더블 플랫 / 플랫 / 내추럴 / 샵 / 더블 샵
+- 옥타브
+- 노트에 연결된 가사
+
+현재 리듬 길이, 쉼표 추가/삭제, 마디 추가/삭제, 조표/박자표를 GUI에서 직접 편집하는 기능은 아직 포함하지 않습니다.
+
+### 코드 심벌
+
+선택한 음표의 시점 위에 MusicXML `<harmony>` 코드 심벌을 삽입합니다.
+
+예:
+
+```text
+C
+Cm
+C7
+Cmaj7
+Cm7
+C6
+Cm6
+C9
+Cmaj9
+Cm9
+Csus2
+Csus4
+Cdim
+Cdim7
+Caug
+Cm7b5
+F#maj7
+Bb7
+G/B
+```
+
+코드는 특정 음표 시점에 연결되므로 한 마디 안에서도 여러 번 바꿀 수 있습니다.
+
+```text
+| C        Am7       | F        G7        |
+  1박      3박         1박      3박
+```
+
+MusicXML에서는 실제 `<harmony placement="above">` 요소로 저장되므로 OSMD 미리보기와 MuseScore PDF 출력이 같은 악보 데이터를 사용합니다.
+
+---
+
+# 출판용 악보 조판
+
+AudioScoreTool v0.4에서는 상용 악보 사이트에서 판매하는 악보처럼 페이지 레이아웃을 조정할 수 있는 출판 설정을 제공합니다.
+
+## 한 줄당 마디 수
+
+예:
+
+```text
+한 줄당 4마디
+| 1 | 2 | 3 | 4 |
+| 5 | 6 | 7 | 8 |
+```
+
+MusicXML의 `new-system`을 사용해 시스템 나눔을 저장합니다.
+
+## 한 페이지당 악보 줄 수
+
+예:
+
+```text
+한 줄 4마디
+페이지당 5줄
+→ 약 20마디 / 페이지
+```
+
+MusicXML의 `new-page`를 사용해 페이지 나눔을 저장합니다.
+
+## 줄 간격
+
+악보 시스템 간 세로 간격을 mm 단위로 조정할 수 있습니다.
+
+일반 문서의 행간에 해당하는 설정입니다.
+
+## 페이지 여백
+
+각 곡마다 다음 값을 따로 저장합니다.
+
+- 위
+- 아래
+- 왼쪽
+- 오른쪽
+
+지원 용지:
+
+- A4
+- Letter
+
+지원 방향:
+
+- 세로
+- 가로
+
+## 첫 페이지 제목 영역
+
+첫 페이지의 악보 시작 위치를 아래로 내리고 상단에 출판용 제목 영역을 구성할 수 있습니다.
+
+지원 항목:
+
+- 곡 제목
+- 부제 / 버전
+- 작곡
+- 작사
+- 편곡
+- 저작권 / 출처
+- 제목 글자 크기
+- 부제 글자 크기
+- 크레딧 글자 크기
+
+예:
+
+```text
+                  My Song
+               Piano & Vocal
+
+                              작곡  Composer
+                              작사  Lyricist
+                              편곡  Arranger
+
+──────────────────────────────────────
+             악보 시작
+```
+
+이 정보는 단순 화면 오버레이가 아니라 MusicXML의 `credit`, `identification`, `rights`에 기록됩니다.
+
+따라서 현재 MusicXML과 최종 PDF의 출판 정보가 일치하도록 설계되어 있습니다.
+
+---
+
+# Revision과 실행 취소
+
+악보가 수정되기 직전에 현재 MusicXML과 출판 설정을 함께 저장합니다.
+
+```text
+songs/<song-id>/
+├─ original.musicxml
+├─ score.musicxml
+├─ publication.json
+├─ revisions/
+│  ├─ rev-0001.musicxml
+│  ├─ rev-0001.publication.json
+│  ├─ rev-0002.musicxml
+│  ├─ rev-0002.publication.json
+│  └─ ...
+└─ exports/
+```
+
+Revision 대상:
+
+- 노트 수정
+- 가사 수정
+- 코드 수정
+- 곡 제목 변경
+- 페이지 레이아웃 변경
+- 제목/크레딧 변경
+
+`실행 취소`를 누르면 악보 내용뿐 아니라 해당 시점의 출판 설정도 함께 복원됩니다.
+
+`원본 복원`은 자동 채보 원본의 음악 내용을 복원하되 현재 출판 설정은 유지합니다.
+
+---
+
+# Export 일관성
+
+편집 후 이전 PDF/MIDI가 그대로 남아 있으면 오래된 파일을 실수로 배포할 수 있습니다.
+
+AudioScoreTool은 MusicXML이 변경되는 즉시 기존 PDF/MIDI Export를 무효화합니다.
+
+```text
+Revision 4
+PDF 생성
+   ↓
+노트 또는 레이아웃 수정
+   ↓
+Revision 5
+   ↓
+Revision 4 PDF/MIDI 자동 폐기
+   ↓
+최종 파일 생성 필요
+```
+
+`최종 파일 생성`을 실행하면 현재 Revision의 MusicXML을 기준으로 MuseScore가 PDF와 MIDI를 다시 생성합니다.
+
+---
+
+# 전체 구조
+
+```text
+[입력]
+ ├─ 로컬 음원
+ └─ YouTube URL
+       ↓
+     yt-dlp
+       ↓
+   오디오 파일
+       ↓
+┌─────────────────────────────────────┐
+│ MuScriptor                          │
+│ → MIDI / MusicXML / 초안 PDF        │
+└─────────────────────────────────────┘
+       │
+       └─ Demucs → vocals.wav
+                     ↓
+                  WhisperX
+                     ↓
+                가사 타이밍
+                     ↓
+                노트-가사 정렬
+                     ↓
+                Song Library
+                     ↓
+┌─────────────────────────────────────┐
+│ Score Publishing Workspace          │
+│                                     │
+│ 노트 수정                            │
+│ 가사 수정                            │
+│ 코드 심벌                            │
+│ 페이지 조판                          │
+│ 제목 / 크레딧                        │
+│ Revision / Undo                     │
+└─────────────────────────────────────┘
+                     ↓
+                 MuseScore
+                     ↓
+          PDF / MusicXML / MIDI
+```
+
+데스크탑:
 
 ```text
 Tauri 2
 └─ React + TypeScript + Vite
-   └─ local FastAPI/Python sidecar
-      ├─ persistent SQLite job store
-      ├─ MuScriptor
-      ├─ Demucs
-      ├─ WhisperX
-      └─ MuseScore
+   ├─ 채보
+   ├─ YouTube 가져오기
+   ├─ 벤치마크
+   ├─ 작업 이력
+   ├─ 설정
+   └─ 곡 라이브러리
+       └─ 악보 편집/출판 작업공간
+            ├─ OSMD 미리보기
+            ├─ 노트 편집
+            ├─ 코드 편집
+            ├─ 출판 레이아웃
+            ├─ 제목/크레딧
+            ├─ Revision
+            └─ Export
+
+Python FastAPI sidecar
+├─ MuScriptor
+├─ Demucs
+├─ WhisperX
+├─ yt-dlp
+├─ MuseScore
+├─ Job Store
+├─ Song Store
+├─ Publication Store
+└─ MusicXML 편집 계층
 ```
 
-## v0.3 desktop features
+---
 
-- audio drag-and-drop
-- Transcribe / Benchmark / History / Setup workspaces
-- Auto / Fast / Balanced / Quality model presets
-- manual MuScriptor/WhisperX model overrides
-- CUDA / Apple MPS / CPU detection
-- persistent job history across app restarts
-- queued heavy inference (one model job at a time to avoid VRAM contention)
-- real cancellation that terminates the full child-process tree
-- retry, delete, output-folder reveal, and storage cleanup
-- persistent executable-path overrides for GUI launches where shell `PATH` is unavailable
-- Hugging Face authentication status without exposing token values
-- local disk usage/free-space diagnostics
-- JSON/CSV model benchmark reports
-- optional reference MIDI metrics: note precision, recall, F1, and onset MAE
-- unsigned macOS/Windows/Linux packaging workflow
+# 실행 환경
 
-## Hardware policy
-
-| Hardware | MuScriptor | Demucs | WhisperX |
+| 환경 | MuScriptor | Demucs | WhisperX |
 |---|---|---|---|
 | NVIDIA GPU | CUDA | CUDA | CUDA / FP16 |
 | Apple Silicon | MPS | CPU | CPU / INT8 |
-| CPU-only | CPU | CPU | CPU / INT8 |
+| CPU only | CPU | CPU | CPU / INT8 |
 
-WhisperX is intentionally kept on CUDA/CPU rather than MPS in the current policy.
+Auto 프리셋 기본값:
 
-The Auto preset currently resolves to:
-
-- CPU-only → `fast`
+- CPU only → `fast`
 - Apple Silicon → `balanced`
 - NVIDIA CUDA → `balanced`
 
-Use the built-in benchmark on your target machine before treating this preset as an empirically optimal choice.
+실제 최적 조합은 내장 Benchmark 기능으로 확인하는 것을 권장합니다.
 
-## License constraint
+---
 
-AudioScoreTool does **not** redistribute MuScriptor weights.
+# 설치 전 사용자 작업
 
-MuScriptor source code is MIT-licensed, but the published MuScriptor model weights are **CC BY-NC 4.0 (non-commercial)**. Do not ship the current weights in a commercial product unless the upstream license changes or you obtain separate permission.
+MuScriptor 모델 가중치는 공개 코드와 별도의 라이선스를 사용합니다.
 
-## What the user must do
+현재 공개 MuScriptor 모델 weights는 **CC BY-NC 4.0**이며 Hugging Face에서 사용자가 직접 라이선스를 수락해야 합니다.
 
-These steps depend on the user's account, hardware, or signing identity and therefore cannot be completed by the repository itself:
+```bash
+uvx hf auth login
+```
 
-1. Open the MuScriptor Hugging Face model page and accept the CC BY-NC 4.0 model license.
-2. Authenticate Hugging Face locally:
+필요 항목:
 
-   ```bash
-   uvx hf auth login
-   ```
+1. Hugging Face에서 MuScriptor 모델 라이선스 수락
+2. Hugging Face 로컬 인증
+3. MuseScore 4 설치
+4. 필요 시 실행 파일 경로를 앱 Setup에서 지정
 
-   or provide `HF_TOKEN` in the local environment.
+AudioScoreTool은 Hugging Face 토큰 값을 읽어 UI에 표시하거나 자체 저장하지 않습니다.
 
-3. Install MuseScore 4+.
-4. Ensure `uvx` or the individual model CLIs are available. The app prefers installed commands and automatically falls back to `uvx` when possible.
-5. Run the built-in benchmark with representative real audio on the target CPU/GPU/Mac.
-6. For signed public distribution, provide the appropriate Apple Developer / Windows code-signing credentials.
+---
 
-Everything else in the current application workflow is implemented in the repository.
-
-## MuScriptor runtime behavior
-
-AudioScoreTool follows MuScriptor's current upstream local-run guidance.
-
-If an installed `muscriptor` CLI is not found and `uvx` exists, the app uses `uvx muscriptor`.
-
-Platform-specific fallback:
-
-- Windows + NVIDIA: `uvx --torch-backend=cu128 muscriptor`
-- Apple Silicon: `uvx muscriptor`
-- Intel Mac: `uvx --python 3.12 muscriptor`
-
-Equivalent `uvx` fallback is also used for Demucs and WhisperX when their standalone CLIs are not available.
-
-The Setup screen lets you override any executable/command path. These paths are stored locally in the AudioScoreTool application-data directory.
-
-## Development setup
-
-Requirements:
-
-- Python 3.10+
-- uv / uvx
-- Node.js 22+
-- Rust toolchain
-- MuseScore 4+
-- FFmpeg as required by the model tools
-
-Clone:
+# 개발 실행
 
 ```bash
 git clone https://github.com/JDeun/audio-score-tool.git
@@ -132,77 +407,7 @@ cd audio-score-tool
 uv sync --extra dev
 ```
 
-Authenticate MuScriptor weights:
-
-```bash
-uvx hf auth login
-```
-
-## CLI
-
-Environment check:
-
-```bash
-uv run audio-score doctor
-```
-
-Run Korean transcription:
-
-```bash
-uv run audio-score run song.mp3 --language ko --output outputs
-```
-
-Run score-only mode:
-
-```bash
-uv run audio-score run song.mp3 --skip-lyrics
-```
-
-## Model benchmark
-
-Without reference MIDI:
-
-```bash
-uv run audio-score benchmark song.wav --language ko --profile all
-```
-
-With Ground Truth MIDI:
-
-```bash
-uv run audio-score benchmark song.wav \
-  --language ko \
-  --profile all \
-  --reference-midi reference.mid
-```
-
-Profiles:
-
-- `score`: MuScriptor small / medium / large, lyrics disabled
-- `lyrics`: balanced / medium-ASR / quality combinations
-- `all`: both matrices
-
-Outputs:
-
-```text
-benchmark-results/
-├── benchmark.json
-└── benchmark.csv
-```
-
-Recorded fields include:
-
-- model combination
-- wall-clock runtime
-- success/failure
-- lyric attachment ratio
-- note precision
-- note recall
-- note F1
-- onset MAE in milliseconds
-
-Reference-based metrics are only populated when a Ground Truth MIDI file is supplied.
-
-## Desktop development
+데스크탑 개발 모드:
 
 ```bash
 cd desktop
@@ -210,9 +415,9 @@ npm install
 npm run desktop:dev
 ```
 
-This launches the local Python API and the Tauri development window together.
+---
 
-## Desktop build
+# 데스크탑 빌드
 
 ```bash
 uv sync --extra desktop
@@ -222,119 +427,89 @@ npm install
 npm run desktop:build
 ```
 
-The build command:
+빌드 과정:
 
-1. generates platform icon assets,
-2. creates the Python FastAPI orchestration sidecar with PyInstaller,
-3. builds the Tauri desktop bundle.
+1. 플랫폼별 앱 아이콘 생성
+2. FastAPI backend를 PyInstaller sidecar로 패키징
+3. Tauri 앱 빌드
 
-Model CLIs, MuseScore, and gated model weights intentionally remain external local dependencies.
+모델 weights와 MuseScore 자체는 설치 파일에 재배포하지 않습니다.
 
-## Cross-platform package CI
+---
 
-`.github/workflows/desktop-packages.yml` builds unsigned bundles on:
+# CI
 
-- Windows
-- macOS
-- Linux
+GitHub Actions에서 다음을 검사합니다.
 
-It runs for product PRs, manual dispatch, and version tags. The resulting bundles are uploaded as GitHub Actions artifacts.
-
-Code signing/notarization is intentionally not hard-coded because it requires owner-specific credentials.
-
-## Local API
-
-Start:
-
-```bash
-uv run audio-score-api
-```
-
-Default:
-
-```text
-http://127.0.0.1:8080
-```
-
-Main routes:
-
-| Method | Route | Purpose |
-|---|---|---|
-| GET | `/api/health` | device/tool/system status |
-| GET | `/api/setup` | first-run setup state |
-| GET | `/api/presets` | model presets |
-| GET | `/api/jobs` | persistent history |
-| POST | `/api/jobs` | transcription job |
-| POST | `/api/benchmarks` | model benchmark job |
-| GET | `/api/jobs/{id}` | job status |
-| POST | `/api/jobs/{id}/cancel` | cancel queued/running job |
-| POST | `/api/jobs/{id}/retry` | rerun saved input |
-| POST | `/api/jobs/{id}/reveal` | reveal job folder |
-| DELETE | `/api/jobs/{id}` | delete completed job |
-| POST | `/api/storage/cleanup` | remove old job data |
-| PUT | `/api/settings/tool-paths` | persist executable overrides |
-
-Artifacts:
-
-```text
-GET /api/jobs/{id}/files/midi
-GET /api/jobs/{id}/files/musicxml
-GET /api/jobs/{id}/files/pdf
-GET /api/jobs/{id}/files/transcript
-GET /api/jobs/{id}/files/benchmark_json
-GET /api/jobs/{id}/files/benchmark_csv
-```
-
-## Persistent application data
-
-The app stores history/settings in the platform-standard user data location:
-
-- macOS: `~/Library/Application Support/AudioScoreTool`
-- Windows: `%LOCALAPPDATA%\AudioScoreTool`
-- Linux: `$XDG_DATA_HOME/audio-score-tool` or `~/.local/share/audio-score-tool`
-
-Stored data includes:
-
-- SQLite job metadata
-- input audio retained for retry
-- stems and transcription artifacts
-- benchmark reports
-- local executable-path settings
-
-The Setup screen reports current storage usage and can remove old jobs while retaining the latest 30.
-
-## Lyric alignment
-
-Current alignment remains deliberately modular:
-
-1. Demucs isolates vocals.
-2. WhisperX produces word timings.
-3. Korean Hangul words are expanded into timed syllables.
-4. AudioScoreTool selects a vocal-like MusicXML part.
-5. Chord tones sharing an onset are collapsed for lyric placement.
-6. Lyric tokens are matched monotonically with binary-search nearest-onset lookup.
-
-This is not yet a singing-specific phoneme aligner. Long melismas, rubato, pickup measures, imperfect source separation, and English syllabification can still require manual correction.
-
-The alignment layer is isolated so a dedicated singing/phoneme aligner can replace it later without changing the desktop/API contract.
-
-## Tests
-
-```bash
-uv sync --extra dev
-uv run ruff check src tests scripts
-uv run pytest -q
-```
-
-CI also validates:
-
-- React/TypeScript/Vite production build
+- Ruff
+- Python 단위/통합 테스트
+- MusicXML 편집 테스트
+- 코드 심벌 테스트
+- 출판 레이아웃 테스트
+- Revision 테스트
+- React / TypeScript build
+- Vite production build
 - Tauri Rust shell
-- fixture-driven end-to-end orchestration without downloading gated model weights
-- persistent settings/job database behavior
-- cancellation
-- MIDI reference metrics
-- API validation
-- local system diagnostics
+- Windows 실제 desktop bundle
+- macOS 실제 desktop bundle
+- Linux 실제 desktop bundle
 
-Real MuScriptor/WhisperX quality evaluation is intentionally left to the target hardware because gated model access and representative audio are user/environment-specific.
+실제 gated 모델 품질 평가는 사용자 인증과 실제 하드웨어가 필요하므로 로컬 Benchmark에서 수행합니다.
+
+---
+
+# 모델 벤치마크
+
+앱의 Benchmark 화면 또는 CLI에서 같은 음원을 여러 모델 조합으로 비교할 수 있습니다.
+
+지원 지표:
+
+- 실행 시간
+- 성공/실패
+- 가사 attachment ratio
+- Note Precision
+- Note Recall
+- Note F1
+- Onset MAE(ms)
+
+Ground Truth MIDI를 넣으면 reference 기반 정량 지표가 추가됩니다.
+
+CLI 예:
+
+```bash
+uv run audio-score benchmark song.wav \
+  --language ko \
+  --profile all \
+  --reference-midi reference.mid
+```
+
+---
+
+# 현재 범위와 한계
+
+AudioScoreTool v0.4의 목표는 **자동 채보 결과를 판매용 악보에 가까운 형태로 보정·조판할 수 있는 데스크탑 작업공간**입니다.
+
+현재 GUI에서 지원하지 않는 고급 편집:
+
+- 리듬값 직접 변경
+- 쉼표 삽입/삭제
+- 음표 삽입/삭제
+- 마디 삽입/삭제
+- 조표 직접 편집
+- 박자표 직접 편집
+- 빔/슬러/아티큘레이션 세부 편집
+- 마우스로 악보 음표 자체를 직접 드래그하는 WYSIWYG 편집
+
+이 기능들은 MusicXML 구조상 확장 가능하지만, 현재 v0.4에서는 노트/가사/코드/출판 조판에 우선 집중합니다.
+
+자동 채보 및 자동 가사 정렬 역시 최종 출판 전에 사람이 검토하는 것을 전제로 합니다.
+
+---
+
+# 라이선스 주의
+
+AudioScoreTool 자체 코드와 각 외부 구성요소의 라이선스는 별도로 확인해야 합니다.
+
+특히 MuScriptor 공개 모델 weights는 현재 **CC BY-NC 4.0**이므로 현재 weights를 포함한 상업 서비스 또는 유료 배포에는 별도의 검토가 필요합니다.
+
+YouTube 입력 기능 역시 사용자가 다운로드·가공 권한을 보유한 콘텐츠에 대해서만 사용해야 합니다.

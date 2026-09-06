@@ -1,7 +1,7 @@
 {
   "name": "audio-score-tool-desktop",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2.8.0",
+    "opensheetmusicdisplay": "^2.1.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },
