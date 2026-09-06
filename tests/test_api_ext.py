@@ -12,3 +12,22 @@ def test_song_workspace_routes_are_reachable():
 
     missing = client.get("/api/songs/not-a-real-song")
     assert missing.status_code == 404
+
+
+def test_advanced_score_editor_routes_are_mounted():
+    client = TestClient(app)
+
+    structure = client.get("/api/songs/not-a-real-song/structure")
+    assert structure.status_code == 404
+
+    insert = client.post(
+        "/api/songs/not-a-real-song/notes/p0-m0-n0/insert",
+        json={"position": "after", "type": "quarter"},
+    )
+    assert insert.status_code == 404
+
+    signature = client.patch(
+        "/api/songs/not-a-real-song/measures/0/signature",
+        json={"beats": 3, "beat_type": 4},
+    )
+    assert signature.status_code == 404

@@ -3,6 +3,7 @@ import App from "./App";
 import SongWorkspace from "./SongWorkspace";
 import YoutubeImport from "./YoutubeImport";
 import "./song-workspace.css";
+import "./advanced-score-editor.css";
 
 type ProductMode = "transcribe" | "songs";
 

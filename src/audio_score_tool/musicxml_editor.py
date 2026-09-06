@@ -44,6 +44,22 @@ def parse_note_id(note_id: str) -> tuple[int, int, int]:
         raise MusicXMLEditError(f"Invalid note id: {note_id}") from exc
 
 
+def _note_articulations(note: ET.Element, ns: str) -> list[str]:
+    articulations = note.find(f"{ns}notations/{ns}articulations")
+    if articulations is None:
+        return []
+    return [child.tag.removeprefix(ns) for child in list(articulations)]
+
+
+def _notation_types(note: ET.Element, ns: str, tag: str) -> list[str]:
+    values: list[str] = []
+    for node in note.findall(f"{ns}notations/{ns}{tag}"):
+        value = node.get("type")
+        if value:
+            values.append(value)
+    return values
+
+
 def score_summary(path: Path) -> dict[str, Any]:
     tree = ET.parse(path)
     root = tree.getroot()
@@ -71,12 +87,14 @@ def score_summary(path: Path) -> dict[str, Any]:
                 rest = note.find(f"{ns}rest") is not None
                 lyric = note.find(f"{ns}lyric/{ns}text")
                 ties = [tie.get("type") for tie in note.findall(f"{ns}tie") if tie.get("type")]
+                beam_node = note.find(f"{ns}beam")
                 notes.append(
                     {
                         "note_id": _note_id(part_index, measure_index, note_index),
                         "part_id": part_id,
                         "part_name": part_name,
                         "measure": measure_number,
+                        "measure_index": measure_index,
                         "voice": _text(note.find(f"{ns}voice")),
                         "staff": _text(note.find(f"{ns}staff")),
                         "rest": rest,
@@ -85,8 +103,12 @@ def score_summary(path: Path) -> dict[str, Any]:
                         "octave": _int_text(pitch.find(f"{ns}octave")) if pitch is not None else None,
                         "duration": _int_text(note.find(f"{ns}duration")),
                         "type": _text(note.find(f"{ns}type")),
+                        "dots": len(note.findall(f"{ns}dot")),
                         "lyric": _text(lyric, "") or "",
                         "ties": ties,
+                        "slurs": _notation_types(note, ns, "slur"),
+                        "articulations": _note_articulations(note, ns),
+                        "beam": _text(beam_node),
                     }
                 )
         parts.append(

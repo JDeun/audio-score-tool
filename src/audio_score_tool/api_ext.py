@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import uvicorn
 
+from .advanced_song_api import router as advanced_song_router
 from .api import app
 from .song_api import router as song_router
 
-app.version = "0.4.0"
+app.version = "0.5.0"
 app.include_router(song_router)
+app.include_router(advanced_song_router)
 
 
 def run() -> None:

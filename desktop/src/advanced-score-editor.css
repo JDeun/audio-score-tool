@@ -1,0 +1,23 @@
+.inspector-tabs-five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.inspector-tabs-five button { padding-left: 2px; padding-right: 2px; font-size: 9px; }
+.part-export-strip { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 8px 18px; background: #f2f2ed; border-bottom: 1px solid #d8d7d0; }
+.part-export-strip > span { font-size: 9px; color: #8c8f87; text-transform: uppercase; letter-spacing: .8px; margin-right: 4px; }
+.part-export-item { display: inline-flex; align-items: center; gap: 4px; border: 1px solid #d9d9d2; background: #fff; border-radius: 8px; padding: 4px 6px; }
+.part-export-item strong { font-size: 9px; color: #5f645b; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.part-export-item a { text-decoration: none; color: #53624e; font-size: 9px; padding: 2px 4px; border-radius: 5px; background: #f1f3ee; }
+.advanced-note-editor { gap: 9px; }
+.switch-row { display: flex !important; align-items: center; justify-content: space-between; padding: 8px 9px; border: 1px solid #deddd7; border-radius: 9px; background: #f8f7f3; }
+.switch-row input { width: auto !important; height: auto !important; accent-color: #61715b; }
+.chip-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+.check-chip { display: flex !important; align-items: center; gap: 6px; min-height: 31px; padding: 5px 7px; border: 1px solid #dddcd5; border-radius: 8px; background: #f8f7f3; cursor: pointer; }
+.check-chip input { width: auto !important; height: auto !important; accent-color: #61715b; }
+.check-chip span { font-size: 9px !important; color: #646860 !important; }
+.insert-note-controls { display: grid; grid-template-columns: 1fr; gap: 6px; }
+.insert-note-controls select { height: 35px; border: 1px solid #d8d7d0; border-radius: 9px; background: #f8f7f3; padding: 0 9px; color: #2d302b; }
+.compact-delete { margin-top: 0; border: 1px solid #ead4d1; background: #fbf5f4; border-radius: 8px; padding: 8px; }
+.structure-editor { align-content: start; }
+.measure-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.structure-editor .layout-summary { margin-top: 2px; }
+@media (max-width: 1300px) {
+  .inspector-tabs-five { grid-template-columns: repeat(5, minmax(90px, 1fr)); overflow-x: auto; }
+}

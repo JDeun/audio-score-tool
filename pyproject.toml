@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "audio-score-tool"
-version = "0.4.0"
+version = "0.5.0"
 description = "Local-first desktop audio-to-sheet-music transcription, editing, and publishing workspace."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -47,3 +47,4 @@ ignore = ["B008", "BLE001"]
 [tool.ruff.lint.per-file-ignores]
 "src/audio_score_tool/auto_chords.py" = ["FURB192"]
 "src/audio_score_tool/musicxml_parts.py" = ["SIM114"]
+"src/audio_score_tool/score_structure.py" = ["RUF046"]
