@@ -19,6 +19,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=8.4",
+  "httpx2>=0.1",
   "ruff>=0.12",
 ]
 desktop = [
