@@ -57,7 +57,7 @@ def _render_pdf(musicxml: Path, pdf: Path, settings: Settings) -> bool:
         return False
     try:
         env = None
-        if os.name != "nt":
+        if platform.system() == "Linux":
             env = {
                 "QT_QPA_PLATFORM": "offscreen",
                 "MU_QT_QPA_PLATFORM": "offscreen",
