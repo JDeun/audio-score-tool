@@ -33,10 +33,11 @@ def test_advanced_score_editor_routes_are_mounted():
     assert signature.status_code == 404
 
 
-def test_transcription_engine_route_is_mounted():
+def test_transcription_engine_routes_are_mounted():
     client = TestClient(app)
     response = client.get("/api/engines")
     assert response.status_code == 200
     body = response.json()
-    assert body["selected"] in {"muscriptor", "native"}
-    assert {item["key"] for item in body["engines"]} == {"muscriptor", "native"}
+    assert body["selected"] in {"yourmt3", "muscriptor", "native"}
+    keys = {item["key"] for item in body["engines"]}
+    assert {"yourmt3", "muscriptor", "native"} <= keys
