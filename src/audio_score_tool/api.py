@@ -38,6 +38,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+_AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac", ".m4a", ".aac", ".ogg", ".opus"}
+_MIDI_EXTENSIONS = {".mid", ".midi"}
+
+
+def _validate_upload(filename: str | None, allowed: set[str], label: str) -> str:
+    name = filename or ""
+    suffix = Path(name).suffix.lower()
+    if suffix not in allowed:
+        choices = ", ".join(sorted(allowed))
+        raise HTTPException(415, f"Unsupported {label} format. Allowed: {choices}")
+    return suffix
+
+
 _store = JobStore()
 _settings_store = SettingsStore()
 
@@ -286,10 +299,10 @@ async def create_job(
     resolved_muscriptor = muscriptor_model or selected.muscriptor_model
     resolved_whisperx = whisperx_model or selected.whisperx_model
 
+    suffix = _validate_upload(file.filename, _AUDIO_EXTENSIONS, "audio")
     job_id = uuid.uuid4().hex
     job_dir = jobs_dir() / job_id
     job_dir.mkdir(parents=True, exist_ok=False)
-    suffix = Path(file.filename or "audio.wav").suffix or ".wav"
     audio = job_dir / f"input{suffix}"
 
     with audio.open("wb") as handle:
@@ -338,13 +351,14 @@ async def create_benchmark(
     job_dir = jobs_dir() / job_id
     job_dir.mkdir(parents=True, exist_ok=False)
 
-    audio_suffix = Path(file.filename or "audio.wav").suffix or ".wav"
+    audio_suffix = _validate_upload(file.filename, _AUDIO_EXTENSIONS, "audio")
     audio = job_dir / f"input{audio_suffix}"
     with audio.open("wb") as handle:
         shutil.copyfileobj(file.file, handle)
 
     reference_path: Path | None = None
     if reference_midi is not None:
+        _validate_upload(reference_midi.filename, _MIDI_EXTENSIONS, "reference MIDI")
         reference_path = job_dir / "reference.mid"
         with reference_path.open("wb") as handle:
             shutil.copyfileobj(reference_midi.file, handle)
