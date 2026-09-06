@@ -114,7 +114,7 @@ class JobStore:
         with self._connect() as conn:
             rows = conn.execute(
                 "SELECT * FROM jobs ORDER BY created_at DESC LIMIT ?",
-                (max(1, min(limit, 200)),),
+                (max(1, min(limit, 5000)),),
             ).fetchall()
         return [self._row(row) for row in rows]
 
