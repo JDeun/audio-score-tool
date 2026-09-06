@@ -62,10 +62,24 @@ def _default_command(name: str) -> str:
     return name
 
 
+def _optional_path(env_name: str) -> Path | None:
+    raw = os.getenv(env_name)
+    return Path(raw).expanduser() if raw else None
+
+
 @dataclass(slots=True)
 class Settings:
+    transcription_engine: str = field(
+        default_factory=lambda: os.getenv("AST_TRANSCRIPTION_ENGINE", "muscriptor")
+    )
     muscriptor_cmd: str = field(
         default_factory=lambda: os.getenv("AST_MUSCRIPTOR_CMD") or _default_command("muscriptor")
+    )
+    native_engine_cmd: str = field(
+        default_factory=lambda: os.getenv("AST_NATIVE_ENGINE_CMD") or _default_command("audio-score-native")
+    )
+    native_checkpoint: Path | None = field(
+        default_factory=lambda: _optional_path("AST_NATIVE_CHECKPOINT")
     )
     demucs_cmd: str = field(
         default_factory=lambda: os.getenv("AST_DEMUCS_CMD") or _default_command("demucs")
