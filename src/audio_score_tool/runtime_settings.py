@@ -19,6 +19,7 @@ def runtime_settings(
     checkpoint = saved.get("native_checkpoint")
     return Settings(
         transcription_engine=saved.get("transcription_engine") or defaults.transcription_engine,
+        yourmt3_cmd=saved.get("yourmt3_cmd") or defaults.yourmt3_cmd,
         muscriptor_cmd=saved.get("muscriptor_cmd") or defaults.muscriptor_cmd,
         native_engine_cmd=saved.get("native_engine_cmd") or defaults.native_engine_cmd,
         native_checkpoint=Path(checkpoint).expanduser() if checkpoint else defaults.native_checkpoint,
