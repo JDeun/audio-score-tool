@@ -107,8 +107,8 @@ def run_benchmark_matrix(
                 ),
                 cancel_event=cancel_event,
                 progress=(
-                    (lambda stage, percent, i=index: progress(
-                        f"benchmark:{config.name}:{stage}",
+                    (lambda stage, percent, i=index, name=config.name: progress(
+                        f"benchmark:{name}:{stage}",
                         min(99, int((i + percent / 100) / total * 100)),
                     ))
                     if progress is not None
