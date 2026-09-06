@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from audio_score_tool import pipeline
+from audio_score_tool.config import Settings
 
 MUSICXML = """<?xml version="1.0" encoding="UTF-8"?>
 <score-partwise version="4.0">
@@ -64,6 +65,11 @@ def test_full_pipeline_contract_without_model_downloads(tmp_path: Path, monkeypa
         tmp_path / "out",
         language="ko",
         progress=lambda stage, percent: progress.append((stage, percent)),
+        settings=Settings(
+            muscriptor_cmd="muscriptor",
+            demucs_cmd="demucs",
+            whisperx_cmd="whisperx",
+        ),
     )
 
     assert result.midi_path.exists()
