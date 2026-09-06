@@ -95,21 +95,40 @@ class BaseTranscriptionEngine:
     ) -> TranscriptionArtifacts:
         raise NotImplementedError
 
+    def describe(self) -> dict[str, object]:
+        return {
+            "key": self.key,
+            "name": self.display_name,
+            "ready": self.ready(),
+            "commercial_status": self.commercial_status,
+        }
 
-class YourMT3Engine(BaseTranscriptionEngine):
-    """YourMT3+ through the MIT-licensed mt3-infer inference toolkit.
 
-    mt3-infer downloads the upstream YourMT3+ checkpoint on first use and exposes
-    multi-instrument transcription through one CLI. The checkpoint repository is
-    explicitly marked Apache-2.0 upstream, unlike MuScriptor's CC BY-NC weights.
+class MT3InferEngine(BaseTranscriptionEngine):
+    """Multi-instrument transcription through the MIT-licensed mt3-infer toolkit.
+
+    The default model is MR-MT3. Its upstream repository and published checkpoint are
+    both marked MIT. YourMT3 can also be selected for quality experiments, but it is
+    not the commercial default because license metadata differs between upstream
+    distributions and should be reviewed before a commercial release.
     """
 
-    key = "yourmt3"
-    display_name = "YourMT3+"
-    commercial_status = "permissive_checkpoint"
+    key = "mt3_infer"
+    display_name = "MT3-Infer"
+    commercial_status = "permissive_default"
+    supported_models = {"mr_mt3", "yourmt3"}
 
     def ready(self) -> bool:
-        return command_exists(self.settings.yourmt3_cmd)
+        return command_exists(self.settings.mt3_infer_cmd) and _resolve_musescore(self.settings) is not None
+
+    def describe(self) -> dict[str, object]:
+        model = self.settings.mt3_model
+        status = "mit" if model == "mr_mt3" else "license_review_recommended"
+        return {
+            **super().describe(),
+            "model": model,
+            "model_commercial_status": status,
+        }
 
     def transcribe(
         self,
@@ -119,14 +138,19 @@ class YourMT3Engine(BaseTranscriptionEngine):
         device: str,
         cancel_event: Event | None = None,
     ) -> TranscriptionArtifacts:
-        if not self.ready():
+        if not command_exists(self.settings.mt3_infer_cmd):
             raise TranscriptionEngineUnavailable(
-                "YourMT3+ runtime is unavailable. Install mt3-infer or make uvx available."
+                "MT3-Infer is unavailable. Install mt3-infer or make uvx available."
+            )
+        model = self.settings.mt3_model.strip().lower()
+        if model not in self.supported_models:
+            raise TranscriptionEngineUnavailable(
+                f"Unsupported MT3-Infer model: {model}. Use mr_mt3 or yourmt3."
             )
         musescore = _resolve_musescore(self.settings)
         if not musescore:
             raise TranscriptionEngineUnavailable(
-                "MuseScore 4 is required to convert the YourMT3+ multi-track MIDI to MusicXML."
+                "MuseScore 4 is required to convert MT3-Infer multi-track MIDI to MusicXML."
             )
 
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -134,14 +158,14 @@ class YourMT3Engine(BaseTranscriptionEngine):
         musicxml_path = output_dir / "score.musicxml"
         try:
             run_command(
-                self.settings.yourmt3_cmd,
+                self.settings.mt3_infer_cmd,
                 [
                     "transcribe",
                     audio_path,
                     "-o",
                     midi_path,
                     "-m",
-                    "yourmt3",
+                    model,
                     "--device",
                     device,
                 ],
@@ -149,7 +173,7 @@ class YourMT3Engine(BaseTranscriptionEngine):
             )
             if not midi_path.is_file():
                 raise TranscriptionEngineError(
-                    f"YourMT3+ did not produce the expected MIDI: {midi_path}"
+                    f"MT3-Infer did not produce the expected MIDI: {midi_path}"
                 )
             run_command(
                 musescore,
@@ -158,9 +182,9 @@ class YourMT3Engine(BaseTranscriptionEngine):
                 cancel_event=cancel_event,
             )
         except CommandCancelled as exc:
-            raise TranscriptionEngineCancelled("YourMT3+ transcription cancelled.") from exc
+            raise TranscriptionEngineCancelled("MT3-Infer transcription cancelled.") from exc
         except CommandError as exc:
-            raise TranscriptionEngineError(f"YourMT3+ failed.\n{exc}") from exc
+            raise TranscriptionEngineError(f"MT3-Infer failed.\n{exc}") from exc
 
         if not musicxml_path.is_file():
             raise TranscriptionEngineError(
@@ -272,25 +296,17 @@ class NativeCommandEngine(BaseTranscriptionEngine):
 
 def available_engines(settings: Settings) -> list[dict[str, object]]:
     engines: list[BaseTranscriptionEngine] = [
-        YourMT3Engine(settings),
+        MT3InferEngine(settings),
         NativeCommandEngine(settings),
         MuScriptorEngine(settings),
     ]
-    return [
-        {
-            "key": engine.key,
-            "name": engine.display_name,
-            "ready": engine.ready(),
-            "commercial_status": engine.commercial_status,
-        }
-        for engine in engines
-    ]
+    return [engine.describe() for engine in engines]
 
 
 def resolve_transcription_engine(settings: Settings) -> BaseTranscriptionEngine:
     key = settings.transcription_engine.strip().lower()
-    if key == "yourmt3":
-        return YourMT3Engine(settings)
+    if key in {"mt3_infer", "yourmt3"}:  # `yourmt3` is a v0.7 prerelease migration alias.
+        return MT3InferEngine(settings)
     if key == "muscriptor":
         return MuScriptorEngine(settings)
     if key == "native":
