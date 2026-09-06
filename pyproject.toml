@@ -28,7 +28,7 @@ desktop = [
 
 [project.scripts]
 audio-score = "audio_score_tool.cli:app"
-audio-score-api = "audio_score_tool.api:run"
+audio-score-api = "audio_score_tool.api_ext:run"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/audio_score_tool"]
