@@ -2,6 +2,13 @@ name: Desktop Packages
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - "desktop/**"
+      - "scripts/**"
+      - "src/**"
+      - "pyproject.toml"
+      - ".github/workflows/desktop-packages.yml"
   push:
     tags:
       - "v*"
