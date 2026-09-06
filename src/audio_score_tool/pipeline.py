@@ -38,8 +38,15 @@ def _resolve_musescore(settings: Settings) -> str | None:
     env_path = os.getenv("MUSCRIPTOR_MUSESCORE")
     if env_path:
         return env_path
-    for candidate in ("mscore", "musescore", "MuseScore4", "MuseScore"):
+    for candidate in ("mscore", "musescore", "MuseScore4", "musescore4", "MuseScore"):
         if shutil.which(candidate):
+            return candidate
+    for candidate in (
+        "/Applications/MuseScore 4.app/Contents/MacOS/mscore",
+        str(Path("~/MuseScore.AppImage").expanduser()),
+        str(Path("~/Applications/MuseScore.AppImage").expanduser()),
+    ):
+        if Path(candidate).is_file():
             return candidate
     return None
 
@@ -49,7 +56,13 @@ def _render_pdf(musicxml: Path, pdf: Path, settings: Settings) -> bool:
     if not cmd:
         return False
     try:
-        run_command(cmd, [musicxml, "-o", pdf])
+        env = None
+        if os.name != "nt":
+            env = {
+                "QT_QPA_PLATFORM": "offscreen",
+                "MU_QT_QPA_PLATFORM": "offscreen",
+            }
+        run_command(cmd, ["-o", pdf, musicxml], env=env)
         return pdf.exists()
     except CommandError:
         return False
@@ -64,6 +77,8 @@ def preflight(settings: Settings | None = None, *, require_lyrics: bool = True) 
         "musescore_override_or_path": _resolve_musescore(settings) is not None,
     }
     missing = ["muscriptor"] if not tools["muscriptor"] else []
+    if not tools["musescore_override_or_path"]:
+        missing.append("musescore")
     if require_lyrics:
         missing += [name for name in ("demucs", "whisperx") if not tools[name]]
     return {
