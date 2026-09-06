@@ -3,7 +3,6 @@ from pathlib import Path
 from audio_score_tool.lyrics import attach_lyrics_to_musicxml, expand_korean_syllables
 from audio_score_tool.models import WordTiming
 
-
 XML = """<?xml version="1.0" encoding="UTF-8"?>
 <score-partwise version="4.0">
   <part-list>
