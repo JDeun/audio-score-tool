@@ -1,6 +1,6 @@
 [package]
 name = "audio-score-tool-desktop"
-version = "0.2.0"
+version = "0.3.0"
 description = "Desktop shell for AudioScoreTool"
 authors = ["JDeun"]
 edition = "2021"
