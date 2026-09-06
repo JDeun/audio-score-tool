@@ -40,6 +40,8 @@ class PipelineResult:
     pdf_path: Path | None
     transcript_json_path: Path | None
     vocals_path: Path | None
+    chord_report_path: Path | None = None
+    part_pdfs: list[Path] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict:
@@ -55,5 +57,7 @@ class PipelineResult:
             "pdf": p(self.pdf_path),
             "transcript_json": p(self.transcript_json_path),
             "vocals": p(self.vocals_path),
+            "chord_report": p(self.chord_report_path),
+            "part_pdfs": [str(path) for path in self.part_pdfs],
             "warnings": self.warnings,
         }
