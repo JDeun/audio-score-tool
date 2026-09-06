@@ -5,6 +5,7 @@ from pathlib import Path
 
 import typer
 
+from .benchmark import configs_for_profile, run_benchmark_matrix
 from .config import Settings
 from .devices import detect_device_plan
 from .pipeline import PipelineError, preflight, transcribe
@@ -43,6 +44,38 @@ def run(
         typer.echo(str(exc), err=True)
         raise typer.Exit(1)
     typer.echo(json.dumps(result.as_dict(), ensure_ascii=False, indent=2))
+
+
+@app.command()
+def benchmark(
+    audio: Path = typer.Argument(..., exists=True, readable=True),
+    output: Path = typer.Option(Path("benchmark-results"), "--output", "-o"),
+    language: str | None = typer.Option(None, "--language", "-l"),
+    profile: str = typer.Option("all", "--profile", help="score | lyrics | all"),
+) -> None:
+    """Run a local A/B matrix across MuScriptor and WhisperX model sizes."""
+    try:
+        configs = configs_for_profile(profile)
+    except ValueError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(2) from exc
+
+    results = run_benchmark_matrix(
+        audio,
+        output,
+        language=language,
+        configs=configs,
+    )
+    typer.echo(json.dumps([result.__dict__ if hasattr(result, "__dict__") else {
+        "config": result.config,
+        "muscriptor_model": result.muscriptor_model,
+        "whisperx_model": result.whisperx_model,
+        "skip_lyrics": result.skip_lyrics,
+        "wall_seconds": result.wall_seconds,
+        "success": result.success,
+        "attached_ratio": result.attached_ratio,
+        "error": result.error,
+    } for result in results], ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":
