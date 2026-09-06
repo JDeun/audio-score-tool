@@ -21,18 +21,21 @@ from .musicxml_editor import (
     undo_last,
     update_note,
 )
+from .musicxml_parts import extract_part_musicxml, list_score_parts
 from .pipeline import _resolve_musescore
 from .publication_layout import apply_publication_layout, merged_publication_settings
 from .publication_store import PublicationStore
 from .runner import CommandError, run_command
 from .settings_store import SettingsStore
 from .song_store import SongStore
+from .song_tombstones import SongTombstoneStore
 
 router = APIRouter(prefix="/api/songs", tags=["songs"])
 _song_store = SongStore()
 _job_store = JobStore()
 _settings_store = SettingsStore()
 _publication_store = PublicationStore()
+_tombstones = SongTombstoneStore()
 
 
 class SongMetadataPatch(BaseModel):
@@ -103,9 +106,34 @@ def _initialize_publication(song: dict) -> None:
 
 
 def _sync() -> None:
-    _song_store.sync_completed_jobs(_job_store.list(limit=5000))
+    jobs = [
+        job
+        for job in _job_store.list(limit=5000)
+        if not _tombstones.contains(job.get("job_id"))
+    ]
+    _song_store.sync_completed_jobs(jobs)
     for song in _song_store.list():
         _initialize_publication(song)
+
+
+def _part_exports(song: dict) -> list[dict]:
+    current = Path(song["current_musicxml"])
+    try:
+        parts = list_score_parts(current)
+    except Exception:
+        return []
+    export_dir = _song_store.export_dir(song["song_id"]) / "parts"
+    result: list[dict] = []
+    for part in parts:
+        slug = str(part["slug"])
+        result.append(
+            {
+                **part,
+                "pdf": (export_dir / f"{slug}.pdf").exists(),
+                "musicxml": (export_dir / f"{slug}.musicxml").exists(),
+            }
+        )
+    return result
 
 
 def _public(song: dict) -> dict:
@@ -123,6 +151,7 @@ def _public(song: dict) -> dict:
             "midi": bool((song.get("exports") or {}).get("midi")),
             "musicxml": True,
         },
+        "parts": _part_exports(song),
     }
 
 
@@ -156,6 +185,12 @@ def _commit_score_change(song_id: str) -> dict:
     return updated
 
 
+def _musescore_env() -> dict[str, str] | None:
+    if platform.system() != "Linux":
+        return None
+    return {"QT_QPA_PLATFORM": "offscreen", "MU_QT_QPA_PLATFORM": "offscreen"}
+
+
 @router.get("")
 def list_songs() -> dict:
     _sync()
@@ -169,7 +204,8 @@ def get_song(song_id: str) -> dict:
 
 @router.delete("/{song_id}")
 def delete_song(song_id: str) -> dict:
-    _require_song(song_id)
+    song = _require_song(song_id)
+    _tombstones.add(song.get("job_id"))
     if not _song_store.delete(song_id):
         raise HTTPException(404, "Song not found")
     return {"song_id": song_id, "deleted": True}
@@ -360,23 +396,52 @@ def build_exports(song_id: str) -> dict:
     export_dir = _song_store.export_dir(song_id)
     pdf = export_dir / "score.pdf"
     midi = export_dir / "score.mid"
-    env = None
-    if platform.system() == "Linux":
-        env = {"QT_QPA_PLATFORM": "offscreen", "MU_QT_QPA_PLATFORM": "offscreen"}
+    env = _musescore_env()
     try:
         run_command(musescore, ["-o", pdf, current], env=env)
         run_command(musescore, ["-o", midi, current], env=env)
-    except CommandError as exc:
+
+        parts_dir = export_dir / "parts"
+        shutil.rmtree(parts_dir, ignore_errors=True)
+        parts_dir.mkdir(parents=True, exist_ok=True)
+        for part in list_score_parts(current):
+            slug = str(part["slug"])
+            part_xml = parts_dir / f"{slug}.musicxml"
+            part_pdf = parts_dir / f"{slug}.pdf"
+            extract_part_musicxml(current, str(part["part_id"]), part_xml)
+            run_command(musescore, ["-o", part_pdf, part_xml], env=env)
+    except (CommandError, ValueError) as exc:
         raise HTTPException(500, f"MuseScore export failed: {exc}") from exc
 
+    updated_song = _song_store.get(song_id) or song
     return {
-        "song": _public(_song_store.get(song_id) or song),
+        "song": _public(updated_song),
         "files": {
             "musicxml": f"/api/songs/{song_id}/files/musicxml",
             "pdf": f"/api/songs/{song_id}/files/pdf",
             "midi": f"/api/songs/{song_id}/files/midi",
         },
+        "parts": _part_exports(updated_song),
     }
+
+
+@router.get("/{song_id}/files/parts/{slug}/{kind}")
+def download_part_file(song_id: str, slug: str, kind: str) -> FileResponse:
+    song = _require_song(song_id)
+    allowed = {str(part["slug"]) for part in list_score_parts(Path(song["current_musicxml"]))}
+    if slug not in allowed:
+        raise HTTPException(404, "Unknown score part")
+    if kind == "pdf":
+        path = _song_store.export_dir(song_id) / "parts" / f"{slug}.pdf"
+        media_type = "application/pdf"
+    elif kind == "musicxml":
+        path = _song_store.export_dir(song_id) / "parts" / f"{slug}.musicxml"
+        media_type = "application/vnd.recordare.musicxml+xml"
+    else:
+        raise HTTPException(404, "Unknown part artifact")
+    if not path.exists():
+        raise HTTPException(404, "Part export is not available. Run export first.")
+    return FileResponse(path, media_type=media_type, filename=path.name)
 
 
 @router.get("/{song_id}/files/{kind}")
