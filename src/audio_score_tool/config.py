@@ -57,7 +57,10 @@ def _uvx_command(package: str) -> str | None:
     return " ".join([executable, *flags, package])
 
 
-def _default_yourmt3_command() -> str:
+def _default_mt3_infer_command() -> str:
+    installed = _find_executable("mt3-infer")
+    if installed:
+        return installed
     uvx = _find_executable("uvx")
     if uvx:
         executable = f'"{uvx}"' if " " in uvx else uvx
@@ -72,8 +75,7 @@ def _default_yourmt3_command() -> str:
             ]
         )
         return " ".join(args)
-    installed = _find_executable("mt3-infer")
-    return installed or "mt3-infer"
+    return "mt3-infer"
 
 
 def _default_command(name: str) -> str:
@@ -99,7 +101,8 @@ def _saved_or_env(key: str, env_name: str, default: str | None = None) -> str | 
     env_value = os.getenv(env_name)
     if env_value:
         return env_value
-    value = _saved_settings().get(key)
+    saved = _saved_settings()
+    value = saved.get(key)
     if value:
         return str(value)
     return default
@@ -110,17 +113,24 @@ def _optional_path(key: str, env_name: str) -> Path | None:
     return Path(raw).expanduser() if raw else None
 
 
+def _saved_engine() -> str:
+    raw = (_saved_or_env("transcription_engine", "AST_TRANSCRIPTION_ENGINE", "mt3_infer") or "mt3_infer").strip().lower()
+    # v0.7 prerelease builds briefly stored `yourmt3` as the provider key.
+    return "mt3_infer" if raw == "yourmt3" else raw
+
+
 @dataclass(slots=True)
 class Settings:
-    transcription_engine: str = field(
-        default_factory=lambda: _saved_or_env(
-            "transcription_engine", "AST_TRANSCRIPTION_ENGINE", "yourmt3"
-        )
-        or "yourmt3"
+    transcription_engine: str = field(default_factory=_saved_engine)
+    mt3_infer_cmd: str = field(
+        default_factory=lambda: _saved_or_env("mt3_infer_cmd", "AST_MT3_INFER_CMD")
+        or _saved_or_env("yourmt3_cmd", "AST_YOURMT3_CMD")
+        or _default_mt3_infer_command()
     )
-    yourmt3_cmd: str = field(
-        default_factory=lambda: _saved_or_env("yourmt3_cmd", "AST_YOURMT3_CMD")
-        or _default_yourmt3_command()
+    mt3_model: str = field(
+        default_factory=lambda: (
+            _saved_or_env("mt3_model", "AST_MT3_MODEL", "mr_mt3") or "mr_mt3"
+        ).strip().lower()
     )
     muscriptor_cmd: str = field(
         default_factory=lambda: _saved_or_env("muscriptor_cmd", "AST_MUSCRIPTOR_CMD")
