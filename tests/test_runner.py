@@ -5,7 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from audio_score_tool.runner import CommandCancelled, CommandError, command_exists, run_command, split_command
+from audio_score_tool.runner import (
+    CommandCancelled,
+    CommandError,
+    command_exists,
+    run_command,
+    split_command,
+)
 
 
 def test_split_command_handles_normal_command():
