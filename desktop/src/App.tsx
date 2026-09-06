@@ -48,7 +48,9 @@ type SetupInfo = {
     python_tools: { name: string; command: string }[];
     musescore: string;
     hf_required: boolean;
+    hf_login_command?: string;
     hf_note: string;
+    runtime?: { recommended: string; note: string };
   };
 };
 
@@ -287,6 +289,10 @@ function App() {
     }
   };
 
+  const revealJob = async (target: Job) => {
+    await fetch(`${API}/api/jobs/${target.job_id}/reveal`, { method: "POST" });
+  };
+
   const retryJob = async (target: Job) => {
     const res = await fetch(`${API}/api/jobs/${target.job_id}/retry`, { method: "POST" });
     if (res.ok) {
@@ -332,6 +338,7 @@ function App() {
         <div className="artifacts benchmark-artifacts">
           <a href={artifactUrl(target, "benchmark_json")} target="_blank">Benchmark JSON</a>
           <a href={artifactUrl(target, "benchmark_csv")} target="_blank">Benchmark CSV</a>
+          <button onClick={() => revealJob(target)}>Open folder</button>
         </div>
       );
     }
@@ -343,6 +350,7 @@ function App() {
         {target.result?.transcript_json && (
           <a href={artifactUrl(target, "transcript")} target="_blank">Lyrics JSON</a>
         )}
+        <button onClick={() => revealJob(target)}>Open folder</button>
       </div>
     );
   };
@@ -665,11 +673,20 @@ function App() {
             <span className="eyebrow">MODEL ACCESS</span>
             <h2>MuScriptor weights</h2>
             <p>{setup?.instructions.hf_note}</p>
+            {setup?.instructions.hf_login_command && (
+              <code className="path-code">{setup.instructions.hf_login_command}</code>
+            )}
             <div className="callout">
               <strong>사용자가 직접 해야 하는 부분</strong>
               <p>Hugging Face에서 MuScriptor 모델 라이선스를 수락하고 로컬 환경에서 인증해야 합니다. 토큰은 앱에 저장하지 않습니다.</p>
             </div>
 
+            {setup?.instructions.runtime && (
+              <div className="runtime-note">
+                <strong>{setup.instructions.runtime.recommended}</strong>
+                <p>{setup.instructions.runtime.note}</p>
+              </div>
+            )}
             <span className="eyebrow">TOOL PATH OVERRIDES</span>
             <p>앱으로 직접 실행할 때 터미널 PATH가 전달되지 않는 경우 여기에서 실행 파일 또는 명령 경로를 지정할 수 있습니다.</p>
             <div className="path-fields">
