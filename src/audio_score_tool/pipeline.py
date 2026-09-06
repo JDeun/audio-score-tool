@@ -4,6 +4,7 @@ import json
 import os
 import platform
 import shutil
+import xml.etree.ElementTree as ET
 from collections.abc import Callable
 from pathlib import Path
 from threading import Event
@@ -204,7 +205,7 @@ def transcribe(
                 "Automatic chord analysis did not find sufficiently confident chord changes. "
                 "The score remains editable in the Chord inspector."
             )
-    except (OSError, ValueError, ET.ParseError) as exc:  # type: ignore[name-defined]
+    except (OSError, ValueError, ET.ParseError) as exc:
         inferred_chords = []
         warnings.append(f"Automatic chord analysis was skipped: {exc}")
     emit("chord_analysis", 56)
