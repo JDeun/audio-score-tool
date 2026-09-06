@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
+from .benchmark import configs_for_profile, run_benchmark_matrix
 from .config import Settings
 from .devices import detect_device_plan
 from .job_store import JobStore
@@ -107,6 +108,56 @@ def _worker(
             )
     except PipelineCancelled:
         _store.update(job_id, status="cancelled", stage="cancelled")
+    except Exception as exc:
+        _store.update(job_id, status="failed", stage="failed", error=str(exc))
+    finally:
+        with _runtime_lock:
+            _cancel_events.pop(job_id, None)
+
+
+def _benchmark_worker(
+    job_id: str,
+    audio: Path,
+    reference_midi: Path | None,
+    language: str | None,
+    profile: str,
+) -> None:
+    cancel_event = Event()
+    with _runtime_lock:
+        _cancel_events[job_id] = cancel_event
+
+    _store.update(job_id, status="running", stage="benchmark:starting")
+    output_root = jobs_dir() / job_id / "benchmark"
+    try:
+        results = run_benchmark_matrix(
+            audio,
+            output_root,
+            language=language,
+            configs=configs_for_profile(profile),
+            reference_midi=reference_midi,
+            base_settings=_runtime_settings(),
+            progress=lambda stage, percent: _store.update(
+                job_id,
+                stage=stage,
+                progress=percent,
+            ),
+            cancel_event=cancel_event,
+        )
+        if cancel_event.is_set():
+            _store.update(job_id, status="cancelled", stage="cancelled")
+        else:
+            _store.update(
+                job_id,
+                status="done",
+                stage="complete",
+                progress=100,
+                result={
+                    "benchmark_json": str(output_root / "benchmark.json"),
+                    "benchmark_csv": str(output_root / "benchmark.csv"),
+                    "runs": len(results),
+                    "successful_runs": sum(1 for item in results if item.success),
+                },
+            )
     except Exception as exc:
         _store.update(job_id, status="failed", stage="failed", error=str(exc))
     finally:
@@ -214,6 +265,51 @@ async def create_job(
     return {"job_id": job_id, "status": "queued"}
 
 
+@app.post("/api/benchmarks", status_code=202)
+async def create_benchmark(
+    file: UploadFile = File(...),
+    reference_midi: UploadFile | None = File(None),
+    language: str | None = Form(None),
+    profile: str = Form("all"),
+) -> dict:
+    try:
+        configs_for_profile(profile)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+    job_id = uuid.uuid4().hex
+    job_dir = jobs_dir() / job_id
+    job_dir.mkdir(parents=True, exist_ok=False)
+
+    audio_suffix = Path(file.filename or "audio.wav").suffix or ".wav"
+    audio = job_dir / f"input{audio_suffix}"
+    with audio.open("wb") as handle:
+        shutil.copyfileobj(file.file, handle)
+
+    reference_path: Path | None = None
+    if reference_midi is not None:
+        reference_path = job_dir / "reference.mid"
+        with reference_path.open("wb") as handle:
+            shutil.copyfileobj(reference_midi.file, handle)
+
+    _store.create(
+        job_id,
+        kind="benchmark",
+        status="queued",
+        stage="queued",
+        progress=0,
+        filename=file.filename,
+        language=language,
+        preset=profile,
+    )
+    Thread(
+        target=_benchmark_worker,
+        args=(job_id, audio, reference_path, language, profile),
+        daemon=True,
+    ).start()
+    return {"job_id": job_id, "status": "queued", "kind": "benchmark"}
+
+
 @app.get("/api/jobs/{job_id}")
 def get_job(job_id: str) -> dict:
     job = _store.get(job_id)
@@ -265,6 +361,8 @@ def download(job_id: str, kind: str) -> FileResponse:
         "musicxml": result.get("lyric_musicxml") or result.get("musicxml"),
         "pdf": result.get("pdf"),
         "transcript": result.get("transcript_json"),
+        "benchmark_json": result.get("benchmark_json"),
+        "benchmark_csv": result.get("benchmark_csv"),
     }
     path_str = mapping.get(kind)
     if not path_str:
