@@ -9,7 +9,9 @@ from .paths import app_data_dir
 
 _ALLOWED = {
     "transcription_engine",
-    "yourmt3_cmd",
+    "mt3_infer_cmd",
+    "mt3_model",
+    "yourmt3_cmd",  # v0.7 prerelease migration key; read-only compatibility.
     "muscriptor_cmd",
     "native_engine_cmd",
     "native_checkpoint",
