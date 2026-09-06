@@ -12,6 +12,7 @@ from .config import Settings
 from .devices import detect_device_plan
 from .lyrics import attach_lyrics_to_musicxml, expand_korean_syllables, load_whisperx_words
 from .models import PipelineResult
+from .system_status import huggingface_authenticated
 from .runner import CommandCancelled, CommandError, command_exists, run_command
 
 
@@ -95,10 +96,14 @@ def preflight(settings: Settings | None = None, *, require_lyrics: bool = True) 
         missing.append("musescore")
     if require_lyrics:
         missing += [name for name in ("demucs", "whisperx") if not tools[name]]
+    hf_ready = huggingface_authenticated()
+    if not hf_ready:
+        missing.append("huggingface_auth")
     return {
         "ok": not missing,
         "missing": missing,
         "tools": tools,
+        "huggingface_authenticated": hf_ready,
         "device_plan": detect_device_plan().as_dict(),
     }
 
