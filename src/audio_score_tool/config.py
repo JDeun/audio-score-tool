@@ -9,6 +9,8 @@ from pathlib import Path
 
 from .paths import app_data_dir
 
+MT3_INFER_VERSION = "0.2.0"
+
 
 def _find_executable(name: str) -> str | None:
     found = shutil.which(name)
@@ -43,7 +45,6 @@ def _uvx_command(package: str) -> str | None:
         "muscriptor",
         "demucs",
         "whisperx",
-        "mt3-infer",
     }:
         flags.append("--torch-backend=cu128")
     if (
@@ -54,6 +55,25 @@ def _uvx_command(package: str) -> str | None:
         flags.extend(["--python", "3.12"])
     executable = f'"{uvx}"' if " " in uvx else uvx
     return " ".join([executable, *flags, package])
+
+
+def _default_yourmt3_command() -> str:
+    uvx = _find_executable("uvx")
+    if uvx:
+        executable = f'"{uvx}"' if " " in uvx else uvx
+        args = [executable]
+        if platform.system() == "Windows" and _has_nvidia():
+            args.append("--torch-backend=cu128")
+        args.extend(
+            [
+                "--from",
+                f"mt3-infer[torch]=={MT3_INFER_VERSION}",
+                "mt3-infer",
+            ]
+        )
+        return " ".join(args)
+    installed = _find_executable("mt3-infer")
+    return installed or "mt3-infer"
 
 
 def _default_command(name: str) -> str:
@@ -100,7 +120,7 @@ class Settings:
     )
     yourmt3_cmd: str = field(
         default_factory=lambda: _saved_or_env("yourmt3_cmd", "AST_YOURMT3_CMD")
-        or _default_command("mt3-infer")
+        or _default_yourmt3_command()
     )
     muscriptor_cmd: str = field(
         default_factory=lambda: _saved_or_env("muscriptor_cmd", "AST_MUSCRIPTOR_CMD")
