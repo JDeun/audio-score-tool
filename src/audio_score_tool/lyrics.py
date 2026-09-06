@@ -9,7 +9,6 @@ from pathlib import Path
 
 from .models import WordTiming
 
-
 _HANGUL_RE = re.compile(r"[가-힣]")
 
 
