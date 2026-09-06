@@ -31,6 +31,8 @@ def load_manifest(path: Path, split: str) -> list[dict[str, str]]:
                     f"Refusing training asset at line {line_number}: license={license_name!r}. "
                     "Only explicitly approved commercial-compatible assets may enter Native training."
                 )
+            if not row.get("audio") or not row.get("midi"):
+                raise ValueError(f"Manifest line {line_number} must include audio and midi paths.")
             if row.get("split", "train") == split:
                 rows.append(row)
     return rows
@@ -79,9 +81,19 @@ def evaluate(model, loader, device: str) -> float:
             tokens = tokens.to(device)
             logits = model(mel, tokens[:, :-1])
             loss = loss_fn(logits.reshape(-1, logits.shape[-1]), tokens[:, 1:].reshape(-1))
-            total += float(loss)
+            total += loss.item()
             count += 1
     return total / max(1, count)
+
+
+def _resolve_device(torch, requested: str) -> str:
+    requested = requested.lower()
+    if requested.startswith("cuda"):
+        return requested if torch.cuda.is_available() else "cpu"
+    if requested == "mps":
+        backend = getattr(torch.backends, "mps", None)
+        return "mps" if backend is not None and backend.is_available() else "cpu"
+    return "cpu"
 
 
 def train(args) -> None:
@@ -100,6 +112,10 @@ def train(args) -> None:
     if not train_rows:
         raise ValueError("Manifest contains no training rows.")
     if not val_rows:
+        if len(train_rows) < 2:
+            raise ValueError(
+                "A manifest without an explicit validation split needs at least two training rows."
+            )
         # Keep the run usable for a small project-owned pilot manifest.
         random.Random(7).shuffle(train_rows)
         val_count = max(1, min(len(train_rows) // 10, 32))
@@ -123,9 +139,7 @@ def train(args) -> None:
         collate_fn=collate_batch,
     )
 
-    device = args.device
-    if device.startswith("cuda") and not torch.cuda.is_available():
-        device = "cpu"
+    device = _resolve_device(torch, args.device)
     model = build_model(config).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate, weight_decay=0.01)
     loss_fn = nn.CrossEntropyLoss(ignore_index=PAD)
@@ -145,7 +159,7 @@ def train(args) -> None:
             optimizer.step()
             global_step += 1
             if global_step % args.log_every == 0:
-                print(f"epoch={epoch} step={global_step} train_loss={float(loss):.4f}")
+                print(f"epoch={epoch} step={global_step} train_loss={loss.item():.4f}")
 
         val_loss = evaluate(model, val_loader, device)
         print(f"epoch={epoch} validation_loss={val_loss:.4f}")
