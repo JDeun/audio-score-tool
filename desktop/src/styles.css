@@ -23,7 +23,7 @@ h3 { margin: 8px 0 18px; font-size: 18px; }
 .dropzone:hover, .dropzone.dragging { background: #fbfaf6; border-color: #9ea79a; transform: translateY(-1px); }
 .dropzone p, .muted { color: #85877f; font-size: 13px; margin: 0; }
 .music-icon { width: 58px; height: 58px; border-radius: 17px; display: grid; place-items: center; background: #e8ebe2; color: #54634e; font-size: 30px; }
-.controls { padding: 18px; display: grid; grid-template-columns: 1fr 1fr 160px; gap: 14px; align-items: end; }
+.controls { padding: 18px; display: grid; grid-template-columns: 1.15fr 1.15fr .9fr .8fr 145px; gap: 14px; align-items: end; }
 .field { display: flex; flex-direction: column; gap: 8px; }
 .field label { font-size: 11px; color: #777a72; font-weight: 650; }
 select, .toggle { height: 42px; border-radius: 11px; border: 1px solid #d8d7d0; background: #f8f7f3; padding: 0 12px; color: #2b2d29; }
