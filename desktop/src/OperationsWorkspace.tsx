@@ -160,7 +160,7 @@ function Toast({ message, kind = "success", onClose }: { message: string; kind?:
   );
 }
 
-export default function OperationsWorkspace({ section, onOpenSongs }: { section: Exclude<Section, "songs">; onOpenSongs: () => void }) {
+export default function OperationsWorkspace({ section, onOpenSongs }: { section: Section; onOpenSongs: () => void }) {
   const [health, setHealth] = useState<Health | null>(null);
   const [setup, setSetup] = useState<SetupInfo | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -491,58 +491,32 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
     </section>
   ) : null;
 
+  let content;
+
   if (section === "new") {
-    return (
+    content = (
       <div className="operations-page new-score-page">
         <section className="source-card work-card">
           <div className="segmented-control" role="tablist" aria-label="입력 방식">
             <button role="tab" aria-selected={sourceMode === "file"} className={sourceMode === "file" ? "active" : ""} onClick={() => setSourceMode("file")}>내 파일</button>
             <button role="tab" aria-selected={sourceMode === "youtube"} className={sourceMode === "youtube" ? "active" : ""} onClick={() => setSourceMode("youtube")}>YouTube 링크</button>
           </div>
-
           {sourceMode === "file" ? (
-            <div
-              className={`premium-dropzone ${dragging ? "dragging" : ""} ${file ? "has-file" : ""}`}
-              onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={dropFile}
-              onClick={() => fileRef.current?.click()}
-            >
+            <div className={`premium-dropzone ${dragging ? "dragging" : ""} ${file ? "has-file" : ""}`} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={dropFile} onClick={() => fileRef.current?.click()}>
               <input ref={fileRef} type="file" accept="audio/*" hidden onChange={(event: ChangeEvent<HTMLInputElement>) => chooseFile(event.target.files?.[0])} />
               <div className="dropzone-symbol">♫</div>
-              {file ? (
-                <><span className="card-kicker">선택한 음원</span><h2>{file.name}</h2><p>{(file.size / 1024 / 1024).toFixed(1)} MB · 클릭하면 다른 파일을 선택할 수 있습니다.</p></>
-              ) : (
-                <><h2>음원을 여기에 놓으세요</h2><p>WAV, MP3, FLAC, M4A, AAC, OGG, OPUS · 또는 클릭하여 파일 선택</p><span className="drop-hint">파일은 외부 서버로 업로드되지 않습니다.</span></>
-              )}
+              {file ? <><span className="card-kicker">선택한 음원</span><h2>{file.name}</h2><p>{(file.size / 1024 / 1024).toFixed(1)} MB · 클릭하면 다른 파일을 선택할 수 있습니다.</p></> : <><h2>음원을 여기에 놓으세요</h2><p>WAV, MP3, FLAC, M4A, AAC, OGG, OPUS · 또는 클릭하여 파일 선택</p><span className="drop-hint">파일은 외부 서버로 업로드되지 않습니다.</span></>}
             </div>
           ) : (
             <div className="youtube-inline-source">
               <div className="youtube-inline-icon">▶</div>
-              <div className="youtube-inline-copy">
-                <span className="card-kicker">YouTube → 오디오 → 악보</span>
-                <h2>YouTube 링크에서 바로 채보</h2>
-                <p>링크를 확인한 뒤 최적의 오디오 스트림만 로컬로 가져와 동일한 채보 파이프라인을 실행합니다.</p>
-              </div>
-              <div className="youtube-inline-row">
-                <input type="url" value={youtubeUrl} placeholder="https://www.youtube.com/watch?v=…" disabled={active} onChange={(event) => { setYoutubeUrl(event.target.value); setYoutubeMetadata(null); }} onKeyDown={(event) => event.key === "Enter" && void inspectYoutube()} />
-                <button className="secondary-button" disabled={!youtubeUrl.trim() || youtubeInspecting || active} onClick={() => void inspectYoutube()}>{youtubeInspecting ? "확인 중…" : "링크 확인"}</button>
-              </div>
-              {youtubeMetadata && (
-                <div className="source-preview-row">
-                  <div className="source-preview-note">♪</div>
-                  <div><strong>{youtubeMetadata.title}</strong><span>{youtubeMetadata.uploader ?? "YouTube"} · {formatDuration(youtubeMetadata.duration)}</span></div>
-                  <span className="source-ready">준비됨</span>
-                </div>
-              )}
-              <label className="rights-check">
-                <input type="checkbox" checked={youtubeAuthorized} disabled={active} onChange={(event) => setYoutubeAuthorized(event.target.checked)} />
-                <span>이 콘텐츠를 다운로드·처리할 권한이 있거나 YouTube/권리자가 허용한 콘텐츠임을 확인합니다.</span>
-              </label>
+              <div className="youtube-inline-copy"><span className="card-kicker">YouTube → 오디오 → 악보</span><h2>YouTube 링크에서 바로 채보</h2><p>링크를 확인한 뒤 최적의 오디오 스트림만 로컬로 가져와 동일한 채보 파이프라인을 실행합니다.</p></div>
+              <div className="youtube-inline-row"><input type="url" value={youtubeUrl} placeholder="https://www.youtube.com/watch?v=…" disabled={active} onChange={(event) => { setYoutubeUrl(event.target.value); setYoutubeMetadata(null); }} onKeyDown={(event) => event.key === "Enter" && void inspectYoutube()} /><button className="secondary-button" disabled={!youtubeUrl.trim() || youtubeInspecting || active} onClick={() => void inspectYoutube()}>{youtubeInspecting ? "확인 중…" : "링크 확인"}</button></div>
+              {youtubeMetadata && <div className="source-preview-row"><div className="source-preview-note">♪</div><div><strong>{youtubeMetadata.title}</strong><span>{youtubeMetadata.uploader ?? "YouTube"} · {formatDuration(youtubeMetadata.duration)}</span></div><span className="source-ready">준비됨</span></div>}
+              <label className="rights-check"><input type="checkbox" checked={youtubeAuthorized} disabled={active} onChange={(event) => setYoutubeAuthorized(event.target.checked)} /><span>이 콘텐츠를 다운로드·처리할 권한이 있거나 YouTube/권리자가 허용한 콘텐츠임을 확인합니다.</span></label>
             </div>
           )}
         </section>
-
         <section className="transcription-options work-card">
           <div className="section-title-row"><div><span className="card-kicker">채보 설정</span><h3>결과 품질과 가사 인식을 선택하세요</h3></div><span className="hardware-badge">{accelerator}</span></div>
           <div className="premium-form-grid">
@@ -550,122 +524,73 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
             <label><span>가사 언어</span><select value={language} disabled={!lyrics} onChange={(event) => setLanguage(event.target.value)}><option value="ko">한국어</option><option value="en">영어</option><option value="">자동 감지</option></select><small>가사 정렬 정확도를 높이려면 언어를 직접 지정하세요.</small></label>
             <label className="switch-field"><span>가사 인식·정렬</span><button className={`product-switch ${lyrics ? "on" : ""}`} onClick={() => setLyrics((value) => !value)} aria-pressed={lyrics}><i />{lyrics ? "포함" : "악보만"}</button><small>보컬 파트에 인식한 가사를 자동 배치합니다.</small></label>
           </div>
-          {preset === "custom" && (
-            <div className="custom-model-row"><label><span>MuScriptor</span><select value={muscriptorModel} onChange={(event) => setMuscriptorModel(event.target.value)}><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></label><label><span>WhisperX</span><select value={whisperxModel} disabled={!lyrics} onChange={(event) => setWhisperxModel(event.target.value)}><option value="small">Small</option><option value="medium">Medium</option><option value="large-v3">Large v3</option></select></label></div>
-          )}
-          <div className="primary-action-row">
-            {!health?.preflight.ok && <span className="setup-needed">일부 실행 환경을 확인해야 합니다. 설정 메뉴에서 상태를 확인하세요.</span>}
-            <button className="primary-button large" disabled={busy || active || offline || (sourceMode === "file" ? !file : !youtubeMetadata || !youtubeAuthorized)} onClick={() => void startTranscription()}>{active ? "작업 진행 중" : "자동 채보 시작"}</button>
-          </div>
+          {preset === "custom" && <div className="custom-model-row"><label><span>MuScriptor</span><select value={muscriptorModel} onChange={(event) => setMuscriptorModel(event.target.value)}><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></label><label><span>WhisperX</span><select value={whisperxModel} disabled={!lyrics} onChange={(event) => setWhisperxModel(event.target.value)}><option value="small">Small</option><option value="medium">Medium</option><option value="large-v3">Large v3</option></select></label></div>}
+          <div className="primary-action-row">{!health?.preflight.ok && <span className="setup-needed">일부 실행 환경을 확인해야 합니다. 설정 메뉴에서 상태를 확인하세요.</span>}<button className="primary-button large" disabled={busy || active || offline || (sourceMode === "file" ? !file : !youtubeMetadata || !youtubeAuthorized)} onClick={() => void startTranscription()}>{active ? "작업 진행 중" : "자동 채보 시작"}</button></div>
         </section>
-
         {currentJobCard}
         <section className="workflow-strip" aria-label="자동 채보 과정"><div><b>1</b><span>음원 분석</span></div><i /><div><b>2</b><span>파트별 채보</span></div><i /><div><b>3</b><span>코드·가사</span></div><i /><div><b>4</b><span>악보 편집</span></div><i /><div><b>5</b><span>PDF 내보내기</span></div></section>
       </div>
     );
-  }
-
-  if (section === "history") {
-    return (
+  } else if (section === "history") {
+    content = (
       <div className="operations-page">
         <section className="work-card history-panel">
           <div className="section-title-row"><div><span className="card-kicker">로컬 작업 기록</span><h2>최근 작업</h2><p>채보와 성능 비교 작업은 이 컴퓨터에만 저장됩니다.</p></div><button className="secondary-button" onClick={() => void refreshJobs()}>새로고침</button></div>
-          {jobs.length === 0 ? (
-            <div className="premium-empty"><div>⌁</div><h3>아직 작업 내역이 없습니다</h3><p>새 악보에서 첫 번째 음원을 채보해 보세요.</p></div>
-          ) : (
-            <div className="premium-job-list">
-              {jobs.map((item) => (
-                <article key={item.job_id} className="premium-job-row">
-                  <div className="job-type-icon">{item.kind === "benchmark" ? "⌁" : "♫"}</div>
-                  <div className="job-row-main"><strong>{item.filename ?? (item.kind === "benchmark" ? "성능 비교" : "이름 없는 음원")}</strong><span>{item.kind === "benchmark" ? `성능 비교 · ${item.preset ?? "전체"}` : `${item.muscriptor_model ?? "자동"} · ${item.whisperx_model ?? "자동"} · ${item.language || "언어 자동"}`}</span><small>{item.created_at ? new Date(item.created_at).toLocaleString() : ""}</small></div>
-                  <StatusPill status={item.status} />
-                  <div className="job-row-actions">
-                    {item.status === "done" && renderArtifacts(item)}
-                    {!["queued", "running", "cancelling"].includes(item.status) && <button className="text-action" onClick={() => void retryJob(item)}>다시 실행</button>}
-                    {!["queued", "running", "cancelling"].includes(item.status) && <button className="text-action danger" onClick={() => deleteJob(item)}>삭제</button>}
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
+          {jobs.length === 0 ? <div className="premium-empty"><div>⌁</div><h3>아직 작업 내역이 없습니다</h3><p>새 악보에서 첫 번째 음원을 채보해 보세요.</p></div> : <div className="premium-job-list">{jobs.map((item) => <article key={item.job_id} className="premium-job-row"><div className="job-type-icon">{item.kind === "benchmark" ? "⌁" : "♫"}</div><div className="job-row-main"><strong>{item.filename ?? (item.kind === "benchmark" ? "성능 비교" : "이름 없는 음원")}</strong><span>{item.kind === "benchmark" ? `성능 비교 · ${item.preset ?? "전체"}` : `${item.muscriptor_model ?? "자동"} · ${item.whisperx_model ?? "자동"} · ${item.language || "언어 자동"}`}</span><small>{item.created_at ? new Date(item.created_at).toLocaleString() : ""}</small></div><StatusPill status={item.status} /><div className="job-row-actions">{item.status === "done" && renderArtifacts(item)}{!["queued", "running", "cancelling"].includes(item.status) && <button className="text-action" onClick={() => void retryJob(item)}>다시 실행</button>}{!["queued", "running", "cancelling"].includes(item.status) && <button className="text-action danger" onClick={() => deleteJob(item)}>삭제</button>}</div></article>)}</div>}
         </section>
       </div>
     );
-  }
-
-  if (section === "benchmark") {
-    return (
+  } else if (section === "benchmark") {
+    content = (
       <div className="operations-page benchmark-page">
         <section className="work-card">
           <div className="section-title-row"><div><span className="card-kicker">내 컴퓨터에서 직접 측정</span><h2>모델 성능 비교</h2><p>같은 음원을 여러 모델 조합에 넣어 품질과 처리 시간을 비교합니다.</p></div><span className="hardware-badge">{accelerator}</span></div>
-          <div className="benchmark-file-grid">
-            <input ref={benchmarkRef} type="file" accept="audio/*" hidden onChange={(event) => setBenchmarkFile(event.target.files?.[0] ?? null)} />
-            <button className="file-selection-card" onClick={() => benchmarkRef.current?.click()}><span>테스트 음원</span><strong>{benchmarkFile?.name ?? "음원 파일 선택"}</strong><small>필수</small></button>
-            <input ref={midiRef} type="file" accept=".mid,.midi,audio/midi" hidden onChange={(event) => setReferenceMidi(event.target.files?.[0] ?? null)} />
-            <button className="file-selection-card optional" onClick={() => midiRef.current?.click()}><span>정답 MIDI</span><strong>{referenceMidi?.name ?? "Reference MIDI 선택"}</strong><small>선택 · 정확도 지표 계산에 사용</small></button>
-          </div>
-          <div className="premium-form-grid benchmark-controls">
-            <label><span>비교 범위</span><select value={benchmarkProfile} onChange={(event) => setBenchmarkProfile(event.target.value)}><option value="score">악보 모델 · MuScriptor S/M/L</option><option value="lyrics">가사 모델 조합</option><option value="all">전체 조합</option></select></label>
-            <label><span>가사 언어</span><select value={language} onChange={(event) => setLanguage(event.target.value)}><option value="ko">한국어</option><option value="en">영어</option><option value="">자동 감지</option></select></label>
-          </div>
+          <div className="benchmark-file-grid"><input ref={benchmarkRef} type="file" accept="audio/*" hidden onChange={(event) => setBenchmarkFile(event.target.files?.[0] ?? null)} /><button className="file-selection-card" onClick={() => benchmarkRef.current?.click()}><span>테스트 음원</span><strong>{benchmarkFile?.name ?? "음원 파일 선택"}</strong><small>필수</small></button><input ref={midiRef} type="file" accept=".mid,.midi,audio/midi" hidden onChange={(event) => setReferenceMidi(event.target.files?.[0] ?? null)} /><button className="file-selection-card optional" onClick={() => midiRef.current?.click()}><span>정답 MIDI</span><strong>{referenceMidi?.name ?? "Reference MIDI 선택"}</strong><small>선택 · 정확도 지표 계산에 사용</small></button></div>
+          <div className="premium-form-grid benchmark-controls"><label><span>비교 범위</span><select value={benchmarkProfile} onChange={(event) => setBenchmarkProfile(event.target.value)}><option value="score">악보 모델 · MuScriptor S/M/L</option><option value="lyrics">가사 모델 조합</option><option value="all">전체 조합</option></select></label><label><span>가사 언어</span><select value={language} onChange={(event) => setLanguage(event.target.value)}><option value="ko">한국어</option><option value="en">영어</option><option value="">자동 감지</option></select></label></div>
           <div className="benchmark-explain"><div><strong>정답 MIDI 없음</strong><span>처리 시간·성공 여부·가사 정렬률 비교</span></div><div><strong>정답 MIDI 있음</strong><span>Note Precision / Recall / F1, Onset MAE까지 계산</span></div></div>
           <div className="primary-action-row"><button className="primary-button large" disabled={!benchmarkFile || busy || active || offline} onClick={() => void startBenchmark()}>성능 비교 시작</button></div>
         </section>
         {job?.kind === "benchmark" && currentJobCard}
       </div>
     );
+  } else {
+    content = (
+      <div className="operations-page settings-page">
+        <section className="settings-summary-grid"><div className="work-card metric-card"><span>실행 장치</span><strong>{accelerator}</strong><small>MuScriptor 기준</small></div><div className="work-card metric-card"><span>Hugging Face</span><strong className={health?.system.hf_authenticated ? "positive" : "attention"}>{health?.system.hf_authenticated ? "인증됨" : "인증 필요"}</strong><small>MuScriptor 모델 접근</small></div><div className="work-card metric-card"><span>작업 데이터</span><strong>{formatBytes(health?.system.jobs_bytes)}</strong><small>{health?.data_dir ?? "로컬 저장소"}</small></div><div className="work-card metric-card"><span>남은 디스크</span><strong>{formatBytes(health?.system.disk_free_bytes)}</strong><small>현재 데이터 드라이브</small></div></section>
+        <section className="settings-columns"><div className="work-card settings-card"><div className="section-title-row"><div><span className="card-kicker">환경 진단</span><h2>필수 도구</h2><p>모든 모델과 렌더러는 이 컴퓨터에서 실행됩니다.</p></div></div><div className="tool-readiness-list">{health ? Object.entries(health.preflight.tools).map(([name, ready]) => <div key={name}><span className={`tool-check ${ready ? "ready" : "missing"}`}>{ready ? "✓" : "!"}</span><div><strong>{name.replace("_override_or_path", "")}</strong><small>{ready ? "사용 가능" : "확인 필요"}</small></div></div>) : <div className="settings-skeleton">환경 정보를 확인하고 있습니다…</div>}</div>{!health?.system.hf_authenticated && <div className="settings-callout"><strong>MuScriptor 모델 인증이 필요합니다</strong><p>{setup?.instructions.hf_note}</p>{setup?.instructions.hf_login_command && <code>{setup.instructions.hf_login_command}</code>}</div>}</div><div className="work-card settings-card"><div className="section-title-row"><div><span className="card-kicker">실행 파일</span><h2>도구 경로</h2><p>앱이 도구를 자동으로 찾지 못하는 경우에만 지정하세요.</p></div></div><div className="path-input-list">{[["muscriptor_cmd", "MuScriptor"], ["demucs_cmd", "Demucs"], ["whisperx_cmd", "WhisperX"], ["musescore_cmd", "MuseScore"]].map(([key, label]) => <label key={key}><span>{label}</span><input value={toolPaths[key] ?? ""} placeholder="자동 검색" onChange={(event) => setToolPaths((current) => ({ ...current, [key]: event.target.value }))} /></label>)}</div><button className="primary-button" disabled={busy} onClick={() => void savePaths()}>경로 저장</button></div></section>
+        <section className="work-card storage-card"><div><span className="card-kicker">저장공간 관리</span><h3>오래된 작업 데이터 정리</h3><p>곡 라이브러리는 유지하고, 최근 30개를 제외한 오래된 작업 임시파일만 정리합니다.</p></div><button className="secondary-button" onClick={cleanupStorage}>저장공간 정리</button></section>
+        {offline && <div className="offline-banner"><strong>로컬 백엔드에 연결할 수 없습니다.</strong><span>AudioScoreTool 백엔드가 실행 중인지 확인하세요.</span></div>}
+      </div>
+    );
   }
 
   return (
-    <div className="operations-page settings-page">
-      <section className="settings-summary-grid">
-        <div className="work-card metric-card"><span>실행 장치</span><strong>{accelerator}</strong><small>MuScriptor 기준</small></div>
-        <div className="work-card metric-card"><span>Hugging Face</span><strong className={health?.system.hf_authenticated ? "positive" : "attention"}>{health?.system.hf_authenticated ? "인증됨" : "인증 필요"}</strong><small>MuScriptor 모델 접근</small></div>
-        <div className="work-card metric-card"><span>작업 데이터</span><strong>{formatBytes(health?.system.jobs_bytes)}</strong><small>{health?.data_dir ?? "로컬 저장소"}</small></div>
-        <div className="work-card metric-card"><span>남은 디스크</span><strong>{formatBytes(health?.system.disk_free_bytes)}</strong><small>현재 데이터 드라이브</small></div>
-      </section>
-
-      <section className="settings-columns">
-        <div className="work-card settings-card">
-          <div className="section-title-row"><div><span className="card-kicker">환경 진단</span><h2>필수 도구</h2><p>모든 모델과 렌더러는 이 컴퓨터에서 실행됩니다.</p></div></div>
-          <div className="tool-readiness-list">
-            {health ? Object.entries(health.preflight.tools).map(([name, ready]) => (
-              <div key={name}><span className={`tool-check ${ready ? "ready" : "missing"}`}>{ready ? "✓" : "!"}</span><div><strong>{name.replace("_override_or_path", "")}</strong><small>{ready ? "사용 가능" : "확인 필요"}</small></div></div>
-            )) : <div className="settings-skeleton">환경 정보를 확인하고 있습니다…</div>}
-          </div>
-          {!health?.system.hf_authenticated && (
-            <div className="settings-callout"><strong>MuScriptor 모델 인증이 필요합니다</strong><p>{setup?.instructions.hf_note}</p>{setup?.instructions.hf_login_command && <code>{setup.instructions.hf_login_command}</code>}</div>
-          )}
-        </div>
-
-        <div className="work-card settings-card">
-          <div className="section-title-row"><div><span className="card-kicker">실행 파일</span><h2>도구 경로</h2><p>앱이 도구를 자동으로 찾지 못하는 경우에만 지정하세요.</p></div></div>
-          <div className="path-input-list">
-            {[["muscriptor_cmd", "MuScriptor"], ["demucs_cmd", "Demucs"], ["whisperx_cmd", "WhisperX"], ["musescore_cmd", "MuseScore"]].map(([key, label]) => (
-              <label key={key}><span>{label}</span><input value={toolPaths[key] ?? ""} placeholder="자동 검색" onChange={(event) => setToolPaths((current) => ({ ...current, [key]: event.target.value }))} /></label>
-            ))}
-          </div>
-          <button className="primary-button" disabled={busy} onClick={() => void savePaths()}>경로 저장</button>
-        </div>
-      </section>
-
-      <section className="work-card storage-card">
-        <div><span className="card-kicker">저장공간 관리</span><h3>오래된 작업 데이터 정리</h3><p>곡 라이브러리는 유지하고, 최근 30개를 제외한 오래된 작업 임시파일만 정리합니다.</p></div>
-        <button className="secondary-button" onClick={cleanupStorage}>저장공간 정리</button>
-      </section>
-
-      {offline && <div className="offline-banner"><strong>로컬 백엔드에 연결할 수 없습니다.</strong><span>AudioScoreTool 백엔드가 실행 중인지 확인하세요.</span></div>}
-
+    <>
+      {content}
       {toast && <Toast message={toast.message} kind={toast.kind} onClose={() => setToast(null)} />}
       {confirm && (
         <div className="confirm-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setConfirm(null)}>
           <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
             <div className={`confirm-icon ${confirm.danger ? "danger" : ""}`}>{confirm.danger ? "!" : "?"}</div>
-            <h2 id="confirm-title">{confirm.title}</h2><p>{confirm.body}</p>
-            <div className="confirm-actions"><button className="secondary-button" onClick={() => setConfirm(null)}>취소</button><button className={confirm.danger ? "danger-button" : "primary-button"} onClick={() => void (async () => { try { setBusy(true); await confirm.action(); setConfirm(null); } catch (error) { showToast(error instanceof Error ? error.message : String(error), "error"); } finally { setBusy(false); } })()}>{confirm.confirmLabel}</button></div>
+            <h2 id="confirm-title">{confirm.title}</h2>
+            <p>{confirm.body}</p>
+            <div className="confirm-actions">
+              <button className="secondary-button" onClick={() => setConfirm(null)}>취소</button>
+              <button className={confirm.danger ? "danger-button" : "primary-button"} onClick={() => void (async () => {
+                try {
+                  setBusy(true);
+                  await confirm.action();
+                  setConfirm(null);
+                } catch (error) {
+                  showToast(error instanceof Error ? error.message : String(error), "error");
+                } finally {
+                  setBusy(false);
+                }
+              })()}>{confirm.confirmLabel}</button>
+            </div>
           </section>
         </div>
       )}
-    </div>
+    </>
   );
 }
