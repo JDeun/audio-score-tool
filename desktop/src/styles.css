@@ -51,7 +51,7 @@ aside .card { padding: 19px; }
 .progress-track { height: 6px; margin-top: 18px; border-radius: 99px; background: #e8e7e1; overflow: hidden; }
 .progress-fill { height: 100%; background: #697865; transition: width .5s ease; }
 .artifacts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; margin-top: 18px; }
-.artifacts a { text-decoration: none; color: #41463e; border: 1px solid #d9d8d1; border-radius: 10px; padding: 10px; text-align: center; font-size: 12px; background: #f8f7f3; }
+.artifacts a, .artifacts button { text-decoration: none; color: #41463e; border: 1px solid #d9d8d1; border-radius: 10px; padding: 10px; text-align: center; font-size: 12px; background: #f8f7f3; cursor: pointer; }
 .error { white-space: pre-wrap; color: #8c413c; background: #f7eeeb; padding: 12px; border-radius: 10px; overflow: auto; font-size: 11px; }
 @media (max-width: 980px) { .layout { grid-template-columns: 1fr; } aside { display: grid; grid-template-columns: repeat(3, 1fr); } }
 
@@ -125,3 +125,7 @@ aside .card { padding: 19px; }
 .system-grid span { color: #85877f; }
 .cleanup-button { width: 100%; margin-bottom: 8px; }
 .cleanup-message { margin: 0 0 18px !important; font-size: 11px !important; }
+
+.runtime-note { margin: 16px 0 20px; padding: 12px; border-radius: 10px; background: #f3f4ef; border: 1px solid #e0e3d9; }
+.runtime-note strong { display: block; margin-bottom: 5px; }
+.runtime-note p { margin: 0; font-size: 12px; line-height: 1.6; color: #6e7268; }
