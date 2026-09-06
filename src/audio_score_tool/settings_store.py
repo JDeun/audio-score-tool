@@ -9,6 +9,7 @@ from .paths import app_data_dir
 
 _ALLOWED = {
     "transcription_engine",
+    "yourmt3_cmd",
     "muscriptor_cmd",
     "native_engine_cmd",
     "native_checkpoint",
