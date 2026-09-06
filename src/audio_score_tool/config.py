@@ -36,7 +36,11 @@ def _uvx_command(package: str) -> str | None:
     if not uvx:
         return None
     flags: list[str] = []
-    if platform.system() == "Windows" and _has_nvidia():
+    if platform.system() == "Windows" and _has_nvidia() and package in {
+        "muscriptor",
+        "demucs",
+        "whisperx",
+    }:
         flags.append("--torch-backend=cu128")
     if (
         package == "muscriptor"
@@ -68,6 +72,9 @@ class Settings:
     )
     whisperx_cmd: str = field(
         default_factory=lambda: os.getenv("AST_WHISPERX_CMD") or _default_command("whisperx")
+    )
+    yt_dlp_cmd: str = field(
+        default_factory=lambda: os.getenv("AST_YT_DLP_CMD") or _default_command("yt-dlp")
     )
     musescore_cmd: str | None = field(default_factory=lambda: os.getenv("AST_MUSESCORE_CMD"))
     muscriptor_model: str = field(

@@ -22,8 +22,16 @@ from .presets import list_presets, resolve_preset
 from .settings_store import SettingsStore
 from .setup_info import setup_instructions
 from .system_status import storage_status
+from .youtube import (
+    YouTubeSourceCancelled,
+    YouTubeSourceError,
+    download_youtube_audio,
+    inspect_youtube,
+    validate_youtube_url,
+    youtube_tool_status,
+)
 
-app = FastAPI(title="AudioScoreTool", version="0.3.0")
+app = FastAPI(title="AudioScoreTool", version="0.4.0")
 _ALLOWED_ORIGINS = {
     "http://localhost:5173",
     "http://127.0.0.1:5173",
@@ -49,7 +57,17 @@ async def protect_local_mutations(request: Request, call_next):
             return JSONResponse({"detail": "Untrusted origin"}, status_code=403)
     return await call_next(request)
 
-_AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac", ".m4a", ".aac", ".ogg", ".opus"}
+
+_AUDIO_EXTENSIONS = {
+    ".wav",
+    ".mp3",
+    ".flac",
+    ".m4a",
+    ".aac",
+    ".ogg",
+    ".opus",
+    ".webm",
+}
 _MIDI_EXTENSIONS = {".mid", ".midi"}
 
 
@@ -70,7 +88,22 @@ class ToolPathSettings(BaseModel):
     muscriptor_cmd: str | None = None
     demucs_cmd: str | None = None
     whisperx_cmd: str | None = None
+    yt_dlp_cmd: str | None = None
     musescore_cmd: str | None = None
+
+
+class YouTubeInspectRequest(BaseModel):
+    url: str
+
+
+class YouTubeJobRequest(BaseModel):
+    url: str
+    authorized: bool = False
+    language: str | None = None
+    skip_lyrics: bool = False
+    preset: str = "auto"
+    muscriptor_model: str | None = None
+    whisperx_model: str | None = None
 
 
 def _runtime_settings(
@@ -84,13 +117,28 @@ def _runtime_settings(
         muscriptor_cmd=saved.get("muscriptor_cmd") or defaults.muscriptor_cmd,
         demucs_cmd=saved.get("demucs_cmd") or defaults.demucs_cmd,
         whisperx_cmd=saved.get("whisperx_cmd") or defaults.whisperx_cmd,
+        yt_dlp_cmd=saved.get("yt_dlp_cmd") or defaults.yt_dlp_cmd,
         musescore_cmd=saved.get("musescore_cmd") or defaults.musescore_cmd,
         muscriptor_model=muscriptor_model,
         whisperx_model=whisperx_model,
     )
+
+
 _cancel_events: dict[str, Event] = {}
 _runtime_lock = Lock()
 _inference_lock = Lock()
+
+
+def _register_cancel_event(job_id: str) -> Event:
+    cancel_event = Event()
+    with _runtime_lock:
+        _cancel_events[job_id] = cancel_event
+    return cancel_event
+
+
+def _unregister_cancel_event(job_id: str) -> None:
+    with _runtime_lock:
+        _cancel_events.pop(job_id, None)
 
 
 def _acquire_inference_slot(job_id: str, cancel_event: Event) -> bool:
@@ -104,25 +152,32 @@ def _acquire_inference_slot(job_id: str, cancel_event: Event) -> bool:
     return False
 
 
-def _worker(
+def _execute_transcription(
     job_id: str,
     audio: Path,
     language: str | None,
     skip_lyrics: bool,
     muscriptor_model: str,
     whisperx_model: str,
+    cancel_event: Event,
+    *,
+    source_progress_floor: int = 0,
 ) -> None:
-    cancel_event = Event()
-    with _runtime_lock:
-        _cancel_events[job_id] = cancel_event
-
     if not _acquire_inference_slot(job_id, cancel_event):
         _store.update(job_id, status="cancelled", stage="cancelled")
-        with _runtime_lock:
-            _cancel_events.pop(job_id, None)
         return
 
     _store.update(job_id, status="running", stage="starting")
+
+    def report_progress(stage: str, percent: int) -> None:
+        if source_progress_floor:
+            mapped = source_progress_floor + round(
+                percent * (100 - source_progress_floor) / 100
+            )
+        else:
+            mapped = percent
+        _store.update(job_id, stage=stage, progress=min(100, mapped))
+
     try:
         result = transcribe(
             audio,
@@ -133,11 +188,7 @@ def _worker(
                 muscriptor_model=muscriptor_model,
                 whisperx_model=whisperx_model,
             ),
-            progress=lambda stage, percent: _store.update(
-                job_id,
-                stage=stage,
-                progress=percent,
-            ),
+            progress=report_progress,
             cancel_event=cancel_event,
         )
         if cancel_event.is_set():
@@ -156,8 +207,85 @@ def _worker(
         _store.update(job_id, status="failed", stage="failed", error=str(exc))
     finally:
         _inference_lock.release()
-        with _runtime_lock:
-            _cancel_events.pop(job_id, None)
+
+
+def _worker(
+    job_id: str,
+    audio: Path,
+    language: str | None,
+    skip_lyrics: bool,
+    muscriptor_model: str,
+    whisperx_model: str,
+) -> None:
+    cancel_event = _register_cancel_event(job_id)
+    try:
+        _execute_transcription(
+            job_id,
+            audio,
+            language,
+            skip_lyrics,
+            muscriptor_model,
+            whisperx_model,
+            cancel_event,
+        )
+    finally:
+        _unregister_cancel_event(job_id)
+
+
+def _youtube_worker(
+    job_id: str,
+    url: str,
+    language: str | None,
+    skip_lyrics: bool,
+    muscriptor_model: str,
+    whisperx_model: str,
+) -> None:
+    cancel_event = _register_cancel_event(job_id)
+    job_dir = jobs_dir() / job_id
+    try:
+        _store.update(
+            job_id,
+            status="running",
+            stage="starting",
+            progress=3,
+        )
+        audio, metadata = download_youtube_audio(
+            url,
+            job_dir,
+            settings=_runtime_settings(
+                muscriptor_model=muscriptor_model,
+                whisperx_model=whisperx_model,
+            ),
+            cancel_event=cancel_event,
+        )
+        if cancel_event.is_set():
+            _store.update(job_id, status="cancelled", stage="cancelled")
+            return
+
+        _store.update(
+            job_id,
+            filename=metadata.title,
+            stage="queued",
+            progress=10,
+        )
+        _execute_transcription(
+            job_id,
+            audio,
+            language,
+            skip_lyrics,
+            muscriptor_model,
+            whisperx_model,
+            cancel_event,
+            source_progress_floor=10,
+        )
+    except YouTubeSourceCancelled:
+        _store.update(job_id, status="cancelled", stage="cancelled")
+    except YouTubeSourceError as exc:
+        _store.update(job_id, status="failed", stage="failed", error=str(exc))
+    except Exception as exc:
+        _store.update(job_id, status="failed", stage="failed", error=str(exc))
+    finally:
+        _unregister_cancel_event(job_id)
 
 
 def _benchmark_worker(
@@ -167,14 +295,11 @@ def _benchmark_worker(
     language: str | None,
     profile: str,
 ) -> None:
-    cancel_event = Event()
-    with _runtime_lock:
-        _cancel_events[job_id] = cancel_event
+    cancel_event = _register_cancel_event(job_id)
 
     if not _acquire_inference_slot(job_id, cancel_event):
         _store.update(job_id, status="cancelled", stage="cancelled")
-        with _runtime_lock:
-            _cancel_events.pop(job_id, None)
+        _unregister_cancel_event(job_id)
         return
 
     _store.update(job_id, status="running", stage="benchmark:starting")
@@ -213,8 +338,7 @@ def _benchmark_worker(
         _store.update(job_id, status="failed", stage="failed", error=str(exc))
     finally:
         _inference_lock.release()
-        with _runtime_lock:
-            _cancel_events.pop(job_id, None)
+        _unregister_cancel_event(job_id)
 
 
 @app.get("/api/health")
@@ -226,6 +350,7 @@ def health() -> dict:
         "presets": list_presets(),
         "data_dir": str(jobs_dir().parent),
         "system": storage_status(),
+        "youtube": youtube_tool_status(_runtime_settings()),
     }
 
 
@@ -235,6 +360,7 @@ def setup() -> dict:
         "preflight": preflight(_runtime_settings()),
         "instructions": setup_instructions(),
         "tool_paths": _settings_store.read(),
+        "youtube": youtube_tool_status(_runtime_settings()),
     }
 
 
@@ -257,7 +383,8 @@ def cleanup_storage(keep: int = 30) -> dict:
     keep = max(0, min(keep, 1000))
     jobs = _store.list(limit=5000)
     removable = [
-        job for job in jobs[keep:]
+        job
+        for job in jobs[keep:]
         if job["status"] not in {"queued", "running", "cancelling"}
     ]
     deleted = 0
@@ -280,12 +407,26 @@ def update_tool_paths(payload: ToolPathSettings) -> dict:
     return {
         "tool_paths": saved,
         "preflight": preflight(_runtime_settings()),
+        "youtube": youtube_tool_status(_runtime_settings()),
     }
 
 
 @app.get("/api/presets")
 def presets() -> dict:
     return list_presets()
+
+
+@app.get("/api/sources/youtube/status")
+def youtube_status() -> dict:
+    return youtube_tool_status(_runtime_settings())
+
+
+@app.post("/api/sources/youtube/inspect")
+def inspect_youtube_source(payload: YouTubeInspectRequest) -> dict:
+    try:
+        return inspect_youtube(payload.url, settings=_runtime_settings()).as_dict()
+    except YouTubeSourceError as exc:
+        raise HTTPException(422, str(exc)) from exc
 
 
 @app.get("/api/jobs")
@@ -344,6 +485,53 @@ async def create_job(
         daemon=True,
     ).start()
     return {"job_id": job_id, "status": "queued"}
+
+
+@app.post("/api/jobs/youtube", status_code=202)
+def create_youtube_job(payload: YouTubeJobRequest) -> dict:
+    if not payload.authorized:
+        raise HTTPException(
+            422,
+            "Confirm that you are authorized to process this content before importing it.",
+        )
+
+    try:
+        url = validate_youtube_url(payload.url)
+        selected = resolve_preset(payload.preset)
+    except (YouTubeSourceError, ValueError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+    resolved_muscriptor = payload.muscriptor_model or selected.muscriptor_model
+    resolved_whisperx = payload.whisperx_model or selected.whisperx_model
+
+    job_id = uuid.uuid4().hex
+    job_dir = jobs_dir() / job_id
+    job_dir.mkdir(parents=True, exist_ok=False)
+    _store.create(
+        job_id,
+        status="queued",
+        stage="queued",
+        progress=0,
+        filename="YouTube import",
+        language=payload.language,
+        skip_lyrics=payload.skip_lyrics,
+        preset=payload.preset,
+        muscriptor_model=resolved_muscriptor,
+        whisperx_model=resolved_whisperx,
+    )
+    Thread(
+        target=_youtube_worker,
+        args=(
+            job_id,
+            url,
+            payload.language,
+            payload.skip_lyrics,
+            resolved_muscriptor,
+            resolved_whisperx,
+        ),
+        daemon=True,
+    ).start()
+    return {"job_id": job_id, "status": "queued", "source": "youtube"}
 
 
 @app.post("/api/benchmarks", status_code=202)
