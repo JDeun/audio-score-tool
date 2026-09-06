@@ -12,7 +12,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
 from .devices import detect_device_plan
-from .pipeline import PipelineError, preflight, transcribe
+from .pipeline import preflight, transcribe
 
 app = FastAPI(title="AudioScoreTool", version="0.1.0")
 
