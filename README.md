@@ -96,9 +96,9 @@ AudioScoreTool의 기본 원칙은 **AI가 먼저 최대한 완성된 악보를 
 
 기본값은 `yourmt3`입니다.
 
-YourMT3+는 [`mt3-infer`](https://github.com/openmirlab/mt3-infer)의 `yourmt3` backend를 사용합니다. `mt3-infer`가 설치되어 있지 않아도 `uvx`가 있으면 앱이 `uvx mt3-infer` 경로를 사용할 수 있습니다. checkpoint는 첫 사용 시 upstream에서 로컬 캐시로 다운로드됩니다.
+YourMT3+는 [`mt3-infer`](https://github.com/openmirlab/mt3-infer)의 `yourmt3` backend를 사용합니다. AudioScoreTool은 재현 가능한 실행을 위해 MT3-Infer `0.2.0`을 기본 runtime revision으로 고정합니다. checkpoint는 첫 사용 시 upstream에서 로컬 캐시로 다운로드됩니다.
 
-> 라이선스 메타데이터는 상용화에 유리한 상태지만, **법률 자문을 대체하지 않습니다.** 실제 유료 배포 직전에는 고정할 `mt3-infer` 버전, checkpoint revision, THIRD_PARTY_NOTICES를 다시 검토하세요.
+> 라이선스 메타데이터는 상용화에 유리한 상태지만, **법률 자문을 대체하지 않습니다.** 실제 유료 배포 직전에는 고정된 `mt3-infer` 버전, checkpoint revision, THIRD_PARTY_NOTICES를 다시 검토하세요.
 
 ---
 
@@ -111,6 +111,14 @@ git clone https://github.com/JDeun/audio-score-tool.git
 cd audio-score-tool
 uv sync --extra dev
 ```
+
+YourMT3+를 현재 프로젝트 환경에 직접 설치해서 사용하려면 선택적으로 다음을 실행할 수 있습니다.
+
+```bash
+uv sync --extra yourmt3
+```
+
+별도 설치하지 않아도 `uvx`가 있으면 앱 기본 설정이 고정된 MT3-Infer runtime을 필요할 때 실행합니다.
 
 ## 2. MuseScore 4 설치
 
@@ -136,18 +144,21 @@ npm run desktop:dev
 
 ```bash
 export AST_TRANSCRIPTION_ENGINE=yourmt3
-# 선택: 직접 설치된 CLI를 고정
+```
+
+프로젝트 환경에 설치:
+
+```bash
+uv sync --extra yourmt3
+```
+
+또는 외부 CLI를 직접 고정:
+
+```bash
 export AST_YOURMT3_CMD=mt3-infer
 ```
 
-직접 설치하려면:
-
-```bash
-pip install "mt3-infer[torch]"
-mt3-infer download yourmt3
-```
-
-앱 기본 설정은 설치된 `mt3-infer`를 우선 사용하고, 없으면 가능한 경우 `uvx mt3-infer`로 실행합니다.
+AudioScoreTool의 기본 `uvx` 경로는 `mt3-infer[torch]==0.2.0`을 고정해 실행합니다.
 
 ## MuScriptor — 호환용
 
