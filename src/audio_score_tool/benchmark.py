@@ -51,6 +51,23 @@ LYRICS_CONFIGS = [
     BenchmarkConfig("quality", "large", "large-v3"),
 ]
 
+YOURMT3_CONFIGS = [
+    BenchmarkConfig(
+        "yourmt3-score",
+        "n/a",
+        "small",
+        skip_lyrics=True,
+        transcription_engine="yourmt3",
+    ),
+    BenchmarkConfig(
+        "yourmt3-lyrics",
+        "n/a",
+        "small",
+        skip_lyrics=False,
+        transcription_engine="yourmt3",
+    ),
+]
+
 NATIVE_CONFIGS = [
     BenchmarkConfig(
         "native-score",
@@ -67,10 +84,12 @@ def configs_for_profile(profile: str) -> list[BenchmarkConfig]:
         return SCORE_CONFIGS
     if profile == "lyrics":
         return LYRICS_CONFIGS
+    if profile == "yourmt3":
+        return YOURMT3_CONFIGS
     if profile == "native":
         return NATIVE_CONFIGS
     if profile == "all":
-        return [*SCORE_CONFIGS, *LYRICS_CONFIGS]
+        return [*YOURMT3_CONFIGS, *SCORE_CONFIGS, *LYRICS_CONFIGS]
     raise ValueError(f"Unknown benchmark profile: {profile}")
 
 
