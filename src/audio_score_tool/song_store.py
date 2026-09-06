@@ -91,17 +91,38 @@ class SongStore:
             shutil.copy2(source_path, original_xml)
             shutil.copy2(source_path, current_xml)
 
+            export_dir = song_dir / "exports"
+            export_dir.mkdir(parents=True, exist_ok=True)
+
             original_midi: Path | None = None
             midi_source = result.get("midi")
             if midi_source and Path(midi_source).exists():
                 original_midi = song_dir / "original.mid"
                 shutil.copy2(midi_source, original_midi)
+                shutil.copy2(midi_source, export_dir / "score.mid")
 
             original_pdf: Path | None = None
             pdf_source = result.get("pdf")
             if pdf_source and Path(pdf_source).exists():
                 original_pdf = song_dir / "original.pdf"
                 shutil.copy2(pdf_source, original_pdf)
+                shutil.copy2(pdf_source, export_dir / "score.pdf")
+
+            part_sources = result.get("part_pdfs") or []
+            part_export_dir = export_dir / "parts"
+            for raw_path in part_sources:
+                source = Path(raw_path)
+                if not source.exists():
+                    continue
+                part_export_dir.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source, part_export_dir / source.name)
+                xml_source = source.with_suffix(".musicxml")
+                if xml_source.exists():
+                    shutil.copy2(xml_source, part_export_dir / xml_source.name)
+
+            chord_report = result.get("chord_report")
+            if chord_report and Path(chord_report).exists():
+                shutil.copy2(chord_report, song_dir / "automatic_chords.json")
 
             now = _now()
             with self._lock, self._connect() as conn:
@@ -233,6 +254,7 @@ class SongStore:
             return
         for name in ("score.pdf", "score.mid"):
             (export_dir / name).unlink(missing_ok=True)
+        shutil.rmtree(export_dir / "parts", ignore_errors=True)
 
     def delete(self, song_id: str) -> bool:
         with self._lock, self._connect() as conn:
