@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import json
 import math
-from bisect import bisect_left
 import re
 import xml.etree.ElementTree as ET
+from bisect import bisect_left
 from dataclasses import dataclass
 from pathlib import Path
 
