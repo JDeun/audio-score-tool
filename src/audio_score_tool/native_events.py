@@ -64,7 +64,13 @@ def note_off_token(pitch: int) -> int:
 
 
 def velocity_token(velocity: int) -> int:
-    bucket = max(0, min(VELOCITY_BINS - 1, int(round(velocity / 127 * (VELOCITY_BINS - 1)))))
+    bucket = max(
+        0,
+        min(
+            VELOCITY_BINS - 1,
+            int(round(velocity / 127 * (VELOCITY_BINS - 1))),
+        ),
+    )
     return VELOCITY_BASE + bucket
 
 
@@ -162,18 +168,36 @@ def decode_tokens(tokens: list[int]) -> tuple[int, list[DecodedNote]]:
             if key in active:
                 start_ms, start_velocity = active.pop(key)
                 if time_ms > start_ms:
-                    notes.append(DecodedNote(start_ms, time_ms, pitch, start_velocity, program))
+                    notes.append(
+                        DecodedNote(start_ms, time_ms, pitch, start_velocity, program)
+                    )
         elif VELOCITY_BASE <= token < VOCAB_SIZE:
             bucket = token - VELOCITY_BASE
-            velocity = int(round(bucket / (VELOCITY_BINS - 1) * 127))
+            velocity = max(
+                1,
+                int(round(bucket / (VELOCITY_BINS - 1) * 127)),
+            )
 
     for (active_program, pitch), (start_ms, start_velocity) in active.items():
-        notes.append(DecodedNote(start_ms, max(time_ms, start_ms + 100), pitch, start_velocity, active_program))
+        notes.append(
+            DecodedNote(
+                start_ms,
+                max(time_ms, start_ms + 100),
+                pitch,
+                start_velocity,
+                active_program,
+            )
+        )
     notes.sort(key=lambda note: (note.start_ms, note.program, note.pitch))
     return bpm, notes
 
 
-def tokens_to_midi(tokens: list[int], output: Path, *, ticks_per_beat: int = 480) -> Path:
+def tokens_to_midi(
+    tokens: list[int],
+    output: Path,
+    *,
+    ticks_per_beat: int = 480,
+) -> Path:
     bpm, notes = decode_tokens(tokens)
     tempo = mido.bpm2tempo(bpm)
     midi = mido.MidiFile(ticks_per_beat=ticks_per_beat)
@@ -192,23 +216,39 @@ def tokens_to_midi(tokens: list[int], output: Path, *, ticks_per_beat: int = 480
         else:
             channel = melodic_channels[melodic_index % len(melodic_channels)]
             melodic_index += 1
-            track.append(mido.Message("program_change", program=program, channel=channel, time=0))
+            track.append(
+                mido.Message("program_change", program=program, channel=channel, time=0)
+            )
         events: list[tuple[int, int, mido.Message]] = []
-        for note in (n for n in notes if n.program == program):
-            start_ticks = int(round(mido.second2tick(note.start_ms / 1000, ticks_per_beat, tempo)))
-            end_ticks = int(round(mido.second2tick(note.end_ms / 1000, ticks_per_beat, tempo)))
+        for note in (item for item in notes if item.program == program):
+            start_ticks = int(
+                round(mido.second2tick(note.start_ms / 1000, ticks_per_beat, tempo))
+            )
+            end_ticks = int(
+                round(mido.second2tick(note.end_ms / 1000, ticks_per_beat, tempo))
+            )
             events.append(
                 (
                     start_ticks,
                     1,
-                    mido.Message("note_on", note=note.pitch, velocity=note.velocity, channel=channel),
+                    mido.Message(
+                        "note_on",
+                        note=note.pitch,
+                        velocity=note.velocity,
+                        channel=channel,
+                    ),
                 )
             )
             events.append(
                 (
                     end_ticks,
                     0,
-                    mido.Message("note_off", note=note.pitch, velocity=0, channel=channel),
+                    mido.Message(
+                        "note_off",
+                        note=note.pitch,
+                        velocity=0,
+                        channel=channel,
+                    ),
                 )
             )
         last_tick = 0
