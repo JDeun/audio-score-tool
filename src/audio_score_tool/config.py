@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import json
 import os
 import platform
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from .paths import app_data_dir
 
 
 def _find_executable(name: str) -> str | None:
@@ -62,35 +65,64 @@ def _default_command(name: str) -> str:
     return name
 
 
-def _optional_path(env_name: str) -> Path | None:
-    raw = os.getenv(env_name)
+def _saved_settings() -> dict[str, str | None]:
+    path = app_data_dir() / "settings.json"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _saved_or_env(key: str, env_name: str, default: str | None = None) -> str | None:
+    env_value = os.getenv(env_name)
+    if env_value:
+        return env_value
+    value = _saved_settings().get(key)
+    if value:
+        return str(value)
+    return default
+
+
+def _optional_path(key: str, env_name: str) -> Path | None:
+    raw = _saved_or_env(key, env_name)
     return Path(raw).expanduser() if raw else None
 
 
 @dataclass(slots=True)
 class Settings:
     transcription_engine: str = field(
-        default_factory=lambda: os.getenv("AST_TRANSCRIPTION_ENGINE", "muscriptor")
+        default_factory=lambda: _saved_or_env(
+            "transcription_engine", "AST_TRANSCRIPTION_ENGINE", "muscriptor"
+        )
+        or "muscriptor"
     )
     muscriptor_cmd: str = field(
-        default_factory=lambda: os.getenv("AST_MUSCRIPTOR_CMD") or _default_command("muscriptor")
+        default_factory=lambda: _saved_or_env("muscriptor_cmd", "AST_MUSCRIPTOR_CMD")
+        or _default_command("muscriptor")
     )
     native_engine_cmd: str = field(
-        default_factory=lambda: os.getenv("AST_NATIVE_ENGINE_CMD") or _default_command("audio-score-native")
+        default_factory=lambda: _saved_or_env("native_engine_cmd", "AST_NATIVE_ENGINE_CMD")
+        or _default_command("audio-score-native")
     )
     native_checkpoint: Path | None = field(
-        default_factory=lambda: _optional_path("AST_NATIVE_CHECKPOINT")
+        default_factory=lambda: _optional_path("native_checkpoint", "AST_NATIVE_CHECKPOINT")
     )
     demucs_cmd: str = field(
-        default_factory=lambda: os.getenv("AST_DEMUCS_CMD") or _default_command("demucs")
+        default_factory=lambda: _saved_or_env("demucs_cmd", "AST_DEMUCS_CMD")
+        or _default_command("demucs")
     )
     whisperx_cmd: str = field(
-        default_factory=lambda: os.getenv("AST_WHISPERX_CMD") or _default_command("whisperx")
+        default_factory=lambda: _saved_or_env("whisperx_cmd", "AST_WHISPERX_CMD")
+        or _default_command("whisperx")
     )
     yt_dlp_cmd: str = field(
-        default_factory=lambda: os.getenv("AST_YT_DLP_CMD") or _default_command("yt-dlp")
+        default_factory=lambda: _saved_or_env("yt_dlp_cmd", "AST_YT_DLP_CMD")
+        or _default_command("yt-dlp")
     )
-    musescore_cmd: str | None = field(default_factory=lambda: os.getenv("AST_MUSESCORE_CMD"))
+    musescore_cmd: str | None = field(
+        default_factory=lambda: _saved_or_env("musescore_cmd", "AST_MUSESCORE_CMD")
+    )
     muscriptor_model: str = field(
         default_factory=lambda: os.getenv("AST_MUSCRIPTOR_MODEL", "medium")
     )
