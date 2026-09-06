@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "desktop:dev": "concurrently \"uv run audio-score-api\" \"tauri dev\"",
-    "desktop:build": "python ../scripts/build_sidecar.py && tauri build"
+    "desktop:dev": "concurrently \"uv run --project .. audio-score-api\" \"tauri dev\"",
+    "desktop:build": "uv run --project .. --extra desktop python ../scripts/build_sidecar.py && tauri build"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.8.0",
