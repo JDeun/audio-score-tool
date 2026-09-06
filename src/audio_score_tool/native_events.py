@@ -80,8 +80,11 @@ def midi_to_tokens(path: Path, *, max_tokens: int | None = None) -> list[int]:
     midi = mido.MidiFile(path)
     merged = mido.merge_tracks(midi.tracks)
     tempo = 500_000
+    initial_tempo = tempo
+    saw_tempo = False
     absolute_seconds = 0.0
     program_by_channel = {channel: 0 for channel in range(16)}
+    active_program: dict[tuple[int, int], int] = {}
     events: list[tuple[int, int, int, int, int]] = []
     # tuple: time_ms, sort_order, program, pitch, velocity; velocity<0 means note-off
 
@@ -90,18 +93,22 @@ def midi_to_tokens(path: Path, *, max_tokens: int | None = None) -> list[int]:
         time_ms = int(round(absolute_seconds * 1000))
         if message.type == "set_tempo":
             tempo = message.tempo
+            if not saw_tempo:
+                initial_tempo = tempo
+                saw_tempo = True
         elif message.type == "program_change":
             program_by_channel[message.channel] = message.program
         elif message.type == "note_on" and message.velocity > 0:
             program = 128 if message.channel == 9 else program_by_channel[message.channel]
+            active_program[(message.channel, message.note)] = program
             events.append((time_ms, 1, program, message.note, message.velocity))
         elif message.type in {"note_off", "note_on"}:
-            if message.type == "note_on" and message.velocity > 0:
-                continue
-            program = 128 if message.channel == 9 else program_by_channel[message.channel]
+            key = (message.channel, message.note)
+            fallback = 128 if message.channel == 9 else program_by_channel[message.channel]
+            program = active_program.pop(key, fallback)
             events.append((time_ms, 0, program, message.note, -1))
 
-    initial_bpm = int(round(mido.tempo2bpm(tempo))) if tempo else 120
+    initial_bpm = int(round(mido.tempo2bpm(initial_tempo)))
     tokens = [BOS, tempo_token(initial_bpm)]
     current_ms = 0
     current_program: int | None = None
@@ -175,18 +182,35 @@ def tokens_to_midi(tokens: list[int], output: Path, *, ticks_per_beat: int = 480
     midi.tracks.append(conductor)
 
     programs = sorted({note.program for note in notes})
-    for index, program in enumerate(programs):
+    melodic_channels = [channel for channel in range(16) if channel != 9]
+    melodic_index = 0
+    for program in programs:
         track = mido.MidiTrack()
         midi.tracks.append(track)
-        channel = 9 if program == 128 else next(ch for ch in range(16) if ch != 9 and ch == index % 15)
-        if program != 128:
+        if program == 128:
+            channel = 9
+        else:
+            channel = melodic_channels[melodic_index % len(melodic_channels)]
+            melodic_index += 1
             track.append(mido.Message("program_change", program=program, channel=channel, time=0))
         events: list[tuple[int, int, mido.Message]] = []
         for note in (n for n in notes if n.program == program):
             start_ticks = int(round(mido.second2tick(note.start_ms / 1000, ticks_per_beat, tempo)))
             end_ticks = int(round(mido.second2tick(note.end_ms / 1000, ticks_per_beat, tempo)))
-            events.append((start_ticks, 1, mido.Message("note_on", note=note.pitch, velocity=note.velocity, channel=channel)))
-            events.append((end_ticks, 0, mido.Message("note_off", note=note.pitch, velocity=0, channel=channel)))
+            events.append(
+                (
+                    start_ticks,
+                    1,
+                    mido.Message("note_on", note=note.pitch, velocity=note.velocity, channel=channel),
+                )
+            )
+            events.append(
+                (
+                    end_ticks,
+                    0,
+                    mido.Message("note_off", note=note.pitch, velocity=0, channel=channel),
+                )
+            )
         last_tick = 0
         for tick, _order, message in sorted(events, key=lambda event: (event[0], event[1])):
             message.time = max(0, tick - last_tick)
