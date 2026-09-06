@@ -35,6 +35,7 @@ type Health = {
 
 type SetupInfo = {
   preflight: Health["preflight"];
+  tool_paths: Record<string, string>;
   instructions: {
     python_tools: { name: string; command: string }[];
     musescore: string;
@@ -91,6 +92,8 @@ const stageLabel: Record<string, string> = {
 function App() {
   const [health, setHealth] = useState<Health | null>(null);
   const [setup, setSetup] = useState<SetupInfo | null>(null);
+  const [toolPaths, setToolPaths] = useState<Record<string, string>>({});
+  const [settingsSaved, setSettingsSaved] = useState(false);
   const [backendError, setBackendError] = useState(false);
   const [tab, setTab] = useState<"transcribe" | "history" | "setup">("transcribe");
   const [file, setFile] = useState<File | null>(null);
@@ -130,7 +133,11 @@ function App() {
   const refreshSetup = async () => {
     try {
       const res = await fetch(`${API}/api/setup`);
-      if (res.ok) setSetup(await res.json());
+      if (res.ok) {
+        const body = await res.json();
+        setSetup(body);
+        setToolPaths(body.tool_paths ?? {});
+      }
     } catch {
       // Health card already communicates connectivity.
     }
@@ -188,6 +195,25 @@ function App() {
     event.preventDefault();
     setDragging(false);
     chooseFile(event.dataTransfer.files?.[0]);
+  };
+
+  const saveToolPaths = async () => {
+    const res = await fetch(`${API}/api/settings/tool-paths`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        muscriptor_cmd: toolPaths.muscriptor_cmd || null,
+        demucs_cmd: toolPaths.demucs_cmd || null,
+        whisperx_cmd: toolPaths.whisperx_cmd || null,
+        musescore_cmd: toolPaths.musescore_cmd || null,
+      }),
+    });
+    if (res.ok) {
+      setSettingsSaved(true);
+      window.setTimeout(() => setSettingsSaved(false), 1800);
+      await refreshHealth();
+      await refreshSetup();
+    }
   };
 
   const submit = async () => {
@@ -480,7 +506,31 @@ function App() {
               <strong>사용자가 직접 해야 하는 부분</strong>
               <p>Hugging Face에서 MuScriptor 모델 라이선스를 수락하고 로컬 환경에서 인증해야 합니다. 토큰은 앱에 저장하지 않습니다.</p>
             </div>
-            <span className="eyebrow">DATA LOCATION</span>
+
+            <span className="eyebrow">TOOL PATH OVERRIDES</span>
+            <p>앱으로 직접 실행할 때 터미널 PATH가 전달되지 않는 경우 여기에서 실행 파일 또는 명령 경로를 지정할 수 있습니다.</p>
+            <div className="path-fields">
+              {[
+                ["muscriptor_cmd", "MuScriptor"],
+                ["demucs_cmd", "Demucs"],
+                ["whisperx_cmd", "WhisperX"],
+                ["musescore_cmd", "MuseScore"],
+              ].map(([key, label]) => (
+                <label className="path-field" key={key}>
+                  <span>{label}</span>
+                  <input
+                    value={toolPaths[key] ?? ""}
+                    placeholder="자동 검색"
+                    onChange={(e) => setToolPaths((current) => ({ ...current, [key]: e.target.value }))}
+                  />
+                </label>
+              ))}
+            </div>
+            <button className="secondary save-settings" onClick={saveToolPaths}>
+              {settingsSaved ? "Saved" : "Save paths"}
+            </button>
+
+            <span className="eyebrow data-label">DATA LOCATION</span>
             <code className="path-code">{health?.data_dir ?? "Checking…"}</code>
           </section>
         </section>
