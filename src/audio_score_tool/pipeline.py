@@ -17,6 +17,12 @@ from .models import PipelineResult
 from .musicxml_parts import extract_part_musicxml, list_score_parts
 from .runner import CommandCancelled, CommandError, command_exists, run_command
 from .system_status import huggingface_authenticated
+from .transcription_engine import (
+    TranscriptionEngineCancelled,
+    TranscriptionEngineError,
+    available_engines,
+    resolve_transcription_engine,
+)
 
 
 class PipelineError(RuntimeError):
@@ -106,26 +112,35 @@ def _render_instrument_parts(
 
 def preflight(settings: Settings | None = None, *, require_lyrics: bool = True) -> dict:
     settings = settings or Settings()
+    engine = resolve_transcription_engine(settings)
     tools = {
         "muscriptor": command_exists(settings.muscriptor_cmd),
+        "native_engine": command_exists(settings.native_engine_cmd),
+        "transcription_engine": engine.ready(),
         "demucs": command_exists(settings.demucs_cmd),
         "whisperx": command_exists(settings.whisperx_cmd),
         "musescore_override_or_path": _resolve_musescore(settings) is not None,
     }
-    missing = ["muscriptor"] if not tools["muscriptor"] else []
+    missing: list[str] = []
+    if not engine.ready():
+        missing.append(f"transcription_engine:{engine.key}")
     if not tools["musescore_override_or_path"]:
         missing.append("musescore")
     if require_lyrics:
         missing += [name for name in ("demucs", "whisperx") if not tools[name]]
+
     hf_ready = huggingface_authenticated()
-    if not hf_ready:
+    if engine.key == "muscriptor" and not hf_ready:
         missing.append("huggingface_auth")
+
     return {
         "ok": not missing,
         "missing": missing,
         "tools": tools,
         "huggingface_authenticated": hf_ready,
         "device_plan": detect_device_plan().as_dict(),
+        "transcription_engine": engine.key,
+        "engines": available_engines(settings),
     }
 
 
@@ -165,37 +180,30 @@ def transcribe(
     warnings: list[str] = []
 
     device = detect_device_plan()
+    engine = resolve_transcription_engine(settings)
 
     emit("transcription", 5)
 
-    # 1) Full multi-instrument transcription + quantized score.
-    muscriptor_args = [
-        "transcribe",
-        audio_path,
-        "--format",
-        "sheets",
-        "--output",
-        score_dir,
-        "--device",
-        device.muscriptor_device,
-        "--model",
-        settings.muscriptor_model,
-        "--detect-tempo",
-        "best-effort",
-    ]
+    # 1) Full multi-instrument transcription. The rest of AudioScoreTool only depends
+    # on the engine contract: score.mid + score.musicxml (+ optional initial PDF).
     try:
-        run_command(settings.muscriptor_cmd, muscriptor_args, cancel_event=cancel_event)
-    except CommandCancelled as exc:
+        artifacts = engine.transcribe(
+            audio_path,
+            score_dir,
+            device=device.muscriptor_device,
+            cancel_event=cancel_event,
+        )
+    except TranscriptionEngineCancelled as exc:
         raise PipelineCancelled("Transcription cancelled.") from exc
-    except CommandError as exc:
-        raise PipelineError(f"MuScriptor failed.\n{exc}") from exc
+    except TranscriptionEngineError as exc:
+        raise PipelineError(f"{engine.display_name} failed.\n{exc}") from exc
 
-    midi_path = _find_one(score_dir, "score.mid")
-    musicxml_path = _find_one(score_dir, "score.musicxml")
-    mu_full_pdf = _find_one(score_dir, "full_score.pdf")
+    midi_path = artifacts.midi_path
+    musicxml_path = artifacts.musicxml_path
+    initial_full_pdf = artifacts.initial_pdf_path
     emit("transcription", 47)
 
-    # 2) Infer a chord progression from the already separated multi-instrument notation.
+    # 2) Infer a chord progression from the multi-instrument notation.
     emit("chord_analysis", 50)
     chord_report = work_dir / "chords.json"
     try:
@@ -213,10 +221,10 @@ def transcribe(
     if skip_lyrics:
         final_pdf = work_dir / "score_with_chords.pdf"
         if not _render_pdf(musicxml_path, final_pdf, settings, cancel_event):
-            final_pdf = mu_full_pdf
+            final_pdf = initial_full_pdf
             warnings.append(
-                "Could not re-render the chord-enriched full score; returning MuScriptor's "
-                "initial full_score.pdf. MusicXML still contains the inferred chord symbols."
+                "Could not render the chord-enriched full score with MuseScore. "
+                "MusicXML still contains the inferred chord symbols."
             )
         try:
             part_pdfs = _render_instrument_parts(
@@ -244,8 +252,8 @@ def transcribe(
 
     emit("vocal_separation", 60)
 
-    # 3) Vocal isolation for lyrics ASR. Other score parts come from MuScriptor's
-    # multi-instrument transcription; Demucs is only needed here for lyrics quality.
+    # 3) Vocal isolation for lyrics ASR. Score parts come from the selected
+    # transcription engine; Demucs is only needed here for lyrics quality.
     stems_dir.mkdir()
     try:
         run_command(
@@ -305,8 +313,7 @@ def transcribe(
 
     emit("lyric_alignment", 87)
 
-    # 5) Attach timed lyric tokens to the vocal-like MusicXML part. Since the chord
-    # symbols were already inserted, the resulting MusicXML contains both lyrics and harmony.
+    # 5) Attach timed lyric tokens to the vocal-like MusicXML part.
     lyric_musicxml = work_dir / "score_with_lyrics.musicxml"
     part_id, attached = attach_lyrics_to_musicxml(
         musicxml_path,
@@ -320,6 +327,7 @@ def transcribe(
         "lyric_token_count": len(aligned_tokens),
         "attached_token_count": attached,
         "automatic_chord_count": len(inferred_chords),
+        "transcription_engine": engine.key,
         "device_plan": device.as_dict(),
     }
     (work_dir / "alignment.json").write_text(
@@ -344,11 +352,10 @@ def transcribe(
         raise PipelineCancelled("Score rendering cancelled.") from exc
 
     if not rendered:
-        lyric_pdf = mu_full_pdf
+        lyric_pdf = initial_full_pdf
         warnings.append(
-            "Could not directly invoke MuseScore for score_with_lyrics.pdf; "
-            "returning MuScriptor's initial full_score.pdf. The lyric/chord-enriched "
-            "MusicXML was generated correctly."
+            "Could not render score_with_lyrics.pdf with MuseScore. "
+            "The lyric/chord-enriched MusicXML was generated correctly."
         )
 
     emit("complete", 100)
