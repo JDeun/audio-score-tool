@@ -7,7 +7,19 @@ from typing import Any
 
 from .paths import app_data_dir
 
-_ALLOWED = {"muscriptor_cmd", "demucs_cmd", "whisperx_cmd", "musescore_cmd"}
+_ALLOWED = {
+    "transcription_engine",
+    "mt3_infer_cmd",
+    "mt3_model",
+    "yourmt3_cmd",  # v0.7 prerelease migration key; read-only compatibility.
+    "muscriptor_cmd",
+    "native_engine_cmd",
+    "native_checkpoint",
+    "demucs_cmd",
+    "whisperx_cmd",
+    "yt_dlp_cmd",
+    "musescore_cmd",
+}
 
 
 class SettingsStore:
@@ -26,16 +38,16 @@ class SettingsStore:
         return {key: payload.get(key) for key in _ALLOWED if key in payload}
 
     def update(self, values: dict[str, Any]) -> dict[str, str | None]:
-        current = self.read()
-        for key, value in values.items():
-            if key not in _ALLOWED:
-                continue
-            if value is None or value == "":
-                current.pop(key, None)
-            else:
-                current[key] = str(value)
-        temp = self.path.with_suffix(".tmp")
         with self._lock:
+            current = self.read()
+            for key, value in values.items():
+                if key not in _ALLOWED:
+                    continue
+                if value is None or value == "":
+                    current.pop(key, None)
+                else:
+                    current[key] = str(value)
+            temp = self.path.with_suffix(".tmp")
             temp.write_text(json.dumps(current, ensure_ascii=False, indent=2), encoding="utf-8")
             temp.replace(self.path)
         return current
