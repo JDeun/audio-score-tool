@@ -99,3 +99,20 @@ aside .card { padding: 19px; }
 .path-field input { width: 100%; height: 38px; border: 1px solid #d9d8d1; border-radius: 9px; background: #f8f7f3; padding: 0 10px; color: #333630; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
 .save-settings { margin: 2px 0 24px; }
 .data-label { display: block; margin-top: 4px; }
+
+.benchmark-grid { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; }
+.benchmark-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0; }
+.file-button { min-height: 92px; border: 1px dashed #cfcfc7; background: #faf9f5; border-radius: 13px; padding: 14px; text-align: left; cursor: pointer; color: #454943; }
+.file-button span { display: block; color: #8a8c85; font-size: 10px; letter-spacing: .8px; text-transform: uppercase; margin-bottom: 8px; }
+.file-button strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-button.optional { background: #f5f4ef; }
+.benchmark-options { display: grid; grid-template-columns: 1.4fr 1fr 160px; gap: 12px; align-items: end; }
+.benchmark-progress { border-top: 1px solid #e8e7e1; margin-top: 22px; padding-top: 20px; }
+.benchmark-aside { display: flex; flex-direction: column; gap: 16px; }
+.benchmark-aside .card { padding: 18px; }
+.benchmark-artifacts { grid-template-columns: repeat(2, minmax(140px, 1fr)); max-width: 430px; }
+@media (max-width: 980px) {
+  .benchmark-grid { grid-template-columns: 1fr; }
+  .benchmark-aside { display: grid; grid-template-columns: 1fr 1fr; }
+  .benchmark-options { grid-template-columns: 1fr; }
+}
