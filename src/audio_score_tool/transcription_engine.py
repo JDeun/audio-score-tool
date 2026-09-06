@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import os
+import platform
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Event
@@ -43,6 +46,34 @@ def _require_output(root: Path, name: str) -> Path:
     return result
 
 
+def _resolve_musescore(settings: Settings) -> str | None:
+    if settings.musescore_cmd:
+        return settings.musescore_cmd
+    env_path = os.getenv("MUSCRIPTOR_MUSESCORE")
+    if env_path:
+        return env_path
+    for candidate in ("mscore", "musescore", "MuseScore4", "musescore4", "MuseScore"):
+        if shutil.which(candidate):
+            return candidate
+    for candidate in (
+        "/Applications/MuseScore 4.app/Contents/MacOS/mscore",
+        str(Path("~/MuseScore.AppImage").expanduser()),
+        str(Path("~/Applications/MuseScore.AppImage").expanduser()),
+    ):
+        if Path(candidate).is_file():
+            return candidate
+    return None
+
+
+def _musescore_env() -> dict[str, str] | None:
+    if platform.system() != "Linux":
+        return None
+    return {
+        "QT_QPA_PLATFORM": "offscreen",
+        "MU_QT_QPA_PLATFORM": "offscreen",
+    }
+
+
 class BaseTranscriptionEngine:
     key = "base"
     display_name = "Base"
@@ -63,6 +94,79 @@ class BaseTranscriptionEngine:
         cancel_event: Event | None = None,
     ) -> TranscriptionArtifacts:
         raise NotImplementedError
+
+
+class YourMT3Engine(BaseTranscriptionEngine):
+    """YourMT3+ through the MIT-licensed mt3-infer inference toolkit.
+
+    mt3-infer downloads the upstream YourMT3+ checkpoint on first use and exposes
+    multi-instrument transcription through one CLI. The checkpoint repository is
+    explicitly marked Apache-2.0 upstream, unlike MuScriptor's CC BY-NC weights.
+    """
+
+    key = "yourmt3"
+    display_name = "YourMT3+"
+    commercial_status = "permissive_checkpoint"
+
+    def ready(self) -> bool:
+        return command_exists(self.settings.yourmt3_cmd)
+
+    def transcribe(
+        self,
+        audio_path: Path,
+        output_dir: Path,
+        *,
+        device: str,
+        cancel_event: Event | None = None,
+    ) -> TranscriptionArtifacts:
+        if not self.ready():
+            raise TranscriptionEngineUnavailable(
+                "YourMT3+ runtime is unavailable. Install mt3-infer or make uvx available."
+            )
+        musescore = _resolve_musescore(self.settings)
+        if not musescore:
+            raise TranscriptionEngineUnavailable(
+                "MuseScore 4 is required to convert the YourMT3+ multi-track MIDI to MusicXML."
+            )
+
+        output_dir.mkdir(parents=True, exist_ok=True)
+        midi_path = output_dir / "score.mid"
+        musicxml_path = output_dir / "score.musicxml"
+        try:
+            run_command(
+                self.settings.yourmt3_cmd,
+                [
+                    "transcribe",
+                    audio_path,
+                    "-o",
+                    midi_path,
+                    "-m",
+                    "yourmt3",
+                    "--device",
+                    device,
+                ],
+                cancel_event=cancel_event,
+            )
+            if not midi_path.is_file():
+                raise TranscriptionEngineError(
+                    f"YourMT3+ did not produce the expected MIDI: {midi_path}"
+                )
+            run_command(
+                musescore,
+                ["-o", musicxml_path, midi_path],
+                env=_musescore_env(),
+                cancel_event=cancel_event,
+            )
+        except CommandCancelled as exc:
+            raise TranscriptionEngineCancelled("YourMT3+ transcription cancelled.") from exc
+        except CommandError as exc:
+            raise TranscriptionEngineError(f"YourMT3+ failed.\n{exc}") from exc
+
+        if not musicxml_path.is_file():
+            raise TranscriptionEngineError(
+                f"MuseScore did not create the expected MusicXML: {musicxml_path}"
+            )
+        return TranscriptionArtifacts(midi_path=midi_path, musicxml_path=musicxml_path)
 
 
 class MuScriptorEngine(BaseTranscriptionEngine):
@@ -111,11 +215,10 @@ class MuScriptorEngine(BaseTranscriptionEngine):
 
 
 class NativeCommandEngine(BaseTranscriptionEngine):
-    """AudioScore Native command contract.
+    """Project-owned AudioScore Native command contract.
 
-    The native runtime is intentionally a separate executable so trained weights and
-    accelerator-specific dependencies can be packaged independently from the desktop
-    orchestration sidecar. The command must emit score.mid and score.musicxml.
+    Native remains an R&D/future ownership path. It is not the default because producing
+    a high-quality checkpoint requires licensed data and substantial GPU training.
     """
 
     key = "native"
@@ -169,8 +272,9 @@ class NativeCommandEngine(BaseTranscriptionEngine):
 
 def available_engines(settings: Settings) -> list[dict[str, object]]:
     engines: list[BaseTranscriptionEngine] = [
-        MuScriptorEngine(settings),
+        YourMT3Engine(settings),
         NativeCommandEngine(settings),
+        MuScriptorEngine(settings),
     ]
     return [
         {
@@ -185,6 +289,8 @@ def available_engines(settings: Settings) -> list[dict[str, object]]:
 
 def resolve_transcription_engine(settings: Settings) -> BaseTranscriptionEngine:
     key = settings.transcription_engine.strip().lower()
+    if key == "yourmt3":
+        return YourMT3Engine(settings)
     if key == "muscriptor":
         return MuScriptorEngine(settings)
     if key == "native":
