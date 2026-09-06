@@ -5,6 +5,7 @@ import uvicorn
 from .api import app
 from .song_api import router as song_router
 
+app.version = "0.4.0"
 app.include_router(song_router)
 
 
