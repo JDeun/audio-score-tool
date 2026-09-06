@@ -1,0 +1,17 @@
+[package]
+name = "audio-score-tool-desktop"
+version = "0.2.0"
+description = "Desktop shell for AudioScoreTool"
+authors = ["JDeun"]
+edition = "2021"
+
+[lib]
+name = "audio_score_tool_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"

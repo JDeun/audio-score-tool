@@ -4,6 +4,7 @@ import json
 import os
 import platform
 import shutil
+from collections.abc import Callable
 from pathlib import Path
 
 from .config import Settings
@@ -97,8 +98,14 @@ def transcribe(
     language: str | None = None,
     skip_lyrics: bool = False,
     settings: Settings | None = None,
+    progress: Callable[[str, int], None] | None = None,
 ) -> PipelineResult:
     settings = settings or Settings()
+
+    def emit(stage: str, percent: int) -> None:
+        if progress is not None:
+            progress(stage, percent)
+
     audio_path = audio_path.expanduser().resolve()
     if not audio_path.exists():
         raise PipelineError(f"Audio file does not exist: {audio_path}")
@@ -118,6 +125,8 @@ def transcribe(
     warnings: list[str] = []
 
     device = detect_device_plan()
+
+    emit("transcription", 5)
 
     # 1) Full multi-instrument transcription + quantized score.
     muscriptor_args = [
@@ -142,8 +151,10 @@ def transcribe(
     midi_path = _find_one(score_dir, "score.mid")
     musicxml_path = _find_one(score_dir, "score.musicxml")
     full_pdf = _find_one(score_dir, "full_score.pdf")
+    emit("transcription", 55)
 
     if skip_lyrics:
+        emit("complete", 100)
         return PipelineResult(
             work_dir=work_dir,
             score_dir=score_dir,
@@ -155,6 +166,8 @@ def transcribe(
             vocals_path=None,
             warnings=warnings,
         )
+
+    emit("vocal_separation", 60)
 
     # 2) Vocal isolation for lyrics ASR.
     stems_dir.mkdir()
@@ -175,6 +188,8 @@ def transcribe(
         raise PipelineError(f"Demucs failed.\n{exc}") from exc
 
     vocals_path = _find_one(stems_dir, "vocals.wav")
+    emit("vocal_separation", 72)
+    emit("lyrics_asr", 75)
 
     # 3) Singing lyrics transcription + word-level forced alignment.
     lyrics_dir.mkdir()
@@ -200,11 +215,14 @@ def transcribe(
         raise PipelineError(f"WhisperX failed.\n{exc}") from exc
 
     transcript_json = _find_whisper_json(lyrics_dir)
+    emit("lyrics_asr", 88)
     words = load_whisperx_words(transcript_json)
     if not words:
         raise PipelineError("WhisperX completed but produced no word-level timings.")
 
     aligned_tokens = expand_korean_syllables(words) if language == "ko" else words
+
+    emit("lyric_alignment", 90)
 
     # 4) Attach timed lyric tokens to the vocal-like MusicXML part.
     lyric_musicxml = work_dir / "score_with_lyrics.musicxml"
@@ -226,6 +244,8 @@ def transcribe(
         encoding="utf-8",
     )
 
+    emit("rendering", 96)
+
     # 5) Re-render the lyric-enriched MusicXML if MuseScore is directly callable.
     lyric_pdf = work_dir / "score_with_lyrics.pdf"
     if not _render_pdf(lyric_musicxml, lyric_pdf, settings):
@@ -234,6 +254,8 @@ def transcribe(
             "Could not directly invoke MuseScore for score_with_lyrics.pdf; "
             "returning MuScriptor's full_score.pdf. The lyric-enriched MusicXML was generated."
         )
+
+    emit("complete", 100)
 
     return PipelineResult(
         work_dir=work_dir,

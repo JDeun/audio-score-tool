@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "audio-score-tool"
-version = "0.1.0"
+version = "0.2.0"
 description = "Local-first audio-to-sheet-music pipeline with MuScriptor transcription and lyric alignment."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -19,7 +19,11 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=8.4",
+  "httpx2>=0.1",
   "ruff>=0.12",
+]
+desktop = [
+  "pyinstaller>=6.15",
 ]
 
 [project.scripts]

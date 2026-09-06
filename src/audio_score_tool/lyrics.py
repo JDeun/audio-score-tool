@@ -4,6 +4,7 @@ import json
 import math
 import re
 import xml.etree.ElementTree as ET
+from bisect import bisect_left
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -224,27 +225,33 @@ def attach_lyrics_to_musicxml(
     if not notes:
         raise ValueError("Selected lyric part has no notes.")
 
-    # Greedy monotonic alignment: each lyric token is attached to the nearest
-    # not-yet-used note onset. This preserves reading order and avoids placing
-    # multiple words on one note in v0.1.
+    # Collapse chord tones that share an onset. Lyrics belong to an attack, not
+    # to every pitch in a chord. This also keeps the search space compact.
+    candidates: list[NoteRef] = []
+    for ref in notes:
+        if not candidates or abs(ref.onset_seconds - candidates[-1].onset_seconds) > 1e-6:
+            candidates.append(ref)
+
+    # Monotonic nearest-onset alignment using binary search. The previous v0.1
+    # implementation scanned only the next 12 notes, which could fail on long
+    # melismas or sparse ASR timestamps. This version is O(W log N) and searches
+    # the complete remaining vocal part while preserving lyric order.
+    onsets = [ref.onset_seconds for ref in candidates]
     note_index = 0
     attached = 0
     for word in words:
-        if note_index >= len(notes):
+        if note_index >= len(candidates):
             break
 
-        best_i = note_index
-        best_distance = abs(notes[note_index].onset_seconds - word.start)
-        scan_end = min(len(notes), note_index + 12)
-        for i in range(note_index + 1, scan_end):
-            distance = abs(notes[i].onset_seconds - word.start)
-            if distance <= best_distance:
-                best_i = i
-                best_distance = distance
-            elif notes[i].onset_seconds > word.start and distance > best_distance:
-                break
+        pos = bisect_left(onsets, word.start, lo=note_index)
+        possible = []
+        if pos < len(candidates):
+            possible.append(pos)
+        if pos - 1 >= note_index:
+            possible.append(pos - 1)
+        best_i = min(possible, key=lambda i: abs(onsets[i] - word.start))
 
-        note = notes[best_i].note
+        note = candidates[best_i].note
         for existing in list(note.findall("lyric")):
             note.remove(existing)
 
