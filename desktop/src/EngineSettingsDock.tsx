@@ -8,11 +8,14 @@ type EngineInfo = {
   name: string;
   ready: boolean;
   commercial_status: string;
+  model?: string;
+  model_commercial_status?: string;
 };
 
 type EngineState = {
   selected: string;
-  yourmt3_cmd?: string | null;
+  mt3_infer_cmd?: string | null;
+  mt3_model?: string | null;
   native_checkpoint?: string | null;
   native_engine_cmd?: string | null;
   engines: EngineInfo[];
@@ -20,13 +23,13 @@ type EngineState = {
 };
 
 const fallbackEngines: EngineInfo[] = [
-  { key: "yourmt3", name: "YourMT3+", ready: false, commercial_status: "permissive_checkpoint" },
+  { key: "mt3_infer", name: "MT3-Infer", ready: false, commercial_status: "permissive_default" },
   { key: "native", name: "AudioScore Native", ready: false, commercial_status: "project_owned" },
   { key: "muscriptor", name: "MuScriptor", ready: false, commercial_status: "noncommercial_weights" },
 ];
 
 const engineDescription = (key: string) => {
-  if (key === "yourmt3") return "권장 · 다중 악기 · permissive checkpoint";
+  if (key === "mt3_infer") return "권장 · 다중 악기 · 공개 pretrained 모델";
   if (key === "native") return "장기 R&D · 프로젝트 소유 체크포인트";
   return "호환용 · 공개 weights는 비상업";
 };
@@ -34,8 +37,9 @@ const engineDescription = (key: string) => {
 export default function EngineSettingsDock() {
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<EngineState | null>(null);
-  const [engine, setEngine] = useState("yourmt3");
-  const [yourmt3Command, setYourmt3Command] = useState("mt3-infer");
+  const [engine, setEngine] = useState("mt3_infer");
+  const [mt3Command, setMt3Command] = useState("mt3-infer");
+  const [mt3Model, setMt3Model] = useState("mr_mt3");
   const [checkpoint, setCheckpoint] = useState("");
   const [command, setCommand] = useState("audio-score-native");
   const [saving, setSaving] = useState(false);
@@ -47,8 +51,9 @@ export default function EngineSettingsDock() {
       if (!response.ok) return;
       const body: EngineState = await response.json();
       setState(body);
-      setEngine(body.selected);
-      setYourmt3Command(body.yourmt3_cmd ?? "mt3-infer");
+      setEngine(body.selected === "yourmt3" ? "mt3_infer" : body.selected);
+      setMt3Command(body.mt3_infer_cmd ?? "mt3-infer");
+      setMt3Model(body.mt3_model ?? "mr_mt3");
       setCheckpoint(body.native_checkpoint ?? "");
       setCommand(body.native_engine_cmd ?? "audio-score-native");
     } catch {
@@ -69,7 +74,8 @@ export default function EngineSettingsDock() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           transcription_engine: engine,
-          yourmt3_cmd: yourmt3Command || null,
+          mt3_infer_cmd: mt3Command || null,
+          mt3_model: mt3Model,
           native_engine_cmd: command || null,
           native_checkpoint: checkpoint || null,
         }),
@@ -85,7 +91,8 @@ export default function EngineSettingsDock() {
     }
   };
 
-  const selected = state?.engines.find((item) => item.key === (state?.selected ?? engine));
+  const selectedKey = state?.selected === "yourmt3" ? "mt3_infer" : state?.selected;
+  const selected = state?.engines.find((item) => item.key === (selectedKey ?? engine));
   const selectedName = selected?.name ?? fallbackEngines.find((item) => item.key === engine)?.name ?? engine;
 
   return (
@@ -123,24 +130,38 @@ export default function EngineSettingsDock() {
             ))}
           </div>
 
-          {engine === "yourmt3" && (
+          {engine === "mt3_infer" && (
             <div className="engine-native-fields">
+              <label>
+                <span>모델</span>
+                <select value={mt3Model} onChange={(event) => setMt3Model(event.target.value)}>
+                  <option value="mr_mt3">MR-MT3 · 기본 권장</option>
+                  <option value="yourmt3">YourMT3+ · 고품질 실험</option>
+                </select>
+              </label>
               <label>
                 <span>MT3-Infer 실행 명령</span>
                 <input
-                  value={yourmt3Command}
-                  onChange={(event) => setYourmt3Command(event.target.value)}
+                  value={mt3Command}
+                  onChange={(event) => setMt3Command(event.target.value)}
                   placeholder="mt3-infer"
                 />
               </label>
+              {mt3Model === "mr_mt3" ? (
+                <div className="engine-license-note safe">
+                  MR-MT3 원 저장소와 공개 checkpoint는 MIT로 표시되어 있어 현재 상업 기본 후보로 사용합니다.
+                  최종 배포 시에는 THIRD_PARTY_NOTICES와 고정된 checkpoint provenance를 함께 남기세요.
+                </div>
+              ) : (
+                <div className="engine-license-note">
+                  YourMT3+는 다중 파트 품질이 더 매력적이지만 upstream GitHub와 일부 배포본의 라이선스 표기가 서로 다릅니다.
+                  품질 비교에는 사용할 수 있지만 상용 기본값으로 고정하기 전 별도 라이선스 검토를 권장합니다.
+                </div>
+              )}
               <p>
-                기본 권장 엔진입니다. 설치된 mt3-infer가 없으면 uvx를 통해 실행할 수 있고,
-                YourMT3+ checkpoint는 첫 사용 시 로컬 캐시에 자동으로 내려받습니다.
+                MT3-Infer는 첫 사용 시 선택한 pretrained checkpoint를 로컬 캐시에 내려받습니다.
+                처음부터 자체 모델을 학습할 필요가 없습니다.
               </p>
-              <div className="engine-license-note">
-                mt3-infer는 MIT, 사용되는 YourMT3+ checkpoint 저장소는 Apache-2.0으로 명시되어 있습니다.
-                상용 릴리스 전에는 THIRD_PARTY_NOTICES와 upstream 조건을 다시 확인하세요.
-              </div>
             </div>
           )}
 
@@ -148,13 +169,13 @@ export default function EngineSettingsDock() {
             <div className="engine-native-fields">
               <label><span>Native 실행 명령</span><input value={command} onChange={(event) => setCommand(event.target.value)} placeholder="audio-score-native" /></label>
               <label><span>프로젝트 소유 체크포인트</span><input value={checkpoint} onChange={(event) => setCheckpoint(event.target.value)} placeholder="/path/to/audio-score-native.pt" /></label>
-              <p>직접 소유하는 모델이 필요할 때를 위한 장기 R&D 경로입니다. 기본 사용에는 학습이 필요하지 않습니다.</p>
+              <p>향후 모델을 완전히 소유해야 할 때를 위한 R&D 경로입니다. 현재 기본 사용에는 학습이 필요하지 않습니다.</p>
             </div>
           )}
 
           {engine === "muscriptor" && (
             <div className="engine-license-note">
-              MuScriptor 공개 모델 가중치는 CC BY-NC 계열의 비상업 조건이므로 상용 배포용 기본 엔진으로 사용하지 않습니다.
+              MuScriptor 공개 모델 가중치는 비상업 조건이므로 상용 배포용 기본 엔진으로 사용하지 않습니다.
             </div>
           )}
 
