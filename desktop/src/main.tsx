@@ -1,10 +1,14 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import AppErrorBoundary from "./AppErrorBoundary";
 import ProductRoot from "./ProductRoot";
 import "./styles.css";
+import "./error-boundary.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ProductRoot />
+    <AppErrorBoundary>
+      <ProductRoot />
+    </AppErrorBoundary>
   </StrictMode>,
 );
