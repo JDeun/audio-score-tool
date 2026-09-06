@@ -22,4 +22,6 @@
 .engine-message { margin: 12px 0 0; font-size: 11px; color: #666c62; }
 .engine-save { width: 100%; margin-top: 14px; border: 0; border-radius: 10px; background: #4e584c; color: white; min-height: 40px; font-weight: 700; cursor: pointer; }
 .engine-save:disabled { opacity: .55; cursor: default; }
+.product-version { font-size: 0; }
+.product-version::after { content: "v0.7 · 로컬 우선"; font-size: 11px; }
 @media (max-width: 700px) { .engine-dock { right: 10px; bottom: 10px; } .engine-choice-grid { grid-template-columns: 1fr; } }
