@@ -53,6 +53,8 @@ function App() {
   const [file, setFile] = useState<File | null>(null);
   const [language, setLanguage] = useState("ko");
   const [lyrics, setLyrics] = useState(true);
+  const [muscriptorModel, setMuscriptorModel] = useState("medium");
+  const [whisperxModel, setWhisperxModel] = useState("small");
   const [job, setJob] = useState<Job | null>(null);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -117,6 +119,8 @@ function App() {
     body.append("file", file);
     body.append("language", language);
     body.append("skip_lyrics", String(!lyrics));
+    body.append("muscriptor_model", muscriptorModel);
+    body.append("whisperx_model", whisperxModel);
 
     const res = await fetch(`${API}/api/jobs`, { method: "POST", body });
     if (!res.ok) throw new Error(await res.text());
@@ -165,8 +169,24 @@ function App() {
 
           <section className="controls card">
             <div className="field">
+              <label>MuScriptor</label>
+              <select value={muscriptorModel} onChange={(e) => setMuscriptorModel(e.target.value)}>
+                <option value="small">Small · CPU friendly</option>
+                <option value="medium">Medium · Balanced</option>
+                <option value="large">Large · Best quality</option>
+              </select>
+            </div>
+            <div className="field">
+              <label>WhisperX</label>
+              <select value={whisperxModel} disabled={!lyrics} onChange={(e) => setWhisperxModel(e.target.value)}>
+                <option value="small">Small</option>
+                <option value="medium">Medium</option>
+                <option value="large-v3">Large v3</option>
+              </select>
+            </div>
+            <div className="field">
               <label>가사 언어</label>
-              <select value={language} onChange={(e) => setLanguage(e.target.value)}>
+              <select value={language} disabled={!lyrics} onChange={(e) => setLanguage(e.target.value)}>
                 <option value="ko">한국어</option>
                 <option value="en">English</option>
                 <option value="">자동 감지</option>
