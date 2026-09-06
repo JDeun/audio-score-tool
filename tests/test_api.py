@@ -36,3 +36,24 @@ def test_rejects_unsupported_audio_upload():
         files={"file": ("not-audio.txt", b"hello", "text/plain")},
     )
     assert response.status_code == 415
+
+
+
+def test_rejects_untrusted_browser_origin_for_mutations():
+    client = TestClient(app)
+    response = client.post(
+        "/api/jobs",
+        headers={"Origin": "https://example.com"},
+        files={"file": ("song.wav", b"fake", "audio/wav")},
+    )
+    assert response.status_code == 403
+
+
+def test_allows_tauri_origin_to_reach_validation():
+    client = TestClient(app)
+    response = client.post(
+        "/api/jobs",
+        headers={"Origin": "http://tauri.localhost"},
+        files={"file": ("not-audio.txt", b"fake", "text/plain")},
+    )
+    assert response.status_code == 415
