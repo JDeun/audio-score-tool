@@ -106,6 +106,14 @@ def run_benchmark_matrix(
                     whisperx_model=config.whisperx_model,
                 ),
                 cancel_event=cancel_event,
+                progress=(
+                    (lambda stage, percent, i=index: progress(
+                        f"benchmark:{config.name}:{stage}",
+                        min(99, int((i + percent / 100) / total * 100)),
+                    ))
+                    if progress is not None
+                    else None
+                ),
             )
             metrics = (
                 evaluate_midi_files(result.midi_path, reference_midi)
