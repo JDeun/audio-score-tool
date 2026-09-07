@@ -10,7 +10,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from .config import Settings
 from .job_store import JobStore
 from .omr import OMRImportCancelled, audiveris_status, transcribe_score
-from .paths import jobs_dir
+from .paths import jobs_dir, song_assets_dir
 from .runtime_settings import runtime_settings
 
 router = APIRouter(tags=["omr"])
@@ -26,6 +26,9 @@ def _worker(job_id: str, source: Path, settings: Settings) -> None:
             jobs_dir() / job_id / "outputs",
             command=settings.audiveris_cmd,
         )
+        asset = song_assets_dir() / job_id / f"original-score{source.suffix.lower()}"
+        asset.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, asset)
         _store.update(
             job_id,
             status="done",
@@ -33,7 +36,7 @@ def _worker(job_id: str, source: Path, settings: Settings) -> None:
             progress=100,
             result={
                 "musicxml": str(artifacts.musicxml_path),
-                "source_score": str(artifacts.source_path),
+                "source_score": str(asset),
                 "omr_provider": artifacts.provider,
                 "warnings": [
                     "OMR 결과는 원본 악보와 대조 검토하는 것을 권장합니다. 검증 메뉴에서 구조적 오류를 확인하세요."
