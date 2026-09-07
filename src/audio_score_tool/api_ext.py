@@ -17,6 +17,7 @@ from .runtime_settings import runtime_settings
 from .setup_center_api import router as setup_center_router
 from .song_api_v2 import router as song_router
 from .song_delete_api import router as song_delete_router
+from .song_metadata_api import router as song_metadata_router
 from .song_mutation_lock import SongMutationSerializationMiddleware
 from .sqlite_runtime import configure_sqlite
 from .storage_api_v2 import router as storage_router
@@ -47,6 +48,10 @@ song_router.routes[:] = [
         getattr(route, "path", None) == "/api/songs/{song_id}"
         and "DELETE" in (getattr(route, "methods", None) or set())
     )
+    and not (
+        getattr(route, "path", None) == "/api/songs/{song_id}"
+        and "PATCH" in (getattr(route, "methods", None) or set())
+    )
 ]
 base_api.app.routes[:] = [
     route
@@ -65,6 +70,7 @@ app.include_router(upload_router)
 app.include_router(storage_router)
 app.include_router(notation_export_router)
 app.include_router(song_delete_router)
+app.include_router(song_metadata_router)
 app.include_router(song_router)
 app.include_router(export_router)
 app.include_router(engine_router)
