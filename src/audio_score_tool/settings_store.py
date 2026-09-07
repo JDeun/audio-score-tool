@@ -8,17 +8,23 @@ from typing import Any
 from .paths import app_data_dir
 
 _ALLOWED = {
+    "usage_mode",
     "transcription_engine",
     "mt3_infer_cmd",
     "mt3_model",
     "yourmt3_cmd",  # v0.7 prerelease migration key; read-only compatibility.
     "muscriptor_cmd",
+    "muscriptor_model",
     "native_engine_cmd",
     "native_checkpoint",
     "demucs_cmd",
     "whisperx_cmd",
     "yt_dlp_cmd",
     "musescore_cmd",
+    "llm_validation_enabled",
+    "llm_validation_base_url",
+    "llm_validation_model",
+    "llm_validation_api_key_env",
 }
 
 
