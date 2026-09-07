@@ -90,7 +90,7 @@ def test_inspect_youtube_rejects_active_live(monkeypatch):
         inspect_youtube("https://www.youtube.com/live/abc123", settings=Settings(yt_dlp_cmd="yt-dlp"))
 
 
-def test_inspect_youtube_rejects_excessive_duration(monkeypatch, monkeypatch_session=None):
+def test_inspect_youtube_rejects_excessive_duration(monkeypatch):
     payload = {
         "title": "Very Long",
         "duration": 20_000,
