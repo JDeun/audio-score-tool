@@ -14,7 +14,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from .config import Settings
-from .runner import command_exists, resolve_executable, split_command
+from .runner import resolve_executable, split_command
 from .runtime_settings import runtime_settings
 from .system_status import huggingface_authenticated
 
@@ -104,26 +104,36 @@ def _model_cached(repo_id: str) -> tuple[bool, int]:
                     break
         except OSError:
             has_weights = False
-    # Hugging Face's cache may use symlinks whose bytes live in blobs/. The presence of
-    # a snapshot safetensors entry is therefore the authoritative ready signal.
     return has_weights, size
+
+
+def _uvx_path_from_settings() -> str | None:
+    settings = Settings()
+    for value in (settings.muscriptor_cmd, settings.whisperx_cmd, settings.mt3_infer_cmd):
+        parts = split_command(value)
+        if parts and Path(parts[0]).name.lower().startswith("uvx") and Path(parts[0]).exists():
+            return parts[0]
+    return None
 
 
 def _hf_command() -> list[str] | None:
     hf = resolve_executable("hf")
     if hf:
         return [hf]
-    uvx = resolve_executable("uvx")
+    uvx = resolve_executable("uvx") or _uvx_path_from_settings()
     if uvx:
         return [uvx, "hf"]
-
-    # Settings may already carry an absolute uvx path even when GUI PATH is minimal.
-    settings = Settings()
-    for value in (settings.muscriptor_cmd, settings.whisperx_cmd, settings.mt3_infer_cmd):
-        parts = split_command(value)
-        if parts and Path(parts[0]).name.lower().startswith("uvx") and Path(parts[0]).exists():
-            return [parts[0], "hf"]
     return None
+
+
+def _hf_auth_command() -> list[str] | None:
+    # Browser/device auth with --format agent is a recent CLI feature. Prefer uvx so
+    # authentication runs against the latest isolated hf CLI even if a stale global hf
+    # executable is installed on the machine.
+    uvx = resolve_executable("uvx") or _uvx_path_from_settings()
+    if uvx:
+        return [uvx, "hf"]
+    return _hf_command()
 
 
 def _model_payload(variant: str, settings: Settings) -> dict:
@@ -189,8 +199,6 @@ def _run_download(job_id: str, variant: str) -> None:
 
     log_path: str | None = None
     try:
-        # Redirect verbose download output to a temporary file so the child process can
-        # never deadlock on a full stdout pipe while progress is measured from cache bytes.
         with tempfile.NamedTemporaryFile(mode="w+", encoding="utf-8", delete=False) as log:
             log_path = log.name
             proc = subprocess.Popen(
@@ -213,7 +221,12 @@ def _run_download(job_id: str, variant: str) -> None:
         ready, size = _model_cached(repo_id)
         if returncode == 0 and ready:
             with _jobs_lock:
-                _jobs[job_id].update(status="done", progress=100, cached_bytes=size, log="\n".join(log_text.splitlines()[-30:]))
+                _jobs[job_id].update(
+                    status="done",
+                    progress=100,
+                    cached_bytes=size,
+                    log="\n".join(log_text.splitlines()[-30:]),
+                )
         else:
             with _jobs_lock:
                 _jobs[job_id].update(
@@ -221,7 +234,7 @@ def _run_download(job_id: str, variant: str) -> None:
                     cached_bytes=size,
                     error=("\n".join(log_text.splitlines()[-8:]) or f"hf download 종료 코드 {returncode}"),
                 )
-    except Exception as exc:  # noqa: BLE001 - background job must surface any failure
+    except Exception as exc:
         with _jobs_lock:
             _jobs[job_id].update(status="failed", error=str(exc))
     finally:
@@ -233,7 +246,7 @@ def _run_download(job_id: str, variant: str) -> None:
 
 
 def _run_auth(auth_id: str) -> None:
-    command = _hf_command()
+    command = _hf_auth_command()
     if command is None:
         with _auth_lock:
             _auth_jobs[auth_id].update(status="failed", error="Hugging Face CLI를 실행할 수 없습니다.")
@@ -260,21 +273,31 @@ def _run_auth(auth_id: str) -> None:
                 with _auth_lock:
                     _auth_jobs[auth_id].update(
                         status="waiting_for_user" if url_match else "running",
-                        verification_url=url_match.group(0) if url_match else _auth_jobs[auth_id].get("verification_url"),
-                        user_code=code_match.group(0) if code_match else _auth_jobs[auth_id].get("user_code"),
+                        verification_url=(
+                            url_match.group(0)
+                            if url_match
+                            else _auth_jobs[auth_id].get("verification_url")
+                        ),
+                        user_code=(
+                            code_match.group(0)
+                            if code_match
+                            else _auth_jobs[auth_id].get("user_code")
+                        ),
                         message=line[-500:],
                     )
         returncode = proc.wait()
         if returncode == 0 and huggingface_authenticated():
             with _auth_lock:
-                _auth_jobs[auth_id].update(status="done", authenticated=True, message="Hugging Face 로그인 완료")
+                _auth_jobs[auth_id].update(
+                    status="done", authenticated=True, message="Hugging Face 로그인 완료"
+                )
         else:
             with _auth_lock:
                 _auth_jobs[auth_id].update(
                     status="failed",
                     error="\n".join(lines[-8:]) or f"hf auth login 종료 코드 {returncode}",
                 )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         with _auth_lock:
             _auth_jobs[auth_id].update(status="failed", error=str(exc))
 
@@ -288,8 +311,11 @@ def get_models() -> dict:
 def start_hf_auth() -> dict:
     if huggingface_authenticated():
         return {"already_authenticated": True}
-    if _hf_command() is None:
-        raise HTTPException(422, "Hugging Face CLI를 실행할 수 없습니다. Setup Center에서 uv/uvx를 먼저 준비하세요.")
+    if _hf_auth_command() is None:
+        raise HTTPException(
+            422,
+            "Hugging Face CLI를 실행할 수 없습니다. Setup Center에서 uv/uvx를 먼저 준비하세요.",
+        )
     auth_id = uuid.uuid4().hex
     with _auth_lock:
         _auth_jobs[auth_id] = {
@@ -325,7 +351,10 @@ def download_model(payload: DownloadRequest) -> dict:
         raise HTTPException(404, "지원하지 않는 모델입니다.")
     settings = runtime_settings()
     if settings.usage_mode == "commercial":
-        raise HTTPException(422, "MuScriptor 공개 weights는 CC BY-NC이므로 상용 모드에서 다운로드할 수 없습니다.")
+        raise HTTPException(
+            422,
+            "MuScriptor 공개 weights는 CC BY-NC이므로 상용 모드에서 다운로드할 수 없습니다.",
+        )
     if not huggingface_authenticated():
         raise HTTPException(422, "Hugging Face 인증과 모델 라이선스 수락이 먼저 필요합니다.")
     spec = MUSCRIPTOR_MODELS[payload.variant]
@@ -333,7 +362,10 @@ def download_model(payload: DownloadRequest) -> dict:
     if shutil.disk_usage(disk_anchor).free < int(spec["weight_bytes"]) * 1.15:
         raise HTTPException(422, "모델을 안전하게 다운로드하기 위한 디스크 여유 공간이 부족합니다.")
     if _hf_command() is None:
-        raise HTTPException(422, "Hugging Face CLI를 실행할 수 없습니다. Setup Center에서 uv/uvx를 먼저 준비하세요.")
+        raise HTTPException(
+            422,
+            "Hugging Face CLI를 실행할 수 없습니다. Setup Center에서 uv/uvx를 먼저 준비하세요.",
+        )
 
     ready, size = _model_cached(str(spec["repo_id"]))
     if ready:
@@ -342,7 +374,8 @@ def download_model(payload: DownloadRequest) -> dict:
     with _jobs_lock:
         active = next(
             (
-                job for job in _jobs.values()
+                job
+                for job in _jobs.values()
                 if job.get("family") == "muscriptor"
                 and job.get("variant") == payload.variant
                 and job.get("status") in {"queued", "running"}
