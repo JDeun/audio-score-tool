@@ -111,6 +111,29 @@ def test_stale_checked_out_score_cannot_overwrite_newer_revision(tmp_path: Path)
     assert "<step>E</step>" not in store.score_xml("song-1")
 
 
+def test_losing_concurrent_edit_does_not_delete_winner_undo_snapshot(tmp_path: Path):
+    store = make_store(tmp_path)
+    _ingest_demo(store, tmp_path)
+    publication = {"bars_per_system": 4}
+
+    assert store.snapshot_revision("song-1", publication) == 1
+    winner = store.checkout_current("song-1")
+    loser = winner.with_name(winner.stem + "-loser.musicxml")
+    loser.write_text(winner.read_text(encoding="utf-8"), encoding="utf-8")
+
+    winner.write_text(MUSICXML.replace("<step>C</step>", "<step>D</step>"), encoding="utf-8")
+    store.commit_edit_from_path("song-1", winner)
+
+    loser.write_text(MUSICXML.replace("<step>C</step>", "<step>E</step>"), encoding="utf-8")
+    with pytest.raises(ConcurrentEditError):
+        store.commit_edit_from_path("song-1", loser)
+    store.discard_snapshot("song-1", 1)
+
+    restored = store.restore_revision("song-1", 1)
+    assert restored == publication
+    assert "<step>C</step>" in store.score_xml("song-1")
+
+
 def test_omr_jobs_keep_omr_source_provenance(tmp_path: Path):
     source = tmp_path / "generated.musicxml"
     source.write_text(MUSICXML, encoding="utf-8")
