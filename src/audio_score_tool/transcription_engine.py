@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-import os
-import platform
-import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Event
 
 from .config import Settings
+from .notation_backend import (
+    NotationBackendError,
+    backend_status,
+    convert_with_musescore,
+    midi_to_musicxml,
+)
 from .runner import CommandCancelled, CommandError, command_exists, run_command
 
 
@@ -41,37 +44,9 @@ def _find_one(root: Path, name: str, *, required: bool = True) -> Path | None:
 
 def _require_output(root: Path, name: str) -> Path:
     result = _find_one(root, name)
-    if result is None:  # pragma: no cover - _find_one raises for required outputs
+    if result is None:  # pragma: no cover
         raise TranscriptionEngineError(f"Expected engine output not found: {name} under {root}")
     return result
-
-
-def _resolve_musescore(settings: Settings) -> str | None:
-    if settings.musescore_cmd:
-        return settings.musescore_cmd
-    env_path = os.getenv("MUSCRIPTOR_MUSESCORE")
-    if env_path:
-        return env_path
-    for candidate in ("mscore", "musescore", "MuseScore4", "musescore4", "MuseScore"):
-        if shutil.which(candidate):
-            return candidate
-    for candidate in (
-        "/Applications/MuseScore 4.app/Contents/MacOS/mscore",
-        str(Path("~/MuseScore.AppImage").expanduser()),
-        str(Path("~/Applications/MuseScore.AppImage").expanduser()),
-    ):
-        if Path(candidate).is_file():
-            return candidate
-    return None
-
-
-def _musescore_env() -> dict[str, str] | None:
-    if platform.system() != "Linux":
-        return None
-    return {
-        "QT_QPA_PLATFORM": "offscreen",
-        "MU_QT_QPA_PLATFORM": "offscreen",
-    }
 
 
 class BaseTranscriptionEngine:
@@ -111,14 +86,6 @@ class BaseTranscriptionEngine:
 
 
 class MT3InferEngine(BaseTranscriptionEngine):
-    """Multi-instrument transcription through mt3-infer.
-
-    YourMT3+ is the quality-first MT3 option. MR-MT3 remains the smaller/faster
-    permissive fallback. The official YourMT3 GitHub repository is GPL-3.0 while the
-    Hugging Face checkpoint and the implementation vendored by mt3-infer are marked
-    Apache-2.0, so commercial distribution should keep explicit provenance/legal review.
-    """
-
     key = "mt3_infer"
     display_name = "MT3-Infer"
     commercial_status = "commercial_candidate"
@@ -126,7 +93,10 @@ class MT3InferEngine(BaseTranscriptionEngine):
     supported_models = {"mr_mt3", "yourmt3"}
 
     def ready(self) -> bool:
-        return command_exists(self.settings.mt3_infer_cmd) and _resolve_musescore(self.settings) is not None
+        conversion = backend_status(self.settings)
+        return command_exists(self.settings.mt3_infer_cmd) and (
+            conversion["music21"] or conversion["musescore"]
+        )
 
     def describe(self) -> dict[str, object]:
         model = self.settings.mt3_model
@@ -144,6 +114,7 @@ class MT3InferEngine(BaseTranscriptionEngine):
             "model_commercial_status": status,
             "quality_rank": rank,
             "quality_note": note,
+            "midi_to_musicxml": backend_status(self.settings),
         }
 
     def transcribe(
@@ -163,10 +134,10 @@ class MT3InferEngine(BaseTranscriptionEngine):
             raise TranscriptionEngineUnavailable(
                 f"Unsupported MT3-Infer model: {model}. Use mr_mt3 or yourmt3."
             )
-        musescore = _resolve_musescore(self.settings)
-        if not musescore:
+        conversion = backend_status(self.settings)
+        if not conversion["music21"] and not conversion["musescore"]:
             raise TranscriptionEngineUnavailable(
-                "MuseScore 4 is required to convert MT3-Infer multi-track MIDI to MusicXML."
+                "MIDI→MusicXML 변환 backend가 없습니다. music21을 설치하거나 선택적으로 MuseScore를 지정하세요."
             )
 
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -191,20 +162,23 @@ class MT3InferEngine(BaseTranscriptionEngine):
                 raise TranscriptionEngineError(
                     f"MT3-Infer did not produce the expected MIDI: {midi_path}"
                 )
-            run_command(
-                musescore,
-                ["-o", musicxml_path, midi_path],
-                env=_musescore_env(),
-                cancel_event=cancel_event,
-            )
+            if conversion["music21"]:
+                midi_to_musicxml(midi_path, musicxml_path)
+            else:
+                convert_with_musescore(
+                    midi_path,
+                    musicxml_path,
+                    settings=self.settings,
+                    cancel_event=cancel_event,
+                )
         except CommandCancelled as exc:
             raise TranscriptionEngineCancelled("MT3-Infer transcription cancelled.") from exc
-        except CommandError as exc:
+        except (CommandError, NotationBackendError) as exc:
             raise TranscriptionEngineError(f"MT3-Infer failed.\n{exc}") from exc
 
         if not musicxml_path.is_file():
             raise TranscriptionEngineError(
-                f"MuseScore did not create the expected MusicXML: {musicxml_path}"
+                f"MIDI conversion did not create the expected MusicXML: {musicxml_path}"
             )
         return TranscriptionArtifacts(midi_path=midi_path, musicxml_path=musicxml_path)
 
