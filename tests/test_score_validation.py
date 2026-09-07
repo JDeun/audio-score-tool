@@ -1,3 +1,6 @@
+import json
+
+from audio_score_tool import score_validation
 from audio_score_tool.score_validation import deterministic_validate
 
 
@@ -51,3 +54,11 @@ def test_deterministic_validation_flags_rhythm_range_and_rest_lyric():
     assert "instrumentation" in categories
     assert "notation" in categories
     assert any(issue["severity"] == "error" for issue in report["issues"])
+
+
+def test_llm_json_parser_accepts_fenced_json():
+    payload = score_validation._extract_json_object(
+        "```json\n" + json.dumps({"summary": "ok", "issues": []}) + "\n```"
+    )
+    assert payload["summary"] == "ok"
+    assert payload["issues"] == []
