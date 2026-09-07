@@ -119,7 +119,7 @@ def musicxml_to_pdf_lilypond(
     try:
         run_command(
             settings.musicxml2ly_cmd,
-            [source, "-o", ly_path],
+            ["-o", ly_path, source],
             cwd=work,
             cancel_event=cancel_event,
         )
@@ -168,10 +168,7 @@ def render_pdf(
     settings: Settings,
     cancel_event: Event | None = None,
 ) -> tuple[Path, str]:
-    """Render PDF without making MuseScore mandatory.
-
-    Prefer LilyPond when available; use MuseScore as a compatibility fallback.
-    """
+    """Render PDF without making MuseScore mandatory."""
 
     if command_exists(settings.musicxml2ly_cmd) and command_exists(settings.lilypond_cmd):
         return (
