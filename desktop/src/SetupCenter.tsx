@@ -58,9 +58,16 @@ export default function SetupCenter() {
   }, []);
 
   useEffect(() => {
-    if (!status) return;
-    const seen = window.localStorage.getItem("ast-setup-center-v1");
-    if (!status.core_ready && seen !== "dismissed") setOpen(true);
+    if (!status || status.core_ready) return;
+    const timer = window.setInterval(() => {
+      const productOnboardingDone = window.localStorage.getItem("ast-onboarding-v1") === "done";
+      const setupDismissed = window.localStorage.getItem("ast-setup-center-v1") === "dismissed";
+      if (productOnboardingDone && !setupDismissed) {
+        setOpen(true);
+        window.clearInterval(timer);
+      }
+    }, 700);
+    return () => window.clearInterval(timer);
   }, [status?.core_ready]);
 
   const counts = useMemo(() => {
