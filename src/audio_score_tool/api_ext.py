@@ -16,6 +16,7 @@ from .request_limits import RequestSizeLimitMiddleware
 from .runtime_settings import runtime_settings
 from .setup_center_api import router as setup_center_router
 from .song_api_v2 import router as song_router
+from .song_delete_api import router as song_delete_router
 from .song_mutation_lock import SongMutationSerializationMiddleware
 from .upload_api_v2 import router as upload_router
 from .validation_api import router as validation_router
@@ -39,6 +40,10 @@ song_router.routes[:] = [
         getattr(route, "path", None) == "/api/songs/{song_id}/export"
         and "POST" in (getattr(route, "methods", None) or set())
     )
+    and not (
+        getattr(route, "path", None) == "/api/songs/{song_id}"
+        and "DELETE" in (getattr(route, "methods", None) or set())
+    )
 ]
 base_api.app.routes[:] = [
     route
@@ -51,6 +56,7 @@ base_api.app.routes[:] = [
 
 app.include_router(upload_router)
 app.include_router(notation_export_router)
+app.include_router(song_delete_router)
 app.include_router(song_router)
 app.include_router(export_router)
 app.include_router(engine_router)
