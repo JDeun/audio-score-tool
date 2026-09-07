@@ -1,0 +1,89 @@
+.notation-settings-card {
+  grid-column: 1 / -1;
+}
+
+.notation-backend-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.notation-backend-grid > div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 9px;
+  align-items: center;
+  padding: 13px;
+  border: 1px solid var(--border, #e0e4ec);
+  border-radius: 12px;
+  background: #fafbfe;
+}
+
+.notation-backend-grid span {
+  grid-row: 1 / span 2;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+.notation-backend-grid span.ready {
+  background: #eaf8ef;
+  color: #247645;
+}
+
+.notation-backend-grid span.missing {
+  background: #fff2e7;
+  color: #a65a17;
+}
+
+.notation-backend-grid span.optional {
+  background: #eef1f6;
+  color: #717a8b;
+}
+
+.notation-backend-grid small {
+  color: var(--text-muted, #6d7585);
+}
+
+.notation-paths {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.notation-paths label {
+  display: grid;
+  gap: 6px;
+}
+
+.notation-paths label > span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted, #697386);
+}
+
+.notation-paths input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 11px;
+  border: 1px solid var(--border, #d8dde7);
+  border-radius: 9px;
+  background: var(--surface, #fff);
+}
+
+.notation-settings-message {
+  font-size: 13px;
+  color: var(--text-muted, #697386);
+}
+
+@media (max-width: 800px) {
+  .notation-backend-grid,
+  .notation-paths {
+    grid-template-columns: 1fr;
+  }
+}
