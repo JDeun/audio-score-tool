@@ -38,6 +38,6 @@ def test_transcription_engine_routes_are_mounted():
     response = client.get("/api/engines")
     assert response.status_code == 200
     body = response.json()
-    assert body["selected"] in {"yourmt3", "muscriptor", "native"}
+    assert body["selected"] in {"mt3_infer", "muscriptor", "native"}
     keys = {item["key"] for item in body["engines"]}
-    assert {"yourmt3", "muscriptor", "native"} <= keys
+    assert {"mt3_infer", "muscriptor", "native"} <= keys
