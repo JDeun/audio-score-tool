@@ -23,11 +23,12 @@ type ValidationReport = {
   ok: boolean;
   issues: Issue[];
   llm?: { summary: string; model: string; advisory: boolean } | null;
+  llm_skipped?: string | null;
   visual?: { summary: string; model: string; pages_compared: number; advisory: boolean } | null;
   visual_skipped?: string | null;
   audio?: { overall_similarity: number; alignment_shift_seconds: number; provider: string } | null;
   audio_skipped?: string | null;
-  policy: { llm_is_advisory: boolean; visual_is_advisory?: boolean; auto_edit: boolean };
+  policy: { llm_required?: boolean; llm_is_advisory: boolean; visual_is_advisory?: boolean; auto_edit: boolean };
 };
 type ValidationSettings = {
   enabled: boolean;
@@ -129,8 +130,7 @@ export default function ValidationController() {
         body: JSON.stringify({ use_llm: useLlm, use_visual: useVisual, use_audio: useAudio }),
       });
       if (!response.ok) throw new Error(await response.text());
-      const body: ValidationReport = await response.json();
-      setReport(body);
+      setReport(await response.json());
     } catch (error) {
       setMessage(`검증 실패: ${String(error)}`);
     } finally {
@@ -152,21 +152,22 @@ export default function ValidationController() {
             </header>
 
             <div className="validation-policy">
-              <strong>검증 정책</strong>
-              <p>규칙 검사는 항상 실행합니다. LLM/Vision은 검토 후보를 설명하고, Audio evidence는 원음과 현재 악보 재합성의 chroma/onset 차이를 실제 근거로 찾습니다. 어느 단계도 자동 수정하지 않습니다.</p>
+              <strong>LLM 없이도 검증됩니다</strong>
+              <p>규칙 검사는 항상 실행하고 Audio evidence도 LLM과 독립적입니다. LLM/Vision은 선택적 critic입니다. 로컬 모델을 설치하지 않아도 HTTPS OpenAI-compatible API를 연결할 수 있으며, API가 실패해도 전체 검증은 계속됩니다.</p>
             </div>
 
-            <label className="validation-toggle"><input type="checkbox" checked={useLlm} onChange={(event) => setUseLlm(event.target.checked)} /><span>LLM critic 함께 사용</span></label>
-            <label className="validation-toggle"><input type="checkbox" checked={useVisual} onChange={(event) => setUseVisual(event.target.checked)} /><span>OMR 원본 ↔ 재렌더링 시각 비교</span></label>
+            <label className="validation-toggle"><input type="checkbox" checked={useLlm} onChange={(event) => setUseLlm(event.target.checked)} /><span>선택 사항 · 텍스트 LLM critic</span></label>
+            <label className="validation-toggle"><input type="checkbox" checked={useVisual} onChange={(event) => setUseVisual(event.target.checked)} /><span>선택 사항 · OMR Vision API 비교</span></label>
             <label className="validation-toggle"><input type="checkbox" checked={useAudio} onChange={(event) => setUseAudio(event.target.checked)} /><span>원음 ↔ 현재 악보 재합성 Audio evidence</span></label>
 
             {(useLlm || useVisual) && (
               <div className="validation-settings-grid">
-                <label><span>OpenAI-compatible endpoint</span><input value={settings.base_url} onChange={(event) => setSettings((current) => ({ ...current, base_url: event.target.value }))} /></label>
+                <label><span>OpenAI-compatible API endpoint</span><input value={settings.base_url} placeholder="로컬: http://127.0.0.1:11434/v1 · 원격: https://…/v1" onChange={(event) => setSettings((current) => ({ ...current, base_url: event.target.value }))} /></label>
                 {useLlm && <label><span>텍스트 critic 모델</span><input value={settings.model} onChange={(event) => setSettings((current) => ({ ...current, model: event.target.value }))} /></label>}
                 {useVisual && <label><span>Vision 모델</span><input value={settings.visual_model} placeholder="예: qwen2.5vl:7b" onChange={(event) => setSettings((current) => ({ ...current, visual_model: event.target.value }))} /></label>}
                 {useVisual && <label><span>비교 페이지 수</span><input type="number" min={1} max={8} value={settings.visual_max_pages} onChange={(event) => setSettings((current) => ({ ...current, visual_max_pages: Number(event.target.value) || 1 }))} /></label>}
-                <label><span>API key 환경변수명</span><input value={settings.api_key_env ?? ""} placeholder="예: OPENAI_API_KEY" onChange={(event) => setSettings((current) => ({ ...current, api_key_env: event.target.value }))} /></label>
+                <label><span>API key 환경변수명</span><input value={settings.api_key_env ?? ""} placeholder="예: OPENAI_API_KEY / OPENROUTER_API_KEY" onChange={(event) => setSettings((current) => ({ ...current, api_key_env: event.target.value }))} /></label>
+                <small>API key 값은 앱 설정에 저장하지 않습니다. 로컬 Ollama/vLLM/LM Studio 또는 HTTPS 기반 hosted OpenAI-compatible API를 같은 방식으로 연결합니다.</small>
               </div>
             )}
 
@@ -176,7 +177,6 @@ export default function ValidationController() {
                 <label><span>FluidSynth 실행 경로</span><input value={settings.fluidsynth_cmd ?? ""} placeholder="fluidsynth" onChange={(event) => setSettings((current) => ({ ...current, fluidsynth_cmd: event.target.value }))} /></label>
                 <label><span>검증용 SoundFont 경로</span><input value={settings.validation_soundfont ?? ""} placeholder="/path/to/general-midi.sf2" onChange={(event) => setSettings((current) => ({ ...current, validation_soundfont: event.target.value }))} /></label>
                 <label><span>불일치 임계값</span><input type="number" min={0.1} max={0.9} step={0.01} value={settings.audio_threshold} onChange={(event) => setSettings((current) => ({ ...current, audio_threshold: Number(event.target.value) || 0.42 }))} /></label>
-                <small>SoundFont는 라이선스가 다양하므로 앱에 번들하지 않습니다. General MIDI 호환 SoundFont를 직접 지정하세요.</small>
               </div>
             )}
 
@@ -189,6 +189,7 @@ export default function ValidationController() {
                   <strong>{report.ok ? "구조적 치명 오류 없음" : "수정이 필요한 오류 감지"}</strong>
                   <span>오류 {counts.error} · 경고 {counts.warning} · 정보 {counts.info}</span>
                   {report.llm && <small>LLM critic: {report.llm.model} · {report.llm.summary}</small>}
+                  {report.llm_skipped && <small>LLM critic 건너뜀: {report.llm_skipped}</small>}
                   {report.visual && <small>OMR Vision: {report.visual.model} · {report.visual.pages_compared}페이지 비교 · {report.visual.summary}</small>}
                   {report.visual_skipped && <small>OMR Vision 건너뜀: {report.visual_skipped}</small>}
                   {report.audio && <small>Audio evidence: 유사도 {Math.round(report.audio.overall_similarity * 100)}% · 정렬 shift {report.audio.alignment_shift_seconds.toFixed(2)}s</small>}
