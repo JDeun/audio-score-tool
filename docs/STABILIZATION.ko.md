@@ -167,7 +167,7 @@
 - 단순 module import/Test collection에서는 recovery를 실행하지 않고 실제 server `run()`에서만 수행
 
 ### single-instance desktop
-고정 `127.0.0.1:8080`에서 동일 앱 두 인스턴스가 backend port를 경쟁하지 않도록 Tauri 공식 single-instance plugin 추가:
+고정 `127.0.0.1:8080`에서 동일 앱 두 인스턴스가 backend port를 경쟁하지 않도록 Tauri single-instance plugin 추가:
 - plugin을 첫 번째로 등록
 - 두 번째 실행은 sidecar를 새로 띄우지 않음
 - 기존 main window를 show/unminimize/focus
@@ -176,18 +176,63 @@
 - legacy YouTube Job 생성 route를 hardened owner로 교체
 - worker start failure를 즉시 failed 처리
 - retry input copy는 `.copying` → atomic rename
-- 오래된 Job에 model 정보가 없을 경우 MuScriptor `medium` 고정 fallback 제거, 현재 runtime default 사용
+- 오래된 Job에 model 정보가 없을 경우 현재 runtime default 사용
 
 ### 직접 Job delete의 canonical 보호
 - 완료 score Job 삭제 전 Song DB ingestion을 강제
 - canonical Song이 확인되지 않으면 Job 삭제 거부
 - failed/cancelled Job에서만 orphan managed audio asset 정리
-- 작업 내역 삭제가 유일한 MusicXML 결과를 없애는 짧은 race window 제거
 
 ### atomic Undo
 - score/title/artist와 publication settings를 동일 SQLite transaction에서 복구
 - revision rows 삭제도 같은 transaction에 포함
 - public Undo route를 v0.8 revision service 단독 owner로 전환
+
+## 6차 리뷰 — 다각도 hardening / 로컬 API / artifact / subprocess / cleanup atomicity
+
+### 로컬 API 프로세스 경계
+- packaged Tauri 실행 시 per-launch random API token 생성
+- token을 sidecar 환경변수로만 전달
+- frontend는 Rust IPC로 동일 token을 받아 unsafe `/api/*` 요청 헤더에 자동 부착
+- backend는 `hmac.compare_digest`로 검증
+- 브라우저 개발 환경에서는 token이 없을 때 기존 개발 흐름 유지
+
+### 외부 secret 환경변수 보호
+- API key 환경변수 이름을 secret-like 형식으로 제한
+- `PATH`, `HOME` 등 unrelated/system 환경변수를 원격 provider 인증값으로 오용하는 경로 차단
+
+### managed artifact containment
+- Job artifact 다운로드는 DB에 저장된 path를 그대로 신뢰하지 않음
+- 반드시 해당 `jobs/<job-id>` 관리 루트 하위에 resolve되는 파일만 전달
+- 손상/오래된 DB row가 임의 로컬 파일을 가리키는 경로 차단
+
+### subprocess 출력 자원 제한
+- `run_command()`가 stdout 전체를 PIPE 메모리에 계속 보관하던 구조 제거
+- subprocess 출력은 temporary file로 drain
+- 완료/실패 응답에는 bounded tail만 보존
+- 긴 외부 도구 로그로 인한 메모리 증가 방지
+
+### YouTube 입력 hardening
+- HTTPS-only
+- 진행 중 live stream 거부
+- 기본 4시간 duration 상한(`AST_MAX_YOUTUBE_DURATION_SECONDS`로 조정 가능)
+- title/uploader/thumbnail metadata 길이 제한
+
+### 테스트 실제 제품 경로 정렬
+- API 테스트가 legacy `audio_score_tool.api`가 아니라 실제 제품 `api_ext.app`을 검증하도록 전환
+- `httpx2` dev dependency 오타를 실제 `httpx`로 수정
+
+### publication atomic commit
+- publication settings 저장과 `current_score_xml/revision` 변경을 동일 SQLite transaction으로 commit
+- 보상 rollback에 의존하던 반쪽 publication/score 상태 제거
+
+### crash-safe Job 삭제
+- Job workspace를 바로 삭제하지 않고 `.deleting-<job-id>-<uuid>`로 atomic rename
+- 이후 Job DB row 삭제
+- DB 삭제 실패 시 원래 workspace 이름으로 rollback
+- DB 삭제 성공 후 staged workspace 물리 삭제
+- 강제 종료로 `.deleting-*`가 남으면 startup recovery가 회수
+- 직접 Job 삭제와 저장공간 cleanup 모두 동일 정책 적용
 
 ### route ownership regression
 다음 route가 method/path별 하나만 등록되는지 회귀 테스트:
@@ -196,6 +241,7 @@
 - `POST /api/jobs/youtube`
 - `POST /api/jobs/{job_id}/retry`
 - `DELETE /api/jobs/{job_id}`
+- `GET /api/jobs/{job_id}/files/{kind}`
 - `POST /api/storage/cleanup`
 - `POST /api/songs/{song_id}/export`
 - `POST /api/songs/{song_id}/undo`
@@ -204,9 +250,9 @@
 
 ## 현재 정적 코드리뷰 판정
 
-현재까지 발견된 **명확한 고위험 데이터 손실, stale overwrite, credential redirect, partial upload/export, crash-swap, route shadowing, completed-Job deletion** 경로는 위와 같이 수정했습니다.
+현재까지 발견된 **명확한 고위험 데이터 손실, stale overwrite, credential redirect, partial upload/export, crash-swap, route shadowing, unsafe artifact path, subprocess-log memory growth, completed-Job deletion** 경로는 수정했습니다.
 
-5차 이후에는 광범위한 정적 탐색의 한계효용이 낮아졌습니다. 다만 정적 리뷰는 실제 실행 검증을 대체하지 않습니다.
+6차 이후에는 새로운 기능/광범위 정적 탐색보다 실제 실행 QA의 기대효용이 더 높습니다. 정적 리뷰는 실제 실행 검증을 대체하지 않습니다.
 
 ## Release blocker
 
@@ -234,7 +280,7 @@ cargo check --locked
 - Cargo check
 - Windows/macOS/Linux package build
 
-특히 이번 5차에서 `tauri-plugin-single-instance` 의존성이 추가됐으므로 실제 Cargo resolver/check가 필수입니다.
+특히 Tauri single-instance/UUID dependency와 packaged API-token 경로가 추가됐으므로 실제 Cargo resolver/check가 필수입니다.
 
 ### 3. 실제 clean-install E2E
 최소 matrix:
@@ -242,13 +288,14 @@ cargo check --locked
 - macOS clean install
 - duplicate app launch
 - unrelated process가 8080을 점유한 경우
+- packaged API-token mutation
 - local audio / YouTube / retry / direct Job delete
 - MuScriptor Large
 - commercial MT3 path
 - Korean/English lyrics
 - PDF/Image OMR
-- MusicXML edit/revision/undo
-- 강제 종료 후 export backup recovery
+- MusicXML edit/revision/undo/publication atomic commit
+- 강제 종료 후 export backup / staged Job deletion recovery
 - LilyPond full score / part export
 - export disk failure recovery
 - LLM 완전 OFF
@@ -266,8 +313,6 @@ cargo check --locked
 정적 리뷰 기준 RC blocker라기보다 다음 단계 hardening입니다.
 
 - unrelated local process의 port collision까지 해결하려면 fixed `127.0.0.1:8080` 대신 dynamic port 또는 명시적 port-negotiation
-- browser Origin guard를 넘어선 로컬 프로세스 격리가 필요하면 sidecar/frontend 간 per-launch authenticated token 도입
-- 일반 edit/metadata/enrichment까지 아우르는 명시적 SQLite transaction service 계층
 - 5,000 Job scan 대신 incremental ingestion cursor/event 방식
 - structured/redacted sidecar log와 crash diagnostics
 - startup recovery 결과를 diagnostics UI에서 조회 가능하게 노출
