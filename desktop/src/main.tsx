@@ -6,6 +6,7 @@ import ExportController from "./ExportController";
 import NotationSettingsController from "./NotationSettingsController";
 import OMRImportController from "./OMRImportController";
 import ProductRoot from "./ProductRoot";
+import SetupCenter from "./SetupCenter";
 import ValidationController from "./ValidationController";
 import "./styles.css";
 import "./error-boundary.css";
@@ -19,6 +20,7 @@ createRoot(document.getElementById("root")!).render(
       <ValidationController />
       <OMRImportController />
       <NotationSettingsController />
+      <SetupCenter />
     </AppErrorBoundary>
   </StrictMode>,
 );
