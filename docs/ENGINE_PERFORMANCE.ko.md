@@ -86,7 +86,7 @@ MT3-Infer가 공개한 RTX 4090 benchmark에서는 약 **57× real-time**, check
 
 ## 4. MIROS (2025 AMT Challenge winner)
 
-2025 AMT Challenge에서 MIROS는 F1 약 **0.5998**로 YourMT3-YPTF-MoE-M의 약 **0.5938**을 근소하게 앞선 우승 모델로 보고되었습니다. 공개 저장소는 YourMT3+ framework에 pretrained encoder를 결합한 구조라고 설명합니다.
+2025 AMT Challenge에서 MIROS는 YourMT3-YPTF-MoE-M을 근소하게 앞선 우승 모델로 보고되었습니다. 공개 저장소는 YourMT3+ framework에 pretrained encoder를 결합한 구조라고 설명합니다.
 
 그러나 AudioScoreTool 기본 provider로 바로 채택하지 않는 이유는 다음과 같습니다.
 
