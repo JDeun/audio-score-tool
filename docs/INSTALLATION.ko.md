@@ -33,9 +33,9 @@ AI 도구를 격리 실행할 때 `uv/uvx`가 필요한 환경에서는 Setup Ce
 
 - 선택된 transcription engine
 - 필요 시 관리형 `uv/uvx` 런타임
-- MuScriptor 사용 시 Hugging Face 인증
+- MuScriptor 사용 시 Hugging Face 인증과 모델 준비
 
-만 기본 readiness를 막을 수 있습니다.
+만 기본 사용에 직접 영향을 줍니다.
 
 ### 권장
 
@@ -72,6 +72,8 @@ brew install fluid-synth
 brew install lilypond
 ```
 
+Finder에서 실행한 GUI 앱은 터미널과 PATH가 다를 수 있으므로 `/opt/homebrew/bin`, `/usr/local/bin` 등 일반 설치 위치도 직접 탐색합니다.
+
 ### Windows
 
 winget이 있을 때 현재 검증된 FFmpeg package ID만 자동 설치 대상으로 둡니다.
@@ -86,6 +88,62 @@ winget install -e --id Gyan.FFmpeg --accept-package-agreements --accept-source-a
 
 배포판마다 package manager와 package version이 크게 다르므로 현재 자동 관리자 설치를 강제하지 않습니다. 공식 다운로드 또는 사용 중인 배포판 package manager를 사용합니다.
 
+## AI 모델 관리자
+
+앱의 `AI 모델` 창에서 MuScriptor 모델을 별도로 관리합니다.
+
+제공 정보:
+
+- Small / Medium / Large 모델
+- parameter 규모
+- 예상 weights 용량
+- 실제 로컬 cache 사용량
+- 현재 선택 모델
+- 남은 디스크 공간
+- 라이선스
+- 상용 모드 사용 가능 여부
+
+정책:
+
+```text
+자동 다운로드 = OFF
+명시적 사용자 동의 후 다운로드
+상용 모드에서 MuScriptor 다운로드/선택 차단
+```
+
+MuScriptor 공개 weights는 CC BY-NC 4.0이므로 개인/비상업 모드에서만 모델 관리자에 의해 준비할 수 있습니다.
+
+Large는 정확도 우선 기본값이며 weights가 약 5.47 GB이므로 다운로드 전 여유 공간을 검사합니다.
+
+### 다운로드 진행률
+
+`hf download`를 background job으로 실행하고 Hugging Face cache 증가량을 기준으로 진행률을 표시합니다.
+
+```text
+MuScriptor Large 다운로드 중
+3.9 GB / 약 5.5 GB
+██████████████░░░░ 72%
+```
+
+완료된 모델은 다시 다운로드하지 않으며, 사용하지 않는 모델은 모델 관리자에서 cache를 제거할 수 있습니다.
+
+## Hugging Face 인앱 인증
+
+MuScriptor gated weights를 위해 인증은 필요하지만 사용자가 터미널 명령을 직접 실행하는 것을 기본 UX로 요구하지 않습니다.
+
+흐름:
+
+```text
+1. 모델 라이선스 페이지 열기
+2. 라이선스 수락
+3. 앱에서 `로그인 시작`
+4. Hugging Face 공식 browser/device 인증
+5. 앱에서 자동으로 인증 완료 확인
+6. 모델 준비
+```
+
+인증은 Hugging Face 공식 `hf auth login` browser/device flow를 사용합니다. AudioScoreTool이 토큰 값을 입력받거나 자체 DB/settings에 저장하지 않습니다. 인증 token storage는 Hugging Face CLI가 `HF_HOME`에서 관리합니다.
+
 ## 공식 다운로드 fallback
 
 자동 설치를 지원하지 않는 항목은 Setup Center에서 공식 배포 페이지를 제공합니다. Tauri opener를 사용해 시스템 기본 브라우저에서 엽니다.
@@ -95,7 +153,7 @@ winget install -e --id Gyan.FFmpeg --accept-package-agreements --accept-source-a
 - Audiveris: `https://audiveris.github.io/audiveris/`
 - FFmpeg: `https://ffmpeg.org/download.html`
 - FluidSynth: `https://www.fluidsynth.org/download/`
-- Hugging Face token: `https://huggingface.co/settings/tokens`
+- Hugging Face: `https://huggingface.co/`
 
 설치 후 `다시 검사`를 누르면 readiness를 재평가합니다.
 
@@ -115,13 +173,13 @@ HTTPS OpenAI-compatible hosted API
 
 ## 상용 v1.0 이전 추가 목표
 
-Setup Center 이후 남은 설치 UX 작업은 다음 순서가 적절합니다.
+모델 관리자와 Setup Center까지 구현된 이후 남은 설치 UX의 핵심은 다음입니다.
 
-1. Windows/macOS signed installer 검증
+1. Windows/macOS signed installer 실제 검증
 2. 앱 번들에 포함할 수 있는 외부 runtime의 라이선스 검토
-3. MuScriptor/MT3 모델 다운로드 진행률과 디스크 요구량 표시
-4. Hugging Face 인증을 앱 내부 UX로 더 단순화
-5. 설치 완료 후 sample score smoke test
-6. 앱 업데이트와 DB/runtime migration 검증
+3. 설치 완료 후 sample score smoke test
+4. 앱 업데이트와 DB/runtime migration 검증
+5. MT3 계열 모델도 같은 Model Library UX로 통합
+6. 다운로드 취소/재개와 불완전 cache 정리 고도화
 
 외부 GPL/AGPL binary를 installer에 직접 번들하기 전에는 해당 배포 의무를 별도로 검토합니다.
