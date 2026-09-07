@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import json
 import os
-import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
 from dataclasses import asdict, dataclass
 from typing import Any
+
+from .safe_http import open_json
 
 
 @dataclass(slots=True)
@@ -299,12 +300,6 @@ def llm_validate(
     api_key_env: str | None = None,
     timeout_seconds: int = 90,
 ) -> dict[str, Any]:
-    """Ask an OpenAI-compatible model to critique symbolic transcription.
-
-    This is advisory validation. The model does not receive authoritative note-level
-    audio evidence, so it must not claim that the transcription matches the recording.
-    """
-
     system = (
         "You are a conservative music transcription QA critic. Review structured MusicXML-derived "
         "facts and deterministic warnings. Find likely notation, rhythm, harmony, instrumentation, "
@@ -322,9 +317,6 @@ def llm_validate(
         ensure_ascii=False,
     )
     endpoint = base_url.rstrip("/") + "/chat/completions"
-    # Do not require provider-specific structured-output extensions. The prompt asks
-    # for JSON and the parser below extracts a JSON object, which keeps this compatible
-    # with Ollama, vLLM, LM Studio and hosted OpenAI-compatible APIs.
     body = json.dumps(
         {
             "model": model,
@@ -342,9 +334,8 @@ def llm_validate(
             headers["Authorization"] = f"Bearer {token}"
     request = urllib.request.Request(endpoint, data=body, headers=headers, method="POST")
     try:
-        with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+        payload = open_json(request, timeout=timeout_seconds)
+    except RuntimeError as exc:
         raise RuntimeError(f"LLM validation request failed: {exc}") from exc
     try:
         content = payload["choices"][0]["message"]["content"]
@@ -365,20 +356,22 @@ def llm_validate(
         normalized.append(
             ValidationIssue(
                 severity=severity,
-                category=str(raw.get("category") or "musical_review"),
-                message=str(raw.get("message") or "LLM review finding"),
-                part=str(raw["part"]) if raw.get("part") else None,
-                measure=str(raw["measure"]) if raw.get("measure") else None,
+                category=str(raw.get("category") or "musical_review")[:120],
+                message=str(raw.get("message") or "LLM review finding")[:4000],
+                part=str(raw["part"])[:200] if raw.get("part") else None,
+                measure=str(raw["measure"])[:100] if raw.get("measure") else None,
                 confidence=confidence,
-                suggested_action=str(raw["suggested_action"])
+                suggested_action=str(raw["suggested_action"])[:4000]
                 if raw.get("suggested_action")
                 else None,
                 source="llm",
             ).as_dict()
         )
+        if len(normalized) >= 200:
+            break
     return {
-        "summary": str(parsed.get("summary") or "LLM symbolic-score review completed."),
+        "summary": str(parsed.get("summary") or "LLM symbolic-score review completed.")[:4000],
         "issues": normalized,
-        "model": model,
+        "model": model[:200],
         "advisory": True,
     }
