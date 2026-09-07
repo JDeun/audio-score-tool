@@ -27,22 +27,41 @@ def test_sensitive_post_cross_origin_redirect_is_blocked():
     assert caught.value.code == 403
 
 
-def test_same_origin_sensitive_redirect_remains_allowed():
+def test_authorized_get_cross_origin_redirect_is_blocked():
     handler = SafeRedirectHandler()
     request = urllib.request.Request(
-        "https://api.example.test/v1/chat/completions",
-        data=b"{}",
+        "https://api.example.test/model",
         headers={"Authorization": "Bearer secret"},
-        method="POST",
+        method="GET",
+    )
+
+    with pytest.raises(urllib.error.HTTPError) as caught:
+        handler.redirect_request(
+            request,
+            None,
+            302,
+            "Found",
+            {},
+            "https://evil.example.test/model",
+        )
+    assert caught.value.code == 403
+
+
+def test_same_origin_authorized_get_redirect_remains_allowed():
+    handler = SafeRedirectHandler()
+    request = urllib.request.Request(
+        "https://api.example.test/model",
+        headers={"Authorization": "Bearer secret"},
+        method="GET",
     )
 
     redirected = handler.redirect_request(
         request,
         None,
-        307,
-        "Temporary Redirect",
+        302,
+        "Found",
         {},
-        "https://api.example.test/v1/chat/completions/",
+        "https://api.example.test/model/",
     )
     assert redirected is not None
-    assert redirected.full_url == "https://api.example.test/v1/chat/completions/"
+    assert redirected.full_url == "https://api.example.test/model/"
