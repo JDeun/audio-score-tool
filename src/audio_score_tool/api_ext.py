@@ -10,7 +10,6 @@ from .model_manager_api import router as model_manager_router
 from .notation_api import router as notation_router
 from .notation_export_api import router as notation_export_router
 from .omr_api import router as omr_router
-from .origin_guard import LocalMutationOriginGuardMiddleware
 from .pipeline_v2 import transcribe as transcribe_v2
 from .preflight_v2 import preflight as preflight_v2
 from .request_limits import RequestSizeLimitMiddleware
@@ -27,7 +26,6 @@ base_api.preflight = preflight_v2
 app = base_api.app
 app.version = "0.8.0"
 app.add_middleware(RequestSizeLimitMiddleware)
-app.add_middleware(LocalMutationOriginGuardMiddleware)
 
 # song_api_v2 still contains the pre-v0.8 MuseScore-only export handler for internal
 # compatibility. Do not register that duplicate public route: otherwise request matching
