@@ -10,8 +10,9 @@ concurrency:
 on:
   workflow_dispatch:
   push:
-    branches: ["main", "feat/**"]
+    branches: ["main"]
   pull_request:
+    branches: ["main"]
 
 jobs:
   verify:
