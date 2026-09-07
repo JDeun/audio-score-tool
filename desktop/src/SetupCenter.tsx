@@ -1,3 +1,4 @@
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useMemo, useState } from "react";
 import "./setup-center.css";
 
@@ -29,11 +30,7 @@ type SetupStatus = {
   };
 };
 
-const tierLabel = {
-  core: "필수",
-  recommended: "권장",
-  optional: "선택",
-};
+const tierLabel = { core: "필수", recommended: "권장", optional: "선택" };
 
 export default function SetupCenter() {
   const [status, setStatus] = useState<SetupStatus | null>(null);
@@ -99,6 +96,14 @@ export default function SetupCenter() {
   const copyCommand = async (command: string) => {
     await navigator.clipboard.writeText(command);
     setMessage("설치 명령을 클립보드에 복사했습니다.");
+  };
+
+  const openDownload = async (url: string) => {
+    try {
+      await openUrl(url);
+    } catch (error) {
+      setMessage(`브라우저를 열지 못했습니다: ${String(error)}`);
+    }
   };
 
   const close = () => {
@@ -167,7 +172,7 @@ export default function SetupCenter() {
                           <button className="secondary" type="button" onClick={() => void copyCommand(component.install_command!)}>명령 복사</button>
                         )}
                         {component.download_url && (
-                          <a href={component.download_url} target="_blank" rel="noreferrer">공식 다운로드</a>
+                          <button className="secondary" type="button" onClick={() => void openDownload(component.download_url!)}>공식 다운로드</button>
                         )}
                       </>
                     )}
