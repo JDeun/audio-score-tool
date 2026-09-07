@@ -3,7 +3,7 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from .paths import cache_dir, exports_dir, jobs_dir
+from .paths import jobs_dir
 from .song_store_v2 import SongStoreV2
 
 
@@ -24,7 +24,11 @@ def _safe_unlink(path: Path) -> bool:
         return False
 
 
-def recover_startup_state(store: SongStoreV2 | None = None) -> dict[str, int]:
+def recover_startup_state(
+    store: SongStoreV2 | None = None,
+    *,
+    jobs_root: Path | None = None,
+) -> dict[str, int]:
     """Repair disposable filesystem state left by a hard process termination.
 
     SQLite is canonical. Work/check-out files and ``*.uploading`` objects are therefore
@@ -32,7 +36,7 @@ def recover_startup_state(store: SongStoreV2 | None = None) -> dict[str, int]:
     old final tree aside but before publishing the staged tree, restore the newest backup.
     """
     store = store or SongStoreV2()
-    export_root = exports_dir()
+    export_root = store.export_root
     export_root.mkdir(parents=True, exist_ok=True)
 
     restored_exports = 0
@@ -77,16 +81,15 @@ def recover_startup_state(store: SongStoreV2 | None = None) -> dict[str, int]:
 
     # Upload persistence uses an atomic .uploading suffix. A leftover file was never
     # promoted to a valid job input and must not be consumed after restart.
-    root = jobs_dir()
+    root = jobs_root or jobs_dir()
     if root.exists():
         for partial in root.rglob("*.uploading"):
             if _safe_unlink(partial):
                 removed_uploads += 1
 
     # Materialized MusicXML work files are projections of canonical SQLite state.
-    score_cache = cache_dir() / "scores"
-    if score_cache.exists():
-        for work in score_cache.glob("*/work"):
+    if store.cache_root.exists():
+        for work in store.cache_root.glob("*/work"):
             if _safe_rmtree(work):
                 removed_work_dirs += 1
 
