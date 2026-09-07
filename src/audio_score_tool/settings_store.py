@@ -6,6 +6,7 @@ from threading import Lock
 from typing import Any
 
 from .paths import app_data_dir
+from .secret_env import SecretEnvError, validate_secret_env_name
 
 _ALLOWED = {
     "usage_mode",
@@ -37,6 +38,7 @@ _ALLOWED = {
     "audio_validation_enabled",
     "audio_validation_threshold",
 }
+_SECRET_ENV_KEYS = {"llm_validation_api_key_env"}
 
 
 class SettingsStore:
@@ -52,7 +54,15 @@ class SettingsStore:
             payload = json.loads(self.path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             return {}
-        return {key: payload.get(key) for key in _ALLOWED if key in payload}
+        result = {key: payload.get(key) for key in _ALLOWED if key in payload}
+        for key in _SECRET_ENV_KEYS:
+            if key not in result:
+                continue
+            try:
+                result[key] = validate_secret_env_name(result[key])
+            except SecretEnvError:
+                result.pop(key, None)
+        return result
 
     def update(self, values: dict[str, Any]) -> dict[str, str | None]:
         with self._lock:
@@ -63,6 +73,8 @@ class SettingsStore:
                 if value is None or value == "":
                     current.pop(key, None)
                 else:
+                    if key in _SECRET_ENV_KEYS:
+                        value = validate_secret_env_name(str(value))
                     current[key] = str(value)
             temp = self.path.with_suffix(".tmp")
             temp.write_text(json.dumps(current, ensure_ascii=False, indent=2), encoding="utf-8")
