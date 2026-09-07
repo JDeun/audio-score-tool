@@ -4,6 +4,7 @@ import AppErrorBoundary from "./AppErrorBoundary";
 import EngineSettingsDock from "./EngineSettingsDock";
 import ExportController from "./ExportController";
 import ProductRoot from "./ProductRoot";
+import ValidationController from "./ValidationController";
 import "./styles.css";
 import "./error-boundary.css";
 
@@ -13,6 +14,7 @@ createRoot(document.getElementById("root")!).render(
       <ProductRoot />
       <EngineSettingsDock />
       <ExportController />
+      <ValidationController />
     </AppErrorBoundary>
   </StrictMode>,
 );
