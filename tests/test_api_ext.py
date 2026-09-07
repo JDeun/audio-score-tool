@@ -87,6 +87,8 @@ def test_setup_center_route_separates_core_and_optional_features():
     assert components["llm"]["tier"] == "optional"
     assert components["audiveris"]["tier"] == "optional"
     assert components["ffmpeg"]["tier"] == "optional"
+    assert components["chromaprint"]["tier"] == "optional"
+    assert "source_identification" in components["chromaprint"]["required_for"]
 
 
 def test_setup_center_rejects_untrusted_install_recipe():
@@ -116,6 +118,15 @@ def test_model_manager_rejects_unknown_model():
     response = client.post(
         "/api/models/download",
         json={"family": "muscriptor", "variant": "ultra"},
+    )
+    assert response.status_code == 404
+
+
+def test_source_identification_route_is_mounted():
+    client = TestClient(app)
+    response = client.post(
+        "/api/songs/not-a-real-song/identify-source",
+        json={"refresh": False},
     )
     assert response.status_code == 404
 
