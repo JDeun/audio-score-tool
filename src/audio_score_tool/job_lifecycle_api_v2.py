@@ -27,7 +27,10 @@ def _start_or_mark_failed(job_id: str, thread: Thread) -> None:
             stage="failed",
             error=f"Background worker could not start: {exc}",
         )
-        raise HTTPException(500, "백그라운드 작업을 시작하지 못했습니다. 원본 입력은 재시도를 위해 보존했습니다.") from exc
+        raise HTTPException(
+            500,
+            "백그라운드 작업을 시작하지 못했습니다. 원본 입력은 재시도를 위해 보존했습니다.",
+        ) from exc
 
 
 def _copy_retry_input(source: Path, target: Path) -> None:
@@ -39,6 +42,35 @@ def _copy_retry_input(source: Path, target: Path) -> None:
     except Exception:
         temp.unlink(missing_ok=True)
         raise
+
+
+def _stage_job_workspace_for_delete(job_id: str) -> tuple[Path | None, Path | None]:
+    """Atomically hide a Job workspace before deleting its DB row.
+
+    If the DB delete fails, the caller can move the staged directory back. If the
+    process dies after the DB row is deleted but before rmtree completes, startup
+    recovery removes the hidden `.deleting-*` directory.
+    """
+    original = jobs_dir() / job_id
+    if not original.exists():
+        return None, None
+    staged = jobs_dir() / f".deleting-{job_id}-{uuid.uuid4().hex}"
+    try:
+        original.replace(staged)
+    except OSError as exc:
+        raise HTTPException(500, f"Job 작업 폴더를 삭제 준비하지 못했습니다: {exc}") from exc
+    return original, staged
+
+
+def _restore_staged_workspace(original: Path | None, staged: Path | None) -> None:
+    if original is None or staged is None or not staged.exists() or original.exists():
+        return
+    try:
+        staged.replace(original)
+    except OSError:
+        # Keep the staged directory intact for startup recovery rather than deleting
+        # potentially valuable retry/debug artifacts after a DB failure.
+        pass
 
 
 @router.post("/api/jobs/youtube", status_code=202)
@@ -176,7 +208,6 @@ def delete_job_v2(job_id: str) -> dict:
         raise HTTPException(409, "Cancel the running job before deleting it.")
 
     # A completed score job is disposable only after its canonical Song row exists.
-    # This closes the short window between worker completion and library synchronization.
     if job.get("status") == "done" and job.get("kind") != "benchmark":
         if _songs.get_by_job(job_id) is None:
             _songs.sync_completed_jobs([job])
@@ -186,14 +217,18 @@ def delete_job_v2(job_id: str) -> dict:
                 "완료된 악보가 아직 곡 라이브러리에 안전하게 저장되지 않았습니다. 작업을 삭제하지 않았습니다.",
             )
 
-    path = jobs_dir() / job_id
-    if path.exists():
-        try:
-            shutil.rmtree(path)
-        except OSError as exc:
-            raise HTTPException(500, f"Job 작업 폴더를 삭제하지 못했습니다: {exc}") from exc
-    if not base_api._store.delete(job_id):
+    original, staged = _stage_job_workspace_for_delete(job_id)
+    try:
+        deleted = base_api._store.delete(job_id)
+    except Exception as exc:
+        _restore_staged_workspace(original, staged)
+        raise HTTPException(500, f"Job 기록을 삭제하지 못했습니다: {exc}") from exc
+    if not deleted:
+        _restore_staged_workspace(original, staged)
         raise HTTPException(404, "Job not found")
+
+    if staged is not None:
+        shutil.rmtree(staged, ignore_errors=True)
 
     # Failed/cancelled jobs may have preserved source audio before the pipeline failed.
     # Canonical songs own their managed assets; only remove truly orphaned job assets.
