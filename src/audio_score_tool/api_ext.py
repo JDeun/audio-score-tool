@@ -33,7 +33,6 @@ base_api._runtime_settings = runtime_settings
 base_api.transcribe = transcribe_v2
 base_api.preflight = preflight_v2
 configure_sqlite()
-recover_startup_state()
 app = base_api.app
 app.version = "0.8.0"
 app.add_middleware(RequestSizeLimitMiddleware)
@@ -101,6 +100,10 @@ app.include_router(enrichment_router)
 
 
 def run() -> None:
+    # Filesystem recovery removes partial uploads/work buffers and can restore an export
+    # backup. Keep that side effect out of module import so pytest/OpenAPI inspection is
+    # non-destructive; execute it only when the actual sidecar/server is launched.
+    recover_startup_state()
     uvicorn.run("audio_score_tool.api_ext:app", host="127.0.0.1", port=8080, reload=False)
 
 
