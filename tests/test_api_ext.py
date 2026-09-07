@@ -62,3 +62,20 @@ def test_validation_routes_are_mounted():
 
     missing = client.post("/api/songs/not-a-real-song/validate", json={"use_llm": False})
     assert missing.status_code == 404
+
+
+def test_omr_and_notation_routes_are_mounted():
+    client = TestClient(app)
+
+    omr = client.get("/api/omr/status")
+    assert omr.status_code == 200
+    assert omr.json()["provider"] == "audiveris"
+
+    notation = client.get("/api/notation")
+    assert notation.status_code == 200
+    body = notation.json()
+    assert body["policy"]["musescore_required"] is False
+    assert "music21" in body["backends"]
+
+    missing = client.post("/api/songs/not-a-real-song/export", json={"formats": ["musicxml"]})
+    assert missing.status_code == 404
