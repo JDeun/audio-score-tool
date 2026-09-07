@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import AppErrorBoundary from "./AppErrorBoundary";
 import EngineSettingsDock from "./EngineSettingsDock";
+import EnrichmentController from "./EnrichmentController";
 import ExportController from "./ExportController";
 import ModelManager from "./ModelManager";
 import NotationSettingsController from "./NotationSettingsController";
@@ -20,6 +21,7 @@ createRoot(document.getElementById("root")!).render(
       <EngineSettingsDock />
       <ExportController />
       <ValidationController />
+      <EnrichmentController />
       <OMRImportController />
       <NotationSettingsController />
       <SetupCenter />
