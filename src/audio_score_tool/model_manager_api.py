@@ -179,6 +179,7 @@ def model_manager_status() -> dict:
             "commercial_mode_blocks_muscriptor": True,
             "model_license_acceptance_required": True,
             "auth_token_stored_by_app": False,
+            "selected_or_active_model_removal_blocked": True,
         },
     }
 
@@ -414,8 +415,28 @@ def model_job(job_id: str) -> dict:
 def remove_model(payload: RemoveRequest) -> dict:
     if payload.family != "muscriptor" or payload.variant not in MUSCRIPTOR_MODELS:
         raise HTTPException(404, "지원하지 않는 모델입니다.")
+
+    settings = runtime_settings()
+    if settings.transcription_engine == "muscriptor" and settings.muscriptor_model == payload.variant:
+        raise HTTPException(
+            409,
+            "현재 선택된 MuScriptor 모델은 삭제할 수 없습니다. 다른 모델 또는 채보 엔진을 먼저 선택하세요.",
+        )
+    with _jobs_lock:
+        active = any(
+            job.get("family") == "muscriptor"
+            and job.get("variant") == payload.variant
+            and job.get("status") in {"queued", "running"}
+            for job in _jobs.values()
+        )
+    if active:
+        raise HTTPException(409, "다운로드 중인 모델은 삭제할 수 없습니다. 작업이 끝난 뒤 다시 시도하세요.")
+
     repo_id = str(MUSCRIPTOR_MODELS[payload.variant]["repo_id"])
     target = _repo_cache_dir(repo_id)
-    if target.exists():
-        shutil.rmtree(target)
+    try:
+        if target.exists():
+            shutil.rmtree(target)
+    except OSError as exc:
+        raise HTTPException(500, f"모델 cache를 삭제하지 못했습니다: {exc}") from exc
     return {"removed": True, "variant": payload.variant, "status": model_manager_status()}
