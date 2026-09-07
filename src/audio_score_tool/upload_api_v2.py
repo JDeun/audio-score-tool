@@ -18,6 +18,21 @@ def _cleanup_failed_job_dir(path: Path) -> None:
     shutil.rmtree(path, ignore_errors=True)
 
 
+def _start_worker_or_fail(job_id: str, thread: Thread) -> None:
+    try:
+        thread.start()
+    except RuntimeError as exc:
+        # Keep the uploaded input so the failed Job remains retryable, but never leave
+        # a worker-start failure looking like a permanently queued transcription.
+        base_api._store.update(
+            job_id,
+            status="failed",
+            stage="failed",
+            error=f"백그라운드 작업을 시작하지 못했습니다: {exc}",
+        )
+        raise HTTPException(503, "백그라운드 작업을 시작하지 못했습니다. 작업 내역에서 다시 시도하세요.") from exc
+
+
 @router.post("/api/jobs", status_code=202)
 async def create_job_v2(
     file: UploadFile = File(...),
@@ -61,7 +76,7 @@ async def create_job_v2(
         _cleanup_failed_job_dir(job_dir)
         raise
 
-    Thread(
+    thread = Thread(
         target=base_api._worker,
         args=(
             job_id,
@@ -72,7 +87,8 @@ async def create_job_v2(
             resolved_whisperx,
         ),
         daemon=True,
-    ).start()
+    )
+    _start_worker_or_fail(job_id, thread)
     return {"job_id": job_id, "status": "queued"}
 
 
@@ -120,9 +136,10 @@ async def create_benchmark_v2(
         _cleanup_failed_job_dir(job_dir)
         raise
 
-    Thread(
+    thread = Thread(
         target=base_api._benchmark_worker,
         args=(job_id, audio, reference_path, language, profile),
         daemon=True,
-    ).start()
+    )
+    _start_worker_or_fail(job_id, thread)
     return {"job_id": job_id, "status": "queued", "kind": "benchmark"}
