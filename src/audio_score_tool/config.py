@@ -194,3 +194,8 @@ class Settings:
     whisperx_model: str = field(
         default_factory=lambda: os.getenv("AST_WHISPERX_MODEL", "small")
     )
+
+    @property
+    def yourmt3_cmd(self) -> str:
+        """Compatibility alias for v0.7 callers."""
+        return self.mt3_infer_cmd
