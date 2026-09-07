@@ -171,6 +171,9 @@ def test_v08_owned_routes_are_registered_once():
     assert len(_routes("/api/songs/{song_id}", "DELETE")) == 1
     assert len(_routes("/api/jobs", "POST")) == 1
     assert len(_routes("/api/benchmarks", "POST")) == 1
+    assert len(_routes("/api/jobs/youtube", "POST")) == 1
+    assert len(_routes("/api/jobs/{job_id}/retry", "POST")) == 1
+    assert len(_routes("/api/jobs/{job_id}", "DELETE")) == 1
     assert len(_routes("/api/storage/cleanup", "POST")) == 1
 
 
