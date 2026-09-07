@@ -5,6 +5,7 @@ import uvicorn
 from . import api as base_api
 from .engine_api import router as engine_router
 from .export_api_v2 import router as export_router
+from .notation_api import router as notation_router
 from .notation_export_api import router as notation_export_router
 from .omr_api import router as omr_router
 from .pipeline_v2 import transcribe as transcribe_v2
@@ -28,6 +29,7 @@ app.include_router(export_router)
 app.include_router(engine_router)
 app.include_router(validation_router)
 app.include_router(omr_router)
+app.include_router(notation_router)
 
 
 def run() -> None:
