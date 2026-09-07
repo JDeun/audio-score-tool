@@ -79,12 +79,20 @@ def test_setup_center_route_separates_core_and_optional_features():
     assert body["platform"] in {"macos", "windows", "linux"}
     assert body["policy"]["llm_required"] is False
     assert body["policy"]["musescore_required"] is False
+    assert body["policy"]["developer_toolchain_required"] is False
     assert body["policy"]["optional_features_do_not_block_core"] is True
     components = {item["key"]: item for item in body["components"]}
+    assert "uv_runtime" in components
     assert components["transcription_engine"]["tier"] == "core"
     assert components["llm"]["tier"] == "optional"
     assert components["audiveris"]["tier"] == "optional"
     assert components["ffmpeg"]["tier"] == "optional"
+
+
+def test_setup_center_rejects_untrusted_install_recipe():
+    client = TestClient(app)
+    response = client.post("/api/setup/install", json={"component": "arbitrary-shell-command"})
+    assert response.status_code == 422
 
 
 def test_omr_and_notation_routes_are_mounted():
