@@ -71,6 +71,22 @@ def test_validation_routes_are_mounted():
     assert missing.status_code == 404
 
 
+def test_setup_center_route_separates_core_and_optional_features():
+    client = TestClient(app)
+    response = client.get("/api/setup/center")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["platform"] in {"macos", "windows", "linux"}
+    assert body["policy"]["llm_required"] is False
+    assert body["policy"]["musescore_required"] is False
+    assert body["policy"]["optional_features_do_not_block_core"] is True
+    components = {item["key"]: item for item in body["components"]}
+    assert components["transcription_engine"]["tier"] == "core"
+    assert components["llm"]["tier"] == "optional"
+    assert components["audiveris"]["tier"] == "optional"
+    assert components["ffmpeg"]["tier"] == "optional"
+
+
 def test_omr_and_notation_routes_are_mounted():
     client = TestClient(app)
     omr = client.get("/api/omr/status")
