@@ -1,7 +1,7 @@
 # AudioScoreTool
 
-> **음원 한 곡을 출판 가능한 악보로.**  
-> 로컬 음원이나 YouTube 링크를 넣으면 다중 악기 채보, 자동 코드·가사 정렬, 앱 내 수정, 검증, 출판 조판, 최종 파일 생성까지 처리하는 로컬 우선 데스크탑 악보 제작 도구입니다.
+> **음원이나 기존 악보를 출판 가능한 편집 악보로.**  
+> 로컬 음원·YouTube·PDF/이미지 악보를 MusicXML 중심 프로젝트로 통합하고, 자동 채보/OMR, 코드·가사, 검증, 편집, 출판 조판, 최종 파일 생성을 처리하는 로컬 우선 데스크탑 악보 제작 도구입니다.
 
 **현재 버전: v0.8.0**
 
@@ -9,28 +9,20 @@
 
 ## 기본 원칙
 
-AudioScoreTool은 처음부터 음표를 입력하는 악보 작성기가 아닙니다.
+AudioScoreTool은 처음부터 모든 음표를 직접 입력하게 하는 악보 작성기가 아닙니다.
 
-> **AI가 먼저 최대한 완성된 악보를 만들고, 사용자는 잘못된 부분과 출판 디테일만 수정합니다.**
+> **AI/OMR이 먼저 최대한 완성된 악보를 만들고, 사용자는 잘못된 부분과 출판 디테일만 수정합니다.**
 
 ```text
-음원 파일 / YouTube URL
-          ↓
-정확도 우선 다중 악기 자동 채보
-          ↓
-보컬 · 피아노 · 기타 · 베이스 · 드럼 · 기타 감지 파트
-          ↓
-자동 코드 심벌 · 가사 인식/정렬
-          ↓
-SQLite 곡 라이브러리
-          ↓
-미리보기 · 세부 수정 · Revision · 출판 조판
-          ↓
-규칙 기반 QA + 선택적 LLM critic
-          ↓
-      [최종 파일 생성]
-          ↓
-PDF · MusicXML · MIDI · 파트보
+음원 파일 / YouTube URL ─→ AMT ─┐
+PDF / 이미지 악보 ───────→ OMR ─┼→ Canonical MusicXML
+MusicXML / MIDI ────────────────┘
+                                  ↓
+                         SQLite 곡 라이브러리
+                                  ↓
+                  미리보기 · 검증 · 편집 · Revision
+                                  ↓
+                         출판 조판 · 최종 Export
 ```
 
 ---
@@ -43,7 +35,8 @@ v0.8부터 **SQLite가 곡과 악보의 canonical state**입니다.
 - Revision별 악보: SQLite
 - 자동 코드/가사 alignment/검증 결과: SQLite JSON
 - 출판 설정: SQLite
-- OSMD/MuseScore가 요구하는 MusicXML 파일: 관리형 cache
+- OSMD/외부 도구가 요구하는 MusicXML 파일: 관리형 cache
+- OMR 원본 PDF/이미지: managed asset
 - PDF/MIDI/MusicXML/파트보: 사용자가 `최종 파일 생성`을 실행했을 때만 export
 
 채보가 끝났다는 이유만으로 PDF나 파트보를 미리 만들지 않습니다. 수정 중인 악보는 DB에서 관리하며, 악보를 수정하면 이전 Revision의 export는 자동 폐기됩니다.
@@ -51,6 +44,32 @@ v0.8부터 **SQLite가 곡과 악보의 canonical state**입니다.
 기존 `jobs.sqlite3`는 최초 실행 시 `audio-score-tool.sqlite3`로 마이그레이션되고, 기존 파일 기반 Song/Publication 데이터도 순차적으로 DB로 이관됩니다.
 
 자세한 내용: [`docs/STORAGE_V2.ko.md`](docs/STORAGE_V2.ko.md)
+
+---
+
+## 입력 방식
+
+### 1. 음원 / YouTube → 자동 채보
+
+완성된 믹스 음원을 다중 악기 채보 모델로 처리합니다.
+
+### 2. PDF / 이미지 악보 → OMR
+
+Audiveris를 외부 OMR backend로 사용해 PDF/PNG/JPG/TIFF/BMP 악보를 MusicXML로 변환합니다.
+
+```text
+PDF / Scan
+   ↓
+Audiveris OMR
+   ↓
+Normalized MusicXML
+   ↓
+기존 DB / 검증 / 편집 / 조판 파이프라인
+```
+
+원본 PDF/이미지는 나중에 OMR 결과와 대조 검증할 수 있도록 곡별 managed asset으로 보존합니다. OMR 결과는 자동으로 정답으로 간주하지 않으며, 기존 결정론적 validator와 선택적 LLM critic으로 검토합니다.
+
+자세한 내용: [`docs/OMR.ko.md`](docs/OMR.ko.md)
 
 ---
 
@@ -83,6 +102,36 @@ YourMT3+ checkpoint와 `mt3-infer` vendored implementation은 Apache-2.0으로 �
 
 ---
 
+## MuseScore는 필수인가?
+
+**아닙니다. v0.8부터 MuseScore는 필수가 아니라 선택적 compatibility fallback입니다.**
+
+역할을 다음처럼 분리합니다.
+
+```text
+미리보기            OSMD
+MIDI ↔ MusicXML     music21 (BSD)
+파트 분리           AudioScoreTool 자체 MusicXML 처리
+MusicXML → PDF       LilyPond 우선
+                     MuseScore 선택적 fallback
+OMR                 Audiveris
+```
+
+따라서 MuseScore가 없어도 다음이 가능합니다.
+
+- MuScriptor 결과 편집
+- MT3 계열 MIDI → MusicXML 변환 (`music21`)
+- MusicXML 미리보기/편집
+- MusicXML export
+- MIDI export
+- LilyPond가 설치되어 있으면 PDF/파트 PDF export
+
+MuseScore는 LilyPond에서 변환이 잘 되지 않는 특정 MusicXML 호환성 문제나 기존 MuseScore 레이아웃을 선호할 때 fallback으로 사용할 수 있습니다.
+
+LilyPond의 `musicxml2ly`는 MusicXML의 모든 기능을 완벽하게 보존하는 것은 아니므로, 실제 타깃 악보 Golden Set에서 PDF fidelity를 비교해야 합니다.
+
+---
+
 ## 주요 기능
 
 ### 자동 생성
@@ -92,7 +141,8 @@ YourMT3+ checkpoint와 `mt3-infer` vendored implementation은 Apache-2.0으로 �
 - 자동 코드 진행 추정 및 MusicXML `<harmony>` 삽입
 - Demucs + WhisperX 기반 가사 인식/정렬
 - 로컬 파일 / YouTube URL 입력
-- 교체 가능한 transcription provider
+- PDF/이미지 악보 OMR 가져오기
+- 교체 가능한 transcription / notation backend
 
 ### 앱 내 악보 편집
 
@@ -117,9 +167,7 @@ YourMT3+ checkpoint와 `mt3-infer` vendored implementation은 Apache-2.0으로 �
 
 LLM은 원음을 직접 측정하는 acoustic verifier가 아니므로 `LLM 가설`로 표시하며 **악보를 자동 수정하지 않습니다.** 결과는 DB의 `song_analysis.validation_report`에 저장됩니다.
 
-로컬 Ollama/vLLM/LM Studio 등 OpenAI-compatible endpoint를 연결할 수 있고, 원격 endpoint는 HTTPS만 허용합니다. API key 자체는 저장하지 않고 환경변수 이름만 보존합니다. provider별 structured-output 확장에 의존하지 않고 JSON prompt + parser 방식으로 동작해 호환성을 넓혔습니다.
-
-장기적으로는 현재 악보를 재합성한 audio와 원음을 정렬해 **audio-symbol mismatch를 먼저 검출한 뒤 LLM이 해당 근거를 설명**하도록 확장하는 것이 목표입니다.
+OMR 입력의 경우 원본 PDF/이미지를 보존하므로 향후 원본 악보 이미지 ↔ 인식 MusicXML 렌더링의 멀티모달 차이 검증을 추가할 수 있습니다.
 
 자세한 내용: [`docs/VALIDATION.ko.md`](docs/VALIDATION.ko.md)
 
@@ -158,6 +206,8 @@ cd audio-score-tool
 uv sync --extra dev
 ```
 
+`music21`은 기본 dependency에 포함되어 MIDI↔MusicXML 변환을 담당합니다.
+
 ### 2. 개인/비상업 품질 최우선 — MuScriptor
 
 먼저 Hugging Face에서 MuScriptor model license를 수락하고 로그인합니다.
@@ -182,11 +232,32 @@ export AST_TRANSCRIPTION_ENGINE=mt3_infer
 export AST_MT3_MODEL=mr_mt3
 ```
 
-### 4. MuseScore 4
+### 4. PDF export — LilyPond 권장
 
-MT3 계열 MIDI→MusicXML 변환과 최종 PDF/MIDI/파트보 생성에 사용합니다.
+현재 production stable은 LilyPond 2.26 계열입니다. `lilypond`와 `musicxml2ly`가 PATH에 있으면 자동 인식합니다.
 
-### 5. 데스크탑 앱
+```bash
+export AST_LILYPOND_CMD=lilypond
+export AST_MUSICXML2LY_CMD=musicxml2ly
+```
+
+### 5. PDF/이미지 OMR — Audiveris
+
+Audiveris를 설치하고 CLI 경로를 지정합니다.
+
+```bash
+export AST_AUDIVERIS_CMD=audiveris
+```
+
+### 6. MuseScore — 선택 사항
+
+필요할 때만 fallback으로 지정합니다.
+
+```bash
+export AST_MUSESCORE_CMD=/path/to/musescore
+```
+
+### 7. 데스크탑 앱
 
 ```bash
 cd desktop
@@ -208,7 +279,7 @@ SQLite: audio-score-tool.sqlite3
 
 Application Data/
 ├─ cache/          # 재생성 가능한 working materialization
-├─ assets/         # 관리형 MIDI 등 작은 binary asset
+├─ assets/         # MIDI, OMR 원본 등 곡별 managed asset
 ├─ jobs/           # 실행 중/히스토리용 job workspace
 └─ exports/        # 명시적 최종 파일 생성 결과만 존재
 ```
@@ -225,6 +296,7 @@ Application Data/
 - instrument assignment F1
 - drum/bass/melody F1
 - chord/lyrics accuracy
+- OMR measure/note/accidental/tie error rate
 - 사람이 수정한 note/chord 수 / 음악 1분
 - 최종 악보까지의 실제 편집 시간
 - real-time factor / peak VRAM
@@ -240,9 +312,13 @@ Application Data/
 - MT3-Infer: MIT
 - YourMT3+ checkpoint: Apache-2.0 표기 / 공식 source repo GPL-3.0 → 상용 배포 전 provenance 검토
 - MR-MT3 원 구현/공개 checkpoint: MIT 표기
+- music21: BSD 3-Clause
+- LilyPond: GPL → 외부 실행 프로그램으로 사용
+- Audiveris: GNU AGPL v3 → 외부 OMR 프로그램으로 사용, 번들/수정 시 별도 의무 검토
+- MuseScore: GPL → 선택적 외부 fallback
 - AudioScore Native: project-owned checkpoint 목표
 
-유료 배포 전에는 고정한 runtime/checkpoint revision과 실제 배포 artifact의 라이선스를 다시 검토해야 합니다.
+유료 배포 전에는 고정한 runtime/checkpoint/external-tool revision과 실제 배포 artifact의 라이선스를 다시 검토해야 합니다.
 
 자세한 내용: [`docs/THIRD_PARTY_LICENSES.ko.md`](docs/THIRD_PARTY_LICENSES.ko.md)
 
@@ -252,6 +328,7 @@ Application Data/
 
 - [저장 구조 v0.8](docs/STORAGE_V2.ko.md)
 - [엔진 성능/선택](docs/ENGINE_PERFORMANCE.ko.md)
+- [PDF/이미지 OMR](docs/OMR.ko.md)
 - [악보 검증](docs/VALIDATION.ko.md)
 - [아키텍처](docs/ARCHITECTURE.ko.md)
 - [악보 편집기](docs/EDITOR.ko.md)
