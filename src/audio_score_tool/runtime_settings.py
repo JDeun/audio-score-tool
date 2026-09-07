@@ -12,13 +12,7 @@ def runtime_settings(
     whisperx_model: str = "small",
     store: SettingsStore | None = None,
 ) -> Settings:
-    """Resolve persisted desktop settings on top of environment/defaults.
-
-    Unless the user explicitly chooses another provider, personal use prefers
-    MuScriptor-large for transcription quality while commercial use prefers the
-    strongest configured MT3-Infer model. MuScriptor is never selected implicitly
-    for commercial mode because its public weights are CC BY-NC 4.0.
-    """
+    """Resolve persisted desktop settings on top of environment/defaults."""
 
     saved = (store or SettingsStore()).read()
     defaults = Settings()
@@ -36,8 +30,6 @@ def runtime_settings(
         engine = "muscriptor" if usage_mode == "personal" else "mt3_infer"
 
     if usage_mode == "commercial" and engine == "muscriptor":
-        # Old personal settings must not silently carry a non-commercial model into
-        # commercial mode. Prefer YourMT3+ and let the UI expose its license review note.
         engine = "mt3_infer"
 
     return Settings(
@@ -60,6 +52,9 @@ def runtime_settings(
         demucs_cmd=saved.get("demucs_cmd") or defaults.demucs_cmd,
         whisperx_cmd=saved.get("whisperx_cmd") or defaults.whisperx_cmd,
         yt_dlp_cmd=saved.get("yt_dlp_cmd") or defaults.yt_dlp_cmd,
+        audiveris_cmd=saved.get("audiveris_cmd") or defaults.audiveris_cmd,
+        lilypond_cmd=saved.get("lilypond_cmd") or defaults.lilypond_cmd,
+        musicxml2ly_cmd=saved.get("musicxml2ly_cmd") or defaults.musicxml2ly_cmd,
         musescore_cmd=saved.get("musescore_cmd") or defaults.musescore_cmd,
         whisperx_model=whisperx_model,
     )
