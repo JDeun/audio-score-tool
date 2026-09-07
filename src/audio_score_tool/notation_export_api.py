@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import errno
 import shutil
 import tempfile
+import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
@@ -29,6 +31,33 @@ from .song_api_v2 import (
 router = APIRouter(prefix="/api/songs", tags=["notation-export"])
 
 
+def _publish_export_tree(song_id: str, staged: Path) -> Path:
+    """Replace the managed export tree only after the new tree is complete."""
+    final = _song_store.export_root / song_id
+    backup = _song_store.export_root / f".{song_id}.backup-{uuid.uuid4().hex}"
+    had_previous = final.exists()
+    try:
+        if had_previous:
+            final.replace(backup)
+        staged.replace(final)
+    except OSError:
+        if had_previous and backup.exists() and not final.exists():
+            try:
+                backup.replace(final)
+            except OSError:
+                pass
+        raise
+    else:
+        shutil.rmtree(backup, ignore_errors=True)
+    return final
+
+
+def _export_error(exc: Exception) -> HTTPException:
+    if isinstance(exc, OSError) and exc.errno == errno.ENOSPC:
+        return HTTPException(507, "저장 공간이 부족해 최종 파일을 생성하지 못했습니다. 기존 export는 보존했습니다.")
+    return HTTPException(500, f"최종 파일 생성에 실패했습니다: {exc}")
+
+
 def build_exports_v3(song_id: str, payload: ExportRequest | None = None) -> dict:
     song = _require_song(song_id)
     requested = set((payload or ExportRequest()).formats)
@@ -45,14 +74,14 @@ def build_exports_v3(song_id: str, payload: ExportRequest | None = None) -> dict
             "PDF renderer가 없습니다. LilyPond를 설치하거나 선택적으로 MuseScore를 지정하세요.",
         )
 
-    _song_store.clear_exports(song_id)
-    export_dir = _song_store.export_dir(song_id)
+    _song_store.export_root.mkdir(parents=True, exist_ok=True)
     cache_root = cache_dir() / "export"
     cache_root.mkdir(parents=True, exist_ok=True)
     renderers: set[str] = set()
+    staged = Path(tempfile.mkdtemp(prefix=f".{song_id}-staged-", dir=_song_store.export_root))
 
     try:
-        with tempfile.TemporaryDirectory(prefix=f"{song_id}-", dir=cache_root) as raw_temp:
+        with tempfile.TemporaryDirectory(prefix=f"{song_id}-work-", dir=cache_root) as raw_temp:
             temp_dir = Path(raw_temp)
             source = temp_dir / "score.musicxml"
             source.write_text(_song_store.score_xml(song_id), encoding="utf-8")
@@ -63,18 +92,14 @@ def build_exports_v3(song_id: str, payload: ExportRequest | None = None) -> dict
             )
 
             if "musicxml" in requested:
-                shutil.copy2(source, export_dir / "score.musicxml")
+                shutil.copy2(source, staged / "score.musicxml")
             if "pdf" in requested:
-                _, renderer = render_pdf(
-                    source,
-                    export_dir / "score.pdf",
-                    settings=settings,
-                )
+                _, renderer = render_pdf(source, staged / "score.pdf", settings=settings)
                 renderers.add(renderer)
             if "midi" in requested:
-                musicxml_to_midi(source, export_dir / "score.mid")
+                musicxml_to_midi(source, staged / "score.mid")
             if "parts" in requested:
-                parts_dir = export_dir / "parts"
+                parts_dir = staged / "parts"
                 parts_dir.mkdir(parents=True, exist_ok=True)
                 for part in list_score_parts(source):
                     slug = str(part["slug"])
@@ -83,9 +108,14 @@ def build_exports_v3(song_id: str, payload: ExportRequest | None = None) -> dict
                     extract_part_musicxml(source, str(part["part_id"]), part_xml)
                     _, renderer = render_pdf(part_xml, part_pdf, settings=settings)
                     renderers.add(renderer)
+
+        _publish_export_tree(song_id, staged)
     except (NotationBackendError, NotationBackendUnavailable, ValueError, OSError) as exc:
-        _song_store.clear_exports(song_id)
-        raise HTTPException(500, f"최종 파일 생성에 실패했습니다: {exc}") from exc
+        shutil.rmtree(staged, ignore_errors=True)
+        raise _export_error(exc) from exc
+    except Exception:
+        shutil.rmtree(staged, ignore_errors=True)
+        raise
 
     updated = _song_store.get(song_id) or song
     files = {
