@@ -77,6 +77,9 @@ def _settings() -> dict:
         "base_url": saved.get("llm_validation_base_url") or _DEFAULT_BASE_URL,
         "model": saved.get("llm_validation_model") or _DEFAULT_MODEL,
         "api_key_env": saved.get("llm_validation_api_key_env") or None,
+        "llm_required": False,
+        "llm_transport": "openai_compatible_api",
+        "remote_api_supported": True,
         "visual_enabled": _bool_setting(saved.get("visual_validation_enabled"), False),
         "visual_model": saved.get("visual_validation_model") or _DEFAULT_VISION_MODEL,
         "visual_max_pages": visual_max_pages,
@@ -158,6 +161,7 @@ def validate_song(song_id: str, payload: ValidateRequest | None = None) -> dict:
     use_audio = payload.use_audio if payload and payload.use_audio is not None else settings["audio_enabled"]
 
     llm_report = None
+    llm_skipped = None
     if use_llm:
         try:
             llm_report = llm_validate(
@@ -168,7 +172,9 @@ def validate_song(song_id: str, payload: ValidateRequest | None = None) -> dict:
                 api_key_env=str(settings["api_key_env"]) if settings["api_key_env"] else None,
             )
         except RuntimeError as exc:
-            raise HTTPException(502, str(exc)) from exc
+            # AI validation is deliberately non-blocking. A local model can be absent,
+            # a hosted API can be unavailable, or the user can simply leave it disabled.
+            llm_skipped = str(exc)
 
     visual_report = None
     visual_skipped = None
@@ -229,13 +235,16 @@ def validate_song(song_id: str, payload: ValidateRequest | None = None) -> dict:
         ),
         "deterministic": deterministic,
         "llm": llm_report,
+        "llm_skipped": llm_skipped,
         "visual": visual_report,
         "visual_skipped": visual_skipped,
         "audio": audio_report,
         "audio_skipped": audio_skipped,
         "issues": combined_issues,
         "policy": {
+            "llm_required": False,
             "llm_is_advisory": True,
+            "llm_api_transport": "openai_compatible",
             "visual_is_advisory": True,
             "audio_symbol_is_evidence": True,
             "auto_edit": False,
