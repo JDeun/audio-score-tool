@@ -4,6 +4,7 @@ import uvicorn
 
 from . import api as base_api
 from .engine_api import router as engine_router
+from .enrichment_api import router as enrichment_router
 from .export_api_v2 import router as export_router
 from .model_manager_api import router as model_manager_router
 from .notation_api import router as notation_router
@@ -34,6 +35,7 @@ app.include_router(omr_router)
 app.include_router(notation_router)
 app.include_router(setup_center_router)
 app.include_router(model_manager_router)
+app.include_router(enrichment_router)
 
 
 def run() -> None:
