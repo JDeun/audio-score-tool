@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import sqlite3
 import xml.etree.ElementTree as ET
@@ -290,6 +291,16 @@ class SongStoreV2:
             raise KeyError(song_id)
         return str(row[column])
 
+    def _current_state(self, song_id: str) -> tuple[str, int]:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT current_score_xml, revision FROM songs WHERE song_id=?",
+                (song_id,),
+            ).fetchone()
+        if not row or not row["current_score_xml"]:
+            raise KeyError(song_id)
+        return str(row["current_score_xml"]), int(row["revision"])
+
     def cache_song_dir(self, song_id: str) -> Path:
         path = self.cache_root / song_id
         path.mkdir(parents=True, exist_ok=True)
@@ -299,14 +310,20 @@ class SongStoreV2:
         return self.cache_song_dir(song_id) / "work" / f"{stem}-{get_ident()}.musicxml"
 
     def checkout_current(self, song_id: str) -> Path:
-        path = self._thread_materialization(song_id, "current")
-        _atomic_text(path, self.score_xml(song_id))
+        text, revision = self._current_state(song_id)
+        path = self._thread_materialization(song_id, f"current-r{revision}")
+        _atomic_text(path, text)
         return path
 
     def checkout_original(self, song_id: str) -> Path:
         path = self._thread_materialization(song_id, "original")
         _atomic_text(path, self.score_xml(song_id, original=True))
         return path
+
+    @staticmethod
+    def _revision_from_materialized_path(path: Path) -> int | None:
+        match = re.search(r"(?:^|-)current-r(\d+)(?:-|$)", path.stem)
+        return int(match.group(1)) if match else None
 
     def replace_current_from_path(self, song_id: str, path: Path) -> dict[str, Any] | None:
         text = _valid_score_xml(path.read_text(encoding="utf-8"))
@@ -322,6 +339,8 @@ class SongStoreV2:
         expected_revision: int | None = None,
     ) -> dict[str, Any] | None:
         text = _valid_score_xml(path.read_text(encoding="utf-8"))
+        if expected_revision is None:
+            expected_revision = self._revision_from_materialized_path(path)
         with self._lock, self._connect() as conn:
             if expected_revision is None:
                 cur = conn.execute(
