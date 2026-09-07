@@ -5,6 +5,8 @@ from pydantic import BaseModel, Field
 
 from .enrichment import EnrichmentError, LyricsProvider, choose_high_confidence, fetch_lyrics, search_musicbrainz
 from .lyrics import attach_lyrics_to_musicxml
+from .musicxml_editor import set_score_title
+from .publication_layout import apply_publication_layout
 from .publication_store_v2 import PublicationStoreV2
 from .reference_lyrics import align_reference_lyrics
 from .runtime_settings import runtime_settings
@@ -25,6 +27,26 @@ class EnrichRequest(BaseModel):
     lyrics_url_template: str | None = None
     lyrics_api_key_env: str | None = None
     apply_reference_lyrics: bool = False
+
+
+def _apply_metadata(song_id: str, song: dict, selected: dict, fallback_title: str, fallback_artist: str | None) -> bool:
+    next_title = str(selected.get("title") or fallback_title).strip() or "제목 없는 곡"
+    next_artist = str(selected.get("artist") or fallback_artist or "").strip() or None
+    title_changed = next_title != song.get("title")
+    revision: int | None = None
+    if title_changed:
+        revision = _store.snapshot_revision(song_id, _publication.read(song_id))
+        path = _store.checkout_current(song_id)
+        try:
+            set_score_title(path, next_title)
+            apply_publication_layout(path, title=next_title, settings=_publication.read(song_id))
+            _store.commit_edit_from_path(song_id, path)
+        except Exception:
+            if revision is not None:
+                _store.discard_snapshot(song_id, revision)
+            return False
+    updated = _store.update_metadata(song_id, title=next_title, artist=next_artist)
+    return updated is not None
 
 
 def _apply_external_lyrics(song_id: str, text: str) -> dict:
@@ -76,12 +98,7 @@ def enrich_song(song_id: str, payload: EnrichRequest) -> dict:
     selected = choose_high_confidence(candidates, threshold=payload.metadata_threshold)
     applied = False
     if selected and payload.apply_high_confidence_metadata:
-        _store.update_metadata(
-            song_id,
-            title=str(selected.get("title") or title),
-            artist=str(selected.get("artist") or artist or "") or None,
-        )
-        applied = True
+        applied = _apply_metadata(song_id, song, selected, title, artist)
 
     lyrics = None
     lyrics_error = None
@@ -111,7 +128,7 @@ def enrich_song(song_id: str, payload: EnrichRequest) -> dict:
             "selected": selected,
             "applied": applied,
             "error": metadata_error,
-            "policy": "auto-apply only above configured confidence threshold",
+            "policy": "auto-apply only above configured confidence threshold; title is synchronized with MusicXML/layout",
             "commercial_entitlement_confirmed": payload.musicbrainz_commercial_entitlement,
         },
         "lyrics": lyrics,
