@@ -68,6 +68,10 @@ base_api.app.routes[:] = [
         and "POST" in (getattr(route, "methods", None) or set())
     )
     and not (
+        getattr(route, "path", None) == "/api/jobs/{job_id}"
+        and "DELETE" in (getattr(route, "methods", None) or set())
+    )
+    and not (
         getattr(route, "path", None) == "/api/storage/cleanup"
         and "POST" in (getattr(route, "methods", None) or set())
     )
