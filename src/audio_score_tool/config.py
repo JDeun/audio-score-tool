@@ -113,29 +113,49 @@ def _optional_path(key: str, env_name: str) -> Path | None:
     return Path(raw).expanduser() if raw else None
 
 
+def _saved_usage_mode() -> str:
+    raw = (_saved_or_env("usage_mode", "AST_USAGE_MODE", "personal") or "personal").strip().lower()
+    return raw if raw in {"personal", "commercial"} else "personal"
+
+
 def _saved_engine() -> str:
-    raw = (_saved_or_env("transcription_engine", "AST_TRANSCRIPTION_ENGINE", "mt3_infer") or "mt3_infer").strip().lower()
-    # v0.7 prerelease builds briefly stored `yourmt3` as the provider key.
-    return "mt3_infer" if raw == "yourmt3" else raw
+    explicit = _saved_or_env("transcription_engine", "AST_TRANSCRIPTION_ENGINE")
+    if explicit:
+        raw = explicit.strip().lower()
+        return "mt3_infer" if raw == "yourmt3" else raw
+    # Quality-first policy: personal/non-commercial use defaults to MuScriptor-large.
+    # Commercial mode defaults to YourMT3+ through mt3-infer because MuScriptor
+    # weights are CC BY-NC 4.0 and cannot be shipped for commercial use.
+    return "muscriptor" if _saved_usage_mode() == "personal" else "mt3_infer"
+
+
+def _saved_mt3_model() -> str:
+    return (
+        _saved_or_env("mt3_model", "AST_MT3_MODEL", "yourmt3") or "yourmt3"
+    ).strip().lower()
+
+
+def _saved_muscriptor_model() -> str:
+    return (
+        _saved_or_env("muscriptor_model", "AST_MUSCRIPTOR_MODEL", "large") or "large"
+    ).strip().lower()
 
 
 @dataclass(slots=True)
 class Settings:
+    usage_mode: str = field(default_factory=_saved_usage_mode)
     transcription_engine: str = field(default_factory=_saved_engine)
     mt3_infer_cmd: str = field(
         default_factory=lambda: _saved_or_env("mt3_infer_cmd", "AST_MT3_INFER_CMD")
         or _saved_or_env("yourmt3_cmd", "AST_YOURMT3_CMD")
         or _default_mt3_infer_command()
     )
-    mt3_model: str = field(
-        default_factory=lambda: (
-            _saved_or_env("mt3_model", "AST_MT3_MODEL", "mr_mt3") or "mr_mt3"
-        ).strip().lower()
-    )
+    mt3_model: str = field(default_factory=_saved_mt3_model)
     muscriptor_cmd: str = field(
         default_factory=lambda: _saved_or_env("muscriptor_cmd", "AST_MUSCRIPTOR_CMD")
         or _default_command("muscriptor")
     )
+    muscriptor_model: str = field(default_factory=_saved_muscriptor_model)
     native_engine_cmd: str = field(
         default_factory=lambda: _saved_or_env("native_engine_cmd", "AST_NATIVE_ENGINE_CMD")
         or _default_command("audio-score-native")
@@ -157,9 +177,6 @@ class Settings:
     )
     musescore_cmd: str | None = field(
         default_factory=lambda: _saved_or_env("musescore_cmd", "AST_MUSESCORE_CMD")
-    )
-    muscriptor_model: str = field(
-        default_factory=lambda: os.getenv("AST_MUSCRIPTOR_MODEL", "medium")
     )
     whisperx_model: str = field(
         default_factory=lambda: os.getenv("AST_WHISPERX_MODEL", "small")
