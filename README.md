@@ -117,7 +117,9 @@ YourMT3+ checkpoint와 `mt3-infer` vendored implementation은 Apache-2.0으로 �
 
 LLM은 원음을 직접 측정하는 acoustic verifier가 아니므로 `LLM 가설`로 표시하며 **악보를 자동 수정하지 않습니다.** 결과는 DB의 `song_analysis.validation_report`에 저장됩니다.
 
-로컬 Ollama/vLLM/LM Studio 등 OpenAI-compatible endpoint를 연결할 수 있고, 원격 endpoint는 HTTPS만 허용합니다. API key 자체는 저장하지 않고 환경변수 이름만 보존합니다.
+로컬 Ollama/vLLM/LM Studio 등 OpenAI-compatible endpoint를 연결할 수 있고, 원격 endpoint는 HTTPS만 허용합니다. API key 자체는 저장하지 않고 환경변수 이름만 보존합니다. provider별 structured-output 확장에 의존하지 않고 JSON prompt + parser 방식으로 동작해 호환성을 넓혔습니다.
+
+장기적으로는 현재 악보를 재합성한 audio와 원음을 정렬해 **audio-symbol mismatch를 먼저 검출한 뒤 LLM이 해당 근거를 설명**하도록 확장하는 것이 목표입니다.
 
 자세한 내용: [`docs/VALIDATION.ko.md`](docs/VALIDATION.ko.md)
 
