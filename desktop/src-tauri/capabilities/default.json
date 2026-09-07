@@ -6,7 +6,20 @@
   "permissions": [
     "core:default",
     "dialog:default",
-    "opener:default",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        { "url": "https://docs.astral.sh/uv/getting-started/installation/" },
+        { "url": "https://huggingface.co/settings/tokens" },
+        { "url": "https://huggingface.co/oauth/device" },
+        { "url": "https://huggingface.co/MuScriptor/muscriptor-large" },
+        { "url": "https://lilypond.org/download.html" },
+        { "url": "https://acoustid.org/chromaprint" },
+        { "url": "https://audiveris.github.io/audiveris/" },
+        { "url": "https://ffmpeg.org/download.html" },
+        { "url": "https://www.fluidsynth.org/download/" }
+      ]
+    },
     {
       "identifier": "shell:allow-spawn",
       "allow": [
