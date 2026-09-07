@@ -6,6 +6,7 @@ from . import api as base_api
 from .engine_api import router as engine_router
 from .enrichment_api import router as enrichment_router
 from .export_api_v2 import router as export_router
+from .job_artifact_api_v2 import router as job_artifact_router
 from .job_lifecycle_api_v2 import router as job_lifecycle_router
 from .model_manager_api import router as model_manager_router
 from .notation_api import router as notation_router
@@ -76,6 +77,10 @@ base_api.app.routes[:] = [
         and "DELETE" in (getattr(route, "methods", None) or set())
     )
     and not (
+        getattr(route, "path", None) == "/api/jobs/{job_id}/files/{kind}"
+        and "GET" in (getattr(route, "methods", None) or set())
+    )
+    and not (
         getattr(route, "path", None) == "/api/storage/cleanup"
         and "POST" in (getattr(route, "methods", None) or set())
     )
@@ -83,6 +88,7 @@ base_api.app.routes[:] = [
 
 app.include_router(upload_router)
 app.include_router(job_lifecycle_router)
+app.include_router(job_artifact_router)
 app.include_router(storage_router)
 app.include_router(notation_export_router)
 app.include_router(song_delete_router)
