@@ -35,6 +35,7 @@ def _installer_recipe(component: str) -> dict:
             "ffmpeg": ("brew", ["install", "ffmpeg"]),
             "fluidsynth": ("brew", ["install", "fluid-synth"]),
             "lilypond": ("brew", ["install", "lilypond"]),
+            "chromaprint": ("brew", ["install", "chromaprint"]),
         },
         "windows": {
             "ffmpeg": (
@@ -157,6 +158,16 @@ def setup_center_status() -> dict:
             download_url="https://lilypond.org/download.html",
         ),
         _component(
+            "chromaprint",
+            "Chromaprint / fpcalc",
+            command_exists("fpcalc"),
+            tier="optional",
+            role="파일 태그가 부족한 음원을 AcoustID fingerprint로 식별합니다.",
+            required_for=["source_identification"],
+            download_url="https://acoustid.org/chromaprint",
+            note="곡명/아티스트 태그가 충분하면 필요하지 않습니다. AcoustID API client key도 별도로 필요합니다.",
+        ),
+        _component(
             "audiveris",
             "Audiveris OMR",
             bool(tools.get("audiveris_optional")),
@@ -207,7 +218,7 @@ def setup_center_status() -> dict:
         "profiles": {
             "core": "음원 → 편집 가능한 MusicXML",
             "recommended": "채보 + 가사 + PDF 출판",
-            "full": "OMR 및 Audio/LLM 검증까지 포함",
+            "full": "OMR, source identification 및 Audio/LLM 검증까지 포함",
         },
         "policy": {
             "llm_required": False,
