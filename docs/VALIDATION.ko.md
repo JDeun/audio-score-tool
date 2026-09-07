@@ -11,30 +11,14 @@ MusicXML / 분석 결과
         ↓
 3. OMR이면 원본↔재렌더링 Vision 비교
         ↓
+4. AMT이면 원음↔현재 악보 재합성 Audio evidence
+        ↓
 검토 우선순위 / 의심 구간
         ↓
 사용자 확인
 ```
 
-## 왜 LLM을 정답 판정기로 쓰지 않나요?
-
-MusicXML과 코드/가사 분석 결과만 본 LLM은 원음의 실제 acoustic evidence를 직접 측정하지 못합니다. 따라서 특정 음표가 원곡과 다르다고 확정하거나 자동으로 악보를 수정하게 하면 hallucination 위험이 큽니다.
-
-LLM이 잘하는 것은 다음입니다.
-
-- 박자/조성/화성 문맥에서 이상한 구간 찾기
-- 악기 음역이나 역할상 의심스러운 구간 찾기
-- 자동 코드와 음표 문맥의 불일치 후보 찾기
-- 가사 정렬/표기상 이상 패턴 찾기
-- 결정론적 검사 결과를 음악적으로 우선순위화하기
-- 사람이 확인해야 할 구간을 짧은 목록으로 압축하기
-
-LLM이 단독으로 하면 안 되는 것은 다음입니다.
-
-- 원음을 듣지 않고 note correctness 확정
-- 높은 confidence 근거 없이 pitch/rhythm 자동 수정
-- 악기 배정을 임의로 바꾸기
-- 사용자의 승인 없이 MusicXML 변경
+모든 단계는 현재 `auto_edit=false`입니다.
 
 ## 1. 결정론적 검사
 
@@ -50,34 +34,13 @@ LLM이 단독으로 하면 안 되는 것은 다음입니다.
 
 ## 2. LLM critic
 
-OpenAI-compatible Chat Completions endpoint를 사용합니다.
+OpenAI-compatible Chat Completions endpoint를 사용합니다. LLM에는 결정론적 검증 결과, 파트/마디/음역 요약, 자동 코드, lyric alignment, bounded transcript sample만 전달합니다.
 
-기본 예시:
-
-```text
-endpoint = http://127.0.0.1:11434/v1
-model    = qwen3.5:9b
-```
-
-Ollama, vLLM, LM Studio 등 OpenAI-compatible API를 제공하는 로컬 서버를 연결할 수 있습니다. 원격 endpoint는 HTTPS만 허용합니다.
-
-특정 provider의 structured-output 확장에 의존하지 않습니다. Prompt에서 JSON 응답을 요구하고 결과에서 JSON object를 추출하는 방식으로 구현해 Ollama/vLLM/LM Studio/hosted compatible API 간 호환성을 높였습니다.
-
-API key 자체는 설정 파일에 저장하지 않습니다. 예를 들어 UI에 `OPENAI_API_KEY`라는 **환경변수 이름만** 저장하고 실제 token은 프로세스 환경에서 읽습니다.
-
-LLM에는 다음만 전달합니다.
-
-- 결정론적 검증 결과
-- 파트/마디/음역 요약
-- 자동 코드 분석 결과
-- lyric alignment 결과
-- bounded transcript sample
-
-전체 원본 음원이나 임의 파일은 전송하지 않습니다.
+LLM은 원음을 직접 측정하지 않으므로 note correctness의 정답 판정기로 사용하지 않습니다. UI에서는 `LLM 가설`로 표시합니다.
 
 ## 3. OMR 원본 ↔ 재렌더링 Vision 비교
 
-PDF/이미지 OMR 입력은 원본 악보를 `assets/<song-id>/original-score.*`로 보존합니다. 현재 MusicXML을 LilyPond 우선, MuseScore fallback으로 다시 렌더링한 뒤 원본 페이지와 인식 결과 페이지를 Vision-capable LLM/VLM에 쌍으로 전달합니다.
+PDF/이미지 OMR 입력은 원본 악보를 `assets/<song-id>/original-score.*`로 보존합니다. 현재 MusicXML을 다시 렌더링한 뒤 원본 페이지와 결과 페이지를 Vision-capable 모델에 쌍으로 전달합니다.
 
 검토 대상:
 
@@ -89,68 +52,103 @@ PDF/이미지 OMR 입력은 원본 악보를 `assets/<song-id>/original-score.*`
 - lyrics / text / dynamics
 - staff/part 누락 또는 중복
 
-원본이 PDF이면 Poppler의 `pdftoppm`을 사용해 페이지를 PNG로 rasterize합니다. 이미지 입력은 Pillow로 정규화합니다.
+결과는 `song_analysis.omr_visual_validation`에도 저장합니다.
 
-기본 예시:
+## 4. 원음 ↔ 현재 악보 재합성 Audio evidence
+
+AMT 입력은 채보 시 원본 음원을 `assets/<song-id>/original-audio.*`로 별도 보존합니다. 따라서 Job workspace를 정리해도 현재 악보와 원음의 비교 근거를 유지할 수 있습니다.
+
+검증 파이프라인:
 
 ```text
-vision model = qwen2.5vl:7b
-max pages    = 4
+현재 MusicXML
+    ↓ music21
+현재 MIDI
+    ↓ FluidSynth + 사용자 SoundFont
+재합성 WAV
+
+원본 음원
+    ↓ ffmpeg
+정규화 WAV
+
+두 WAV
+    ↓
+chroma 추출 + onset/novelty 기반 global alignment
+    ↓
+시간창별 chroma cosine similarity
+    ↓
+저유사도 구간 → 검토 후보
 ```
 
-반환 이슈 예:
+### 왜 waveform similarity를 쓰지 않나요?
+
+원곡과 SoundFont 합성음은 음색, 믹싱, 잔향, dynamics가 크게 다릅니다. raw waveform이나 일반 스펙트럼을 직접 비교하면 악보가 맞아도 낮은 유사도가 나올 수 있습니다.
+
+현재 v1은 12차원 chroma를 사용해 음색 영향을 줄이고 pitch-class/화성 구조 차이에 집중합니다. onset novelty는 두 신호의 global time shift를 추정하는 데 사용합니다.
+
+### 필요한 도구
+
+- `music21`: MusicXML → MIDI
+- `FluidSynth`: MIDI → WAV
+- `ffmpeg`: 원본/합성 WAV 정규화
+- General MIDI 호환 SoundFont (`.sf2` / `.sf3`)
+
+SoundFont는 라이선스 조건이 매우 다양하므로 앱에 번들하지 않습니다. 사용자가 직접 경로를 지정합니다.
+
+환경변수 예시:
+
+```text
+AST_FFMPEG_CMD=ffmpeg
+AST_FLUIDSYNTH_CMD=fluidsynth
+AST_VALIDATION_SOUNDFONT=/path/to/general-midi.sf2
+```
+
+UI의 악보 검증 창에서도 세 경로를 지정할 수 있습니다.
+
+### 결과 예
 
 ```json
 {
   "severity": "warning",
-  "category": "accidental",
-  "message": "원본에는 임시표가 있으나 재렌더링 결과에서 보이지 않습니다.",
-  "page": 1,
-  "measure": "12",
-  "confidence": 0.88,
-  "suggested_action": "12마디 해당 음의 alter 값을 확인하세요.",
-  "source": "vision"
+  "category": "audio-symbol discrepancy",
+  "message": "원음과 현재 악보 재합성의 chroma 유사도가 낮습니다 (0.31).",
+  "start_seconds": 42.5,
+  "end_seconds": 45.0,
+  "measure": "22",
+  "confidence": 0.81,
+  "suggested_action": "해당 시간대의 누락/과잉 음표, 옥타브, 코드 또는 파트 배정을 원음과 대조하세요.",
+  "source": "audio_symbol"
 }
 ```
 
-시각 검증의 마디 번호는 VLM 추정일 수 있으므로 참고용입니다. 장기적으로는 OSMD measure bounding box와 연결해 페이지 좌표를 정확한 MusicXML measure ID로 매핑하는 것이 목표입니다.
+마디 번호는 현재 첫 tempo/time signature를 이용한 보수적 추정입니다. 변박/tempo map이 복잡한 곡에서는 시간 범위가 1차 근거이며 마디 번호는 참고값입니다.
 
-## 응답 정책
+결과는 `song_analysis.audio_symbol_validation`에도 저장합니다.
 
-텍스트 LLM과 Vision 결과는 모두 advisory issue입니다.
+## 5. 검증 역할 분리
 
-```json
-{
-  "severity": "warning",
-  "category": "harmony",
-  "message": "M12의 코드 문맥이 인접 마디와 급격히 달라 검토가 필요합니다.",
-  "part": "Piano",
-  "measure": "12",
-  "confidence": 0.71,
-  "suggested_action": "원음 또는 베이스 파트를 확인하세요.",
-  "source": "llm"
-}
+```text
+Deterministic   구조적 불가능/이상
+Text LLM        음악적 reasoning / triage
+Vision          OMR 원본 이미지 직접 증거
+Audio-symbol    AMT 원음 직접 증거
+Human           최종 판단 및 수정
 ```
 
-UI에서는 각각 `LLM 가설`, `원본 비교`로 구분해 표시합니다.
+LLM이나 Vision 모델이 자동으로 MusicXML을 바꾸지 않습니다. Audio evidence 역시 low-similarity 구간을 오류로 확정하는 것이 아니라 **직접 원본 근거가 있는 검토 우선순위**로 취급합니다.
 
-모든 validator는 `auto_edit=false`를 유지합니다.
+## 6. 향후 개선
 
-## 4. 다음으로 가장 중요한 검증: audio evidence
+현재 audio-symbol v1은 다음을 더 발전시킬 수 있습니다.
 
-OMR에는 원본 이미지라는 직접 증거가 있지만, AMT에는 원음 자체가 correctness의 핵심 증거입니다. 다음 단계는 **symbol ↔ audio evidence** 비교입니다.
+- MusicXML tempo map을 완전히 해석한 정확한 초↔마디 매핑
+- part/stem별 비교
+- CQT 기반 onset/pitch feature
+- learned music-audio embedding
+- MuScriptor / YourMT3 / MR-MT3 ensemble disagreement
+- discrepancy가 큰 구간만 LLM에 구조화된 evidence로 전달
 
-권장 순서:
-
-1. 현재 MusicXML/MIDI를 synthesize
-2. 원음과 시간 정렬
-3. frame/onset/chroma 또는 learned audio embedding 비교
-4. discrepancy가 큰 구간 추출
-5. 해당 구간만 LLM critic에 구조화된 evidence와 함께 전달
-
-이렇게 하면 LLM이 임의로 오류를 상상하는 것이 아니라 실제 audio-symbol mismatch 후보를 설명하고 우선순위화할 수 있습니다.
-
-장기적으로는 다음 score를 만들 수 있습니다.
+장기 점수 예:
 
 ```text
 validation_score =
@@ -162,8 +160,6 @@ validation_score =
   + LLM_review_priority
 ```
 
-여기서 LLM은 **reasoning/triage layer**이고, acoustic correctness 또는 원본 OMR correctness의 1차 근거를 대체하지 않습니다.
-
 ## API
 
 ```text
@@ -173,6 +169,4 @@ POST /api/songs/{song_id}/validate
 GET  /api/songs/{song_id}/validation
 ```
 
-`POST .../validate`는 항상 deterministic validation을 실행하고 설정 또는 요청에 따라 텍스트 LLM critic과 OMR Vision critic을 추가합니다.
-
-검증 결과는 `song_analysis.validation_report`로 저장되며, 시각 OMR 결과는 `song_analysis.omr_visual_validation`에도 별도로 저장됩니다. 악보 자체는 변경하지 않습니다.
+`POST .../validate`는 항상 deterministic validation을 실행하고 설정에 따라 LLM, Vision, Audio evidence를 추가합니다. 검증 결과는 `song_analysis.validation_report`에 저장되고 악보 자체는 변경하지 않습니다.
