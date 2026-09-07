@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
-from .devices import detect_device_plan
-
 
 @dataclass(frozen=True, slots=True)
 class ModelPreset:
@@ -23,32 +21,29 @@ PRESETS = {
         label="Fast",
         muscriptor_model="small",
         whisperx_model="small",
-        description="Lowest compute cost; best for CPU or quick drafts.",
+        description="Explicit speed-first override for drafts or constrained hardware.",
     ),
     "balanced": ModelPreset(
         key="balanced",
         label="Balanced",
         muscriptor_model="medium",
         whisperx_model="small",
-        description="Default quality/speed balance for most systems.",
+        description="Explicit quality/speed compromise.",
     ),
     "quality": ModelPreset(
         key="quality",
         label="Quality",
         muscriptor_model="large",
         whisperx_model="large-v3",
-        description="Highest configured model quality; requires substantially more compute.",
+        description="Default: highest configured transcription/lyrics quality; substantially slower.",
     ),
 }
 
 
 def recommended_preset() -> str:
-    device = detect_device_plan()
-    if device.muscriptor_device == "cpu":
-        return "fast"
-    if device.muscriptor_device == "mps":
-        return "balanced"
-    return "balanced"
+    # Product policy: correctness and edit-distance-to-final-score matter more than latency.
+    # Users on constrained hardware can still explicitly select Fast or Balanced.
+    return "quality"
 
 
 def list_presets() -> dict:
