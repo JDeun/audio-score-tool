@@ -1,0 +1,17 @@
+name: Runner Probe
+
+on:
+  push:
+    branches: ["feat/db-canonical-score-storage"]
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - name: Runner attached
+        run: |
+          echo "runner=${RUNNER_NAME}"
+          echo "os=${RUNNER_OS}"
+          uname -a
