@@ -48,6 +48,7 @@ def recover_startup_state(
             "removed_staged_exports": 0,
             "removed_partial_uploads": 0,
             "removed_score_work_dirs": 0,
+            "removed_staged_job_deletions": 0,
             "recovery_errors": 1,
         }
 
@@ -56,6 +57,7 @@ def recover_startup_state(
     removed_staged = 0
     removed_uploads = 0
     removed_work_dirs = 0
+    removed_job_deletions = 0
     recovery_errors = 0
 
     try:
@@ -133,6 +135,19 @@ def recover_startup_state(
         else:
             recovery_errors += 1
 
+    # Job deletion uses an atomic rename before deleting the DB row. Any `.deleting-*`
+    # directory surviving a process restart is disposable staging state and can be swept.
+    try:
+        deleting_dirs = list(root.glob(".deleting-*")) if root.exists() else []
+    except OSError:
+        deleting_dirs = []
+        recovery_errors += 1
+    for deleting in deleting_dirs:
+        if _safe_rmtree(deleting):
+            removed_job_deletions += 1
+        else:
+            recovery_errors += 1
+
     try:
         work_dirs = list(store.cache_root.glob("*/work")) if store.cache_root.exists() else []
     except OSError:
@@ -150,5 +165,6 @@ def recover_startup_state(
         "removed_staged_exports": removed_staged,
         "removed_partial_uploads": removed_uploads,
         "removed_score_work_dirs": removed_work_dirs,
+        "removed_staged_job_deletions": removed_job_deletions,
         "recovery_errors": recovery_errors,
     }
