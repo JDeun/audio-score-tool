@@ -88,6 +88,10 @@ def _default_command(name: str) -> str:
     return name
 
 
+def _external_command(name: str) -> str:
+    return _find_executable(name) or name
+
+
 def _saved_settings() -> dict[str, str | None]:
     path = app_data_dir() / "settings.json"
     try:
@@ -123,9 +127,6 @@ def _saved_engine() -> str:
     if explicit:
         raw = explicit.strip().lower()
         return "mt3_infer" if raw == "yourmt3" else raw
-    # Quality-first policy: personal/non-commercial use defaults to MuScriptor-large.
-    # Commercial mode defaults to YourMT3+ through mt3-infer because MuScriptor
-    # weights are CC BY-NC 4.0 and cannot be shipped for commercial use.
     return "muscriptor" if _saved_usage_mode() == "personal" else "mt3_infer"
 
 
@@ -174,6 +175,18 @@ class Settings:
     yt_dlp_cmd: str = field(
         default_factory=lambda: _saved_or_env("yt_dlp_cmd", "AST_YT_DLP_CMD")
         or _default_command("yt-dlp")
+    )
+    audiveris_cmd: str = field(
+        default_factory=lambda: _saved_or_env("audiveris_cmd", "AST_AUDIVERIS_CMD")
+        or _external_command("audiveris")
+    )
+    lilypond_cmd: str = field(
+        default_factory=lambda: _saved_or_env("lilypond_cmd", "AST_LILYPOND_CMD")
+        or _external_command("lilypond")
+    )
+    musicxml2ly_cmd: str = field(
+        default_factory=lambda: _saved_or_env("musicxml2ly_cmd", "AST_MUSICXML2LY_CMD")
+        or _external_command("musicxml2ly")
     )
     musescore_cmd: str | None = field(
         default_factory=lambda: _saved_or_env("musescore_cmd", "AST_MUSESCORE_CMD")
