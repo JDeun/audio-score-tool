@@ -15,6 +15,7 @@ from .notation_export_api import router as notation_export_router
 from .omr_api import router as omr_router
 from .pipeline_v2 import transcribe as transcribe_v2
 from .preflight_v2 import preflight as preflight_v2
+from .publication_api_v2 import router as publication_router
 from .request_limits import RequestSizeLimitMiddleware
 from .revision_api_v2 import router as revision_router
 from .runtime_settings import runtime_settings
@@ -62,6 +63,10 @@ song_router.routes[:] = [
         getattr(route, "path", None) == "/api/songs/{song_id}/undo"
         and "POST" in (getattr(route, "methods", None) or set())
     )
+    and not (
+        getattr(route, "path", None) == "/api/songs/{song_id}/publication"
+        and "PATCH" in (getattr(route, "methods", None) or set())
+    )
 ]
 base_api.app.routes[:] = [
     route
@@ -96,6 +101,7 @@ app.include_router(notation_export_router)
 app.include_router(song_delete_router)
 app.include_router(song_metadata_router)
 app.include_router(revision_router)
+app.include_router(publication_router)
 app.include_router(song_router)
 app.include_router(export_router)
 app.include_router(engine_router)
