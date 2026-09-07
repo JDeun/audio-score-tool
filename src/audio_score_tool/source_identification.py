@@ -3,13 +3,14 @@ from __future__ import annotations
 import json
 import os
 import subprocess
-import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any
 
 from mutagen import File as MutagenFile
+
+from .safe_http import open_json
 
 ACOUSTID_LOOKUP = "https://api.acoustid.org/v2/lookup"
 USER_AGENT = "AudioScoreTool/0.8 (https://github.com/JDeun/audio-score-tool)"
@@ -36,7 +37,6 @@ def _first_tag(tags: Any, *keys: str) -> str | None:
 
 
 def read_embedded_tags(path: Path) -> dict[str, Any]:
-    """Read clean local metadata before invoking any network or model inference."""
     try:
         audio = MutagenFile(path, easy=True)
     except Exception:
@@ -106,9 +106,8 @@ def lookup_acoustid(path: Path, *, client_key: str, fpcalc_cmd: str = "fpcalc") 
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=12) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-    except (OSError, urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError) as exc:
+        payload = open_json(request, timeout=12)
+    except RuntimeError as exc:
         raise SourceIdentificationError(str(exc)) from exc
 
     candidates: list[dict[str, Any]] = []
