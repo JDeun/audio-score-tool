@@ -172,8 +172,6 @@ def validate_song(song_id: str, payload: ValidateRequest | None = None) -> dict:
                 api_key_env=str(settings["api_key_env"]) if settings["api_key_env"] else None,
             )
         except RuntimeError as exc:
-            # AI validation is deliberately non-blocking. A local model can be absent,
-            # a hosted API can be unavailable, or the user can simply leave it disabled.
             llm_skipped = str(exc)
 
     visual_report = None
@@ -214,24 +212,27 @@ def validate_song(song_id: str, payload: ValidateRequest | None = None) -> dict:
             except AudioSymbolValidationError as exc:
                 audio_skipped = str(exc)
 
-    combined_issues = list(deterministic["issues"])
-    if llm_report:
-        combined_issues.extend(llm_report["issues"])
-    if visual_report:
-        combined_issues.extend(visual_report["issues"])
-    if audio_report:
-        combined_issues.extend(audio_report["issues"])
+    deterministic_issues = list(deterministic["issues"])
+    advisory_issues = [
+        *((llm_report or {}).get("issues", [])),
+        *((visual_report or {}).get("issues", [])),
+        *((audio_report or {}).get("issues", [])),
+    ]
+    combined_issues = [*deterministic_issues, *advisory_issues]
+    review_required = any(
+        issue.get("severity") in {"error", "warning"}
+        for issue in advisory_issues
+    )
 
     result = {
         "song_id": song_id,
         "revision": song.get("revision", 1),
-        "ok": deterministic["ok"] and not any(
-            issue.get("severity") == "error"
-            for issue in [
-                *((llm_report or {}).get("issues", [])),
-                *((visual_report or {}).get("issues", [])),
-                *((audio_report or {}).get("issues", [])),
-            ]
+        # Structural validity is decided only by deterministic evidence. Optional LLM,
+        # Vision and audio-symbol critics can request review but never veto the score.
+        "ok": deterministic["ok"],
+        "review_required": review_required,
+        "advisory_issue_count": sum(
+            1 for issue in advisory_issues if issue.get("severity") in {"error", "warning"}
         ),
         "deterministic": deterministic,
         "llm": llm_report,
@@ -247,6 +248,7 @@ def validate_song(song_id: str, payload: ValidateRequest | None = None) -> dict:
             "llm_api_transport": "openai_compatible",
             "visual_is_advisory": True,
             "audio_symbol_is_evidence": True,
+            "optional_critics_can_set_ok_false": False,
             "auto_edit": False,
             "omr_visual_compare_uses_original_score_evidence": True,
             "audio_compare_uses_original_audio_evidence": True,
