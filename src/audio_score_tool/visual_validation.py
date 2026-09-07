@@ -107,6 +107,14 @@ def _parse_json(text: str) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
+def _safe_page(value: Any) -> int:
+    try:
+        page = int(value)
+    except (TypeError, ValueError):
+        return 1
+    return max(1, min(page, 10000))
+
+
 def _call_vlm(
     *,
     original_pages: list[Path],
@@ -191,7 +199,10 @@ def validate_omr_visual(
         )
 
     issues: list[dict[str, Any]] = []
-    for raw_issue in report.get("issues", []) if isinstance(report.get("issues"), list) else []:
+    raw_issues = report.get("issues", [])
+    if not isinstance(raw_issues, list):
+        raw_issues = []
+    for raw_issue in raw_issues:
         if not isinstance(raw_issue, dict):
             continue
         severity = str(raw_issue.get("severity") or "warning").lower()
@@ -204,13 +215,13 @@ def validate_omr_visual(
         issues.append(
             {
                 "severity": severity,
-                "category": str(raw_issue.get("category") or "visual-omr"),
-                "message": str(raw_issue.get("message") or "원본과 재렌더링 결과의 차이를 확인하세요."),
+                "category": str(raw_issue.get("category") or "visual-omr")[:120],
+                "message": str(raw_issue.get("message") or "원본과 재렌더링 결과의 차이를 확인하세요.")[:2000],
                 "part": None,
-                "measure": str(raw_issue.get("measure")) if raw_issue.get("measure") is not None else None,
-                "page": int(raw_issue.get("page") or 1),
+                "measure": str(raw_issue.get("measure"))[:100] if raw_issue.get("measure") is not None else None,
+                "page": _safe_page(raw_issue.get("page")),
                 "confidence": confidence,
-                "suggested_action": str(raw_issue.get("suggested_action") or "원본 악보와 해당 구간을 직접 대조하세요."),
+                "suggested_action": str(raw_issue.get("suggested_action") or "원본 악보와 해당 구간을 직접 대조하세요.")[:1000],
                 "source": "vision",
             }
         )
@@ -231,14 +242,17 @@ def validate_omr_visual(
             },
         )
 
+    page_notes = report.get("page_notes")
+    if not isinstance(page_notes, list):
+        page_notes = []
     return {
-        "summary": str(report.get("summary") or "시각 OMR 비교 완료"),
+        "summary": str(report.get("summary") or "시각 OMR 비교 완료")[:2000],
         "model": model,
         "pages_compared": min(len(original), len(recognized), 4),
         "original_pages": len(original),
         "recognized_pages": len(recognized),
         "issues": issues,
-        "page_notes": report.get("page_notes") if isinstance(report.get("page_notes"), list) else [],
+        "page_notes": [str(item)[:1000] for item in page_notes[:32]],
         "advisory": True,
         "auto_edit": False,
     }
