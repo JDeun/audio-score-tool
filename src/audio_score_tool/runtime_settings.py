@@ -17,6 +17,7 @@ def runtime_settings(
     saved = (store or SettingsStore()).read()
     defaults = Settings()
     checkpoint = saved.get("native_checkpoint")
+    soundfont = saved.get("validation_soundfont")
     usage_mode = (saved.get("usage_mode") or defaults.usage_mode).strip().lower()
     if usage_mode not in {"personal", "commercial"}:
         usage_mode = "personal"
@@ -35,18 +36,10 @@ def runtime_settings(
     return Settings(
         usage_mode=usage_mode,
         transcription_engine=engine,
-        mt3_infer_cmd=(
-            saved.get("mt3_infer_cmd")
-            or saved.get("yourmt3_cmd")
-            or defaults.mt3_infer_cmd
-        ),
+        mt3_infer_cmd=(saved.get("mt3_infer_cmd") or saved.get("yourmt3_cmd") or defaults.mt3_infer_cmd),
         mt3_model=(saved.get("mt3_model") or defaults.mt3_model),
         muscriptor_cmd=saved.get("muscriptor_cmd") or defaults.muscriptor_cmd,
-        muscriptor_model=(
-            muscriptor_model
-            or saved.get("muscriptor_model")
-            or defaults.muscriptor_model
-        ),
+        muscriptor_model=(muscriptor_model or saved.get("muscriptor_model") or defaults.muscriptor_model),
         native_engine_cmd=saved.get("native_engine_cmd") or defaults.native_engine_cmd,
         native_checkpoint=Path(checkpoint).expanduser() if checkpoint else defaults.native_checkpoint,
         demucs_cmd=saved.get("demucs_cmd") or defaults.demucs_cmd,
@@ -55,6 +48,9 @@ def runtime_settings(
         audiveris_cmd=saved.get("audiveris_cmd") or defaults.audiveris_cmd,
         lilypond_cmd=saved.get("lilypond_cmd") or defaults.lilypond_cmd,
         musicxml2ly_cmd=saved.get("musicxml2ly_cmd") or defaults.musicxml2ly_cmd,
+        ffmpeg_cmd=saved.get("ffmpeg_cmd") or defaults.ffmpeg_cmd,
+        fluidsynth_cmd=saved.get("fluidsynth_cmd") or defaults.fluidsynth_cmd,
+        validation_soundfont=Path(soundfont).expanduser() if soundfont else defaults.validation_soundfont,
         musescore_cmd=saved.get("musescore_cmd") or defaults.musescore_cmd,
         whisperx_model=whisperx_model,
     )
