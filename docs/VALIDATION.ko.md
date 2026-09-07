@@ -9,6 +9,8 @@ MusicXML / 분석 결과
         ↓
 2. 선택적 LLM critic
         ↓
+3. OMR이면 원본↔재렌더링 Vision 비교
+        ↓
 검토 우선순위 / 의심 구간
         ↓
 사용자 확인
@@ -73,9 +75,49 @@ LLM에는 다음만 전달합니다.
 
 전체 원본 음원이나 임의 파일은 전송하지 않습니다.
 
+## 3. OMR 원본 ↔ 재렌더링 Vision 비교
+
+PDF/이미지 OMR 입력은 원본 악보를 `assets/<song-id>/original-score.*`로 보존합니다. 현재 MusicXML을 LilyPond 우선, MuseScore fallback으로 다시 렌더링한 뒤 원본 페이지와 인식 결과 페이지를 Vision-capable LLM/VLM에 쌍으로 전달합니다.
+
+검토 대상:
+
+- accidental 누락/추가
+- clef / key / time signature
+- note/rest duration
+- beam / tie / slur
+- repeat / ending
+- lyrics / text / dynamics
+- staff/part 누락 또는 중복
+
+원본이 PDF이면 Poppler의 `pdftoppm`을 사용해 페이지를 PNG로 rasterize합니다. 이미지 입력은 Pillow로 정규화합니다.
+
+기본 예시:
+
+```text
+vision model = qwen2.5vl:7b
+max pages    = 4
+```
+
+반환 이슈 예:
+
+```json
+{
+  "severity": "warning",
+  "category": "accidental",
+  "message": "원본에는 임시표가 있으나 재렌더링 결과에서 보이지 않습니다.",
+  "page": 1,
+  "measure": "12",
+  "confidence": 0.88,
+  "suggested_action": "12마디 해당 음의 alter 값을 확인하세요.",
+  "source": "vision"
+}
+```
+
+시각 검증의 마디 번호는 VLM 추정일 수 있으므로 참고용입니다. 장기적으로는 OSMD measure bounding box와 연결해 페이지 좌표를 정확한 MusicXML measure ID로 매핑하는 것이 목표입니다.
+
 ## 응답 정책
 
-LLM 결과는 다음과 같은 advisory issue입니다.
+텍스트 LLM과 Vision 결과는 모두 advisory issue입니다.
 
 ```json
 {
@@ -90,11 +132,13 @@ LLM 결과는 다음과 같은 advisory issue입니다.
 }
 ```
 
-UI에서는 `LLM 가설`로 명확히 표시합니다.
+UI에서는 각각 `LLM 가설`, `원본 비교`로 구분해 표시합니다.
 
-## 3. 향후 가장 중요한 검증: audio evidence
+모든 validator는 `auto_edit=false`를 유지합니다.
 
-LLM 검증보다 더 중요한 다음 단계는 **symbol ↔ audio evidence** 비교입니다.
+## 4. 다음으로 가장 중요한 검증: audio evidence
+
+OMR에는 원본 이미지라는 직접 증거가 있지만, AMT에는 원음 자체가 correctness의 핵심 증거입니다. 다음 단계는 **symbol ↔ audio evidence** 비교입니다.
 
 권장 순서:
 
@@ -112,12 +156,13 @@ LLM 검증보다 더 중요한 다음 단계는 **symbol ↔ audio evidence** �
 validation_score =
     structural_validity
   + symbolic_consistency
+  + omr_visual_similarity
   + audio_resynthesis_similarity
   + ensemble_disagreement
   + LLM_review_priority
 ```
 
-여기서 LLM은 마지막 단계의 **reasoning/triage layer**이고, acoustic correctness의 1차 근거는 아닙니다.
+여기서 LLM은 **reasoning/triage layer**이고, acoustic correctness 또는 원본 OMR correctness의 1차 근거를 대체하지 않습니다.
 
 ## API
 
@@ -128,6 +173,6 @@ POST /api/songs/{song_id}/validate
 GET  /api/songs/{song_id}/validation
 ```
 
-`POST .../validate`는 항상 deterministic validation을 실행하고 설정 또는 요청에 따라 LLM critic을 추가합니다.
+`POST .../validate`는 항상 deterministic validation을 실행하고 설정 또는 요청에 따라 텍스트 LLM critic과 OMR Vision critic을 추가합니다.
 
-검증 결과는 `song_analysis.validation_report`로 저장되며 악보 자체를 변경하지 않습니다.
+검증 결과는 `song_analysis.validation_report`로 저장되며, 시각 OMR 결과는 `song_analysis.omr_visual_validation`에도 별도로 저장됩니다. 악보 자체는 변경하지 않습니다.
