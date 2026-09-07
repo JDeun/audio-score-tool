@@ -8,6 +8,16 @@ type BackendChild = Mutex<Option<CommandChild>>;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
+        // Must be registered before plugins that can create side effects. A duplicate
+        // desktop launch should focus the existing window instead of spawning another
+        // backend that would contend for the fixed loopback port.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.unminimize();
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
