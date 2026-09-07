@@ -8,11 +8,13 @@ from threading import Thread
 from fastapi import APIRouter, HTTPException
 
 from . import api as base_api
-from .paths import jobs_dir
+from .paths import jobs_dir, song_assets_dir
 from .runtime_settings import runtime_settings
+from .song_store_v2 import SongStoreV2
 from .youtube import YouTubeSourceError, validate_youtube_url
 
 router = APIRouter(tags=["jobs-v2"])
+_songs = SongStoreV2()
 
 
 def _start_or_mark_failed(job_id: str, thread: Thread) -> None:
@@ -163,3 +165,39 @@ def retry_job_v2(job_id: str) -> dict:
 
     _start_or_mark_failed(new_id, thread)
     return {"job_id": new_id, "status": "queued", "retried_from": job_id}
+
+
+@router.delete("/api/jobs/{job_id}")
+def delete_job_v2(job_id: str) -> dict:
+    job = base_api._store.get(job_id)
+    if not job:
+        raise HTTPException(404, "Job not found")
+    if job["status"] in {"queued", "running", "cancelling"}:
+        raise HTTPException(409, "Cancel the running job before deleting it.")
+
+    # A completed score job is disposable only after its canonical Song row exists.
+    # This closes the short window between worker completion and library synchronization.
+    if job.get("status") == "done" and job.get("kind") != "benchmark":
+        if _songs.get_by_job(job_id) is None:
+            _songs.sync_completed_jobs([job])
+        if _songs.get_by_job(job_id) is None:
+            raise HTTPException(
+                409,
+                "완료된 악보가 아직 곡 라이브러리에 안전하게 저장되지 않았습니다. 작업을 삭제하지 않았습니다.",
+            )
+
+    path = jobs_dir() / job_id
+    if path.exists():
+        try:
+            shutil.rmtree(path)
+        except OSError as exc:
+            raise HTTPException(500, f"Job 작업 폴더를 삭제하지 못했습니다: {exc}") from exc
+    if not base_api._store.delete(job_id):
+        raise HTTPException(404, "Job not found")
+
+    # Failed/cancelled jobs may have preserved source audio before the pipeline failed.
+    # Canonical songs own their managed assets; only remove truly orphaned job assets.
+    if _songs.get_by_job(job_id) is None:
+        shutil.rmtree(song_assets_dir() / job_id, ignore_errors=True)
+
+    return {"job_id": job_id, "deleted": True}
