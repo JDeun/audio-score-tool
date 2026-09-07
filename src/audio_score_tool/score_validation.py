@@ -5,7 +5,7 @@ import os
 import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from typing import Any
 
 
@@ -260,7 +260,10 @@ def deterministic_validate(xml_text: str) -> dict[str, Any]:
         "parts": compact_parts,
     }
     severity_order = {"error": 0, "warning": 1, "info": 2}
-    issue_dicts = [item.as_dict() for item in sorted(issues, key=lambda x: severity_order.get(x.severity, 9))]
+    issue_dicts = [
+        item.as_dict()
+        for item in sorted(issues, key=lambda x: severity_order.get(x.severity, 9))
+    ]
     return {
         "ok": not any(item["severity"] == "error" for item in issue_dicts),
         "issues": issue_dicts,
@@ -319,11 +322,13 @@ def llm_validate(
         ensure_ascii=False,
     )
     endpoint = base_url.rstrip("/") + "/chat/completions"
+    # Do not require provider-specific structured-output extensions. The prompt asks
+    # for JSON and the parser below extracts a JSON object, which keeps this compatible
+    # with Ollama, vLLM, LM Studio and hosted OpenAI-compatible APIs.
     body = json.dumps(
         {
             "model": model,
             "temperature": 0.1,
-            "response_format": {"type": "json_object"},
             "messages": [
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
@@ -365,7 +370,9 @@ def llm_validate(
                 part=str(raw["part"]) if raw.get("part") else None,
                 measure=str(raw["measure"]) if raw.get("measure") else None,
                 confidence=confidence,
-                suggested_action=str(raw["suggested_action"]) if raw.get("suggested_action") else None,
+                suggested_action=str(raw["suggested_action"])
+                if raw.get("suggested_action")
+                else None,
                 source="llm",
             ).as_dict()
         )
