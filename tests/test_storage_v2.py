@@ -60,6 +60,55 @@ def test_completed_job_is_ingested_into_sqlite_without_initial_exports(tmp_path:
     assert Path(song["original_midi"]).is_file()
 
 
+def test_song_get_does_not_overwrite_checked_out_edit_buffer(tmp_path: Path):
+    source = tmp_path / "generated.musicxml"
+    source.write_text(MUSICXML, encoding="utf-8")
+    store = make_store(tmp_path)
+    store.sync_completed_jobs(
+        [
+            {
+                "job_id": "song-1",
+                "status": "done",
+                "kind": "transcription",
+                "filename": "demo.wav",
+                "result": {"musicxml": str(source)},
+            }
+        ]
+    )
+
+    working = store.checkout_current("song-1")
+    edited = MUSICXML.replace("<step>C</step>", "<step>D</step>")
+    working.write_text(edited, encoding="utf-8")
+
+    # Metadata reads happen in background polling. They must not rematerialize the
+    # canonical DB version over the edit buffer before commit.
+    assert store.get("song-1") is not None
+    assert store.list()
+    assert working.read_text(encoding="utf-8") == edited
+
+
+def test_omr_jobs_keep_omr_source_provenance(tmp_path: Path):
+    source = tmp_path / "generated.musicxml"
+    source.write_text(MUSICXML, encoding="utf-8")
+    store = make_store(tmp_path)
+    created = store.sync_completed_jobs(
+        [
+            {
+                "job_id": "omr-1",
+                "status": "done",
+                "kind": "omr",
+                "filename": "scanned-score.pdf",
+                "result": {"musicxml": str(source)},
+            }
+        ]
+    )
+
+    assert created == 1
+    song = store.get("omr-1")
+    assert song is not None
+    assert song["source_kind"] == "omr"
+
+
 def test_revision_restores_score_metadata_and_publication_from_database(tmp_path: Path):
     source = tmp_path / "generated.musicxml"
     source.write_text(MUSICXML, encoding="utf-8")
