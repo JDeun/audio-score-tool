@@ -28,6 +28,9 @@ _ALLOWED = {
     "llm_validation_base_url",
     "llm_validation_model",
     "llm_validation_api_key_env",
+    "visual_validation_enabled",
+    "visual_validation_model",
+    "visual_validation_max_pages",
 }
 
 
