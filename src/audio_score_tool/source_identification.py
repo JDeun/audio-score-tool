@@ -86,7 +86,7 @@ def _fpcalc(path: Path, command: str = "fpcalc") -> tuple[int, str]:
 
 def lookup_acoustid(path: Path, *, client_key: str, fpcalc_cmd: str = "fpcalc") -> list[dict[str, Any]]:
     duration, fingerprint = _fpcalc(path, fpcalc_cmd)
-    params = urllib.parse.urlencode(
+    body = urllib.parse.urlencode(
         {
             "client": client_key,
             "meta": "recordings+releasegroups+compress",
@@ -94,10 +94,16 @@ def lookup_acoustid(path: Path, *, client_key: str, fpcalc_cmd: str = "fpcalc") 
             "fingerprint": fingerprint,
             "format": "json",
         }
-    )
+    ).encode("utf-8")
     request = urllib.request.Request(
-        f"{ACOUSTID_LOOKUP}?{params}",
-        headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+        ACOUSTID_LOOKUP,
+        data=body,
+        headers={
+            "User-Agent": USER_AGENT,
+            "Accept": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
+        method="POST",
     )
     try:
         with urllib.request.urlopen(request, timeout=12) as response:
