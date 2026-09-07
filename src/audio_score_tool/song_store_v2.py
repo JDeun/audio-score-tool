@@ -59,6 +59,7 @@ class SongStoreV2:
         self._lock = Lock()
         self._init()
         self._migrate_legacy_rows()
+        self._migrate_source_kinds()
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.path, timeout=10)
@@ -169,6 +170,21 @@ class SongStoreV2:
                     (original, current, _now(), row["song_id"]),
                 )
 
+    def _migrate_source_kinds(self) -> None:
+        """Repair early v0.8 OMR rows that were incorrectly labelled as local audio."""
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT song_id, source_kind FROM songs WHERE source_kind='local'"
+            ).fetchall()
+        for row in rows:
+            asset_dir = self.asset_root / str(row["song_id"])
+            if asset_dir.exists() and any(asset_dir.glob("original-score.*")):
+                with self._lock, self._connect() as conn:
+                    conn.execute(
+                        "UPDATE songs SET source_kind=?, updated_at=? WHERE song_id=? AND source_kind='local'",
+                        ("omr", _now(), row["song_id"]),
+                    )
+
     @staticmethod
     def _title_from_filename(value: str | None) -> str:
         if not value:
@@ -178,6 +194,8 @@ class SongStoreV2:
 
     @staticmethod
     def _source_kind(job: dict[str, Any]) -> str:
+        if str(job.get("kind") or "").lower() == "omr":
+            return "omr"
         filename = str(job.get("filename") or "")
         if filename and not Path(filename).suffix:
             return "youtube"
@@ -482,17 +500,16 @@ class SongStoreV2:
         return True
 
     def _row(self, row: sqlite3.Row) -> dict[str, Any]:
+        # Reading song metadata must be side-effect free. Earlier v0.8 code rewrote the
+        # shared score cache here, so a background list/get request could overwrite a
+        # MusicXML file while an edit operation was mutating it before commit.
         result = dict(row)
         original_xml = result.pop("original_score_xml", None)
         current_xml = result.pop("current_score_xml", None)
         if original_xml:
-            original_path = self.cache_song_dir(result["song_id"]) / "original.musicxml"
-            _atomic_text(original_path, str(original_xml))
-            result["original_musicxml"] = str(original_path)
+            result["original_musicxml"] = str(self.cache_root / result["song_id"] / "original.musicxml")
         if current_xml:
-            current_path = self.cache_song_dir(result["song_id"]) / "score.musicxml"
-            _atomic_text(current_path, str(current_xml))
-            result["current_musicxml"] = str(current_path)
+            result["current_musicxml"] = str(self.cache_root / result["song_id"] / "score.musicxml")
         export_dir = self.export_root / result["song_id"]
         result["exports"] = {}
         for kind, name in (
