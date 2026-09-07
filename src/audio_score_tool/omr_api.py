@@ -12,6 +12,7 @@ from .job_store import JobStore
 from .omr import OMRImportCancelled, audiveris_status, transcribe_score
 from .paths import jobs_dir, song_assets_dir
 from .runtime_settings import runtime_settings
+from .upload_storage import UploadStorageError, persist_stream_atomic
 
 router = APIRouter(tags=["omr"])
 _store = JobStore()
@@ -75,18 +76,25 @@ async def import_score(file: UploadFile = File(...)) -> dict:
     job_dir = jobs_dir() / job_id
     job_dir.mkdir(parents=True, exist_ok=False)
     source = job_dir / f"source-score{suffix}"
-    with source.open("wb") as handle:
-        shutil.copyfileobj(file.file, handle)
+    try:
+        persist_stream_atomic(file.file, source)
+    except UploadStorageError as exc:
+        shutil.rmtree(job_dir, ignore_errors=True)
+        raise HTTPException(exc.status_code, str(exc)) from exc
 
-    _store.create(
-        job_id,
-        kind="omr",
-        status="queued",
-        stage="queued",
-        progress=0,
-        filename=filename,
-        preset="omr-audiveris",
-        skip_lyrics=True,
-    )
+    try:
+        _store.create(
+            job_id,
+            kind="omr",
+            status="queued",
+            stage="queued",
+            progress=0,
+            filename=filename,
+            preset="omr-audiveris",
+            skip_lyrics=True,
+        )
+    except Exception:
+        shutil.rmtree(job_dir, ignore_errors=True)
+        raise
     Thread(target=_worker, args=(job_id, source, settings), daemon=True).start()
     return {"job_id": job_id, "status": "queued", "kind": "omr"}
