@@ -7,7 +7,8 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from .song_api_v2 import ExportKind, ExportRequest, _require_song, _song_store, build_exports
+from .notation_export_api import build_exports_v3
+from .song_api_v2 import ExportKind, ExportRequest, _require_song, _song_store
 
 router = APIRouter(prefix="/api/songs", tags=["desktop-export-v2"])
 
@@ -52,7 +53,7 @@ def export_to_directory(song_id: str, payload: DesktopExportRequest) -> dict:
     if not destination_root.is_dir():
         raise HTTPException(422, "선택한 저장 위치가 폴더가 아닙니다.")
 
-    result = build_exports(song_id, ExportRequest(formats=payload.formats))
+    result = build_exports_v3(song_id, ExportRequest(formats=payload.formats))
     source = _song_store.export_root / song_id
     target = _unique_destination(destination_root, song["title"])
     try:
