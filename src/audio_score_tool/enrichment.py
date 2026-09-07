@@ -53,6 +53,31 @@ def _musicbrainz_request(path: str, params: dict[str, str]) -> Any:
         return payload
 
 
+def _recording_candidate(item: dict[str, Any]) -> dict[str, Any]:
+    credits = item.get("artist-credit") or []
+    artist_name = "".join(
+        str(part.get("name") or part.get("artist", {}).get("name") or "")
+        + str(part.get("joinphrase") or "")
+        for part in credits
+        if isinstance(part, dict)
+    ).strip()
+    releases = item.get("releases") or []
+    release = releases[0] if releases and isinstance(releases[0], dict) else {}
+    return {
+        "provider": "musicbrainz",
+        "recording_mbid": item.get("id"),
+        "title": item.get("title"),
+        "artist": artist_name or None,
+        "first_release_date": item.get("first-release-date"),
+        "album": release.get("title") if isinstance(release, dict) else None,
+        "release_mbid": release.get("id") if isinstance(release, dict) else None,
+        "length_ms": item.get("length"),
+        "isrcs": item.get("isrcs") or [],
+        "score": int(item.get("score") or 0),
+        "license_scope": "MusicBrainz core metadata / CC0 where applicable",
+    }
+
+
 def search_musicbrainz(title: str, artist: str | None = None, *, limit: int = 5) -> list[dict[str, Any]]:
     title = title.strip()
     artist = (artist or "").strip()
@@ -62,32 +87,24 @@ def search_musicbrainz(title: str, artist: str | None = None, *, limit: int = 5)
     if artist:
         parts.append(f'artist:"{artist.replace(chr(34), "")}"')
     payload = _musicbrainz_request("recording/", {"query": " AND ".join(parts), "limit": str(limit)})
-    results: list[dict[str, Any]] = []
-    for item in payload.get("recordings", []) if isinstance(payload, dict) else []:
-        credits = item.get("artist-credit") or []
-        artist_name = "".join(
-            str(part.get("name") or part.get("artist", {}).get("name") or "")
-            + str(part.get("joinphrase") or "")
-            for part in credits
-            if isinstance(part, dict)
-        ).strip()
-        releases = item.get("releases") or []
-        release = releases[0] if releases and isinstance(releases[0], dict) else {}
-        results.append(
-            {
-                "provider": "musicbrainz",
-                "recording_mbid": item.get("id"),
-                "title": item.get("title"),
-                "artist": artist_name or None,
-                "first_release_date": item.get("first-release-date"),
-                "album": release.get("title") if isinstance(release, dict) else None,
-                "release_mbid": release.get("id") if isinstance(release, dict) else None,
-                "length_ms": item.get("length"),
-                "isrcs": item.get("isrcs") or [],
-                "score": int(item.get("score") or 0),
-                "license_scope": "MusicBrainz core metadata / CC0 where applicable",
-            }
-        )
+    return [
+        _recording_candidate(item)
+        for item in payload.get("recordings", []) if isinstance(payload, dict) and isinstance(item, dict)
+    ]
+
+
+def search_musicbrainz_by_isrc(isrc: str, *, limit: int = 5) -> list[dict[str, Any]]:
+    normalized = "".join(char for char in isrc.upper() if char.isalnum())
+    if not normalized:
+        return []
+    payload = _musicbrainz_request("recording/", {"query": f'isrc:"{normalized}"', "limit": str(limit)})
+    results = [
+        _recording_candidate(item)
+        for item in payload.get("recordings", []) if isinstance(payload, dict) and isinstance(item, dict)
+    ]
+    for item in results:
+        item["match_reason"] = "ISRC"
+        item["score"] = max(98, int(item.get("score") or 0))
     return results
 
 
