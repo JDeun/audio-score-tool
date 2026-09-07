@@ -4,7 +4,6 @@ import base64
 import json
 import os
 import tempfile
-import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -15,6 +14,7 @@ from .notation_backend import render_pdf
 from .paths import cache_dir, song_assets_dir
 from .runner import CommandError, command_exists, run_command
 from .runtime_settings import runtime_settings
+from .safe_http import open_json
 
 
 class VisualValidationError(RuntimeError):
@@ -162,9 +162,8 @@ def _call_vlm(
     url = base_url.rstrip("/") + "/chat/completions"
     request = urllib.request.Request(url, data=body, headers=headers, method="POST")
     try:
-        with urllib.request.urlopen(request, timeout=180) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-    except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
+        payload = open_json(request, timeout=180)
+    except RuntimeError as exc:
         raise VisualValidationError(f"Vision model 호출 실패: {exc}") from exc
     try:
         text = payload["choices"][0]["message"]["content"]
@@ -202,7 +201,7 @@ def validate_omr_visual(
     raw_issues = report.get("issues", [])
     if not isinstance(raw_issues, list):
         raw_issues = []
-    for raw_issue in raw_issues:
+    for raw_issue in raw_issues[:200]:
         if not isinstance(raw_issue, dict):
             continue
         severity = str(raw_issue.get("severity") or "warning").lower()
@@ -247,7 +246,7 @@ def validate_omr_visual(
         page_notes = []
     return {
         "summary": str(report.get("summary") or "시각 OMR 비교 완료")[:2000],
-        "model": model,
+        "model": model[:200],
         "pages_compared": min(len(original), len(recognized), 4),
         "original_pages": len(original),
         "recognized_pages": len(recognized),
