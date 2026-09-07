@@ -33,6 +33,15 @@ def test_advanced_score_editor_routes_are_mounted():
     assert signature.status_code == 404
 
 
+def test_desktop_export_destination_route_is_mounted():
+    client = TestClient(app)
+    response = client.post(
+        "/api/songs/not-a-real-song/export-to",
+        json={"formats": ["musicxml"], "destination_dir": "/tmp"},
+    )
+    assert response.status_code == 404
+
+
 def test_transcription_engine_routes_are_mounted():
     client = TestClient(app)
     response = client.get("/api/engines")
