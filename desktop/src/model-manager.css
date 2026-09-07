@@ -29,6 +29,9 @@
 .model-license-warning span, .model-auth-callout span { display: block; margin-top: 3px; font-size: 9px; line-height: 1.5; opacity: .82; }
 .model-auth-callout { display: flex; align-items: center; justify-content: space-between; gap: 16px; border: 1px solid #e4d8b8; background: #faf6e9; color: #765f2e; }
 .model-auth-callout button { min-height: 32px; border: 1px solid #d5c497; border-radius: 9px; background: #fffdf6; color: #735d31; padding: 0 11px; font-size: 9px; font-weight: 750; cursor: pointer; }
+.model-auth-flow code { display: inline-block; margin-top: 9px; padding: 5px 8px; border: 1px solid #ddcca3; border-radius: 7px; background: #fffdf6; color: #5d4b27; font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 780; letter-spacing: 1.1px; }
+.model-auth-actions { display: flex; flex: 0 0 auto; gap: 7px; align-items: center; }
+.model-auth-actions span { margin: 0; padding: 7px 9px; border-radius: 8px; background: #e5efdf; color: #54704c; font-size: 9px; font-weight: 760; opacity: 1; }
 
 .model-download-banner { display: grid; grid-template-columns: minmax(210px, auto) 1fr 44px; align-items: center; gap: 14px; margin: 15px 30px 0; padding: 13px 15px; border: 1px solid #cad6c5; border-radius: 13px; background: #f0f5ed; }
 .model-download-banner strong { display: block; color: #40503c; font-size: 10.5px; }
@@ -66,4 +69,6 @@
   .model-manager-summary { grid-template-columns: 1fr; }
   .model-download-banner { grid-template-columns: 1fr auto; }
   .model-progress { grid-column: 1 / -1; grid-row: 2; }
+  .model-auth-callout { align-items: stretch; flex-direction: column; }
+  .model-auth-actions { flex-wrap: wrap; }
 }
