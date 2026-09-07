@@ -23,6 +23,16 @@ _DEFAULT_MODEL = "qwen3.5:9b"
 _DEFAULT_VISION_MODEL = "qwen2.5vl:7b"
 
 
+def _validated_base_url(value: str) -> str:
+    value = value.strip().rstrip("/")
+    parsed = urlparse(value)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise ValueError("base_url must be an http(s) URL")
+    if parsed.scheme == "http" and parsed.hostname not in {"127.0.0.1", "localhost", "::1"}:
+        raise ValueError("non-local LLM endpoints must use https")
+    return value
+
+
 class ValidationSettingsPayload(BaseModel):
     enabled: bool = False
     base_url: str = Field(default=_DEFAULT_BASE_URL, max_length=500)
@@ -40,13 +50,7 @@ class ValidationSettingsPayload(BaseModel):
     @field_validator("base_url")
     @classmethod
     def validate_base_url(cls, value: str) -> str:
-        value = value.strip().rstrip("/")
-        parsed = urlparse(value)
-        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
-            raise ValueError("base_url must be an http(s) URL")
-        if parsed.scheme == "http" and parsed.hostname not in {"127.0.0.1", "localhost", "::1"}:
-            raise ValueError("non-local LLM endpoints must use https")
-        return value
+        return _validated_base_url(value)
 
 
 class ValidateRequest(BaseModel):
@@ -72,22 +76,36 @@ def _settings() -> dict:
         audio_threshold = max(0.1, min(0.9, float(saved.get("audio_validation_threshold") or "0.42")))
     except ValueError:
         audio_threshold = 0.42
+
+    configured_base = str(saved.get("llm_validation_base_url") or _DEFAULT_BASE_URL)
+    configuration_warning = None
+    try:
+        base_url = _validated_base_url(configured_base)
+        endpoint_safe = True
+    except ValueError as exc:
+        # Treat settings.json as untrusted input too. A stale/manual remote HTTP value
+        # must not bypass the same policy enforced by the settings API.
+        base_url = _DEFAULT_BASE_URL
+        endpoint_safe = False
+        configuration_warning = f"저장된 LLM endpoint를 비활성화했습니다: {exc}"
+
     return {
-        "enabled": _bool_setting(saved.get("llm_validation_enabled"), False),
-        "base_url": saved.get("llm_validation_base_url") or _DEFAULT_BASE_URL,
-        "model": saved.get("llm_validation_model") or _DEFAULT_MODEL,
-        "api_key_env": saved.get("llm_validation_api_key_env") or None,
+        "enabled": _bool_setting(saved.get("llm_validation_enabled"), False) and endpoint_safe,
+        "base_url": base_url,
+        "model": str(saved.get("llm_validation_model") or _DEFAULT_MODEL)[:200],
+        "api_key_env": str(saved.get("llm_validation_api_key_env") or "")[:100] or None,
         "llm_required": False,
         "llm_transport": "openai_compatible_api",
         "remote_api_supported": True,
-        "visual_enabled": _bool_setting(saved.get("visual_validation_enabled"), False),
-        "visual_model": saved.get("visual_validation_model") or _DEFAULT_VISION_MODEL,
+        "visual_enabled": _bool_setting(saved.get("visual_validation_enabled"), False) and endpoint_safe,
+        "visual_model": str(saved.get("visual_validation_model") or _DEFAULT_VISION_MODEL)[:200],
         "visual_max_pages": visual_max_pages,
         "audio_enabled": _bool_setting(saved.get("audio_validation_enabled"), False),
         "audio_threshold": audio_threshold,
         "validation_soundfont": saved.get("validation_soundfont") or None,
         "ffmpeg_cmd": saved.get("ffmpeg_cmd") or runtime.ffmpeg_cmd,
         "fluidsynth_cmd": saved.get("fluidsynth_cmd") or runtime.fluidsynth_cmd,
+        "configuration_warning": configuration_warning,
         "audio_tools": {
             "soundfont_configured": bool(runtime.validation_soundfont and runtime.validation_soundfont.is_file()),
         },
@@ -160,8 +178,16 @@ def validate_song(song_id: str, payload: ValidateRequest | None = None) -> dict:
     use_visual = payload.use_visual if payload and payload.use_visual is not None else settings["visual_enabled"]
     use_audio = payload.use_audio if payload and payload.use_audio is not None else settings["audio_enabled"]
 
+    # Explicit request flags cannot override an unsafe persisted endpoint. This keeps
+    # malformed legacy settings from turning into a remote plaintext API call.
+    if settings["configuration_warning"]:
+        if use_llm:
+            use_llm = False
+        if use_visual:
+            use_visual = False
+
     llm_report = None
-    llm_skipped = None
+    llm_skipped = settings["configuration_warning"] if (payload and payload.use_llm) else None
     if use_llm:
         try:
             llm_report = llm_validate(
@@ -175,7 +201,7 @@ def validate_song(song_id: str, payload: ValidateRequest | None = None) -> dict:
             llm_skipped = str(exc)
 
     visual_report = None
-    visual_skipped = None
+    visual_skipped = settings["configuration_warning"] if (payload and payload.use_visual) else None
     if use_visual:
         try:
             visual_report = validate_omr_visual(
@@ -227,8 +253,6 @@ def validate_song(song_id: str, payload: ValidateRequest | None = None) -> dict:
     result = {
         "song_id": song_id,
         "revision": song.get("revision", 1),
-        # Structural validity is decided only by deterministic evidence. Optional LLM,
-        # Vision and audio-symbol critics can request review but never veto the score.
         "ok": deterministic["ok"],
         "review_required": review_required,
         "advisory_issue_count": sum(
@@ -252,6 +276,7 @@ def validate_song(song_id: str, payload: ValidateRequest | None = None) -> dict:
             "auto_edit": False,
             "omr_visual_compare_uses_original_score_evidence": True,
             "audio_compare_uses_original_audio_evidence": True,
+            "persisted_endpoint_revalidated": True,
         },
     }
     _songs.set_analysis(song_id, "validation_report", result)
