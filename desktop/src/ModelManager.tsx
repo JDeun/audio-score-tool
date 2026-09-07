@@ -39,11 +39,14 @@ type ModelsStatus = {
   };
 };
 
+type JobStatus = "queued" | "running" | "cancelling" | "cancelled" | "done" | "failed";
+type AuthStatus = JobStatus | "waiting_for_user";
+
 type DownloadJob = {
   job_id: string;
   family: string;
   variant: string;
-  status: "queued" | "running" | "done" | "failed";
+  status: JobStatus;
   progress: number;
   cached_bytes: number;
   target_bytes: number;
@@ -52,7 +55,7 @@ type DownloadJob = {
 
 type AuthJob = {
   auth_id: string;
-  status: "queued" | "running" | "waiting_for_user" | "done" | "failed";
+  status: AuthStatus;
   authenticated: boolean;
   verification_url?: string | null;
   user_code?: string | null;
@@ -97,7 +100,7 @@ export default function ModelManager() {
   }, []);
 
   useEffect(() => {
-    if (!job || !["queued", "running"].includes(job.status)) return;
+    if (!job || ["done", "failed", "cancelled"].includes(job.status)) return;
     const timer = window.setInterval(async () => {
       try {
         const response = await fetch(`${API}/api/models/jobs/${job.job_id}`);
@@ -107,8 +110,12 @@ export default function ModelManager() {
         if (fresh.status === "done") {
           setMessage(`${fresh.variant.toUpperCase()} 모델 준비가 완료되었습니다.`);
           await refresh();
+        } else if (fresh.status === "failed") {
+          setMessage(fresh.error || "모델 다운로드에 실패했습니다.");
+        } else if (fresh.status === "cancelled") {
+          setMessage("모델 다운로드를 취소했습니다. 이미 받은 캐시는 다음 다운로드에서 재사용될 수 있습니다.");
+          await refresh();
         }
-        if (fresh.status === "failed") setMessage(fresh.error || "모델 다운로드에 실패했습니다.");
       } catch {
         // Keep visible state while the local sidecar reconnects.
       }
@@ -117,7 +124,7 @@ export default function ModelManager() {
   }, [job?.job_id, job?.status]);
 
   useEffect(() => {
-    if (!authJob || ["done", "failed"].includes(authJob.status)) return;
+    if (!authJob || ["done", "failed", "cancelled"].includes(authJob.status)) return;
     const timer = window.setInterval(async () => {
       try {
         const response = await fetch(`${API}/api/models/hf-auth/${authJob.auth_id}`);
@@ -127,8 +134,11 @@ export default function ModelManager() {
         if (fresh.status === "done") {
           setMessage("Hugging Face 로그인이 완료되었습니다.");
           await refresh();
+        } else if (fresh.status === "failed") {
+          setMessage(fresh.error || "Hugging Face 로그인에 실패했습니다.");
+        } else if (fresh.status === "cancelled") {
+          setMessage("Hugging Face 로그인을 취소했습니다.");
         }
-        if (fresh.status === "failed") setMessage(fresh.error || "Hugging Face 로그인에 실패했습니다.");
       } catch {
         // Preserve the browser-auth code while reconnecting.
       }
@@ -149,12 +159,24 @@ export default function ModelManager() {
         setMessage("이미 Hugging Face에 로그인되어 있습니다.");
         await refresh();
       } else {
-        setAuthJob({ auth_id: body.auth_id, status: "queued", authenticated: false });
+        setAuthJob({ auth_id: body.auth_id, status: body.status ?? "queued", authenticated: false });
       }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const cancelAuth = async () => {
+    if (!authJob || ["done", "failed", "cancelled"].includes(authJob.status)) return;
+    try {
+      const response = await fetch(`${API}/api/models/hf-auth/${authJob.auth_id}/cancel`, { method: "POST" });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(body?.detail ?? "로그인 취소에 실패했습니다.");
+      setAuthJob((current) => current ? { ...current, status: body.status ?? "cancelling" } : current);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
     }
   };
 
@@ -192,6 +214,18 @@ export default function ModelManager() {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const cancelDownload = async () => {
+    if (!job || ["done", "failed", "cancelled"].includes(job.status)) return;
+    try {
+      const response = await fetch(`${API}/api/models/jobs/${job.job_id}/cancel`, { method: "POST" });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(body?.detail ?? "다운로드 취소에 실패했습니다.");
+      setJob((current) => current ? { ...current, status: body.status ?? "cancelling" } : current);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
     }
   };
 
@@ -281,21 +315,25 @@ export default function ModelManager() {
                 </div>
                 <div className="model-auth-actions">
                   <button type="button" onClick={() => void openUrl("https://huggingface.co/MuScriptor/muscriptor-large")}>1. 라이선스 수락</button>
-                  {!authJob || authJob.status === "failed" ? (
+                  {!authJob || ["failed", "cancelled"].includes(authJob.status) ? (
                     <button type="button" disabled={busy || !status.hf_cli_ready} onClick={() => void startAuth()}>2. 로그인 시작</button>
                   ) : authJob.status === "done" ? (
                     <span>로그인 완료</span>
                   ) : (
-                    <button type="button" onClick={() => void openAuthPage()}>{authJob.user_code ? "브라우저에서 코드 입력" : "인증 페이지 열기"}</button>
+                    <>
+                      {authJob.status !== "cancelling" && <button type="button" onClick={() => void openAuthPage()}>{authJob.user_code ? "브라우저에서 코드 입력" : "인증 페이지 열기"}</button>}
+                      <button type="button" className="model-secondary" disabled={authJob.status === "cancelling"} onClick={() => void cancelAuth()}>{authJob.status === "cancelling" ? "취소 중…" : "로그인 취소"}</button>
+                    </>
                   )}
                 </div>
               </div>
             )}
 
-            {job && ["queued", "running"].includes(job.status) && (
+            {job && !["done", "failed", "cancelled"].includes(job.status) && (
               <div className="model-download-banner">
-                <div><strong>MuScriptor {job.variant} 다운로드 중</strong><span>{formatBytes(job.cached_bytes)} / 약 {formatBytes(job.target_bytes)}</span></div>
+                <div><strong>MuScriptor {job.variant} {job.status === "cancelling" ? "취소 중" : "다운로드 중"}</strong><span>{formatBytes(job.cached_bytes)} / 약 {formatBytes(job.target_bytes)}</span></div>
                 <div className="model-progress"><span style={{ width: `${job.progress}%` }} /></div><b>{job.progress}%</b>
+                <button type="button" className="model-secondary" disabled={job.status === "cancelling"} onClick={() => void cancelDownload()}>{job.status === "cancelling" ? "취소 중…" : "다운로드 취소"}</button>
               </div>
             )}
 
