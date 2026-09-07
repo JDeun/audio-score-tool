@@ -155,8 +155,6 @@ def _aligned_similarity(source: np.ndarray, synth: np.ndarray, shift: int) -> np
 
 
 def _measure_guess(seconds: float, xml_text: str) -> str | None:
-    # Conservative estimate from the first explicit metronome/time signature. Exact
-    # measure mapping belongs to a future tempo-map implementation.
     import xml.etree.ElementTree as ET
 
     try:
@@ -232,6 +230,7 @@ def validate_audio_symbol(
         shift = _best_shift(_novelty(src_chroma), _novelty(syn_chroma), max_shift_frames)
         similarity = _aligned_similarity(src_chroma, syn_chroma, shift)
         frame_seconds = hop / sr
+        source_offset_frames = max(0, shift)
         window_frames = max(1, int(window_seconds / frame_seconds))
         issues: list[AudioSymbolIssue] = []
         window_scores: list[dict[str, float]] = []
@@ -240,8 +239,9 @@ def validate_audio_symbol(
             if chunk.size == 0:
                 continue
             score = float(np.mean(chunk))
-            start_sec = start * frame_seconds
-            end_sec = (start + len(chunk)) * frame_seconds
+            source_start_frame = start + source_offset_frames
+            start_sec = source_start_frame * frame_seconds
+            end_sec = (source_start_frame + len(chunk)) * frame_seconds
             window_scores.append(
                 {"start_seconds": round(start_sec, 3), "end_seconds": round(end_sec, 3), "similarity": round(score, 4)}
             )
