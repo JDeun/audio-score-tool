@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import platform
 import shlex
 import shutil
 import signal
@@ -28,14 +29,55 @@ def split_command(value: str) -> list[str]:
     return parts
 
 
+def resolve_executable(name: str) -> str | None:
+    """Resolve CLI tools from PATH and common GUI-app installation locations."""
+    expanded = Path(name).expanduser()
+    if expanded.is_file():
+        return str(expanded)
+    found = shutil.which(name)
+    if found:
+        return found
+
+    suffix = ".exe" if os.name == "nt" else ""
+    executable = f"{name}{suffix}" if suffix and not name.lower().endswith(suffix) else name
+    candidates = [
+        Path.home() / ".local" / "bin" / executable,
+        Path.home() / ".cargo" / "bin" / executable,
+    ]
+    system = platform.system()
+    if system == "Darwin":
+        candidates += [
+            Path("/opt/homebrew/bin") / executable,
+            Path("/usr/local/bin") / executable,
+            Path("/opt/homebrew/sbin") / executable,
+            Path("/usr/local/sbin") / executable,
+            Path("/usr/bin") / executable,
+        ]
+    elif system == "Linux":
+        candidates += [
+            Path("/usr/local/bin") / executable,
+            Path("/usr/bin") / executable,
+            Path("/snap/bin") / executable,
+        ]
+    elif system == "Windows":
+        userprofile = Path(os.getenv("USERPROFILE", str(Path.home())))
+        localappdata = Path(os.getenv("LOCALAPPDATA", str(userprofile / "AppData" / "Local")))
+        candidates += [
+            userprofile / ".local" / "bin" / executable,
+            localappdata / "Programs" / "Python" / "Scripts" / executable,
+            localappdata / "Microsoft" / "WinGet" / "Links" / executable,
+        ]
+    for candidate in candidates:
+        if candidate.is_file():
+            return str(candidate)
+    return None
+
+
 def command_exists(command: str) -> bool:
     parts = split_command(command)
     if not parts:
         return False
-    first = parts[0]
-    if Path(first).is_file():
-        return True
-    return shutil.which(first) is not None
+    return resolve_executable(parts[0]) is not None
 
 
 def _terminate_process_tree(proc: subprocess.Popen[str]) -> None:
@@ -78,6 +120,9 @@ def run_command(
     parts = split_command(command)
     if not parts:
         raise CommandError("Command is empty.")
+    resolved = resolve_executable(parts[0])
+    if resolved:
+        parts[0] = resolved
 
     argv = [*parts, *(str(a) for a in args)]
     merged_env = os.environ.copy()
