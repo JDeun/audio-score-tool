@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import errno
 import re
 import shutil
 from pathlib import Path
@@ -49,7 +50,8 @@ def export_to_directory(song_id: str, payload: DesktopExportRequest) -> dict:
         destination_root.mkdir(parents=True, exist_ok=True)
         destination_root = destination_root.resolve()
     except OSError as exc:
-        raise HTTPException(422, f"저장 폴더에 접근할 수 없습니다: {exc}") from exc
+        status = 507 if exc.errno == errno.ENOSPC else 422
+        raise HTTPException(status, f"저장 폴더에 접근할 수 없습니다: {exc}") from exc
     if not destination_root.is_dir():
         raise HTTPException(422, "선택한 저장 위치가 폴더가 아닙니다.")
 
@@ -60,7 +62,8 @@ def export_to_directory(song_id: str, payload: DesktopExportRequest) -> dict:
         shutil.copytree(source, target)
     except OSError as exc:
         shutil.rmtree(target, ignore_errors=True)
-        raise HTTPException(500, f"최종 파일을 선택한 폴더에 저장하지 못했습니다: {exc}") from exc
+        status = 507 if exc.errno == errno.ENOSPC else 500
+        raise HTTPException(status, f"최종 파일을 선택한 폴더에 저장하지 못했습니다: {exc}") from exc
 
     return {
         **result,
