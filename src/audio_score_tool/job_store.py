@@ -128,5 +128,16 @@ class JobStore:
         result = dict(row)
         result["skip_lyrics"] = bool(result["skip_lyrics"])
         raw = result.pop("result_json", None)
-        result["result"] = json.loads(raw) if raw else None
+        result["result_corrupt"] = False
+        if not raw:
+            result["result"] = None
+            return result
+        try:
+            result["result"] = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            # One malformed historical row must not make the entire job history or song
+            # synchronization endpoint unavailable. Preserve the row and expose its
+            # corruption explicitly so cleanup/retry UI can still recover around it.
+            result["result"] = None
+            result["result_corrupt"] = True
         return result
