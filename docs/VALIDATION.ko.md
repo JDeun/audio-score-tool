@@ -30,7 +30,7 @@ LLM이 잘하는 것은 다음입니다.
 LLM이 단독으로 하면 안 되는 것은 다음입니다.
 
 - 원음을 듣지 않고 note correctness 확정
-- 높은 confidence 근거 없이 pitch/ rhythm 자동 수정
+- 높은 confidence 근거 없이 pitch/rhythm 자동 수정
 - 악기 배정을 임의로 바꾸기
 - 사용자의 승인 없이 MusicXML 변경
 
@@ -58,6 +58,8 @@ model    = qwen3.5:9b
 ```
 
 Ollama, vLLM, LM Studio 등 OpenAI-compatible API를 제공하는 로컬 서버를 연결할 수 있습니다. 원격 endpoint는 HTTPS만 허용합니다.
+
+특정 provider의 structured-output 확장에 의존하지 않습니다. Prompt에서 JSON 응답을 요구하고 결과에서 JSON object를 추출하는 방식으로 구현해 Ollama/vLLM/LM Studio/hosted compatible API 간 호환성을 높였습니다.
 
 API key 자체는 설정 파일에 저장하지 않습니다. 예를 들어 UI에 `OPENAI_API_KEY`라는 **환경변수 이름만** 저장하고 실제 token은 프로세스 환경에서 읽습니다.
 
