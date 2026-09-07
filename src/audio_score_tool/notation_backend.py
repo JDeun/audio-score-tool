@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Event
@@ -112,33 +113,36 @@ def musicxml_to_pdf_lilypond(
         raise NotationBackendUnavailable(
             "LilyPond PDF backend에는 musicxml2ly와 lilypond 실행 파일이 필요합니다."
         )
-    work = target.parent / ".lilypond-work"
-    work.mkdir(parents=True, exist_ok=True)
-    ly_path = work / "score.ly"
-    output_base = work / "score"
-    try:
-        run_command(
-            settings.musicxml2ly_cmd,
-            ["-o", ly_path, source],
-            cwd=work,
-            cancel_event=cancel_event,
-        )
-        run_command(
-            settings.lilypond_cmd,
-            ["--pdf", "-o", output_base, ly_path],
-            cwd=work,
-            cancel_event=cancel_event,
-        )
-    except CommandCancelled:
-        raise
-    except CommandError as exc:
-        raise NotationBackendError(f"LilyPond PDF 생성 실패:\n{exc}") from exc
-
-    generated = output_base.with_suffix(".pdf")
-    if not generated.is_file():
-        raise NotationBackendError("LilyPond가 PDF를 생성하지 않았습니다.")
     target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(generated, target)
+    # Never place renderer intermediates in the user-facing export tree. A unique
+    # temporary workspace also prevents two export requests from clobbering the same
+    # score.ly/score.pdf files.
+    with tempfile.TemporaryDirectory(prefix="audioscore-lilypond-") as raw_work:
+        work = Path(raw_work)
+        ly_path = work / "score.ly"
+        output_base = work / "score"
+        try:
+            run_command(
+                settings.musicxml2ly_cmd,
+                ["-o", ly_path, source],
+                cwd=work,
+                cancel_event=cancel_event,
+            )
+            run_command(
+                settings.lilypond_cmd,
+                ["--pdf", "-o", output_base, ly_path],
+                cwd=work,
+                cancel_event=cancel_event,
+            )
+        except CommandCancelled:
+            raise
+        except CommandError as exc:
+            raise NotationBackendError(f"LilyPond PDF 생성 실패:\n{exc}") from exc
+
+        generated = output_base.with_suffix(".pdf")
+        if not generated.is_file():
+            raise NotationBackendError("LilyPond가 PDF를 생성하지 않았습니다.")
+        shutil.copy2(generated, target)
     return target
 
 
