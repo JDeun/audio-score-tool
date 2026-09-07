@@ -29,6 +29,8 @@ MusicBrainz 공개 API 정책에 맞춰:
 
 92점 미만 후보는 사용자에게 보여주기만 하고 제목/아티스트를 자동 변경하지 않습니다.
 
+상용 모드에서는 공개 MusicBrainz Web Service를 무조건 호출하지 않습니다. 사용자가 상용 이용 자격/계약을 확인했다는 명시적 플래그가 있어야 호출합니다. 장기적으로는 상용 계약 endpoint나 로컬 CC0 dataset index를 별도 provider로 둘 수 있습니다.
+
 ## 가사
 
 가사는 저작권 보호 대상일 수 있으므로 일반 검색 결과나 임의 웹페이지를 scraping하지 않습니다.
@@ -39,8 +41,12 @@ MusicBrainz 공개 API 정책에 맞춰:
 허용된/계약된 lyrics API가 설정됨
     ↓ yes
 Provider 가사 확보 + provenance 저장
+    ↓
+WhisperX word timing과 reference text 정렬
+    ↓
+사용자가 적용을 선택하면 MusicXML lyric 교정
 
-    ↓ no / 실패
+    ↓ provider 없음 / 실패
 WhisperX 전사 + 기존 시간 정렬
 ```
 
@@ -54,6 +60,38 @@ https://api.example.com/lyrics?artist={artist}&title={title}
 
 원격 endpoint는 HTTPS만 허용하며 localhost만 HTTP 예외를 허용합니다.
 
+## Reference lyrics + acoustic timing
+
+외부 provider의 텍스트를 그대로 시간축 정답으로 취급하지 않습니다.
+
+```text
+외부 provider
+  → clean lyric text
+
+WhisperX
+  → word start/end timing
+
+두 결과
+  → SequenceMatcher 기반 token span alignment
+  → 동일 token은 WhisperX timing 그대로 유지
+  → 교체/삽입 token은 대응 ASR span에 보수적으로 분배
+  → 한국어는 기존 Hangul syllable timing 확장
+  → MusicXML vocal part에 재부착
+```
+
+따라서 역할은 명확히 분리됩니다.
+
+- **문자열 정확도:** 외부 reference lyrics
+- **시간/가창 근거:** 원음에서 얻은 WhisperX timing
+
+가사를 악보에 적용할 때는 Revision snapshot을 먼저 만들므로 기존 Undo 흐름을 유지합니다. 정렬할 WhisperX timing이 없으면 외부 가사를 자동 적용하지 않습니다.
+
+결과 provenance는 다음 analysis에 보존합니다.
+
+- `external_enrichment`
+- `external_lyrics`
+- `reference_lyrics_alignment`
+
 ## 원칙
 
 - 웹에서 발견했다는 이유만으로 가사를 저장하지 않음
@@ -62,6 +100,7 @@ https://api.example.com/lyrics?artist={artist}&title={title}
 - metadata는 high-confidence에서만 자동 반영
 - clean lyrics가 있더라도 음표 타이밍은 원음/ASR alignment evidence를 활용
 - 사람이 수정한 title/artist/lyrics를 외부 결과로 무조건 덮어쓰지 않음
+- 상용 모드에서 공개 API의 상용 권한을 추정하지 않음
 
 ## API
 
@@ -71,6 +110,16 @@ POST /api/songs/{song_id}/enrich
 
 기본 요청은 MusicBrainz metadata만 조회합니다. `lyrics_url_template`을 명시했을 때만 외부 lyrics provider를 호출합니다.
 
+주요 옵션:
+
+- `apply_high_confidence_metadata`
+- `metadata_threshold`
+- `musicbrainz_commercial_entitlement`
+- `lyrics_provider_name`
+- `lyrics_url_template`
+- `lyrics_api_key_env`
+- `apply_reference_lyrics`
+
 ## 향후 확장
 
 - ISRC 우선 매칭
@@ -78,5 +127,5 @@ POST /api/songs/{song_id}/enrich
 - AcoustID fingerprint 기반 recording identification
 - YouTube title/uploader를 search hint로 분리
 - lyrics provider별 정식 adapter와 라이선스 상태 UI
-- reference lyrics ↔ WhisperX word timing forced alignment
 - composer/lyricist/work relationship를 출판 credit에 제안
+- reference lyrics alignment confidence가 낮은 span만 사용자 검토 대상으로 표시
