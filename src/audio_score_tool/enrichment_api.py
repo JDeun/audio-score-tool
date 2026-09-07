@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from .enrichment import EnrichmentError, LyricsProvider, choose_high_confidence, fetch_lyrics, search_musicbrainz
+from .runtime_settings import runtime_settings
 from .song_store_v2 import SongStoreV2
 
 router = APIRouter(prefix="/api/songs", tags=["enrichment"])
@@ -15,6 +16,7 @@ class EnrichRequest(BaseModel):
     artist: str | None = None
     apply_high_confidence_metadata: bool = True
     metadata_threshold: int = Field(default=92, ge=70, le=100)
+    musicbrainz_commercial_entitlement: bool = False
     lyrics_provider_name: str | None = None
     lyrics_url_template: str | None = None
     lyrics_api_key_env: str | None = None
@@ -25,6 +27,13 @@ def enrich_song(song_id: str, payload: EnrichRequest) -> dict:
     song = _store.get(song_id)
     if not song:
         raise HTTPException(404, "Song not found")
+
+    settings = runtime_settings()
+    if settings.usage_mode == "commercial" and not payload.musicbrainz_commercial_entitlement:
+        raise HTTPException(
+            422,
+            "상용 모드에서는 MusicBrainz 공개 Web Service의 상용 이용 자격/계약을 확인한 뒤 사용하세요.",
+        )
 
     title = (payload.title or song.get("title") or "").strip()
     artist = (payload.artist if payload.artist is not None else song.get("artist")) or None
@@ -72,6 +81,7 @@ def enrich_song(song_id: str, payload: EnrichRequest) -> dict:
             "applied": applied,
             "error": metadata_error,
             "policy": "auto-apply only above configured confidence threshold",
+            "commercial_entitlement_confirmed": payload.musicbrainz_commercial_entitlement,
         },
         "lyrics": lyrics,
         "lyrics_error": lyrics_error,
