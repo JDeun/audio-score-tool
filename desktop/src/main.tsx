@@ -11,6 +11,7 @@ import SetupCenter from "./SetupCenter";
 import ValidationController from "./ValidationController";
 import "./styles.css";
 import "./error-boundary.css";
+import "./ui-polish.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
