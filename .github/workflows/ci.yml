@@ -74,4 +74,4 @@ jobs:
           chmod +x desktop/src-tauri/binaries/audio-score-backend-x86_64-unknown-linux-gnu
 
       - name: Check Tauri shell
-        run: cargo check --locked --manifest-path desktop/src-tauri/Cargo.toml
+        run: cargo check --manifest-path desktop/src-tauri/Cargo.toml
