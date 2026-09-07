@@ -5,7 +5,8 @@ const API = "http://127.0.0.1:8080";
 type SongSummary = { song_id: string };
 
 export default function SourceIdentificationController() {
-  const attempted = useRef(new Set<string>());
+  const completed = useRef(new Set<string>());
+  const inFlight = useRef(new Set<string>());
 
   useEffect(() => {
     let cancelled = false;
@@ -17,8 +18,8 @@ export default function SourceIdentificationController() {
         const body = await listResponse.json();
         const songs: SongSummary[] = body.songs ?? [];
         for (const song of songs) {
-          if (cancelled || attempted.current.has(song.song_id)) continue;
-          attempted.current.add(song.song_id);
+          if (cancelled || completed.current.has(song.song_id) || inFlight.current.has(song.song_id)) continue;
+          inFlight.current.add(song.song_id);
           try {
             const response = await fetch(`${API}/api/songs/${song.song_id}/identify-source`, {
               method: "POST",
@@ -28,11 +29,17 @@ export default function SourceIdentificationController() {
                 apply_high_confidence_metadata: true,
               }),
             });
+            // Only successful responses are terminal for this desktop session. A transient
+            // 5xx/network failure must be retried on the next interval instead of being
+            // permanently suppressed by the client-side de-duplication set.
             if (!response.ok) continue;
             const report = await response.json();
+            completed.current.add(song.song_id);
             window.dispatchEvent(new CustomEvent("audioscore:source-identified", { detail: report }));
           } catch {
-            // Per-song identification is enrichment only; one failure must not stop the queue.
+            // Per-song identification is enrichment only; retry transient failures later.
+          } finally {
+            inFlight.current.delete(song.song_id);
           }
         }
       } catch {
