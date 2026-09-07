@@ -49,6 +49,10 @@ class IdentifySourceRequest(BaseModel):
     fpcalc_cmd: str = "fpcalc"
 
 
+def _env_flag(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def _apply_metadata(song_id: str, song: dict, selected: dict, fallback_title: str, fallback_artist: str | None) -> bool:
     next_title = str(selected.get("title") or fallback_title).strip() or "제목 없는 곡"
     next_artist = str(selected.get("artist") or fallback_artist or "").strip() or None
@@ -65,7 +69,17 @@ def _apply_metadata(song_id: str, song: dict, selected: dict, fallback_title: st
             if revision is not None:
                 _store.discard_snapshot(song_id, revision)
             return False
-    updated = _store.update_metadata(song_id, title=next_title, artist=next_artist)
+    try:
+        updated = _store.update_metadata(song_id, title=next_title, artist=next_artist)
+    except Exception:
+        # Keep canonical score metadata and the MusicXML title atomic from the user's
+        # perspective. If the DB metadata write fails after the score edit, restore the
+        # snapshot instead of leaving two conflicting titles behind.
+        if revision is not None:
+            _store.restore_revision(song_id, revision)
+        return False
+    if updated is None and revision is not None:
+        _store.restore_revision(song_id, revision)
     return updated is not None
 
 
@@ -122,22 +136,26 @@ def identify_song_source(song_id: str, payload: IdentifySourceRequest) -> dict:
         return report
 
     settings = runtime_settings()
+    mb_entitled = payload.musicbrainz_commercial_entitlement or _env_flag("AST_MUSICBRAINZ_COMMERCIAL_ENTITLED")
+    acoustid_entitled = payload.acoustid_commercial_entitlement or _env_flag("AST_ACOUSTID_COMMERCIAL_ENTITLED")
     report = identify_source(
         audio,
         usage_mode=settings.usage_mode,
         fpcalc_cmd=payload.fpcalc_cmd,
         acoustid_client_key_env=payload.acoustid_client_key_env,
-        acoustid_commercial_entitled=payload.acoustid_commercial_entitlement,
+        acoustid_commercial_entitled=acoustid_entitled,
     )
 
     tags = report.get("embedded_tags") or {}
     selected = report.get("selected")
     musicbrainz_candidates: list[dict] = []
+    fuzzy_candidates: list[dict] = []
     mb_error = None
+    mb_allowed = settings.usage_mode != "commercial" or mb_entitled
 
     # ISRC is a cleaner identifier than fuzzy title search and should win when present.
     if tags.get("isrc"):
-        if settings.usage_mode == "commercial" and not payload.musicbrainz_commercial_entitlement:
+        if not mb_allowed:
             mb_error = "commercial MusicBrainz Web Service entitlement not confirmed"
         else:
             try:
@@ -145,13 +163,39 @@ def identify_song_source(song_id: str, payload: IdentifySourceRequest) -> dict:
             except EnrichmentError as exc:
                 mb_error = str(exc)
             if musicbrainz_candidates:
-                selected = musicbrainz_candidates[0]
-                selected = {**selected, "confidence": 0.99, "reason": "ISRC → MusicBrainz exact identifier path"}
+                selected = {
+                    **musicbrainz_candidates[0],
+                    "confidence": 0.99,
+                    "reason": "ISRC → MusicBrainz exact identifier path",
+                }
 
     confidence = float((selected or {}).get("confidence") or 0.0)
-    # MusicBrainz search candidates use 0..100 while tag/AcoustID confidence uses 0..1.
     if selected and "score" in selected:
         confidence = max(confidence, float(selected.get("score") or 0) / 100.0)
+
+    # The policy has always promised a MusicBrainz fuzzy fallback. Actually execute it
+    # when tags/ISRC/AcoustID did not produce an auto-applicable identity. This matters
+    # most for YouTube imports whose downloaded audio usually has no useful embedded tags.
+    if confidence < 0.92 and mb_allowed:
+        query_title = str(tags.get("title") or song.get("title") or "").strip()
+        query_artist = str(tags.get("artist") or song.get("artist") or "").strip() or None
+        if query_title and query_title not in {"YouTube import", "제목 없는 곡"}:
+            try:
+                fuzzy_candidates = search_musicbrainz(query_title, query_artist, limit=5)
+            except EnrichmentError as exc:
+                mb_error = mb_error or str(exc)
+            fuzzy = choose_high_confidence(fuzzy_candidates, threshold=92)
+            if fuzzy:
+                fuzzy_confidence = float(fuzzy.get("score") or 0) / 100.0
+                if fuzzy_confidence > confidence:
+                    selected = {
+                        **fuzzy,
+                        "confidence": fuzzy_confidence,
+                        "reason": "high-confidence MusicBrainz fuzzy title/artist match",
+                    }
+                    confidence = fuzzy_confidence
+    elif confidence < 0.92 and not mb_allowed and mb_error is None:
+        mb_error = "commercial MusicBrainz Web Service entitlement not confirmed"
 
     applied = False
     if selected and confidence >= 0.92 and payload.apply_high_confidence_metadata:
@@ -169,6 +213,7 @@ def identify_song_source(song_id: str, payload: IdentifySourceRequest) -> dict:
         "selected": selected,
         "selected_confidence": round(confidence, 4),
         "musicbrainz_isrc_candidates": musicbrainz_candidates,
+        "musicbrainz_fuzzy_candidates": fuzzy_candidates,
         "musicbrainz_error": mb_error,
         "applied": applied,
         "policy": {
@@ -177,6 +222,8 @@ def identify_song_source(song_id: str, payload: IdentifySourceRequest) -> dict:
             "priority": ["embedded tags", "ISRC", "AcoustID fingerprint", "MusicBrainz fuzzy", "model fallback"],
             "acoustid_client_key_embedded": False,
             "commercial_services_require_entitlement": True,
+            "musicbrainz_commercial_entitlement": mb_entitled,
+            "acoustid_commercial_entitlement": acoustid_entitled,
         },
     }
     _store.set_analysis(song_id, "source_identification", final)
@@ -190,7 +237,8 @@ def enrich_song(song_id: str, payload: EnrichRequest) -> dict:
         raise HTTPException(404, "Song not found")
 
     settings = runtime_settings()
-    if settings.usage_mode == "commercial" and not payload.musicbrainz_commercial_entitlement:
+    mb_entitled = payload.musicbrainz_commercial_entitlement or _env_flag("AST_MUSICBRAINZ_COMMERCIAL_ENTITLED")
+    if settings.usage_mode == "commercial" and not mb_entitled:
         raise HTTPException(
             422,
             "상용 모드에서는 MusicBrainz 공개 Web Service의 상용 이용 자격/계약을 확인한 뒤 사용하세요.",
@@ -240,7 +288,7 @@ def enrich_song(song_id: str, payload: EnrichRequest) -> dict:
             "applied": applied,
             "error": metadata_error,
             "policy": "auto-apply only above configured confidence threshold; title is synchronized with MusicXML/layout",
-            "commercial_entitlement_confirmed": payload.musicbrainz_commercial_entitlement,
+            "commercial_entitlement_confirmed": mb_entitled,
         },
         "lyrics": lyrics,
         "lyrics_error": lyrics_error,
