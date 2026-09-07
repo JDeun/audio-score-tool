@@ -16,6 +16,7 @@ from .request_limits import RequestSizeLimitMiddleware
 from .runtime_settings import runtime_settings
 from .setup_center_api import router as setup_center_router
 from .song_api_v2 import router as song_router
+from .song_mutation_lock import SongMutationSerializationMiddleware
 from .upload_api_v2 import router as upload_router
 from .validation_api import router as validation_router
 
@@ -27,6 +28,7 @@ base_api.preflight = preflight_v2
 app = base_api.app
 app.version = "0.8.0"
 app.add_middleware(RequestSizeLimitMiddleware)
+app.add_middleware(SongMutationSerializationMiddleware)
 
 # Remove legacy handlers that now have v0.8 owners. This avoids request-order shadowing
 # and keeps OpenAPI aligned with the endpoint users actually reach.
