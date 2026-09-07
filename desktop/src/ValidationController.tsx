@@ -10,6 +10,7 @@ type Issue = {
   message: string;
   part?: string | null;
   measure?: string | null;
+  page?: number | null;
   confidence?: number;
   suggested_action?: string | null;
   source?: string;
@@ -20,13 +21,18 @@ type ValidationReport = {
   ok: boolean;
   issues: Issue[];
   llm?: { summary: string; model: string; advisory: boolean } | null;
-  policy: { llm_is_advisory: boolean; auto_edit: boolean };
+  visual?: { summary: string; model: string; pages_compared: number; advisory: boolean } | null;
+  visual_skipped?: string | null;
+  policy: { llm_is_advisory: boolean; visual_is_advisory?: boolean; auto_edit: boolean };
 };
 type ValidationSettings = {
   enabled: boolean;
   base_url: string;
   model: string;
   api_key_env?: string | null;
+  visual_enabled: boolean;
+  visual_model: string;
+  visual_max_pages: number;
 };
 
 function currentTarget(): ValidationTarget | null {
@@ -51,8 +57,12 @@ export default function ValidationController() {
     base_url: "http://127.0.0.1:11434/v1",
     model: "qwen3.5:9b",
     api_key_env: "",
+    visual_enabled: false,
+    visual_model: "qwen2.5vl:7b",
+    visual_max_pages: 4,
   });
   const [useLlm, setUseLlm] = useState(false);
+  const [useVisual, setUseVisual] = useState(false);
 
   useEffect(() => {
     const refreshTarget = () => setTarget(currentTarget());
@@ -70,6 +80,7 @@ export default function ValidationController() {
         if (!body) return;
         setSettings(body);
         setUseLlm(Boolean(body.enabled));
+        setUseVisual(Boolean(body.visual_enabled));
       })
       .catch(() => undefined);
   }, [open]);
@@ -84,7 +95,7 @@ export default function ValidationController() {
     const response = await fetch(`${API}/api/validation/settings`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...settings, enabled: useLlm }),
+      body: JSON.stringify({ ...settings, enabled: useLlm, visual_enabled: useVisual }),
     });
     if (!response.ok) throw new Error(await response.text());
   };
@@ -99,7 +110,7 @@ export default function ValidationController() {
       const response = await fetch(`${API}/api/songs/${target.songId}/validate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ use_llm: useLlm }),
+        body: JSON.stringify({ use_llm: useLlm, use_visual: useVisual }),
       });
       if (!response.ok) throw new Error(await response.text());
       const body: ValidationReport = await response.json();
@@ -128,7 +139,7 @@ export default function ValidationController() {
 
             <div className="validation-policy">
               <strong>검증 정책</strong>
-              <p>규칙 기반 검사는 항상 실행합니다. LLM은 음악적 이상치와 검토 후보를 찾는 critic이며 자동 수정이나 원음 일치 판정을 하지 않습니다.</p>
+              <p>규칙 기반 검사는 항상 실행합니다. 텍스트 LLM은 음악적 이상치를 설명하고, OMR 시각 검증은 원본 악보와 재렌더링 결과를 VLM으로 대조합니다. 둘 다 검토 후보만 제시하며 자동 수정하지 않습니다.</p>
             </div>
 
             <label className="validation-toggle">
@@ -136,10 +147,17 @@ export default function ValidationController() {
               <span>LLM critic 함께 사용</span>
             </label>
 
-            {useLlm && (
+            <label className="validation-toggle">
+              <input type="checkbox" checked={useVisual} onChange={(event) => setUseVisual(event.target.checked)} />
+              <span>OMR 원본 ↔ 재렌더링 시각 비교</span>
+            </label>
+
+            {(useLlm || useVisual) && (
               <div className="validation-settings-grid">
                 <label><span>OpenAI-compatible endpoint</span><input value={settings.base_url} onChange={(event) => setSettings((current) => ({ ...current, base_url: event.target.value }))} /></label>
-                <label><span>모델</span><input value={settings.model} onChange={(event) => setSettings((current) => ({ ...current, model: event.target.value }))} /></label>
+                {useLlm && <label><span>텍스트 critic 모델</span><input value={settings.model} onChange={(event) => setSettings((current) => ({ ...current, model: event.target.value }))} /></label>}
+                {useVisual && <label><span>Vision 모델</span><input value={settings.visual_model} placeholder="예: qwen2.5vl:7b" onChange={(event) => setSettings((current) => ({ ...current, visual_model: event.target.value }))} /></label>}
+                {useVisual && <label><span>비교 페이지 수</span><input type="number" min={1} max={8} value={settings.visual_max_pages} onChange={(event) => setSettings((current) => ({ ...current, visual_max_pages: Number(event.target.value) || 1 }))} /></label>}
                 <label><span>API key 환경변수명</span><input value={settings.api_key_env ?? ""} placeholder="예: OPENAI_API_KEY" onChange={(event) => setSettings((current) => ({ ...current, api_key_env: event.target.value }))} /></label>
               </div>
             )}
@@ -155,14 +173,17 @@ export default function ValidationController() {
                   <strong>{report.ok ? "구조적 치명 오류 없음" : "수정이 필요한 오류 감지"}</strong>
                   <span>오류 {counts.error} · 경고 {counts.warning} · 정보 {counts.info}</span>
                   {report.llm && <small>LLM critic: {report.llm.model} · {report.llm.summary}</small>}
+                  {report.visual && <small>OMR Vision: {report.visual.model} · {report.visual.pages_compared}페이지 비교 · {report.visual.summary}</small>}
+                  {report.visual_skipped && <small>OMR Vision 건너뜀: {report.visual_skipped}</small>}
                 </div>
                 <div className="validation-issues">
-                  {report.issues.length === 0 && <p>현재 규칙에서 발견된 이상 항목이 없습니다.</p>}
+                  {report.issues.length === 0 && <p>현재 검사에서 발견된 이상 항목이 없습니다.</p>}
                   {report.issues.map((issue, index) => (
                     <article key={`${issue.source}-${index}`} className={`validation-issue ${issue.severity}`}>
-                      <div><strong>{issue.category}</strong><span>{issue.source === "llm" ? "LLM 가설" : "규칙 검사"}</span></div>
+                      <div><strong>{issue.category}</strong><span>{issue.source === "llm" ? "LLM 가설" : issue.source === "vision" ? "원본 비교" : "규칙 검사"}</span></div>
                       <p>{issue.message}</p>
-                      {(issue.part || issue.measure) && <small>{issue.part || ""}{issue.measure ? ` · M${issue.measure}` : ""}</small>}
+                      {(issue.page || issue.part || issue.measure) && <small>{issue.page ? `P${issue.page}` : ""}{issue.part ? `${issue.page ? " · " : ""}${issue.part}` : ""}{issue.measure ? ` · M${issue.measure}` : ""}</small>}
+                      {typeof issue.confidence === "number" && issue.source === "vision" && <small>confidence {Math.round(issue.confidence * 100)}%</small>}
                       {issue.suggested_action && <em>{issue.suggested_action}</em>}
                     </article>
                   ))}
