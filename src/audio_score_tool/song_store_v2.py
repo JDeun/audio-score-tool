@@ -6,7 +6,7 @@ import sqlite3
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
-from threading import Lock
+from threading import Lock, get_ident
 from typing import Any
 
 from .paths import cache_dir, database_path, exports_dir, jobs_dir, song_assets_dir
@@ -33,13 +33,7 @@ def _valid_score_xml(text: str) -> str:
 
 
 class SongStoreV2:
-    """SQLite-canonical Song/Score store with managed cache and explicit exports.
-
-    MusicXML, publication-compatible revision snapshots, and analysis JSON live in the
-    database. Files under ``cache`` are disposable materializations for libraries and
-    external tools that require paths. Files under ``exports`` are created only by an
-    explicit final-export action.
-    """
+    """SQLite-canonical Song/Score store with managed cache and explicit exports."""
 
     def __init__(
         self,
@@ -93,10 +87,7 @@ class SongStoreV2:
                 """
             )
             columns = self._columns(conn, "songs")
-            for name, ddl in (
-                ("original_score_xml", "TEXT"),
-                ("current_score_xml", "TEXT"),
-            ):
+            for name, ddl in (("original_score_xml", "TEXT"), ("current_score_xml", "TEXT")):
                 if name not in columns:
                     conn.execute(f"ALTER TABLE songs ADD COLUMN {name} {ddl}")
             conn.execute(
@@ -162,20 +153,13 @@ class SongStoreV2:
                 continue
             with self._lock, self._connect() as conn:
                 conn.execute(
-                    """
-                    UPDATE songs
-                    SET original_score_xml=?, current_score_xml=?, updated_at=?
-                    WHERE song_id=?
-                    """,
+                    "UPDATE songs SET original_score_xml=?, current_score_xml=?, updated_at=? WHERE song_id=?",
                     (original, current, _now(), row["song_id"]),
                 )
 
     def _migrate_source_kinds(self) -> None:
-        """Repair early v0.8 OMR rows that were incorrectly labelled as local audio."""
         with self._connect() as conn:
-            rows = conn.execute(
-                "SELECT song_id, source_kind FROM songs WHERE source_kind='local'"
-            ).fetchall()
+            rows = conn.execute("SELECT song_id FROM songs WHERE source_kind='local'").fetchall()
         for row in rows:
             asset_dir = self.asset_root / str(row["song_id"])
             if asset_dir.exists() and any(asset_dir.glob("original-score.*")):
@@ -200,17 +184,12 @@ class SongStoreV2:
         if filename and not Path(filename).suffix:
             return "youtube"
         source_dir = jobs_dir() / str(job.get("job_id") or "")
-        is_youtube_cache = (
-            source_dir.exists()
-            and any(source_dir.glob("input.*"))
-            and not Path(filename).suffix
-        )
+        is_youtube_cache = source_dir.exists() and any(source_dir.glob("input.*")) and not Path(filename).suffix
         return "youtube" if is_youtube_cache else "local"
 
     def _exists_by_job(self, job_id: str) -> bool:
         with self._connect() as conn:
-            row = conn.execute("SELECT 1 FROM songs WHERE job_id=?", (job_id,)).fetchone()
-        return row is not None
+            return conn.execute("SELECT 1 FROM songs WHERE job_id=?", (job_id,)).fetchone() is not None
 
     def _copy_midi_asset(self, song_id: str, source: str | None) -> str | None:
         if not source:
@@ -254,10 +233,10 @@ class SongStoreV2:
                 score_xml = _valid_score_xml(source.read_text(encoding="utf-8"))
             except (OSError, ValueError, ET.ParseError):
                 continue
-
             now = _now()
             midi_asset = self._copy_midi_asset(job_id, result.get("midi"))
             with self._lock, self._connect() as conn:
+                before = conn.total_changes
                 conn.execute(
                     """
                     INSERT OR IGNORE INTO songs (
@@ -268,23 +247,12 @@ class SongStoreV2:
                     ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                     """,
                     (
-                        job_id,
-                        job_id,
-                        self._title_from_filename(job.get("filename")),
-                        None,
-                        self._source_kind(job),
-                        str(source),
-                        str(source),
-                        midi_asset,
-                        None,
-                        score_xml,
-                        score_xml,
-                        1,
-                        now,
-                        now,
+                        job_id, job_id, self._title_from_filename(job.get("filename")), None,
+                        self._source_kind(job), str(source), str(source), midi_asset, None,
+                        score_xml, score_xml, 1, now, now,
                     ),
                 )
-                inserted = conn.total_changes > 0
+                inserted = conn.total_changes > before
             if not inserted:
                 continue
             created += 1
@@ -292,8 +260,7 @@ class SongStoreV2:
             self._ingest_json_file(job_id, "lyrics_transcript", result.get("transcript_json"))
             work_dir = result.get("work_dir")
             if work_dir:
-                alignment = str(Path(work_dir) / "alignment.json")
-                self._ingest_json_file(job_id, "lyric_alignment", alignment)
+                self._ingest_json_file(job_id, "lyric_alignment", str(Path(work_dir) / "alignment.json"))
         return created
 
     def list(self) -> list[dict[str, Any]]:
@@ -324,46 +291,40 @@ class SongStoreV2:
         path.mkdir(parents=True, exist_ok=True)
         return path
 
+    def _thread_materialization(self, song_id: str, stem: str) -> Path:
+        # All SongStoreV2 instances share the same cache root but not the same Python Lock.
+        # FastAPI sync endpoints can therefore touch the same song concurrently. Reuse one
+        # work file per worker thread so concurrent edit/validation/read requests never
+        # overwrite each other's pre-commit MusicXML while keeping cache growth bounded.
+        return self.cache_song_dir(song_id) / "work" / f"{stem}-{get_ident()}.musicxml"
+
     def checkout_current(self, song_id: str) -> Path:
-        path = self.cache_song_dir(song_id) / "score.musicxml"
+        path = self._thread_materialization(song_id, "current")
         _atomic_text(path, self.score_xml(song_id))
         return path
 
     def checkout_original(self, song_id: str) -> Path:
-        path = self.cache_song_dir(song_id) / "original.musicxml"
+        path = self._thread_materialization(song_id, "original")
         _atomic_text(path, self.score_xml(song_id, original=True))
         return path
 
     def replace_current_from_path(self, song_id: str, path: Path) -> dict[str, Any] | None:
         text = _valid_score_xml(path.read_text(encoding="utf-8"))
         with self._lock, self._connect() as conn:
-            conn.execute(
-                "UPDATE songs SET current_score_xml=?, updated_at=? WHERE song_id=?",
-                (text, _now(), song_id),
-            )
+            conn.execute("UPDATE songs SET current_score_xml=?, updated_at=? WHERE song_id=?", (text, _now(), song_id))
         return self.get(song_id)
 
     def commit_edit_from_path(self, song_id: str, path: Path) -> dict[str, Any] | None:
         text = _valid_score_xml(path.read_text(encoding="utf-8"))
         with self._lock, self._connect() as conn:
             conn.execute(
-                """
-                UPDATE songs
-                SET current_score_xml=?, revision=revision+1, updated_at=?
-                WHERE song_id=?
-                """,
+                "UPDATE songs SET current_score_xml=?, revision=revision+1, updated_at=? WHERE song_id=?",
                 (text, _now(), song_id),
             )
         self.clear_exports(song_id)
         return self.get(song_id)
 
-    def update_metadata(
-        self,
-        song_id: str,
-        *,
-        title: str | None = None,
-        artist: str | None = None,
-    ) -> dict[str, Any] | None:
+    def update_metadata(self, song_id: str, *, title: str | None = None, artist: str | None = None) -> dict[str, Any] | None:
         fields: dict[str, Any] = {}
         if title is not None:
             fields["title"] = title.strip() or "제목 없는 곡"
@@ -374,17 +335,13 @@ class SongStoreV2:
         fields["updated_at"] = _now()
         assignments = ", ".join(f"{key}=?" for key in fields)
         with self._lock, self._connect() as conn:
-            conn.execute(
-                f"UPDATE songs SET {assignments} WHERE song_id=?",
-                (*fields.values(), song_id),
-            )
+            conn.execute(f"UPDATE songs SET {assignments} WHERE song_id=?", (*fields.values(), song_id))
         return self.get(song_id)
 
     def snapshot_revision(self, song_id: str, publication: dict[str, Any]) -> int:
         with self._lock, self._connect() as conn:
             row = conn.execute(
-                "SELECT revision, current_score_xml, title, artist FROM songs WHERE song_id=?",
-                (song_id,),
+                "SELECT revision, current_score_xml, title, artist FROM songs WHERE song_id=?", (song_id,)
             ).fetchone()
             if not row or not row["current_score_xml"]:
                 raise KeyError(song_id)
@@ -396,47 +353,30 @@ class SongStoreV2:
                 ) VALUES(?,?,?,?,?,?,?)
                 """,
                 (
-                    song_id,
-                    revision,
-                    row["current_score_xml"],
+                    song_id, revision, row["current_score_xml"],
                     json.dumps(publication, ensure_ascii=False, separators=(",", ":")),
-                    row["title"],
-                    row["artist"],
-                    _now(),
+                    row["title"], row["artist"], _now(),
                 ),
             )
         return revision
 
     def discard_snapshot(self, song_id: str, revision: int) -> None:
         with self._lock, self._connect() as conn:
-            conn.execute(
-                "DELETE FROM song_revisions WHERE song_id=? AND revision=?",
-                (song_id, revision),
-            )
+            conn.execute("DELETE FROM song_revisions WHERE song_id=? AND revision=?", (song_id, revision))
 
     def restore_revision(self, song_id: str, revision: int) -> dict[str, Any] | None:
         with self._lock, self._connect() as conn:
             row = conn.execute(
-                """
-                SELECT musicxml, publication_json, title, artist
-                FROM song_revisions WHERE song_id=? AND revision=?
-                """,
+                "SELECT musicxml, publication_json, title, artist FROM song_revisions WHERE song_id=? AND revision=?",
                 (song_id, revision),
             ).fetchone()
             if not row:
                 return None
             conn.execute(
-                """
-                UPDATE songs
-                SET current_score_xml=?, title=?, artist=?, revision=?, updated_at=?
-                WHERE song_id=?
-                """,
+                "UPDATE songs SET current_score_xml=?, title=?, artist=?, revision=?, updated_at=? WHERE song_id=?",
                 (row["musicxml"], row["title"], row["artist"], revision, _now(), song_id),
             )
-            conn.execute(
-                "DELETE FROM song_revisions WHERE song_id=? AND revision>=?",
-                (song_id, revision),
-            )
+            conn.execute("DELETE FROM song_revisions WHERE song_id=? AND revision>=?", (song_id, revision))
         self.clear_exports(song_id)
         shutil.rmtree(self.cache_root / song_id, ignore_errors=True)
         try:
@@ -453,8 +393,7 @@ class SongStoreV2:
                 INSERT INTO song_analysis(song_id, analysis_type, data_json, updated_at)
                 VALUES(?,?,?,?)
                 ON CONFLICT(song_id, analysis_type) DO UPDATE SET
-                    data_json=excluded.data_json,
-                    updated_at=excluded.updated_at
+                    data_json=excluded.data_json, updated_at=excluded.updated_at
                 """,
                 (song_id, analysis_type, encoded, _now()),
             )
@@ -462,8 +401,7 @@ class SongStoreV2:
     def analysis(self, song_id: str, analysis_type: str) -> Any | None:
         with self._connect() as conn:
             row = conn.execute(
-                "SELECT data_json FROM song_analysis WHERE song_id=? AND analysis_type=?",
-                (song_id, analysis_type),
+                "SELECT data_json FROM song_analysis WHERE song_id=? AND analysis_type=?", (song_id, analysis_type)
             ).fetchone()
         if not row:
             return None
@@ -486,10 +424,7 @@ class SongStoreV2:
             conn.execute("DELETE FROM song_revisions WHERE song_id=?", (song_id,))
             conn.execute("DELETE FROM song_analysis WHERE song_id=?", (song_id,))
             if "publication_settings" in {
-                row[0]
-                for row in conn.execute(
-                    "SELECT name FROM sqlite_master WHERE type='table'"
-                ).fetchall()
+                row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
             }:
                 conn.execute("DELETE FROM publication_settings WHERE song_id=?", (song_id,))
         if not cur.rowcount:
@@ -500,23 +435,16 @@ class SongStoreV2:
         return True
 
     def _row(self, row: sqlite3.Row) -> dict[str, Any]:
-        # Reading song metadata must be side-effect free. Earlier v0.8 code rewrote the
-        # shared score cache here, so a background list/get request could overwrite a
-        # MusicXML file while an edit operation was mutating it before commit.
         result = dict(row)
         original_xml = result.pop("original_score_xml", None)
         current_xml = result.pop("current_score_xml", None)
         if original_xml:
-            result["original_musicxml"] = str(self.cache_root / result["song_id"] / "original.musicxml")
+            result["original_musicxml"] = None
         if current_xml:
-            result["current_musicxml"] = str(self.cache_root / result["song_id"] / "score.musicxml")
+            result["current_musicxml"] = None
         export_dir = self.export_root / result["song_id"]
         result["exports"] = {}
-        for kind, name in (
-            ("musicxml", "score.musicxml"),
-            ("pdf", "score.pdf"),
-            ("midi", "score.mid"),
-        ):
+        for kind, name in (("musicxml", "score.musicxml"), ("pdf", "score.pdf"), ("midi", "score.mid")):
             path = export_dir / name
             if path.exists():
                 result["exports"][kind] = str(path)
