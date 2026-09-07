@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import AppErrorBoundary from "./AppErrorBoundary";
 import EngineSettingsDock from "./EngineSettingsDock";
 import ExportController from "./ExportController";
+import NotationSettingsController from "./NotationSettingsController";
 import OMRImportController from "./OMRImportController";
 import ProductRoot from "./ProductRoot";
 import ValidationController from "./ValidationController";
@@ -17,6 +18,7 @@ createRoot(document.getElementById("root")!).render(
       <ExportController />
       <ValidationController />
       <OMRImportController />
+      <NotationSettingsController />
     </AppErrorBoundary>
   </StrictMode>,
 );
