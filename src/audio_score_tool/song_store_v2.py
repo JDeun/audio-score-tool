@@ -32,6 +32,10 @@ def _valid_score_xml(text: str) -> str:
     return text
 
 
+class ConcurrentEditError(RuntimeError):
+    """Raised when a score changed after a caller checked out its edit buffer."""
+
+
 class SongStoreV2:
     """SQLite-canonical Song/Score store with managed cache and explicit exports."""
 
@@ -292,10 +296,6 @@ class SongStoreV2:
         return path
 
     def _thread_materialization(self, song_id: str, stem: str) -> Path:
-        # All SongStoreV2 instances share the same cache root but not the same Python Lock.
-        # FastAPI sync endpoints can therefore touch the same song concurrently. Reuse one
-        # work file per worker thread so concurrent edit/validation/read requests never
-        # overwrite each other's pre-commit MusicXML while keeping cache growth bounded.
         return self.cache_song_dir(song_id) / "work" / f"{stem}-{get_ident()}.musicxml"
 
     def checkout_current(self, song_id: str) -> Path:
@@ -314,13 +314,37 @@ class SongStoreV2:
             conn.execute("UPDATE songs SET current_score_xml=?, updated_at=? WHERE song_id=?", (text, _now(), song_id))
         return self.get(song_id)
 
-    def commit_edit_from_path(self, song_id: str, path: Path) -> dict[str, Any] | None:
+    def commit_edit_from_path(
+        self,
+        song_id: str,
+        path: Path,
+        *,
+        expected_revision: int | None = None,
+    ) -> dict[str, Any] | None:
         text = _valid_score_xml(path.read_text(encoding="utf-8"))
         with self._lock, self._connect() as conn:
-            conn.execute(
-                "UPDATE songs SET current_score_xml=?, revision=revision+1, updated_at=? WHERE song_id=?",
-                (text, _now(), song_id),
-            )
+            if expected_revision is None:
+                cur = conn.execute(
+                    "UPDATE songs SET current_score_xml=?, revision=revision+1, updated_at=? WHERE song_id=?",
+                    (text, _now(), song_id),
+                )
+            else:
+                cur = conn.execute(
+                    """
+                    UPDATE songs
+                    SET current_score_xml=?, revision=revision+1, updated_at=?
+                    WHERE song_id=? AND revision=?
+                    """,
+                    (text, _now(), song_id, expected_revision),
+                )
+                if cur.rowcount == 0:
+                    exists = conn.execute("SELECT 1 FROM songs WHERE song_id=?", (song_id,)).fetchone()
+                    if exists:
+                        raise ConcurrentEditError(
+                            f"Song {song_id} changed while this edit was in progress. Reload and retry."
+                        )
+            if cur.rowcount == 0:
+                return None
         self.clear_exports(song_id)
         return self.get(song_id)
 
