@@ -2,7 +2,12 @@
 
 ## 목표
 
-AudioScoreTool은 완성된 음원 또는 YouTube URL을 입력으로 받아 다중 악기 악보를 생성하고, 곡 단위로 DB에 저장·편집한 뒤 사용자가 확정한 시점에만 출판 파일을 만드는 로컬 우선 데스크탑 애플리케이션입니다.
+AudioScoreTool은 완성된 음원 또는 YouTube URL을 입력으로 받아 다중 악기 악보를 생성하고, 곡 단위로 DB에 저장·편집·검증한 뒤 사용자가 확정한 시점에만 출판 파일을 만드는 로컬 우선 데스크탑 애플리케이션입니다.
+
+핵심 정책은 두 가지입니다.
+
+1. **속도보다 최종 악보 품질 우선**
+2. **LLM은 검증 critic이지 acoustic ground truth가 아님**
 
 ## 전체 흐름
 
@@ -11,11 +16,11 @@ Local Audio / YouTube
         ↓
 Input preparation
         ↓
-Transcription Provider
-├─ MR-MT3 (기본)
-├─ YourMT3+
-├─ MuScriptor (비상업 연구)
-└─ AudioScore Native (R&D)
+Usage-aware Transcription Policy
+├─ personal   → MuScriptor large (quality first)
+│                └─ fallback: YourMT3+ → MR-MT3
+└─ commercial → YourMT3+ (quality candidate)
+                 └─ fallback: MR-MT3
         ↓
 MIDI + MusicXML
         ↓
@@ -47,6 +52,12 @@ OSMD Preview / Inspector Edit
         ↓
 DB Revision Commit
         ↓
+Validation
+├─ deterministic score checks
+└─ optional OpenAI-compatible LLM critic
+        ↓
+사용자 확인
+        ↓
 [사용자: 최종 파일 생성]
         ↓
 Temporary MusicXML materialization
@@ -74,6 +85,7 @@ Tauri 2
          │  └─ publication_settings
          ├─ managed cache / assets
          ├─ transcription providers
+         ├─ deterministic + LLM validation
          ├─ Demucs / WhisperX
          ├─ MusicXML editor
          └─ MuseScore export
@@ -85,7 +97,7 @@ Tauri 2
 
 ### FastAPI sidecar
 
-모델 실행, 작업 큐, 저장공간 관리, 곡 API, 편집 API, DB Revision, Export, 벤치마크를 제공합니다.
+모델 실행, 작업 큐, 저장공간 관리, 곡 API, 편집 API, DB Revision, validation, Export, 벤치마크를 제공합니다.
 
 ## Job과 Song
 
@@ -103,10 +115,37 @@ Song (SQLite canonical state)
 ├─ publication_settings
 ├─ song_revisions
 ├─ song_analysis
+│  ├─ automatic_chords
+│  ├─ lyric_alignment
+│  └─ validation_report
 └─ export state
 ```
 
 완료된 transcription Job은 Song으로 동기화됩니다. Song을 삭제한 경우 동일 Job에서 다시 생성되지 않도록 tombstone을 유지합니다.
+
+## 채보 정책
+
+### Personal / non-commercial
+
+정확도 최우선 경로입니다.
+
+```text
+MuScriptor large → YourMT3+ → MR-MT3
+```
+
+MuScriptor 공개 weights는 CC BY-NC 4.0이므로 personal mode에서만 허용합니다.
+
+### Commercial
+
+MuScriptor를 실행 단계에서 차단합니다.
+
+```text
+YourMT3+ → MR-MT3
+```
+
+YourMT3+는 정확도 우선 후보지만 source/checkpoint 라이선스 표기가 서로 달라 상용 배포 전 고정 revision 기준 provenance 검토가 필요합니다. MR-MT3는 MIT 경로가 더 단순한 fallback입니다.
+
+`auto` preset은 `quality`로 해석합니다. Fast/Balanced는 사용자가 명시적으로 선택할 때만 사용합니다.
 
 ## 저장 계층
 
@@ -128,6 +167,31 @@ MIDI 등 다시 사용할 가치가 있는 비교적 작은 binary artifact를 �
 
 자세한 내용은 [`STORAGE_V2.ko.md`](STORAGE_V2.ko.md)를 참고하세요.
 
+## 검증 계층
+
+### Deterministic
+
+MusicXML에서 직접 확인 가능한 구조적 문제를 먼저 검사합니다.
+
+- 박자 대비 단순 마디 duration
+- 악기 일반 음역 이탈
+- rest lyric
+- 중복 tie
+- 빈 part
+
+### LLM critic
+
+OpenAI-compatible endpoint를 선택적으로 연결합니다. LLM은 결정론적 결과와 bounded symbolic analysis만 보고 음악적 이상치의 우선순위와 검토 이유를 제안합니다.
+
+- 자동 수정 금지
+- acoustic correctness 확정 금지
+- API key 값 자체는 저장하지 않음
+- 원격 endpoint는 HTTPS만 허용
+
+장기적으로는 resynthesized score와 원음의 audio-symbol discrepancy를 먼저 계산한 뒤 LLM이 해당 evidence를 설명하는 구조를 목표로 합니다.
+
+자세한 내용은 [`VALIDATION.ko.md`](VALIDATION.ko.md)를 참고하세요.
+
 ## 작업 큐
 
 Transcription provider / Demucs / WhisperX는 메모리와 GPU VRAM을 크게 사용할 수 있으므로 heavy inference는 기본적으로 하나씩 직렬 실행합니다.
@@ -148,10 +212,10 @@ Transcription provider / Demucs / WhisperX는 메모리와 GPU VRAM을 크게 �
 | 환경 | Transcription | Demucs | WhisperX |
 |---|---|---|---|
 | NVIDIA | CUDA | CUDA | CUDA / FP16 |
-| Apple Silicon | MPS 지원 provider 우선 | CPU | CPU / INT8 |
+| Apple Silicon | provider 지원 범위 내 MPS | CPU | CPU / INT8 |
 | CPU | CPU | CPU | CPU / INT8 |
 
-WhisperX는 현재 기본 설정에서 MPS 대신 CPU/CUDA를 사용합니다.
+품질이 기본 목표이므로 GPU가 느리더라도 자동으로 작은 모델로 downgrade하지 않습니다. 사용자가 Fast/Balanced를 명시적으로 선택할 때만 모델 크기를 낮춥니다.
 
 ## 실행 파일 탐색
 
@@ -160,8 +224,6 @@ WhisperX는 현재 기본 설정에서 MPS 대신 CPU/CUDA를 사용합니다.
 1. 사용자가 설정 화면에서 저장한 경로
 2. 설치된 standalone CLI
 3. `uvx` fallback
-
-기본 transcription provider는 `MT3-Infer + MR-MT3`입니다. MuScriptor는 공개 weights의 비상업 조건 때문에 기본 상용 경로가 아닙니다.
 
 ## 데이터 위치
 
@@ -177,4 +239,4 @@ FastAPI는 `127.0.0.1`에만 바인딩합니다.
 
 변경 요청은 Tauri/개발 origin 또는 Origin이 없는 로컬 클라이언트만 허용하여 외부 웹 페이지가 localhost API에 임의 POST를 보내는 위험을 줄입니다.
 
-Hugging Face token 값은 앱에서 읽어 표시하거나 자체 저장하지 않습니다. 인증 여부만 확인합니다.
+Hugging Face token 값과 LLM API key 값은 앱 설정 파일에 직접 저장하지 않습니다. LLM은 환경변수 이름만 저장합니다.
