@@ -1,6 +1,33 @@
 # 외부 데이터 보강 설계
 
-AudioScoreTool은 모델이 이미 존재하는 깨끗한 정보를 다시 추측하지 않도록 **외부 데이터 → 신뢰도 검증 → 모델 fallback** 순서를 사용합니다.
+AudioScoreTool은 모델이 이미 존재하는 깨끗한 정보를 다시 추측하지 않도록 **로컬 태그/식별자 → 외부 데이터 → 신뢰도 검증 → 모델 fallback** 순서를 사용합니다.
+
+## 자동 음원 식별
+
+새 곡이 라이브러리에 들어오면 Desktop의 `SourceIdentificationController`가 자동으로 식별을 시도합니다.
+
+```text
+Embedded tags
+    ↓
+ISRC
+    ↓
+AcoustID / Chromaprint fingerprint
+    ↓
+MusicBrainz fuzzy search
+    ↓
+모델/사용자 입력 fallback
+```
+
+- MP3/FLAC/M4A 등의 title/artist/album/date/ISRC/duration은 `mutagen`으로 로컬에서 먼저 읽습니다.
+- title + artist가 충분하면 네트워크 조회 없이 그대로 우선 사용합니다.
+- ISRC가 있으면 일반 제목 검색보다 먼저 MusicBrainz identifier lookup을 사용합니다.
+- 태그가 부족하면 `fpcalc` + 등록된 `ACOUSTID_CLIENT_KEY`가 있을 때 AcoustID fingerprint lookup을 시도합니다.
+- 자동 metadata 반영 threshold는 0.92입니다.
+- 적용된 제목은 Song DB, MusicXML title, publication layout까지 동기화합니다.
+- 식별 실패/네트워크 실패는 채보 실패로 전파되지 않습니다.
+- OMR처럼 원본 audio asset이 없는 곡은 자동으로 skip됩니다.
+
+세부 구현과 서비스/라이선스 경계는 `docs/SOURCE_IDENTIFICATION.ko.md`를 참고합니다.
 
 ## 메타데이터
 
@@ -27,7 +54,7 @@ MusicBrainz 공개 API 정책에 맞춰:
 
 를 적용합니다.
 
-92점 미만 후보는 사용자에게 보여주기만 하고 제목/아티스트를 자동 변경하지 않습니다.
+92점 미만 fuzzy 후보는 사용자에게 보여주기만 하고 제목/아티스트를 자동 변경하지 않습니다.
 
 상용 모드에서는 공개 MusicBrainz Web Service를 무조건 호출하지 않습니다. 사용자가 상용 이용 자격/계약을 확인했다는 명시적 플래그가 있어야 호출합니다. 장기적으로는 상용 계약 endpoint나 로컬 CC0 dataset index를 별도 provider로 둘 수 있습니다.
 
@@ -88,6 +115,7 @@ WhisperX
 
 결과 provenance는 다음 analysis에 보존합니다.
 
+- `source_identification`
 - `external_enrichment`
 - `external_lyrics`
 - `reference_lyrics_alignment`
@@ -105,27 +133,16 @@ WhisperX
 ## API
 
 ```text
+POST /api/songs/{song_id}/identify-source
 POST /api/songs/{song_id}/enrich
 ```
 
-기본 요청은 MusicBrainz metadata만 조회합니다. `lyrics_url_template`을 명시했을 때만 외부 lyrics provider를 호출합니다.
-
-주요 옵션:
-
-- `apply_high_confidence_metadata`
-- `metadata_threshold`
-- `musicbrainz_commercial_entitlement`
-- `lyrics_provider_name`
-- `lyrics_url_template`
-- `lyrics_api_key_env`
-- `apply_reference_lyrics`
+`identify-source`는 managed original audio를 대상으로 로컬 태그/ISRC/AcoustID 순서의 자동 식별을 수행하고 결과를 cache합니다. `enrich`는 MusicBrainz fuzzy metadata와 선택적 lyrics provider를 사용합니다.
 
 ## 향후 확장
 
-- ISRC 우선 매칭
-- 로컬 파일 ID3/MP4/Vorbis tag 우선 읽기
-- AcoustID fingerprint 기반 recording identification
-- YouTube title/uploader를 search hint로 분리
+- YouTube title/uploader를 search hint와 authoritative metadata로 구분
 - lyrics provider별 정식 adapter와 라이선스 상태 UI
 - composer/lyricist/work relationship를 출판 credit에 제안
 - reference lyrics alignment confidence가 낮은 span만 사용자 검토 대상으로 표시
+- AcoustID/MusicBrainz identifier 결과가 충돌할 때 다중 evidence resolver 추가
