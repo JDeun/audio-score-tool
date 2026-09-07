@@ -5,7 +5,7 @@ import shutil
 from fastapi import APIRouter
 
 from . import api as base_api
-from .paths import jobs_dir
+from .paths import jobs_dir, song_assets_dir
 from .song_store_v2 import SongStoreV2
 from .song_tombstones import SongTombstoneStore
 from .system_status import storage_status
@@ -39,15 +39,17 @@ def cleanup_storage_v2(keep: int = 30) -> dict:
     ]
     deleted = 0
     protected = 0
+    orphan_assets_removed = 0
     for job in removable:
         job_id = str(job.get("job_id") or "")
         if not job_id:
             continue
+        canonical_song = _songs.get_by_job(job_id)
         if (
             job.get("status") == "done"
             and job.get("kind") != "benchmark"
             and not _tombstones.contains(job_id)
-            and _songs.get_by_job(job_id) is None
+            and canonical_song is None
         ):
             # A successful score job is not disposable until canonical ingestion is
             # confirmed; retain it so a transient parse/storage problem is recoverable.
@@ -59,10 +61,19 @@ def cleanup_storage_v2(keep: int = 30) -> dict:
             shutil.rmtree(path, ignore_errors=True)
         if base_api._store.delete(job_id):
             deleted += 1
+            # Failed/cancelled jobs may have preserved source audio before inference
+            # failed. Remove that managed asset only when no canonical Song owns it.
+            if canonical_song is None:
+                asset_dir = song_assets_dir() / job_id
+                if asset_dir.exists():
+                    shutil.rmtree(asset_dir, ignore_errors=True)
+                    if not asset_dir.exists():
+                        orphan_assets_removed += 1
 
     return {
         "deleted_jobs": deleted,
         "protected_uningested_jobs": protected,
+        "orphan_asset_dirs_removed": orphan_assets_removed,
         "kept_jobs": keep,
         "system": storage_status(),
     }
