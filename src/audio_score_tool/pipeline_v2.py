@@ -12,6 +12,7 @@ from .config import Settings
 from .devices import detect_device_plan
 from .lyrics import attach_lyrics_to_musicxml, expand_korean_syllables, load_whisperx_words
 from .models import PipelineResult
+from .paths import song_assets_dir
 from .pipeline import PipelineCancelled, PipelineError, _find_one, _find_whisper_json
 from .runner import CommandCancelled, CommandError, command_exists, run_command
 from .transcription_engine import (
@@ -22,16 +23,32 @@ from .transcription_engine import (
 
 
 def _remove_eager_render_artifacts(score_dir: Path, initial_pdf: Path | None) -> None:
-    """Remove renderer artifacts produced incidentally by a provider.
-
-    From v0.8, PDF/part-score files are explicit exports, never transcription results.
-    MIDI and MusicXML remain managed intermediate assets until the Song is persisted.
-    """
-
     if initial_pdf is not None:
         initial_pdf.unlink(missing_ok=True)
     for path in score_dir.rglob("*.pdf"):
         path.unlink(missing_ok=True)
+
+
+def _preserve_source_audio(audio_path: Path, output_root: Path) -> Path | None:
+    """Persist original input independently of the disposable Job workspace.
+
+    Normal job output is ``jobs/<job-id>/outputs``. The song id is the job id, so
+    preserving here covers local uploads and downloaded YouTube audio without coupling
+    the ingestion code to either source route.
+    """
+    try:
+        job_id = output_root.parent.name
+        if not job_id:
+            return None
+        suffix = audio_path.suffix.lower() or ".audio"
+        target = song_assets_dir() / job_id / f"original-audio{suffix}"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if not target.exists() or target.stat().st_size != audio_path.stat().st_size:
+            shutil.copy2(audio_path, target)
+        return target
+    except OSError:
+        # Source preservation is validation support and must not make transcription fail.
+        return None
 
 
 def transcribe(
@@ -58,6 +75,7 @@ def transcribe(
 
     output_root = output_root.expanduser().resolve()
     output_root.mkdir(parents=True, exist_ok=True)
+    _preserve_source_audio(audio_path, output_root)
     stem = audio_path.stem.replace(" ", "_")
     work_dir = output_root / stem
     if work_dir.exists():
@@ -129,15 +147,7 @@ def transcribe(
         try:
             run_command(
                 settings.demucs_cmd,
-                [
-                    "--two-stems",
-                    "vocals",
-                    "-d",
-                    device.demucs_device,
-                    "-o",
-                    stems_dir,
-                    audio_path,
-                ],
+                ["--two-stems", "vocals", "-d", device.demucs_device, "-o", stems_dir, audio_path],
                 cancel_event=cancel_event,
             )
             vocals_path = _find_one(stems_dir, "vocals.wav")
@@ -190,11 +200,7 @@ def transcribe(
     aligned_tokens = expand_korean_syllables(words) if language == "ko" else words
     emit("lyric_alignment", 91)
     lyric_musicxml = work_dir / "score_with_lyrics.musicxml"
-    part_id, attached = attach_lyrics_to_musicxml(
-        musicxml_path,
-        lyric_musicxml,
-        aligned_tokens,
-    )
+    part_id, attached = attach_lyrics_to_musicxml(musicxml_path, lyric_musicxml, aligned_tokens)
     metadata = {
         "language": language,
         "selected_part_id": part_id,
@@ -207,10 +213,7 @@ def transcribe(
         "device_plan": device.as_dict(),
         "export_policy": "deferred_until_user_export",
     }
-    (work_dir / "alignment.json").write_text(
-        json.dumps(metadata, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    (work_dir / "alignment.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
 
     emit("complete", 100)
     return PipelineResult(
