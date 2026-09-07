@@ -78,6 +78,7 @@ class BaseTranscriptionEngine:
     key = "base"
     display_name = "Base"
     commercial_status = "unknown"
+    quality_rank = 99
 
     def __init__(self, settings: Settings):
         self.settings = settings
@@ -101,21 +102,27 @@ class BaseTranscriptionEngine:
             "name": self.display_name,
             "ready": self.ready(),
             "commercial_status": self.commercial_status,
+            "quality_rank": self.quality_rank,
+            "allowed_for_usage_mode": not (
+                self.settings.usage_mode == "commercial"
+                and self.commercial_status == "noncommercial_weights"
+            ),
         }
 
 
 class MT3InferEngine(BaseTranscriptionEngine):
-    """Multi-instrument transcription through the MIT-licensed mt3-infer toolkit.
+    """Multi-instrument transcription through mt3-infer.
 
-    The default model is MR-MT3. Its upstream repository and published checkpoint are
-    both marked MIT. YourMT3 can also be selected for quality experiments, but it is
-    not the commercial default because license metadata differs between upstream
-    distributions and should be reviewed before a commercial release.
+    YourMT3+ is the quality-first MT3 option. MR-MT3 remains the smaller/faster
+    permissive fallback. The official YourMT3 GitHub repository is GPL-3.0 while the
+    Hugging Face checkpoint and the implementation vendored by mt3-infer are marked
+    Apache-2.0, so commercial distribution should keep explicit provenance/legal review.
     """
 
     key = "mt3_infer"
     display_name = "MT3-Infer"
-    commercial_status = "permissive_default"
+    commercial_status = "commercial_candidate"
+    quality_rank = 2
     supported_models = {"mr_mt3", "yourmt3"}
 
     def ready(self) -> bool:
@@ -123,11 +130,20 @@ class MT3InferEngine(BaseTranscriptionEngine):
 
     def describe(self) -> dict[str, object]:
         model = self.settings.mt3_model
-        status = "mit" if model == "mr_mt3" else "license_review_recommended"
+        if model == "mr_mt3":
+            status = "mit"
+            rank = 3
+            note = "빠르고 permissive한 fallback"
+        else:
+            status = "apache_checkpoint_review_distribution"
+            rank = 2
+            note = "MT3 계열 정확도 우선; 상용 배포 전 provenance 검토"
         return {
             **super().describe(),
             "model": model,
             "model_commercial_status": status,
+            "quality_rank": rank,
+            "quality_note": note,
         }
 
     def transcribe(
@@ -197,9 +213,18 @@ class MuScriptorEngine(BaseTranscriptionEngine):
     key = "muscriptor"
     display_name = "MuScriptor"
     commercial_status = "noncommercial_weights"
+    quality_rank = 1
 
     def ready(self) -> bool:
         return command_exists(self.settings.muscriptor_cmd)
+
+    def describe(self) -> dict[str, object]:
+        return {
+            **super().describe(),
+            "model": self.settings.muscriptor_model,
+            "quality_note": "현재 개인/비상업용 정확도 우선 기본값",
+            "license_note": "code MIT; public weights CC BY-NC 4.0",
+        }
 
     def transcribe(
         self,
@@ -209,6 +234,10 @@ class MuScriptorEngine(BaseTranscriptionEngine):
         device: str,
         cancel_event: Event | None = None,
     ) -> TranscriptionArtifacts:
+        if self.settings.usage_mode == "commercial":
+            raise TranscriptionEngineUnavailable(
+                "MuScriptor public weights are CC BY-NC 4.0 and are disabled in commercial mode."
+            )
         if not self.ready():
             raise TranscriptionEngineUnavailable("MuScriptor command is unavailable.")
         args = [
@@ -239,15 +268,10 @@ class MuScriptorEngine(BaseTranscriptionEngine):
 
 
 class NativeCommandEngine(BaseTranscriptionEngine):
-    """Project-owned AudioScore Native command contract.
-
-    Native remains an R&D/future ownership path. It is not the default because producing
-    a high-quality checkpoint requires licensed data and substantial GPU training.
-    """
-
     key = "native"
     display_name = "AudioScore Native"
     commercial_status = "project_owned"
+    quality_rank = 4
 
     def ready(self) -> bool:
         if not command_exists(self.settings.native_engine_cmd):
@@ -296,18 +320,22 @@ class NativeCommandEngine(BaseTranscriptionEngine):
 
 def available_engines(settings: Settings) -> list[dict[str, object]]:
     engines: list[BaseTranscriptionEngine] = [
+        MuScriptorEngine(settings),
         MT3InferEngine(settings),
         NativeCommandEngine(settings),
-        MuScriptorEngine(settings),
     ]
     return [engine.describe() for engine in engines]
 
 
 def resolve_transcription_engine(settings: Settings) -> BaseTranscriptionEngine:
     key = settings.transcription_engine.strip().lower()
-    if key in {"mt3_infer", "yourmt3"}:  # `yourmt3` is a v0.7 prerelease migration alias.
+    if key in {"mt3_infer", "yourmt3"}:
         return MT3InferEngine(settings)
     if key == "muscriptor":
+        if settings.usage_mode == "commercial":
+            raise TranscriptionEngineUnavailable(
+                "MuScriptor cannot be selected in commercial mode because its public weights are CC BY-NC 4.0."
+            )
         return MuScriptorEngine(settings)
     if key == "native":
         return NativeCommandEngine(settings)
