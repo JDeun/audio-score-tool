@@ -5,6 +5,7 @@ import platform
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from .config import _find_executable
 from .preflight_v2 import preflight
 from .runner import CommandError, command_exists, run_command
 from .runtime_settings import runtime_settings
@@ -53,11 +54,12 @@ def _installer_recipe(component: str) -> dict:
     recipe = recipes.get(os_key, {}).get(component)
     if not recipe:
         return {"available": False, "manager": None, "command": None}
-    manager, args = recipe
+    manager_name, args = recipe
+    manager = _find_executable(manager_name)
     return {
-        "available": command_exists(manager),
+        "available": bool(manager),
         "manager": manager,
-        "command": " ".join([manager, *args]),
+        "command": " ".join([manager or manager_name, *args]),
         "args": args,
     }
 
@@ -93,19 +95,15 @@ def setup_center_status() -> dict:
     state = preflight(settings, require_lyrics=False)
     tools = state["tools"]
     hf_ready = huggingface_authenticated()
-    uv_ready = command_exists("uv") or command_exists("uvx")
+    uv_ready = _find_executable("uv") is not None or _find_executable("uvx") is not None
     renderer_ready = bool(
         (tools.get("lilypond") and tools.get("musicxml2ly"))
         or tools.get("musescore_optional")
     )
     engine_ready = bool(tools.get("transcription_engine"))
     engine_uses_managed_runtime = any(
-        token in str(command)
-        for token, command in (
-            ("uvx", settings.muscriptor_cmd),
-            ("uvx", settings.mt3_infer_cmd),
-            ("uvx", settings.whisperx_cmd),
-        )
+        "uvx" in str(command)
+        for command in (settings.muscriptor_cmd, settings.mt3_infer_cmd, settings.whisperx_cmd)
     )
     components = [
         _component(
