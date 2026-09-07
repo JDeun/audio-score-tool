@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import platform
-from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -31,12 +30,23 @@ def _installer_recipe(component: str) -> dict:
     os_key = _platform_key()
     recipes: dict[str, dict[str, tuple[str, list[str]]]] = {
         "macos": {
+            "uv_runtime": ("brew", ["install", "uv"]),
             "ffmpeg": ("brew", ["install", "ffmpeg"]),
             "fluidsynth": ("brew", ["install", "fluid-synth"]),
             "lilypond": ("brew", ["install", "lilypond"]),
         },
         "windows": {
-            "ffmpeg": ("winget", ["install", "-e", "--id", "Gyan.FFmpeg", "--accept-package-agreements", "--accept-source-agreements"]),
+            "ffmpeg": (
+                "winget",
+                [
+                    "install",
+                    "-e",
+                    "--id",
+                    "Gyan.FFmpeg",
+                    "--accept-package-agreements",
+                    "--accept-source-agreements",
+                ],
+            ),
         },
         "linux": {},
     }
@@ -83,19 +93,42 @@ def setup_center_status() -> dict:
     state = preflight(settings, require_lyrics=False)
     tools = state["tools"]
     hf_ready = huggingface_authenticated()
+    uv_ready = command_exists("uv") or command_exists("uvx")
     renderer_ready = bool(
         (tools.get("lilypond") and tools.get("musicxml2ly"))
         or tools.get("musescore_optional")
     )
+    engine_ready = bool(tools.get("transcription_engine"))
+    engine_uses_managed_runtime = any(
+        token in str(command)
+        for token, command in (
+            ("uvx", settings.muscriptor_cmd),
+            ("uvx", settings.mt3_infer_cmd),
+            ("uvx", settings.whisperx_cmd),
+        )
+    )
     components = [
         _component(
+            "uv_runtime",
+            "관리형 AI 런타임 (uv/uvx)",
+            uv_ready or (engine_ready and not engine_uses_managed_runtime),
+            tier="core" if not engine_ready else "optional",
+            role="AI 도구를 시스템 Python과 분리해 필요한 버전으로 실행합니다.",
+            required_for=["managed_ai_tools"],
+            download_url="https://docs.astral.sh/uv/getting-started/installation/",
+            note=(
+                "일반 사용자는 pip나 가상환경을 직접 만들 필요가 없습니다. "
+                "채보 엔진이 이미 독립 실행 파일로 준비되어 있다면 uv도 필요하지 않습니다."
+            ),
+        ),
+        _component(
             "transcription_engine",
-            state["engine"].get("display_name") or "채보 엔진",
-            bool(tools.get("transcription_engine")),
+            str(state["engine"].get("name") or "채보 엔진"),
+            engine_ready,
             tier="core",
             role="음원에서 MusicXML 초안을 생성합니다.",
             required_for=["audio_transcription"],
-            note="선택한 엔진은 설정의 개인/상용 모드에 따라 자동 결정됩니다.",
+            note="개인/상용 모드에 따라 적합한 엔진이 자동 선택됩니다.",
         ),
         _component(
             "huggingface_auth",
@@ -160,7 +193,10 @@ def setup_center_status() -> dict:
             tier="optional",
             role="의심 구간 설명과 OMR 시각 비교를 보조합니다.",
             required_for=["llm_validation", "vision_validation"],
-            note="필수가 아니며 기본 OFF입니다. 로컬 모델 또는 HTTPS OpenAI-compatible API를 선택적으로 연결합니다.",
+            note=(
+                "필수가 아니며 기본 OFF입니다. 로컬 모델을 설치하지 않고 "
+                "HTTPS OpenAI-compatible API만 연결해도 됩니다."
+            ),
         ),
     ]
     core = [item for item in components if item["tier"] == "core"]
@@ -178,6 +214,7 @@ def setup_center_status() -> dict:
         "policy": {
             "llm_required": False,
             "musescore_required": False,
+            "developer_toolchain_required": False,
             "optional_features_do_not_block_core": True,
         },
     }
@@ -206,6 +243,6 @@ def install_setup_component(payload: InstallRequest) -> dict:
         "installed": True,
         "component": payload.component,
         "command": recipe["command"],
-        "stdout": getattr(result, "stdout", "")[-4000:] if result is not None else "",
+        "stdout": result.stdout[-4000:] if result.stdout else "",
         "status": setup_center_status(),
     }
