@@ -54,7 +54,10 @@ def test_validation_routes_are_mounted():
     settings = client.get("/api/validation/settings")
     assert settings.status_code == 200
     body = settings.json()
-    assert "enabled" in body
+    assert body["enabled"] is False
+    assert body["llm_required"] is False
+    assert body["llm_transport"] == "openai_compatible_api"
+    assert body["remote_api_supported"] is True
     assert "visual_enabled" in body
     assert "audio_enabled" in body
     assert "audio_threshold" in body
