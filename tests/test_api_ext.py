@@ -166,3 +166,23 @@ def test_request_size_guard_rejects_oversized_declared_body():
         content=b"{}",
     )
     assert response.status_code == 413
+
+
+def test_local_mutation_guard_rejects_untrusted_browser_origin():
+    client = TestClient(app)
+    response = client.post(
+        "/api/setup/install",
+        headers={"Origin": "https://attacker.example"},
+        json={"component": "arbitrary-shell-command"},
+    )
+    assert response.status_code == 403
+
+
+def test_local_mutation_guard_allows_tauri_origin():
+    client = TestClient(app)
+    response = client.post(
+        "/api/setup/install",
+        headers={"Origin": "tauri://localhost"},
+        json={"component": "arbitrary-shell-command"},
+    )
+    assert response.status_code == 422
