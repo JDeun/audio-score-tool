@@ -1,14 +1,10 @@
 name: Desktop Packages
 
+permissions:
+  contents: read
+
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - "desktop/**"
-      - "scripts/**"
-      - "src/**"
-      - "pyproject.toml"
-      - ".github/workflows/desktop-packages.yml"
   push:
     tags:
       - "v*"
@@ -19,6 +15,7 @@ concurrency:
 
 jobs:
   build:
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -35,6 +32,8 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
       - uses: actions/setup-node@v5
         with:
           node-version: 22
@@ -71,6 +70,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: AudioScoreTool-${{ matrix.name }}-unsigned
-          path: |
-            desktop/src-tauri/target/release/bundle/**
+          path: desktop/src-tauri/target/release/bundle/**
           if-no-files-found: error
