@@ -1,18 +1,18 @@
 from __future__ import annotations
 
-import json
 import os
 import threading
 import time
-import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from typing import Any
 
+from .safe_http import DEFAULT_MAX_JSON_BYTES, open_json
+
 MUSICBRAINZ_BASE = "https://musicbrainz.org/ws/2"
 USER_AGENT = "AudioScoreTool/0.8 (https://github.com/JDeun/audio-score-tool)"
-_MAX_JSON_RESPONSE_BYTES = 4 * 1024 * 1024
+_MAX_JSON_RESPONSE_BYTES = DEFAULT_MAX_JSON_BYTES
 _MAX_LYRICS_CHARS = 200_000
 
 _mb_lock = threading.Lock()
@@ -39,25 +39,8 @@ def _json_request(
 ) -> Any:
     request = urllib.request.Request(url, headers=headers or {})
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            content_length = response.headers.get("Content-Length")
-            if content_length:
-                try:
-                    if int(content_length) > max_bytes:
-                        raise EnrichmentError(
-                            f"External metadata response is too large ({content_length} bytes)."
-                        )
-                except ValueError:
-                    pass
-            raw = response.read(max_bytes + 1)
-            if len(raw) > max_bytes:
-                raise EnrichmentError(
-                    f"External metadata response exceeded the {max_bytes}-byte limit."
-                )
-            return json.loads(raw.decode("utf-8"))
-    except EnrichmentError:
-        raise
-    except (OSError, urllib.error.URLError, urllib.error.HTTPError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        return open_json(request, timeout=timeout, max_bytes=max_bytes)
+    except RuntimeError as exc:
         raise EnrichmentError(str(exc)) from exc
 
 
@@ -75,8 +58,6 @@ def _musicbrainz_request(path: str, params: dict[str, str]) -> Any:
                 headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
             )
         finally:
-            # Keep the process-wide rate limit even after failed requests so a transient
-            # provider outage does not turn retries into an accidental request burst.
             _last_mb_request = time.monotonic()
 
 
@@ -155,11 +136,6 @@ def _format_lyrics_url(template: str, *, title: str, artist: str | None) -> str:
 
 
 def fetch_lyrics(provider: LyricsProvider, *, title: str, artist: str | None = None) -> dict[str, Any] | None:
-    """Fetch lyrics only from an explicitly configured provider.
-
-    The provider must return JSON containing `lyrics`, `plainLyrics`, or `syncedLyrics`.
-    AudioScoreTool intentionally does not scrape arbitrary web pages for copyrighted lyrics.
-    """
     template = provider.url_template.strip()
     if not template:
         return None
@@ -185,8 +161,6 @@ def fetch_lyrics(provider: LyricsProvider, *, title: str, artist: str | None = N
     text = text.strip()
     if len(text) > _MAX_LYRICS_CHARS:
         raise EnrichmentError("Lyrics provider returned an unexpectedly large lyrics document.")
-    # Persist only compact provider metadata. Arbitrary nested provider payloads can be
-    # large or contain data the app never uses, so they should not be copied into SQLite.
     source_payload: dict[str, Any] = {}
     for key, value in payload.items():
         if key in {"lyrics", "plainLyrics", "syncedLyrics"}:
