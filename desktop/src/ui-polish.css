@@ -69,7 +69,7 @@ input:focus, select:focus, textarea:focus { border-color: #9eaa99; box-shadow: 0
 
 .compact-status, .hardware-badge, .ui-status { backdrop-filter: blur(10px); }
 
-/* Keep the floating utility controls visually grouped instead of looking like unrelated plugins. */
+/* Keep floating utilities visually grouped instead of looking like unrelated plugins. */
 .setup-center-trigger, .model-manager-trigger, .validation-dock-trigger {
   font-weight: 740;
   letter-spacing: -.05px;
@@ -79,9 +79,56 @@ input:focus, select:focus, textarea:focus { border-color: #9eaa99; box-shadow: 0
 .validation-dock-trigger { bottom: 122px !important; }
 
 .onboarding-card, .setup-center-modal, .model-manager-modal,
-.validation-modal, .notation-settings-modal, .omr-import-modal, .export-modal {
+.validation-modal, .notation-settings-modal, .omr-modal, .export-modal {
   border-color: rgba(213, 212, 204, .92);
   box-shadow: var(--ui-shadow-lg);
+}
+
+/* Unify older blue-gray utility dialogs with the main paper/olive product palette. */
+.validation-backdrop, .omr-modal-backdrop, .export-modal-backdrop {
+  background: rgba(31, 34, 29, .46);
+  backdrop-filter: blur(9px);
+}
+.validation-modal, .omr-modal, .export-modal {
+  background: #fbfaf6;
+  color: var(--ui-text);
+}
+.validation-modal header span, .export-modal-eyebrow {
+  color: #888d82;
+}
+.omr-eyebrow { color: #697b62; }
+.validation-modal header p, .validation-policy p,
+.omr-modal header p, .omr-file-card > span, .omr-file-card > small,
+.omr-flow, .export-modal p, .export-modal small {
+  color: var(--ui-text-soft);
+}
+.validation-policy, .omr-progress-card, .omr-message {
+  background: #f1f0eb;
+}
+.omr-file-card {
+  border-color: #c9cbc1;
+  background: #f7f6f2;
+}
+.omr-file-card.selected {
+  border-color: #82907b;
+  background: #f3f7f0;
+}
+.omr-flow span {
+  background: #ecefe9;
+  color: #4f5d4a;
+}
+.export-format-grid label {
+  border-color: #d8d7d0;
+  background: rgba(255,255,255,.6);
+}
+.export-format-grid label.selected {
+  border-color: #9eae97;
+  background: #f0f5ed;
+}
+.validation-settings-grid input,
+.export-destination input {
+  border-color: #d8d7d0;
+  background: #fffefa;
 }
 
 @media (max-width: 980px) {
