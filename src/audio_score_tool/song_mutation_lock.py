@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import weakref
 
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -15,11 +16,14 @@ class SongMutationSerializationMiddleware:
     update publication settings, metadata, analyses or exports. Serializing per song
     gives the desktop workflow one transaction-like mutation lane across those stores
     while still allowing different songs to be edited independently.
+
+    The lock pool uses weak references so songs that are no longer being mutated do not
+    leave a permanent in-memory lock entry behind during long-running desktop sessions.
     """
 
     def __init__(self, app: ASGIApp):
         self.app = app
-        self._locks: dict[str, asyncio.Lock] = {}
+        self._locks: weakref.WeakValueDictionary[str, asyncio.Lock] = weakref.WeakValueDictionary()
 
     @staticmethod
     def _song_id(scope: Scope) -> str | None:
@@ -40,6 +44,9 @@ class SongMutationSerializationMiddleware:
         if song_id is None:
             await self.app(scope, receive, send)
             return
-        lock = self._locks.setdefault(song_id, asyncio.Lock())
+        lock = self._locks.get(song_id)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._locks[song_id] = lock
         async with lock:
             await self.app(scope, receive, send)
