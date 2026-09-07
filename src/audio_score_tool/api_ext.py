@@ -12,6 +12,7 @@ from .notation_export_api import router as notation_export_router
 from .omr_api import router as omr_router
 from .pipeline_v2 import transcribe as transcribe_v2
 from .preflight_v2 import preflight as preflight_v2
+from .request_limits import RequestSizeLimitMiddleware
 from .runtime_settings import runtime_settings
 from .setup_center_api import router as setup_center_router
 from .song_api_v2 import router as song_router
@@ -24,6 +25,7 @@ base_api.transcribe = transcribe_v2
 base_api.preflight = preflight_v2
 app = base_api.app
 app.version = "0.8.0"
+app.add_middleware(RequestSizeLimitMiddleware)
 # Mount the backend-neutral export route before the compatibility song router because
 # FastAPI resolves duplicate method/path routes in registration order.
 app.include_router(notation_export_router)
