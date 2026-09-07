@@ -156,19 +156,21 @@ def test_omr_and_notation_routes_are_mounted():
     assert missing.status_code == 404
 
 
-def _post_routes(path: str):
+def _routes(path: str, method: str):
     return [
         route
         for route in app.routes
         if getattr(route, "path", None) == path
-        and "POST" in (getattr(route, "methods", None) or set())
+        and method in (getattr(route, "methods", None) or set())
     ]
 
 
-def test_v08_owned_post_routes_are_registered_once():
-    assert len(_post_routes("/api/songs/{song_id}/export")) == 1
-    assert len(_post_routes("/api/jobs")) == 1
-    assert len(_post_routes("/api/benchmarks")) == 1
+def test_v08_owned_routes_are_registered_once():
+    assert len(_routes("/api/songs/{song_id}/export", "POST")) == 1
+    assert len(_routes("/api/songs/{song_id}", "DELETE")) == 1
+    assert len(_routes("/api/jobs", "POST")) == 1
+    assert len(_routes("/api/benchmarks", "POST")) == 1
+    assert len(_routes("/api/storage/cleanup", "POST")) == 1
 
 
 def test_request_size_guard_rejects_oversized_declared_body():
