@@ -3,6 +3,7 @@ from __future__ import annotations
 import uvicorn
 
 from . import api as base_api
+from .api_token import ApiTokenMiddleware
 from .engine_api import router as engine_router
 from .enrichment_api import router as enrichment_router
 from .export_api_v2 import router as export_router
@@ -38,6 +39,7 @@ app = base_api.app
 app.version = "0.8.0"
 app.add_middleware(RequestSizeLimitMiddleware)
 app.add_middleware(SongMutationSerializationMiddleware)
+app.add_middleware(ApiTokenMiddleware)
 
 # Remove legacy handlers that now have v0.8 owners. This avoids request-order shadowing
 # and keeps OpenAPI aligned with the endpoint users actually reach.
