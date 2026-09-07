@@ -80,7 +80,8 @@ def command_exists(command: str) -> bool:
     return resolve_executable(parts[0]) is not None
 
 
-def _terminate_process_tree(proc: subprocess.Popen[str]) -> None:
+def terminate_process_tree(proc: subprocess.Popen[str]) -> None:
+    """Terminate a managed subprocess and its descendants on all supported desktop OSes."""
     if proc.poll() is not None:
         return
     if os.name == "nt":
@@ -107,6 +108,10 @@ def _terminate_process_tree(proc: subprocess.Popen[str]) -> None:
             os.killpg(proc.pid, signal.SIGKILL)
         except ProcessLookupError:
             pass
+
+
+# Backwards-compatible private name for older internal callers.
+_terminate_process_tree = terminate_process_tree
 
 
 def run_command(
@@ -158,7 +163,7 @@ def run_command(
             if exc.output:
                 output = exc.output if isinstance(exc.output, str) else exc.output.decode()
             if cancel_event is not None and cancel_event.is_set():
-                _terminate_process_tree(proc)
+                terminate_process_tree(proc)
                 stdout, _ = proc.communicate()
                 output = stdout or output
                 raise CommandCancelled(
