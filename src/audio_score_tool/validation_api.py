@@ -34,6 +34,8 @@ class ValidationSettingsPayload(BaseModel):
     audio_enabled: bool = False
     audio_threshold: float = Field(default=0.42, ge=0.1, le=0.9)
     validation_soundfont: str | None = Field(default=None, max_length=1000)
+    ffmpeg_cmd: str | None = Field(default=None, max_length=1000)
+    fluidsynth_cmd: str | None = Field(default=None, max_length=1000)
 
     @field_validator("base_url")
     @classmethod
@@ -61,6 +63,7 @@ def _bool_setting(value: str | None, default: bool = False) -> bool:
 
 def _settings() -> dict:
     saved = _store.read()
+    runtime = runtime_settings(store=_store)
     try:
         visual_max_pages = max(1, min(8, int(saved.get("visual_validation_max_pages") or "4")))
     except ValueError:
@@ -80,6 +83,11 @@ def _settings() -> dict:
         "audio_enabled": _bool_setting(saved.get("audio_validation_enabled"), False),
         "audio_threshold": audio_threshold,
         "validation_soundfont": saved.get("validation_soundfont") or None,
+        "ffmpeg_cmd": saved.get("ffmpeg_cmd") or runtime.ffmpeg_cmd,
+        "fluidsynth_cmd": saved.get("fluidsynth_cmd") or runtime.fluidsynth_cmd,
+        "audio_tools": {
+            "soundfont_configured": bool(runtime.validation_soundfont and runtime.validation_soundfont.is_file()),
+        },
     }
 
 
@@ -109,14 +117,7 @@ def _source_audio(song_id: str) -> Path | None:
 
 @router.get("/api/validation/settings")
 def get_validation_settings() -> dict:
-    runtime = runtime_settings(store=_store)
-    current = _settings()
-    current["audio_tools"] = {
-        "ffmpeg_cmd": runtime.ffmpeg_cmd,
-        "fluidsynth_cmd": runtime.fluidsynth_cmd,
-        "soundfont_configured": bool(runtime.validation_soundfont and runtime.validation_soundfont.is_file()),
-    }
-    return current
+    return _settings()
 
 
 @router.put("/api/validation/settings")
@@ -133,6 +134,8 @@ def update_validation_settings(payload: ValidationSettingsPayload) -> dict:
             "audio_validation_enabled": payload.audio_enabled,
             "audio_validation_threshold": payload.audio_threshold,
             "validation_soundfont": payload.validation_soundfont,
+            "ffmpeg_cmd": payload.ffmpeg_cmd,
+            "fluidsynth_cmd": payload.fluidsynth_cmd,
         }
     )
     return get_validation_settings()
