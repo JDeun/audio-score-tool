@@ -12,7 +12,7 @@ _ALLOWED = {
     "transcription_engine",
     "mt3_infer_cmd",
     "mt3_model",
-    "yourmt3_cmd",  # v0.7 prerelease migration key; read-only compatibility.
+    "yourmt3_cmd",
     "muscriptor_cmd",
     "muscriptor_model",
     "native_engine_cmd",
@@ -23,6 +23,9 @@ _ALLOWED = {
     "audiveris_cmd",
     "lilypond_cmd",
     "musicxml2ly_cmd",
+    "ffmpeg_cmd",
+    "fluidsynth_cmd",
+    "validation_soundfont",
     "musescore_cmd",
     "llm_validation_enabled",
     "llm_validation_base_url",
@@ -31,6 +34,8 @@ _ALLOWED = {
     "visual_validation_enabled",
     "visual_validation_model",
     "visual_validation_max_pages",
+    "audio_validation_enabled",
+    "audio_validation_threshold",
 }
 
 
