@@ -6,7 +6,7 @@ import subprocess
 import pytest
 from fastapi.testclient import TestClient
 
-from audio_score_tool.api import app
+from audio_score_tool.api_ext import app
 from audio_score_tool.config import Settings
 from audio_score_tool.youtube import (
     YouTubeSourceError,
@@ -25,6 +25,11 @@ def test_validate_youtube_url_accepts_standard_hosts():
 def test_validate_youtube_url_rejects_other_hosts():
     with pytest.raises(YouTubeSourceError):
         validate_youtube_url("https://example.com/watch?v=abc123")
+
+
+def test_validate_youtube_url_rejects_plain_http():
+    with pytest.raises(YouTubeSourceError, match="HTTPS"):
+        validate_youtube_url("http://www.youtube.com/watch?v=abc123")
 
 
 def test_youtube_job_requires_authorization_confirmation():
@@ -68,6 +73,35 @@ def test_inspect_youtube_parses_metadata(monkeypatch):
     assert metadata.title == "Example Song"
     assert metadata.uploader == "Example Artist"
     assert metadata.duration == 123.4
+
+
+def test_inspect_youtube_rejects_active_live(monkeypatch):
+    payload = {
+        "title": "Live",
+        "is_live": True,
+        "webpage_url": "https://www.youtube.com/live/abc123",
+    }
+
+    monkeypatch.setattr(
+        "audio_score_tool.youtube.run_command",
+        lambda *args, **kwargs: subprocess.CompletedProcess([], 0, json.dumps(payload)),
+    )
+    with pytest.raises(YouTubeSourceError, match="생방송"):
+        inspect_youtube("https://www.youtube.com/live/abc123", settings=Settings(yt_dlp_cmd="yt-dlp"))
+
+
+def test_inspect_youtube_rejects_excessive_duration(monkeypatch, monkeypatch_session=None):
+    payload = {
+        "title": "Very Long",
+        "duration": 20_000,
+        "webpage_url": "https://youtu.be/abc123",
+    }
+    monkeypatch.setattr(
+        "audio_score_tool.youtube.run_command",
+        lambda *args, **kwargs: subprocess.CompletedProcess([], 0, json.dumps(payload)),
+    )
+    with pytest.raises(YouTubeSourceError, match="최대"):
+        inspect_youtube("https://youtu.be/abc123", settings=Settings(yt_dlp_cmd="yt-dlp"))
 
 
 def test_download_youtube_audio_uses_downloaded_input(monkeypatch, tmp_path):
