@@ -95,6 +95,31 @@ def test_setup_center_rejects_untrusted_install_recipe():
     assert response.status_code == 422
 
 
+def test_model_manager_route_exposes_explicit_download_policy():
+    client = TestClient(app)
+    response = client.get("/api/models")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["policy"]["automatic_download"] is False
+    assert body["policy"]["explicit_user_action_required"] is True
+    assert body["policy"]["auth_token_stored_by_app"] is False
+    assert body["selected_muscriptor_model"] in {"small", "medium", "large"}
+    models = {item["variant"]: item for item in body["models"]}
+    assert {"small", "medium", "large"} == set(models)
+    assert models["large"]["license"] == "CC BY-NC 4.0"
+    assert models["large"]["commercial_allowed"] is False
+    assert models["large"]["weight_bytes"] > models["medium"]["weight_bytes"]
+
+
+def test_model_manager_rejects_unknown_model():
+    client = TestClient(app)
+    response = client.post(
+        "/api/models/download",
+        json={"family": "muscriptor", "variant": "ultra"},
+    )
+    assert response.status_code == 404
+
+
 def test_omr_and_notation_routes_are_mounted():
     client = TestClient(app)
     omr = client.get("/api/omr/status")
