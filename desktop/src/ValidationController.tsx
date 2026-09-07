@@ -40,7 +40,8 @@ type ValidationSettings = {
   audio_enabled: boolean;
   audio_threshold: number;
   validation_soundfont?: string | null;
-  audio_tools?: { ffmpeg_cmd: string; fluidsynth_cmd: string; soundfont_configured: boolean };
+  ffmpeg_cmd?: string | null;
+  fluidsynth_cmd?: string | null;
 };
 
 function currentTarget(): ValidationTarget | null {
@@ -71,6 +72,8 @@ export default function ValidationController() {
     audio_enabled: false,
     audio_threshold: 0.42,
     validation_soundfont: "",
+    ffmpeg_cmd: "ffmpeg",
+    fluidsynth_cmd: "fluidsynth",
   });
   const [useLlm, setUseLlm] = useState(false);
   const [useVisual, setUseVisual] = useState(false);
@@ -108,12 +111,7 @@ export default function ValidationController() {
     const response = await fetch(`${API}/api/validation/settings`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...settings,
-        enabled: useLlm,
-        visual_enabled: useVisual,
-        audio_enabled: useAudio,
-      }),
+      body: JSON.stringify({ ...settings, enabled: useLlm, visual_enabled: useVisual, audio_enabled: useAudio }),
     });
     if (!response.ok) throw new Error(await response.text());
   };
@@ -155,7 +153,7 @@ export default function ValidationController() {
 
             <div className="validation-policy">
               <strong>검증 정책</strong>
-              <p>규칙 검사는 항상 실행합니다. LLM/Vision은 검토 후보를 설명하고, Audio evidence는 원음과 현재 악보 재합성의 chroma/onset 계열 차이를 실제 근거로 찾습니다. 어느 단계도 자동 수정하지 않습니다.</p>
+              <p>규칙 검사는 항상 실행합니다. LLM/Vision은 검토 후보를 설명하고, Audio evidence는 원음과 현재 악보 재합성의 chroma/onset 차이를 실제 근거로 찾습니다. 어느 단계도 자동 수정하지 않습니다.</p>
             </div>
 
             <label className="validation-toggle"><input type="checkbox" checked={useLlm} onChange={(event) => setUseLlm(event.target.checked)} /><span>LLM critic 함께 사용</span></label>
@@ -174,9 +172,11 @@ export default function ValidationController() {
 
             {useAudio && (
               <div className="validation-settings-grid">
+                <label><span>ffmpeg 실행 경로</span><input value={settings.ffmpeg_cmd ?? ""} placeholder="ffmpeg" onChange={(event) => setSettings((current) => ({ ...current, ffmpeg_cmd: event.target.value }))} /></label>
+                <label><span>FluidSynth 실행 경로</span><input value={settings.fluidsynth_cmd ?? ""} placeholder="fluidsynth" onChange={(event) => setSettings((current) => ({ ...current, fluidsynth_cmd: event.target.value }))} /></label>
                 <label><span>검증용 SoundFont 경로</span><input value={settings.validation_soundfont ?? ""} placeholder="/path/to/general-midi.sf2" onChange={(event) => setSettings((current) => ({ ...current, validation_soundfont: event.target.value }))} /></label>
                 <label><span>불일치 임계값</span><input type="number" min={0.1} max={0.9} step={0.01} value={settings.audio_threshold} onChange={(event) => setSettings((current) => ({ ...current, audio_threshold: Number(event.target.value) || 0.42 }))} /></label>
-                <small>FluidSynth와 ffmpeg가 필요합니다. SoundFont는 라이선스 문제 때문에 앱에 번들하지 않습니다.</small>
+                <small>SoundFont는 라이선스가 다양하므로 앱에 번들하지 않습니다. General MIDI 호환 SoundFont를 직접 지정하세요.</small>
               </div>
             )}
 
