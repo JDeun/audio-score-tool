@@ -24,41 +24,67 @@ def _safe_unlink(path: Path) -> bool:
         return False
 
 
+def _safe_mtime(path: Path) -> float:
+    try:
+        return path.stat().st_mtime
+    except OSError:
+        return 0.0
+
+
 def recover_startup_state(
     store: SongStoreV2 | None = None,
     *,
     jobs_root: Path | None = None,
 ) -> dict[str, int]:
-    """Repair disposable filesystem state left by a hard process termination.
-
-    SQLite is canonical. Work/check-out files and ``*.uploading`` objects are therefore
-    safe to discard. Export backups are different: if the process died after moving the
-    old final tree aside but before publishing the staged tree, restore the newest backup.
-    """
+    """Best-effort repair of disposable state left by a hard process termination."""
     store = store or SongStoreV2()
     export_root = store.export_root
-    export_root.mkdir(parents=True, exist_ok=True)
+    try:
+        export_root.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        return {
+            "restored_exports": 0,
+            "removed_export_backups": 0,
+            "removed_staged_exports": 0,
+            "removed_partial_uploads": 0,
+            "removed_score_work_dirs": 0,
+            "recovery_errors": 1,
+        }
 
     restored_exports = 0
     removed_backups = 0
     removed_staged = 0
     removed_uploads = 0
     removed_work_dirs = 0
+    recovery_errors = 0
 
-    for song in store.list():
+    try:
+        songs = store.list()
+    except Exception:
+        songs = []
+        recovery_errors += 1
+
+    for song in songs:
         song_id = str(song.get("song_id") or "")
         if not song_id:
             continue
         final = export_root / song_id
-        backups = sorted(
-            export_root.glob(f".{song_id}.backup-*"),
-            key=lambda path: path.stat().st_mtime if path.exists() else 0,
-            reverse=True,
-        )
+        try:
+            backups = sorted(
+                export_root.glob(f".{song_id}.backup-*"),
+                key=_safe_mtime,
+                reverse=True,
+            )
+        except OSError:
+            backups = []
+            recovery_errors += 1
+
         if final.exists():
             for backup in backups:
                 if _safe_rmtree(backup):
                     removed_backups += 1
+                else:
+                    recovery_errors += 1
         elif backups:
             newest, *older = backups
             try:
@@ -66,32 +92,57 @@ def recover_startup_state(
                 restored_exports += 1
             except OSError:
                 older = backups
+                recovery_errors += 1
             for backup in older:
                 if _safe_rmtree(backup):
                     removed_backups += 1
+                else:
+                    recovery_errors += 1
 
-        for staged in export_root.glob(f".{song_id}-staged-*"):
+        try:
+            staged_items = list(export_root.glob(f".{song_id}-staged-*"))
+        except OSError:
+            staged_items = []
+            recovery_errors += 1
+        for staged in staged_items:
             if _safe_rmtree(staged):
                 removed_staged += 1
+            else:
+                recovery_errors += 1
 
-    # Staged exports for songs that were deleted before the crash are always disposable.
-    for staged in export_root.glob(".*-staged-*"):
+    try:
+        orphan_staged = list(export_root.glob(".*-staged-*"))
+    except OSError:
+        orphan_staged = []
+        recovery_errors += 1
+    for staged in orphan_staged:
         if _safe_rmtree(staged):
             removed_staged += 1
+        else:
+            recovery_errors += 1
 
-    # Upload persistence uses an atomic .uploading suffix. A leftover file was never
-    # promoted to a valid job input and must not be consumed after restart.
     root = jobs_root or jobs_dir()
-    if root.exists():
-        for partial in root.rglob("*.uploading"):
-            if _safe_unlink(partial):
-                removed_uploads += 1
+    try:
+        partials = list(root.rglob("*.uploading")) if root.exists() else []
+    except OSError:
+        partials = []
+        recovery_errors += 1
+    for partial in partials:
+        if _safe_unlink(partial):
+            removed_uploads += 1
+        else:
+            recovery_errors += 1
 
-    # Materialized MusicXML work files are projections of canonical SQLite state.
-    if store.cache_root.exists():
-        for work in store.cache_root.glob("*/work"):
-            if _safe_rmtree(work):
-                removed_work_dirs += 1
+    try:
+        work_dirs = list(store.cache_root.glob("*/work")) if store.cache_root.exists() else []
+    except OSError:
+        work_dirs = []
+        recovery_errors += 1
+    for work in work_dirs:
+        if _safe_rmtree(work):
+            removed_work_dirs += 1
+        else:
+            recovery_errors += 1
 
     return {
         "restored_exports": restored_exports,
@@ -99,4 +150,5 @@ def recover_startup_state(
         "removed_staged_exports": removed_staged,
         "removed_partial_uploads": removed_uploads,
         "removed_score_work_dirs": removed_work_dirs,
+        "recovery_errors": recovery_errors,
     }
