@@ -50,6 +50,9 @@ def test_startup_recovery_restores_export_backup_and_removes_disposable_state(tm
     jobs_root.mkdir()
     partial = jobs_root / "input.wav.uploading"
     partial.write_bytes(b"partial")
+    deleting = jobs_root / ".deleting-old-job-deadbeef"
+    deleting.mkdir()
+    (deleting / "input.wav").write_bytes(b"old")
 
     report = recover_startup_state(store, jobs_root=jobs_root)
 
@@ -58,10 +61,12 @@ def test_startup_recovery_restores_export_backup_and_removes_disposable_state(tm
     assert not staged.exists()
     assert not work.exists()
     assert not partial.exists()
+    assert not deleting.exists()
     assert report["restored_exports"] == 1
     assert report["removed_staged_exports"] >= 1
     assert report["removed_partial_uploads"] == 1
     assert report["removed_score_work_dirs"] == 1
+    assert report["removed_staged_job_deletions"] == 1
 
 
 def test_startup_recovery_keeps_current_export_and_drops_stale_backup(tmp_path: Path):
