@@ -404,7 +404,13 @@ class SongStoreV2:
         return revision
 
     def discard_snapshot(self, song_id: str, revision: int) -> None:
+        # A failed editor should discard only a snapshot that still belongs to the
+        # current canonical revision. If another concurrent editor already committed and
+        # advanced the song, that same snapshot is now the successful edit's Undo state.
         with self._lock, self._connect() as conn:
+            row = conn.execute("SELECT revision FROM songs WHERE song_id=?", (song_id,)).fetchone()
+            if not row or int(row["revision"]) != revision:
+                return
             conn.execute("DELETE FROM song_revisions WHERE song_id=? AND revision=?", (song_id, revision))
 
     def restore_revision(self, song_id: str, revision: int) -> dict[str, Any] | None:
