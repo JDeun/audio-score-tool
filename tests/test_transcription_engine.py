@@ -1,11 +1,14 @@
 import sys
 from pathlib import Path
 
+import pytest
+
 from audio_score_tool.config import Settings
 from audio_score_tool.transcription_engine import (
     MT3InferEngine,
     MuScriptorEngine,
     NativeCommandEngine,
+    TranscriptionEngineUnavailable,
     available_engines,
     resolve_transcription_engine,
 )
@@ -13,6 +16,7 @@ from audio_score_tool.transcription_engine import (
 
 def test_resolve_transcription_engine_types(tmp_path: Path):
     mt3_settings = Settings(
+        usage_mode="commercial",
         transcription_engine="mt3_infer",
         mt3_infer_cmd=sys.executable,
         mt3_model="mr_mt3",
@@ -22,8 +26,8 @@ def test_resolve_transcription_engine_types(tmp_path: Path):
     assert isinstance(mt3, MT3InferEngine)
     assert mt3.ready() is True
 
-    # Migrate the short-lived v0.7 prerelease key without breaking local settings.
     alias_settings = Settings(
+        usage_mode="personal",
         transcription_engine="yourmt3",
         mt3_infer_cmd=sys.executable,
         musescore_cmd=sys.executable,
@@ -41,38 +45,62 @@ def test_resolve_transcription_engine_types(tmp_path: Path):
     assert isinstance(native, NativeCommandEngine)
     assert native.ready() is True
 
-    muscriptor_settings = Settings(transcription_engine="muscriptor", muscriptor_cmd=sys.executable)
+    muscriptor_settings = Settings(
+        usage_mode="personal",
+        transcription_engine="muscriptor",
+        muscriptor_cmd=sys.executable,
+        muscriptor_model="large",
+    )
     muscriptor = resolve_transcription_engine(muscriptor_settings)
     assert isinstance(muscriptor, MuScriptorEngine)
+    assert muscriptor.settings.muscriptor_model == "large"
 
 
-def test_available_engines_reports_commercial_status(tmp_path: Path):
+def test_available_engines_reports_quality_and_license_status(tmp_path: Path):
     checkpoint = tmp_path / "native.pt"
     checkpoint.write_bytes(b"checkpoint")
     settings = Settings(
+        usage_mode="personal",
         mt3_infer_cmd=sys.executable,
         mt3_model="mr_mt3",
         musescore_cmd=sys.executable,
         native_engine_cmd=sys.executable,
         native_checkpoint=checkpoint,
         muscriptor_cmd=sys.executable,
+        muscriptor_model="large",
     )
     engines = {item["key"]: item for item in available_engines(settings)}
-    assert engines["mt3_infer"]["commercial_status"] == "permissive_default"
+    assert engines["mt3_infer"]["commercial_status"] == "commercial_candidate"
     assert engines["mt3_infer"]["model"] == "mr_mt3"
     assert engines["mt3_infer"]["model_commercial_status"] == "mit"
-    assert engines["mt3_infer"]["ready"] is True
+    assert engines["mt3_infer"]["quality_rank"] == 3
     assert engines["native"]["commercial_status"] == "project_owned"
     assert engines["native"]["ready"] is True
     assert engines["muscriptor"]["commercial_status"] == "noncommercial_weights"
+    assert engines["muscriptor"]["quality_rank"] == 1
+    assert engines["muscriptor"]["model"] == "large"
 
 
-def test_yourmt3_is_explicit_license_review_option():
+def test_yourmt3_is_quality_first_mt3_option():
     settings = Settings(
+        usage_mode="commercial",
         mt3_infer_cmd=sys.executable,
         mt3_model="yourmt3",
         musescore_cmd=sys.executable,
     )
     engines = {item["key"]: item for item in available_engines(settings)}
     assert engines["mt3_infer"]["model"] == "yourmt3"
-    assert engines["mt3_infer"]["model_commercial_status"] == "license_review_recommended"
+    assert engines["mt3_infer"]["model_commercial_status"] == "apache_checkpoint_review_distribution"
+    assert engines["mt3_infer"]["quality_rank"] == 2
+
+
+def test_muscriptor_is_blocked_in_commercial_mode():
+    settings = Settings(
+        usage_mode="commercial",
+        transcription_engine="muscriptor",
+        muscriptor_cmd=sys.executable,
+    )
+    with pytest.raises(TranscriptionEngineUnavailable):
+        resolve_transcription_engine(settings)
+    engines = {item["key"]: item for item in available_engines(settings)}
+    assert engines["muscriptor"]["allowed_for_usage_mode"] is False
