@@ -47,6 +47,18 @@ def test_transcription_engine_routes_are_mounted():
     response = client.get("/api/engines")
     assert response.status_code == 200
     body = response.json()
+    assert body["usage_mode"] in {"personal", "commercial"}
     assert body["selected"] in {"mt3_infer", "muscriptor", "native"}
     keys = {item["key"] for item in body["engines"]}
     assert {"mt3_infer", "muscriptor", "native"} <= keys
+    assert "recommendation" in body
+
+
+def test_validation_routes_are_mounted():
+    client = TestClient(app)
+    settings = client.get("/api/validation/settings")
+    assert settings.status_code == 200
+    assert "enabled" in settings.json()
+
+    missing = client.post("/api/songs/not-a-real-song/validate", json={"use_llm": False})
+    assert missing.status_code == 404
