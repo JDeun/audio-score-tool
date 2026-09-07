@@ -1,7 +1,9 @@
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from audio_score_tool.omr import normalize_musicxml
+import pytest
+
+from audio_score_tool.omr import OMRImportError, normalize_musicxml
 
 
 SCORE = """<?xml version="1.0" encoding="UTF-8"?>
@@ -36,3 +38,28 @@ def test_normalize_compressed_mxl(tmp_path: Path):
     target = tmp_path / "normalized.musicxml"
     normalize_musicxml(source, target)
     assert "Piano" in target.read_text(encoding="utf-8")
+
+
+def test_musicxml_rejects_doctype_entity_payload(tmp_path: Path):
+    source = tmp_path / "unsafe.musicxml"
+    source.write_text(
+        """<?xml version="1.0"?>
+        <!DOCTYPE score-partwise [<!ENTITY boom "boom">]>
+        <score-partwise><part-list/></score-partwise>""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(OMRImportError):
+        normalize_musicxml(source, tmp_path / "normalized.musicxml")
+
+
+def test_mxl_rejects_excessive_member_count(tmp_path: Path):
+    source = tmp_path / "many.mxl"
+    with ZipFile(source, "w", ZIP_DEFLATED) as archive:
+        archive.writestr("META-INF/container.xml", "<container/>")
+        for index in range(2050):
+            archive.writestr(f"junk/{index}.txt", "x")
+        archive.writestr("score.musicxml", SCORE)
+
+    with pytest.raises(OMRImportError):
+        normalize_musicxml(source, tmp_path / "normalized.musicxml")
