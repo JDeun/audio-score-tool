@@ -168,6 +168,7 @@ def _routes(path: str, method: str):
 def test_v08_owned_routes_are_registered_once():
     assert len(_routes("/api/songs/{song_id}/export", "POST")) == 1
     assert len(_routes("/api/songs/{song_id}/undo", "POST")) == 1
+    assert len(_routes("/api/songs/{song_id}/publication", "PATCH")) == 1
     assert len(_routes("/api/songs/{song_id}", "PATCH")) == 1
     assert len(_routes("/api/songs/{song_id}", "DELETE")) == 1
     assert len(_routes("/api/jobs", "POST")) == 1
@@ -175,6 +176,7 @@ def test_v08_owned_routes_are_registered_once():
     assert len(_routes("/api/jobs/youtube", "POST")) == 1
     assert len(_routes("/api/jobs/{job_id}/retry", "POST")) == 1
     assert len(_routes("/api/jobs/{job_id}", "DELETE")) == 1
+    assert len(_routes("/api/jobs/{job_id}/files/{kind}", "GET")) == 1
     assert len(_routes("/api/storage/cleanup", "POST")) == 1
 
 
@@ -206,3 +208,26 @@ def test_local_mutation_guard_allows_tauri_origin():
         json={"component": "arbitrary-shell-command"},
     )
     assert response.status_code == 422
+
+
+def test_packaged_api_token_blocks_unsafe_requests(monkeypatch):
+    monkeypatch.setenv("AST_API_TOKEN", "test-token")
+    client = TestClient(app)
+    blocked = client.post(
+        "/api/setup/install",
+        headers={"Origin": "tauri://localhost"},
+        json={"component": "arbitrary-shell-command"},
+    )
+    assert blocked.status_code == 401
+    allowed = client.post(
+        "/api/setup/install",
+        headers={"Origin": "tauri://localhost", "X-AudioScore-Token": "test-token"},
+        json={"component": "arbitrary-shell-command"},
+    )
+    assert allowed.status_code == 422
+
+
+def test_packaged_api_token_does_not_block_reads(monkeypatch):
+    monkeypatch.setenv("AST_API_TOKEN", "test-token")
+    client = TestClient(app)
+    assert client.get("/api/health").status_code == 200
