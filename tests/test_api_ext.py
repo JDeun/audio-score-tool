@@ -106,6 +106,8 @@ def test_model_manager_route_exposes_explicit_download_policy():
     assert body["policy"]["explicit_user_action_required"] is True
     assert body["policy"]["auth_token_stored_by_app"] is False
     assert body["policy"]["selected_or_active_model_removal_blocked"] is True
+    assert body["policy"]["background_jobs_cancellable"] is True
+    assert body["policy"]["background_job_history_limit"] == 64
     assert body["selected_muscriptor_model"] in {"small", "medium", "large"}
     models = {item["variant"]: item for item in body["models"]}
     assert {"small", "medium", "large"} == set(models)
@@ -121,6 +123,12 @@ def test_model_manager_rejects_unknown_model():
         json={"family": "muscriptor", "variant": "ultra"},
     )
     assert response.status_code == 404
+
+
+def test_model_manager_cancel_routes_reject_unknown_jobs():
+    client = TestClient(app)
+    assert client.post("/api/models/jobs/not-real/cancel").status_code == 404
+    assert client.post("/api/models/hf-auth/not-real/cancel").status_code == 404
 
 
 def test_source_identification_route_is_mounted():
@@ -148,14 +156,19 @@ def test_omr_and_notation_routes_are_mounted():
     assert missing.status_code == 404
 
 
-def test_backend_neutral_export_route_is_registered_once():
-    matches = [
+def _post_routes(path: str):
+    return [
         route
         for route in app.routes
-        if getattr(route, "path", None) == "/api/songs/{song_id}/export"
+        if getattr(route, "path", None) == path
         and "POST" in (getattr(route, "methods", None) or set())
     ]
-    assert len(matches) == 1
+
+
+def test_v08_owned_post_routes_are_registered_once():
+    assert len(_post_routes("/api/songs/{song_id}/export")) == 1
+    assert len(_post_routes("/api/jobs")) == 1
+    assert len(_post_routes("/api/benchmarks")) == 1
 
 
 def test_request_size_guard_rejects_oversized_declared_body():
