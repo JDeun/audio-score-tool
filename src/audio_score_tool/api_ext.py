@@ -11,6 +11,7 @@ from .omr_api import router as omr_router
 from .pipeline_v2 import transcribe as transcribe_v2
 from .preflight_v2 import preflight as preflight_v2
 from .runtime_settings import runtime_settings
+from .setup_center_api import router as setup_center_router
 from .song_api_v2 import router as song_router
 from .validation_api import router as validation_router
 
@@ -30,6 +31,7 @@ app.include_router(engine_router)
 app.include_router(validation_router)
 app.include_router(omr_router)
 app.include_router(notation_router)
+app.include_router(setup_center_router)
 
 
 def run() -> None:
