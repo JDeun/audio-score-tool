@@ -16,10 +16,11 @@ from .request_limits import RequestSizeLimitMiddleware
 from .runtime_settings import runtime_settings
 from .setup_center_api import router as setup_center_router
 from .song_api_v2 import router as song_router
+from .upload_api_v2 import router as upload_router
 from .validation_api import router as validation_router
 
-# v0.8 keeps the proven job/benchmark APIs while switching the product workflow to
-# SQLite-canonical score storage, deferred exports, advisory validation and OMR import.
+# v0.8 keeps the proven job/benchmark workers while switching product-facing state and
+# upload persistence to the hardened v0.8 routes.
 base_api._runtime_settings = runtime_settings
 base_api.transcribe = transcribe_v2
 base_api.preflight = preflight_v2
@@ -27,10 +28,8 @@ app = base_api.app
 app.version = "0.8.0"
 app.add_middleware(RequestSizeLimitMiddleware)
 
-# song_api_v2 still contains the pre-v0.8 MuseScore-only export handler for internal
-# compatibility. Do not register that duplicate public route: otherwise request matching
-# depends on route order and OpenAPI can describe a different handler than the one users
-# actually reach. The backend-neutral notation_export_router is the sole public owner.
+# Remove legacy handlers that now have v0.8 owners. This avoids request-order shadowing
+# and keeps OpenAPI aligned with the endpoint users actually reach.
 song_router.routes[:] = [
     route
     for route in song_router.routes
@@ -39,7 +38,16 @@ song_router.routes[:] = [
         and "POST" in (getattr(route, "methods", None) or set())
     )
 ]
+base_api.app.routes[:] = [
+    route
+    for route in base_api.app.routes
+    if not (
+        getattr(route, "path", None) in {"/api/jobs", "/api/benchmarks"}
+        and "POST" in (getattr(route, "methods", None) or set())
+    )
+]
 
+app.include_router(upload_router)
 app.include_router(notation_export_router)
 app.include_router(song_router)
 app.include_router(export_router)
