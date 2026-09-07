@@ -104,7 +104,7 @@ def _apply_external_lyrics(song_id: str, text: str) -> dict:
         return {"applied": False, "reason": "Song not found", "stats": stats}
     revision = _store.snapshot_revision(song_id, _publication.read(song_id))
     source = _store.checkout_current(song_id)
-    destination = _store.cache_song_dir(song_id) / "score.reference-lyrics.musicxml"
+    destination = source.with_name(f"{source.stem}.reference-lyrics.musicxml")
     try:
         part_id, attached = attach_lyrics_to_musicxml(source, destination, timed)
         _store.commit_edit_from_path(song_id, destination)
