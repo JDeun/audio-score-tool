@@ -6,6 +6,7 @@ from . import api as base_api
 from .engine_api import router as engine_router
 from .enrichment_api import router as enrichment_router
 from .export_api_v2 import router as export_router
+from .job_lifecycle_api_v2 import router as job_lifecycle_router
 from .model_manager_api import router as model_manager_router
 from .notation_api import router as notation_router
 from .notation_export_api import router as notation_export_router
@@ -25,8 +26,8 @@ from .storage_api_v2 import router as storage_router
 from .upload_api_v2 import router as upload_router
 from .validation_api import router as validation_router
 
-# v0.8 keeps the proven job/benchmark workers while switching product-facing state and
-# upload persistence to the hardened v0.8 routes.
+# v0.8 keeps the proven workers/read APIs while switching product-facing mutation
+# persistence and lifecycle handling to hardened v0.8 routes.
 base_api._runtime_settings = runtime_settings
 base_api.transcribe = transcribe_v2
 base_api.preflight = preflight_v2
@@ -63,12 +64,17 @@ base_api.app.routes[:] = [
         and "POST" in (getattr(route, "methods", None) or set())
     )
     and not (
+        getattr(route, "path", None) in {"/api/jobs/youtube", "/api/jobs/{job_id}/retry"}
+        and "POST" in (getattr(route, "methods", None) or set())
+    )
+    and not (
         getattr(route, "path", None) == "/api/storage/cleanup"
         and "POST" in (getattr(route, "methods", None) or set())
     )
 ]
 
 app.include_router(upload_router)
+app.include_router(job_lifecycle_router)
 app.include_router(storage_router)
 app.include_router(notation_export_router)
 app.include_router(song_delete_router)
