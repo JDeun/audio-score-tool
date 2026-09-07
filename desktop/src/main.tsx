@@ -9,6 +9,7 @@ import NotationSettingsController from "./NotationSettingsController";
 import OMRImportController from "./OMRImportController";
 import ProductRoot from "./ProductRoot";
 import SetupCenter from "./SetupCenter";
+import SourceIdentificationController from "./SourceIdentificationController";
 import ValidationController from "./ValidationController";
 import "./styles.css";
 import "./error-boundary.css";
@@ -22,6 +23,7 @@ createRoot(document.getElementById("root")!).render(
       <ExportController />
       <ValidationController />
       <EnrichmentController />
+      <SourceIdentificationController />
       <OMRImportController />
       <NotationSettingsController />
       <SetupCenter />
