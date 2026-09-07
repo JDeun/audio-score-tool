@@ -26,8 +26,20 @@ base_api.preflight = preflight_v2
 app = base_api.app
 app.version = "0.8.0"
 app.add_middleware(RequestSizeLimitMiddleware)
-# Mount the backend-neutral export route before the compatibility song router because
-# FastAPI resolves duplicate method/path routes in registration order.
+
+# song_api_v2 still contains the pre-v0.8 MuseScore-only export handler for internal
+# compatibility. Do not register that duplicate public route: otherwise request matching
+# depends on route order and OpenAPI can describe a different handler than the one users
+# actually reach. The backend-neutral notation_export_router is the sole public owner.
+song_router.routes[:] = [
+    route
+    for route in song_router.routes
+    if not (
+        getattr(route, "path", None) == "/api/songs/{song_id}/export"
+        and "POST" in (getattr(route, "methods", None) or set())
+    )
+]
+
 app.include_router(notation_export_router)
 app.include_router(song_router)
 app.include_router(export_router)
