@@ -16,13 +16,37 @@ def _find_executable(name: str) -> str | None:
     found = shutil.which(name)
     if found:
         return found
-    suffix = ".exe" if platform.system() == "Windows" else ""
+
+    system = platform.system()
+    suffix = ".exe" if system == "Windows" else ""
     candidates = [
         Path.home() / ".local" / "bin" / f"{name}{suffix}",
         Path.home() / ".cargo" / "bin" / f"{name}{suffix}",
     ]
-    if platform.system() == "Windows":
-        candidates += [Path(os.getenv("USERPROFILE", str(Path.home()))) / ".local" / "bin" / f"{name}.exe"]
+    if system == "Darwin":
+        # Finder-launched GUI apps often inherit a much smaller PATH than Terminal.
+        candidates += [
+            Path("/opt/homebrew/bin") / name,
+            Path("/usr/local/bin") / name,
+            Path("/usr/bin") / name,
+            Path("/opt/homebrew/sbin") / name,
+            Path("/usr/local/sbin") / name,
+        ]
+    elif system == "Linux":
+        candidates += [
+            Path("/usr/local/bin") / name,
+            Path("/usr/bin") / name,
+            Path("/snap/bin") / name,
+        ]
+    elif system == "Windows":
+        user = Path(os.getenv("USERPROFILE", str(Path.home())))
+        local_app_data = Path(os.getenv("LOCALAPPDATA", str(user / "AppData" / "Local")))
+        candidates += [
+            user / ".local" / "bin" / f"{name}.exe",
+            local_app_data / "Microsoft" / "WindowsApps" / f"{name}.exe",
+            Path(os.getenv("ProgramFiles", "C:/Program Files")) / name / f"{name}.exe",
+        ]
+
     for candidate in candidates:
         if candidate.is_file():
             return str(candidate)
