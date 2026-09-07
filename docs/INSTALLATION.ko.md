@@ -8,16 +8,18 @@ AudioScoreTool의 설치 목표는 다음입니다.
 
 일반 사용자는 다음을 알 필요가 없어야 합니다.
 
-- `pip`, `uv`, `npm`, `cargo`
+- `pip`, `uv`, `npm`, `cargo` 사용법
 - Python/Node/Rust 개발환경 구성
 - PATH 수동 편집
-- 개별 Python package 설치
+- 개별 Python package의 가상환경 관리
 
-Desktop package는 앱과 Python sidecar를 함께 배포하는 것을 전제로 합니다. 개발 명령은 저장소 개발자용입니다.
+Desktop package는 앱과 Python orchestration sidecar를 함께 배포하는 것을 전제로 합니다. 개발 명령은 저장소 개발자용입니다.
+
+AI 도구를 격리 실행할 때 `uv/uvx`가 필요한 환경에서는 Setup Center가 이를 **관리형 AI 런타임**으로 취급합니다. 사용자가 Python 환경을 직접 구성하는 방식으로 안내하지 않습니다.
 
 ## Setup Center
 
-첫 실행 소개 온보딩이 끝난 뒤 기본 채보 환경이 준비되지 않았다면 Setup Center가 이어서 열립니다. 이후 우측 하단 `설치 도우미`에서 언제든 다시 열 수 있습니다.
+첫 실행 소개 온보딩이 끝난 뒤 기본 채보 환경이 준비되지 않았다면 Setup Center가 이어서 열립니다. 두 모달이 겹치지 않도록 순차 실행합니다. 이후 우측 하단 `설치 도우미`에서 언제든 다시 열 수 있습니다.
 
 구성요소는 세 단계로 나눕니다.
 
@@ -29,7 +31,11 @@ Desktop package는 앱과 Python sidecar를 함께 배포하는 것을 전제로
 음원 → 자동 채보 → 편집 가능한 MusicXML
 ```
 
-선택한 transcription engine과, MuScriptor 사용 시 필요한 Hugging Face 인증만 기본 readiness를 막을 수 있습니다.
+- 선택된 transcription engine
+- 필요 시 관리형 `uv/uvx` 런타임
+- MuScriptor 사용 시 Hugging Face 인증
+
+만 기본 readiness를 막을 수 있습니다.
 
 ### 권장
 
@@ -53,31 +59,28 @@ Desktop package는 앱과 Python sidecar를 함께 배포하는 것을 전제로
 
 ## 자동 설치 정책
 
-앱이 임의의 shell command를 만들거나 실행하지 않습니다. 운영체제별로 검토된 고정 package-manager recipe만 사용합니다.
-
-현재 지원:
+앱이 임의의 shell command를 조합해 실행하지 않습니다. 운영체제별로 검토된 고정 package-manager recipe만 사용합니다.
 
 ### macOS
 
-Homebrew가 이미 설치되어 있을 때:
+Homebrew가 이미 설치되어 있을 때 Setup Center에서 다음을 자동 실행할 수 있습니다.
 
 ```bash
+brew install uv
 brew install ffmpeg
 brew install fluid-synth
 brew install lilypond
 ```
 
-을 Setup Center에서 실행할 수 있습니다.
-
 ### Windows
 
-winget이 있을 때 FFmpeg를 다음 고정 package ID로 설치할 수 있습니다.
+winget이 있을 때 현재 검증된 FFmpeg package ID만 자동 설치 대상으로 둡니다.
 
 ```powershell
 winget install -e --id Gyan.FFmpeg --accept-package-agreements --accept-source-agreements
 ```
 
-다른 구성요소는 package ID/배포 경로를 충분히 고정할 수 있을 때만 자동 설치 대상으로 추가합니다.
+다른 구성요소는 package ID와 배포 경로를 충분히 고정할 수 있을 때만 자동 설치 대상으로 추가합니다.
 
 ### Linux
 
@@ -85,8 +88,9 @@ winget install -e --id Gyan.FFmpeg --accept-package-agreements --accept-source-a
 
 ## 공식 다운로드 fallback
 
-자동 설치를 지원하지 않는 항목은 Setup Center에서 공식 배포 페이지를 제공합니다.
+자동 설치를 지원하지 않는 항목은 Setup Center에서 공식 배포 페이지를 제공합니다. Tauri opener를 사용해 시스템 기본 브라우저에서 엽니다.
 
+- uv: `https://docs.astral.sh/uv/getting-started/installation/`
 - LilyPond: `https://lilypond.org/download.html`
 - Audiveris: `https://audiveris.github.io/audiveris/`
 - FFmpeg: `https://ffmpeg.org/download.html`
