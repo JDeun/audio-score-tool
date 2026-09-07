@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import threading
 import time
 import urllib.parse
@@ -9,6 +8,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .safe_http import DEFAULT_MAX_JSON_BYTES, open_json
+from .secret_env import SecretEnvError, secret_from_env
 
 MUSICBRAINZ_BASE = "https://musicbrainz.org/ws/2"
 USER_AGENT = "AudioScoreTool/0.8 (https://github.com/JDeun/audio-score-tool)"
@@ -73,28 +73,28 @@ def _recording_candidate(item: dict[str, Any]) -> dict[str, Any]:
     release = releases[0] if releases and isinstance(releases[0], dict) else {}
     return {
         "provider": "musicbrainz",
-        "recording_mbid": item.get("id"),
-        "title": item.get("title"),
-        "artist": artist_name or None,
-        "first_release_date": item.get("first-release-date"),
-        "album": release.get("title") if isinstance(release, dict) else None,
-        "release_mbid": release.get("id") if isinstance(release, dict) else None,
+        "recording_mbid": str(item.get("id") or "")[:100] or None,
+        "title": str(item.get("title") or "")[:300] or None,
+        "artist": artist_name[:300] or None,
+        "first_release_date": str(item.get("first-release-date") or "")[:50] or None,
+        "album": str(release.get("title") or "")[:500] if isinstance(release, dict) else None,
+        "release_mbid": str(release.get("id") or "")[:100] if isinstance(release, dict) else None,
         "length_ms": item.get("length"),
-        "isrcs": item.get("isrcs") or [],
+        "isrcs": [str(value)[:32] for value in (item.get("isrcs") or [])[:20]],
         "score": int(item.get("score") or 0),
         "license_scope": "MusicBrainz core metadata / CC0 where applicable",
     }
 
 
 def search_musicbrainz(title: str, artist: str | None = None, *, limit: int = 5) -> list[dict[str, Any]]:
-    title = title.strip()
-    artist = (artist or "").strip()
+    title = title.strip()[:300]
+    artist = (artist or "").strip()[:300]
     if not title:
         return []
     parts = [f'recording:"{title.replace(chr(34), "")}"']
     if artist:
         parts.append(f'artist:"{artist.replace(chr(34), "")}"')
-    payload = _musicbrainz_request("recording/", {"query": " AND ".join(parts), "limit": str(limit)})
+    payload = _musicbrainz_request("recording/", {"query": " AND ".join(parts), "limit": str(max(1, min(limit, 20)))})
     return [
         _recording_candidate(item)
         for item in payload.get("recordings", []) if isinstance(payload, dict) and isinstance(item, dict)
@@ -102,10 +102,10 @@ def search_musicbrainz(title: str, artist: str | None = None, *, limit: int = 5)
 
 
 def search_musicbrainz_by_isrc(isrc: str, *, limit: int = 5) -> list[dict[str, Any]]:
-    normalized = "".join(char for char in isrc.upper() if char.isalnum())
+    normalized = "".join(char for char in isrc.upper() if char.isalnum())[:32]
     if not normalized:
         return []
-    payload = _musicbrainz_request("recording/", {"query": f'isrc:"{normalized}"', "limit": str(limit)})
+    payload = _musicbrainz_request("recording/", {"query": f'isrc:"{normalized}"', "limit": str(max(1, min(limit, 20)))})
     results = [
         _recording_candidate(item)
         for item in payload.get("recordings", []) if isinstance(payload, dict) and isinstance(item, dict)
@@ -146,10 +146,13 @@ def fetch_lyrics(provider: LyricsProvider, *, title: str, artist: str | None = N
         raise EnrichmentError("Lyrics provider must be a valid http(s) URL.")
     if parsed.scheme != "https" and parsed.hostname not in {"127.0.0.1", "localhost", "::1"}:
         raise EnrichmentError("Remote lyrics providers must use HTTPS.")
-    url = _format_lyrics_url(template, title=title, artist=artist)
+    url = _format_lyrics_url(template, title=title[:300], artist=(artist or "")[:300])
     headers = {"Accept": "application/json", "User-Agent": USER_AGENT}
     if provider.api_key_env:
-        token = os.getenv(provider.api_key_env)
+        try:
+            token = secret_from_env(provider.api_key_env)
+        except SecretEnvError as exc:
+            raise EnrichmentError(str(exc)) from exc
         if token:
             headers["Authorization"] = f"Bearer {token}"
     payload = _json_request(url, headers=headers)
