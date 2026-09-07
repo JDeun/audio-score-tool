@@ -105,6 +105,7 @@ def test_model_manager_route_exposes_explicit_download_policy():
     assert body["policy"]["automatic_download"] is False
     assert body["policy"]["explicit_user_action_required"] is True
     assert body["policy"]["auth_token_stored_by_app"] is False
+    assert body["policy"]["selected_or_active_model_removal_blocked"] is True
     assert body["selected_muscriptor_model"] in {"small", "medium", "large"}
     models = {item["variant"]: item for item in body["models"]}
     assert {"small", "medium", "large"} == set(models)
@@ -145,3 +146,23 @@ def test_omr_and_notation_routes_are_mounted():
 
     missing = client.post("/api/songs/not-a-real-song/export", json={"formats": ["musicxml"]})
     assert missing.status_code == 404
+
+
+def test_backend_neutral_export_route_is_registered_once():
+    matches = [
+        route
+        for route in app.routes
+        if getattr(route, "path", None) == "/api/songs/{song_id}/export"
+        and "POST" in (getattr(route, "methods", None) or set())
+    ]
+    assert len(matches) == 1
+
+
+def test_request_size_guard_rejects_oversized_declared_body():
+    client = TestClient(app)
+    response = client.post(
+        "/api/setup/install",
+        headers={"Content-Length": str(3 * 1024 * 1024 * 1024)},
+        content=b"{}",
+    )
+    assert response.status_code == 413
