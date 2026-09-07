@@ -4,11 +4,15 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from .enrichment import EnrichmentError, LyricsProvider, choose_high_confidence, fetch_lyrics, search_musicbrainz
+from .lyrics import attach_lyrics_to_musicxml
+from .publication_store_v2 import PublicationStoreV2
+from .reference_lyrics import align_reference_lyrics
 from .runtime_settings import runtime_settings
 from .song_store_v2 import SongStoreV2
 
 router = APIRouter(prefix="/api/songs", tags=["enrichment"])
 _store = SongStoreV2()
+_publication = PublicationStoreV2()
 
 
 class EnrichRequest(BaseModel):
@@ -20,6 +24,30 @@ class EnrichRequest(BaseModel):
     lyrics_provider_name: str | None = None
     lyrics_url_template: str | None = None
     lyrics_api_key_env: str | None = None
+    apply_reference_lyrics: bool = False
+
+
+def _apply_external_lyrics(song_id: str, text: str) -> dict:
+    transcript = _store.analysis(song_id, "lyrics_transcript")
+    alignment = _store.analysis(song_id, "lyric_alignment") or {}
+    language = alignment.get("language") if isinstance(alignment, dict) else None
+    timed, stats = align_reference_lyrics(transcript, text, language=language)
+    if not timed:
+        return {"applied": False, "reason": "WhisperX word timing이 없어 외부 가사를 안전하게 정렬할 수 없습니다.", "stats": stats}
+
+    song = _store.get(song_id)
+    if not song:
+        return {"applied": False, "reason": "Song not found", "stats": stats}
+    revision = _store.snapshot_revision(song_id, _publication.read(song_id))
+    source = _store.checkout_current(song_id)
+    destination = _store.cache_song_dir(song_id) / "score.reference-lyrics.musicxml"
+    try:
+        part_id, attached = attach_lyrics_to_musicxml(source, destination, timed)
+        _store.commit_edit_from_path(song_id, destination)
+    except Exception as exc:  # noqa: BLE001 - preserve current score on reference mismatch
+        _store.discard_snapshot(song_id, revision)
+        return {"applied": False, "reason": str(exc), "stats": stats}
+    return {"applied": True, "part_id": part_id, "attached_tokens": attached, "stats": stats}
 
 
 @router.post("/{song_id}/enrich")
@@ -57,6 +85,7 @@ def enrich_song(song_id: str, payload: EnrichRequest) -> dict:
 
     lyrics = None
     lyrics_error = None
+    lyric_application = None
     if payload.lyrics_url_template:
         try:
             lyrics = fetch_lyrics(
@@ -68,6 +97,8 @@ def enrich_song(song_id: str, payload: EnrichRequest) -> dict:
                 title=str((selected or {}).get("title") or title),
                 artist=(selected or {}).get("artist") or artist,
             )
+            if lyrics and payload.apply_reference_lyrics:
+                lyric_application = _apply_external_lyrics(song_id, lyrics["lyrics"])
         except EnrichmentError as exc:
             lyrics_error = str(exc)
 
@@ -85,13 +116,18 @@ def enrich_song(song_id: str, payload: EnrichRequest) -> dict:
         },
         "lyrics": lyrics,
         "lyrics_error": lyrics_error,
+        "lyric_application": lyric_application,
         "lyrics_policy": {
             "arbitrary_web_scraping": False,
             "configured_provider_only": True,
+            "text_source": "configured external provider when available",
+            "timing_source": "WhisperX/acoustic evidence",
             "fallback": "WhisperX transcription/alignment remains authoritative when no licensed provider is configured",
         },
     }
     _store.set_analysis(song_id, "external_enrichment", report)
     if lyrics:
         _store.set_analysis(song_id, "external_lyrics", lyrics)
+    if lyric_application:
+        _store.set_analysis(song_id, "reference_lyrics_alignment", lyric_application)
     return report
