@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
 from .musicxml_editor import set_score_title
 from .publication_layout import apply_publication_layout
 from .song_api_v2 import (
-    SongMetadataPatch,
     _discard_snapshot,
     _public,
     _publication_store,
@@ -17,8 +17,13 @@ from .song_api_v2 import (
 router = APIRouter(prefix="/api/songs", tags=["song-metadata-v2"])
 
 
+class SongMetadataPatchV2(BaseModel):
+    title: str | None = Field(default=None, max_length=300)
+    artist: str | None = Field(default=None, max_length=300)
+
+
 @router.patch("/{song_id}")
-def update_song_metadata_v2(song_id: str, payload: SongMetadataPatch) -> dict:
+def update_song_metadata_v2(song_id: str, payload: SongMetadataPatchV2) -> dict:
     song = _require_song(song_id)
     next_title = (
         payload.title.strip() or "제목 없는 곡"
