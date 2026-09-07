@@ -167,6 +167,7 @@ def _routes(path: str, method: str):
 
 def test_v08_owned_routes_are_registered_once():
     assert len(_routes("/api/songs/{song_id}/export", "POST")) == 1
+    assert len(_routes("/api/songs/{song_id}", "PATCH")) == 1
     assert len(_routes("/api/songs/{song_id}", "DELETE")) == 1
     assert len(_routes("/api/jobs", "POST")) == 1
     assert len(_routes("/api/benchmarks", "POST")) == 1
