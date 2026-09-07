@@ -19,6 +19,7 @@ from .song_api_v2 import router as song_router
 from .song_delete_api import router as song_delete_router
 from .song_mutation_lock import SongMutationSerializationMiddleware
 from .sqlite_runtime import configure_sqlite
+from .storage_api_v2 import router as storage_router
 from .upload_api_v2 import router as upload_router
 from .validation_api import router as validation_router
 
@@ -54,9 +55,14 @@ base_api.app.routes[:] = [
         getattr(route, "path", None) in {"/api/jobs", "/api/benchmarks"}
         and "POST" in (getattr(route, "methods", None) or set())
     )
+    and not (
+        getattr(route, "path", None) == "/api/storage/cleanup"
+        and "POST" in (getattr(route, "methods", None) or set())
+    )
 ]
 
 app.include_router(upload_router)
+app.include_router(storage_router)
 app.include_router(notation_export_router)
 app.include_router(song_delete_router)
 app.include_router(song_router)
