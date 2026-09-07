@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, field_validator
 
-from .pipeline import preflight
+from .preflight_v2 import preflight
 from .runtime_settings import runtime_settings
 from .settings_store import SettingsStore
 from .transcription_engine import available_engines
