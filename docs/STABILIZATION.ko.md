@@ -114,9 +114,6 @@
 ## 4차 리뷰 — 삭제 / 저장공간 / SQLite / export / API contract
 
 ### Song 삭제 일관성
-기존 순서에서는 publication/tombstone을 먼저 변경하고 canonical Song 삭제가 실패할 경우 반쪽 상태가 남을 수 있었습니다.
-
-수정:
 - publication row는 `SongStoreV2.delete()`의 동일 SQLite transaction에서 삭제
 - tombstone은 re-ingestion 방지를 위해 먼저 기록하되 canonical 삭제 실패 시 compensation으로 제거
 - v0.8 delete route를 단독 public owner로 등록
@@ -148,36 +145,68 @@
 - Setup/Model Manager가 실제로 사용하는 공식 HTTPS URL만 `opener:allow-open-url` scope에 등록
 - sidecar spawn은 기존 특정 bundled binary scope만 유지
 
-### 모델 관리자 frontend/backend contract
-- `cancelling`, `cancelled` 상태를 frontend type/polling에 반영
-- 모델 다운로드 취소 / HF 인증 취소 UI 연결
-
 ### 제목/아티스트 metadata
 - 수동 제목 변경 후 metadata write 실패 시 score revision rollback
 - title/artist 입력 최대 길이 제한
 - v0.8 metadata route를 단독 public owner로 등록
 
-### worker thread start failure
-- thread 시작 자체가 실패하면 Job을 영구 `queued`로 남기지 않고 `failed` 기록
-- 원본 입력은 retry를 위해 유지
+### worker thread / historical state
+- thread 시작 실패 시 영구 `queued` 대신 `failed` 기록
+- 한 row의 malformed `result_json`은 `result_corrupt=true`로 격리
 
-### corrupted historical Job JSON
-- 한 row의 malformed `result_json` 때문에 전체 작업 내역이 500이 되지 않도록 `result_corrupt=true`로 격리
+## 5차 리뷰 — crash recovery / instance lifecycle / revision transaction / Job lifecycle
+
+### startup self-healing
+강제 종료가 export swap 또는 upload 도중 발생해도 다음 실행에서 복구할 수 있도록 `startup_recovery` 추가:
+- final export가 없고 backup만 남았으면 newest backup 복구
+- final export가 이미 있으면 stale backup 제거
+- staged export 제거
+- `.uploading` partial input 제거
+- canonical SQLite에서 재생성 가능한 MusicXML work cache 제거
+- 개별 파일 권한/stat 실패는 recovery error로 격리하고 앱 시작 자체를 막지 않음
+- 단순 module import/Test collection에서는 recovery를 실행하지 않고 실제 server `run()`에서만 수행
+
+### single-instance desktop
+고정 `127.0.0.1:8080`에서 동일 앱 두 인스턴스가 backend port를 경쟁하지 않도록 Tauri 공식 single-instance plugin 추가:
+- plugin을 첫 번째로 등록
+- 두 번째 실행은 sidecar를 새로 띄우지 않음
+- 기존 main window를 show/unminimize/focus
+
+### YouTube / retry lifecycle v0.8화
+- legacy YouTube Job 생성 route를 hardened owner로 교체
+- worker start failure를 즉시 failed 처리
+- retry input copy는 `.copying` → atomic rename
+- 오래된 Job에 model 정보가 없을 경우 MuScriptor `medium` 고정 fallback 제거, 현재 runtime default 사용
+
+### 직접 Job delete의 canonical 보호
+- 완료 score Job 삭제 전 Song DB ingestion을 강제
+- canonical Song이 확인되지 않으면 Job 삭제 거부
+- failed/cancelled Job에서만 orphan managed audio asset 정리
+- 작업 내역 삭제가 유일한 MusicXML 결과를 없애는 짧은 race window 제거
+
+### atomic Undo
+- score/title/artist와 publication settings를 동일 SQLite transaction에서 복구
+- revision rows 삭제도 같은 transaction에 포함
+- public Undo route를 v0.8 revision service 단독 owner로 전환
 
 ### route ownership regression
-다음 route가 method/path별 하나만 등록되는지 회귀 테스트 추가:
+다음 route가 method/path별 하나만 등록되는지 회귀 테스트:
 - `POST /api/jobs`
 - `POST /api/benchmarks`
+- `POST /api/jobs/youtube`
+- `POST /api/jobs/{job_id}/retry`
+- `DELETE /api/jobs/{job_id}`
 - `POST /api/storage/cleanup`
 - `POST /api/songs/{song_id}/export`
+- `POST /api/songs/{song_id}/undo`
 - `PATCH /api/songs/{song_id}`
 - `DELETE /api/songs/{song_id}`
 
 ## 현재 정적 코드리뷰 판정
 
-현재까지 발견된 **명확한 고위험 데이터 손실, stale overwrite, credential redirect, partial upload/export, route shadowing** 경로는 위와 같이 수정했습니다.
+현재까지 발견된 **명확한 고위험 데이터 손실, stale overwrite, credential redirect, partial upload/export, crash-swap, route shadowing, completed-Job deletion** 경로는 위와 같이 수정했습니다.
 
-다만 정적 리뷰는 실제 실행 검증을 대체하지 않습니다.
+5차 이후에는 광범위한 정적 탐색의 한계효용이 낮아졌습니다. 다만 정적 리뷰는 실제 실행 검증을 대체하지 않습니다.
 
 ## Release blocker
 
@@ -205,17 +234,21 @@ cargo check --locked
 - Cargo check
 - Windows/macOS/Linux package build
 
+특히 이번 5차에서 `tauri-plugin-single-instance` 의존성이 추가됐으므로 실제 Cargo resolver/check가 필수입니다.
+
 ### 3. 실제 clean-install E2E
 최소 matrix:
 - Windows clean install
 - macOS clean install
-- local audio
-- YouTube
+- duplicate app launch
+- unrelated process가 8080을 점유한 경우
+- local audio / YouTube / retry / direct Job delete
 - MuScriptor Large
 - commercial MT3 path
 - Korean/English lyrics
 - PDF/Image OMR
 - MusicXML edit/revision/undo
+- 강제 종료 후 export backup recovery
 - LilyPond full score / part export
 - export disk failure recovery
 - LLM 완전 OFF
@@ -232,12 +265,12 @@ cargo check --locked
 
 정적 리뷰 기준 RC blocker라기보다 다음 단계 hardening입니다.
 
-- fixed `127.0.0.1:8080` 대신 sidecar/frontend 간 per-launch authenticated channel 또는 dynamic port
-- score + publication + metadata를 하나의 명시적 SQLite transaction abstraction으로 통합
+- unrelated local process의 port collision까지 해결하려면 fixed `127.0.0.1:8080` 대신 dynamic port 또는 명시적 port-negotiation
+- browser Origin guard를 넘어선 로컬 프로세스 격리가 필요하면 sidecar/frontend 간 per-launch authenticated token 도입
+- 일반 edit/metadata/enrichment까지 아우르는 명시적 SQLite transaction service 계층
 - 5,000 Job scan 대신 incremental ingestion cursor/event 방식
-- crash-safe export directory swap recovery marker
-- orphan cache/backup self-healing startup sweep
 - structured/redacted sidecar log와 crash diagnostics
+- startup recovery 결과를 diagnostics UI에서 조회 가능하게 노출
 
 ## 릴리스 판정 규칙
 
