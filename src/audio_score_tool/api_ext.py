@@ -18,6 +18,7 @@ from .setup_center_api import router as setup_center_router
 from .song_api_v2 import router as song_router
 from .song_delete_api import router as song_delete_router
 from .song_mutation_lock import SongMutationSerializationMiddleware
+from .sqlite_runtime import configure_sqlite
 from .upload_api_v2 import router as upload_router
 from .validation_api import router as validation_router
 
@@ -26,6 +27,7 @@ from .validation_api import router as validation_router
 base_api._runtime_settings = runtime_settings
 base_api.transcribe = transcribe_v2
 base_api.preflight = preflight_v2
+configure_sqlite()
 app = base_api.app
 app.version = "0.8.0"
 app.add_middleware(RequestSizeLimitMiddleware)
