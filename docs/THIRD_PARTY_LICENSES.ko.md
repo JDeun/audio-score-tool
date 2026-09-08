@@ -70,15 +70,16 @@ commercial → 사용 차단
 - 라이선스: BSD 3-Clause
 - 역할: MIDI ↔ MusicXML 변환
 - v0.8부터 기본 Python dependency
-- MuseScore 없이 MT3 계열 MIDI를 MusicXML로 변환하고 최종 MusicXML을 MIDI로 export하는 경로에 사용
+- MT3 계열 MIDI를 MusicXML로 변환하고 최종 MusicXML을 MIDI로 export하는 경로에 사용
 
-MIDI는 표기 정보를 완전히 보존하는 형식이 아니므로 실제 AMT 결과에 대해 MuseScore 변환과의 notation fidelity를 Golden Set으로 비교하는 것이 좋습니다.
+MIDI는 표기 정보를 완전히 보존하는 형식이 아니므로 실제 AMT 결과에 대해 notation fidelity를 Golden Set으로 검증하는 것이 좋습니다.
 
 ## 7. LilyPond / musicxml2ly
 
 - 라이선스: GNU GPL
 - 역할: MusicXML → LilyPond → PDF engraving
-- AudioScoreTool에서는 별도 설치된 외부 실행 프로그램으로 호출
+- AudioScoreTool의 지원 PDF renderer
+- 별도 설치된 외부 실행 프로그램으로 호출
 - installer에 직접 번들하는 경우 GPL 배포 의무를 별도로 검토
 
 `musicxml2ly`는 MusicXML의 notes/articulations/score structure/lyrics 등을 변환하지만 모든 MusicXML 기능을 완벽하게 지원하는 것은 아닙니다. 따라서 PDF fidelity가 중요한 악보에서는 결과 검증이 필요합니다.
@@ -113,15 +114,6 @@ MIDI는 표기 정보를 완전히 보존하는 형식이 아니므로 실제 AM
 
 - BSD-3-Clause
 - MusicXML 앱 내 미리보기
-
-## 13. MuseScore Studio
-
-- GPL-3.0
-- **v0.8부터 필수 dependency가 아니라 선택적 compatibility fallback**
-- AudioScoreTool에서는 외부 실행 프로그램으로 호출
-- 현재 installer에 MuseScore 자체를 번들하지 않음
-
-MuseScore binary를 직접 포함하는 전략으로 변경하면 GPL 의무를 별도 검토해야 합니다.
 
 ---
 
@@ -162,6 +154,9 @@ AudioScoreTool validation/edit
 ### PDF 출력
 
 ```text
-LilyPond/musicxml2ly (external)  ← 기본 대안
-MuseScore (external)             ← 선택적 fallback
+LilyPond + musicxml2ly (external)
+      ↓
+PDF
 ```
+
+MuseScore는 AudioScoreTool runtime dependency나 fallback 경로에 포함하지 않습니다.
