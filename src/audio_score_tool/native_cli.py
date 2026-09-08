@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-import shutil
 from pathlib import Path
 
 import typer
@@ -9,21 +7,9 @@ import typer
 from .native_audio import load_log_mel
 from .native_events import tokens_to_midi
 from .native_model import load_checkpoint
-from .runner import CommandError, run_command
+from .notation_backend import NotationBackendError, midi_to_musicxml
 
 app = typer.Typer(help="AudioScore Native multi-instrument transcription runtime.")
-
-
-def _resolve_musescore() -> str | None:
-    configured = os.getenv("AST_MUSESCORE_CMD")
-    if configured:
-        return configured
-    for candidate in ("mscore", "musescore", "MuseScore4", "musescore4", "MuseScore"):
-        found = shutil.which(candidate)
-        if found:
-            return found
-    candidate = Path("/Applications/MuseScore 4.app/Contents/MacOS/mscore")
-    return str(candidate) if candidate.is_file() else None
 
 
 def _torch_device(requested: str) -> str:
@@ -57,19 +43,11 @@ def transcribe(
     midi_path = output / "score.mid"
     tokens_to_midi(generated, midi_path)
 
-    musescore = _resolve_musescore()
-    if not musescore:
-        raise typer.BadParameter(
-            "MuseScore 4 is required to quantize the native MIDI result into MusicXML. "
-            "Set AST_MUSESCORE_CMD when it is not discoverable on PATH."
-        )
-
     musicxml_path = output / "score.musicxml"
-    pdf_path = output / "full_score.pdf"
     try:
-        run_command(musescore, ["-o", musicxml_path, midi_path])
-        run_command(musescore, ["-o", pdf_path, musicxml_path])
-    except CommandError as exc:
+        midi_to_musicxml(midi_path, musicxml_path)
+    except NotationBackendError as exc:
+        typer.echo(f"MusicXML conversion failed: {exc}", err=True)
         raise typer.Exit(code=2) from exc
 
     typer.echo(

@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
-import platform
 import shutil
 import xml.etree.ElementTree as ET
 from collections.abc import Callable
@@ -14,6 +12,7 @@ from .config import Settings
 from .devices import detect_device_plan
 from .lyrics import attach_lyrics_to_musicxml, expand_korean_syllables, load_whisperx_words
 from .models import PipelineResult
+from .notation_backend import NotationBackendError, render_pdf
 from .musicxml_parts import extract_part_musicxml, list_score_parts
 from .runner import CommandCancelled, CommandError, command_exists, run_command
 from .system_status import huggingface_authenticated
@@ -49,46 +48,18 @@ def _find_whisper_json(output_dir: Path) -> Path:
     return candidates[0]
 
 
-def _resolve_musescore(settings: Settings) -> str | None:
-    if settings.musescore_cmd:
-        return settings.musescore_cmd
-    env_path = os.getenv("MUSCRIPTOR_MUSESCORE")
-    if env_path:
-        return env_path
-    for candidate in ("mscore", "musescore", "MuseScore4", "musescore4", "MuseScore"):
-        if shutil.which(candidate):
-            return candidate
-    for candidate in (
-        "/Applications/MuseScore 4.app/Contents/MacOS/mscore",
-        str(Path("~/MuseScore.AppImage").expanduser()),
-        str(Path("~/Applications/MuseScore.AppImage").expanduser()),
-    ):
-        if Path(candidate).is_file():
-            return candidate
-    return None
-
-
 def _render_pdf(
     musicxml: Path,
     pdf: Path,
     settings: Settings,
     cancel_event: Event | None = None,
 ) -> bool:
-    cmd = _resolve_musescore(settings)
-    if not cmd:
-        return False
     try:
-        env = None
-        if platform.system() == "Linux":
-            env = {
-                "QT_QPA_PLATFORM": "offscreen",
-                "MU_QT_QPA_PLATFORM": "offscreen",
-            }
-        run_command(cmd, ["-o", pdf, musicxml], env=env, cancel_event=cancel_event)
+        render_pdf(musicxml, pdf, settings=settings, cancel_event=cancel_event)
         return pdf.exists()
     except CommandCancelled:
         raise
-    except CommandError:
+    except NotationBackendError:
         return False
 
 
@@ -120,13 +91,10 @@ def preflight(settings: Settings | None = None, *, require_lyrics: bool = True) 
         "transcription_engine": engine.ready(),
         "demucs": command_exists(settings.demucs_cmd),
         "whisperx": command_exists(settings.whisperx_cmd),
-        "musescore_override_or_path": _resolve_musescore(settings) is not None,
     }
     missing: list[str] = []
     if not engine.ready():
         missing.append(f"transcription_engine:{engine.key}")
-    if not tools["musescore_override_or_path"]:
-        missing.append("musescore")
     if require_lyrics and not tools["whisperx"]:
         missing.append("whisperx")
 
@@ -228,7 +196,7 @@ def transcribe(
         if not _render_pdf(musicxml_path, final_pdf, settings, cancel_event):
             final_pdf = initial_full_pdf
             warnings.append(
-                "Could not render the chord-enriched full score with MuseScore. "
+                "Could not render the chord-enriched full score with LilyPond. "
                 "MusicXML still contains the inferred chord symbols."
             )
         try:
