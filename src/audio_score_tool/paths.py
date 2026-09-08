@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import platform
-import shutil
+import sqlite3
 from pathlib import Path
 
 
@@ -45,12 +45,27 @@ def exports_dir() -> Path:
     return path
 
 
+def _remove_sqlite_sidecars(path: Path) -> None:
+    path.unlink(missing_ok=True)
+    Path(f"{path}-wal").unlink(missing_ok=True)
+    Path(f"{path}-shm").unlink(missing_ok=True)
+
+
+def _backup_sqlite(source: Path, destination: Path) -> None:
+    """Create a consistent SQLite snapshot, including committed WAL contents."""
+    _remove_sqlite_sidecars(destination)
+    with sqlite3.connect(source, timeout=10) as source_conn:
+        with sqlite3.connect(destination, timeout=10) as destination_conn:
+            source_conn.backup(destination_conn)
+
+
 def database_path() -> Path:
     """Return the canonical application database, migrating the v0.7 filename once.
 
     v0.7 stored both jobs and songs in ``jobs.sqlite3`` even though the database had
-    already become application-wide state. v0.8 uses an explicit application DB name
-    while preserving existing data by copying the legacy database on first launch.
+    already become application-wide state. v0.8 uses an explicit application DB name.
+    Migration uses SQLite's backup API instead of copying the database file so committed
+    changes that still live in a WAL are preserved.
     """
 
     root = app_data_dir()
@@ -59,11 +74,11 @@ def database_path() -> Path:
     if not current.exists() and legacy.exists():
         migrating = root / ".audio-score-tool.sqlite3.migrating"
         try:
-            migrating.unlink(missing_ok=True)
-            shutil.copy2(legacy, migrating)
+            _backup_sqlite(legacy, migrating)
             migrating.replace(current)
-        except OSError:
-            migrating.unlink(missing_ok=True)
+            _remove_sqlite_sidecars(migrating)
+        except (OSError, sqlite3.Error):
+            _remove_sqlite_sidecars(migrating)
             # Keep the legacy DB usable if migration is blocked by permissions/locking.
             return legacy
     return current

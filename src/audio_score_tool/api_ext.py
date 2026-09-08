@@ -179,7 +179,7 @@ def run() -> None:
     # Filesystem recovery removes partial uploads/work buffers and can restore an export
     # backup. Keep that side effect out of module import so pytest/OpenAPI inspection is
     # non-destructive; execute it only when the actual sidecar/server is launched.
-    recover_startup_state()
+    recover_startup_state(job_store=base_api._store)
     uvicorn.run("audio_score_tool.api_ext:app", host="127.0.0.1", port=8080, reload=False)
 
 

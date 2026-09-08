@@ -2,9 +2,14 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
+from typing import Protocol
 
 from .paths import jobs_dir
 from .song_store_v2 import SongStoreV2
+
+
+class JobLookup(Protocol):
+    def get(self, job_id: str) -> dict | None: ...
 
 
 def _safe_rmtree(path: Path) -> bool:
@@ -31,10 +36,26 @@ def _safe_mtime(path: Path) -> float:
         return 0.0
 
 
+def _staged_job_id(path: Path) -> str | None:
+    prefix = ".deleting-"
+    if not path.name.startswith(prefix):
+        return None
+    body = path.name[len(prefix):]
+    job_id, separator, token = body.rpartition("-")
+    if not separator or not job_id or len(token) != 32:
+        return None
+    try:
+        int(token, 16)
+    except ValueError:
+        return None
+    return job_id
+
+
 def recover_startup_state(
     store: SongStoreV2 | None = None,
     *,
     jobs_root: Path | None = None,
+    job_store: JobLookup | None = None,
 ) -> dict[str, int]:
     """Best-effort repair of disposable state left by a hard process termination."""
     store = store or SongStoreV2()
@@ -48,6 +69,7 @@ def recover_startup_state(
             "removed_staged_exports": 0,
             "removed_partial_uploads": 0,
             "removed_score_work_dirs": 0,
+            "restored_staged_job_deletions": 0,
             "removed_staged_job_deletions": 0,
             "recovery_errors": 1,
         }
@@ -57,6 +79,7 @@ def recover_startup_state(
     removed_staged = 0
     removed_uploads = 0
     removed_work_dirs = 0
+    restored_job_deletions = 0
     removed_job_deletions = 0
     recovery_errors = 0
 
@@ -135,15 +158,39 @@ def recover_startup_state(
         else:
             recovery_errors += 1
 
-    # Job deletion uses an atomic rename before deleting the DB row. Any `.deleting-*`
-    # directory surviving a process restart is disposable staging state and can be swept.
+    # A staged Job deletion has two possible crash states:
+    #   1. DB row still exists: crash happened before the delete committed -> restore.
+    #   2. DB row is gone: delete committed and only physical cleanup remains -> remove.
+    # Without a Job lookup, preserve the directory rather than risking data loss.
     try:
         deleting_dirs = list(root.glob(".deleting-*")) if root.exists() else []
     except OSError:
         deleting_dirs = []
         recovery_errors += 1
     for deleting in deleting_dirs:
-        if _safe_rmtree(deleting):
+        job_id = _staged_job_id(deleting)
+        if not job_id or job_store is None:
+            recovery_errors += 1
+            continue
+        try:
+            record = job_store.get(job_id)
+        except Exception:
+            recovery_errors += 1
+            continue
+        original = root / job_id
+        if record is not None:
+            if original.exists():
+                if _safe_rmtree(deleting):
+                    removed_job_deletions += 1
+                else:
+                    recovery_errors += 1
+            else:
+                try:
+                    deleting.replace(original)
+                    restored_job_deletions += 1
+                except OSError:
+                    recovery_errors += 1
+        elif _safe_rmtree(deleting):
             removed_job_deletions += 1
         else:
             recovery_errors += 1
@@ -165,6 +212,7 @@ def recover_startup_state(
         "removed_staged_exports": removed_staged,
         "removed_partial_uploads": removed_uploads,
         "removed_score_work_dirs": removed_work_dirs,
+        "restored_staged_job_deletions": restored_job_deletions,
         "removed_staged_job_deletions": removed_job_deletions,
         "recovery_errors": recovery_errors,
     }
