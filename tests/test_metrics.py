@@ -92,3 +92,15 @@ def test_wrong_note_duration_is_reported_as_offset_error(tmp_path: Path):
     assert metrics.f1 == 1.0
     assert metrics.onset_mae_ms == 0.0
     assert metrics.offset_mae_ms == 125.0
+
+
+def test_drum_program_changes_do_not_create_false_instrument_mismatch(tmp_path: Path):
+    pred = tmp_path / "pred.mid"
+    ref = tmp_path / "ref.mid"
+    notes = [(36, 0), (38, 480)]
+    _write_midi(pred, notes, channel=9, program=8)
+    _write_midi(ref, notes, channel=9, program=0)
+
+    metrics = evaluate_midi_files(pred, ref)
+    assert metrics.f1 == 1.0
+    assert metrics.instrument_f1 == 1.0
