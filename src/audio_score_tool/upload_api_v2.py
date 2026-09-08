@@ -8,14 +8,16 @@ from threading import Thread
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from . import api as base_api
+from .job_admission import JobCapacityError, reserve_job
 from .paths import jobs_dir
 from .upload_storage import UploadStorageError, persist_stream_atomic
 
 router = APIRouter(tags=["uploads-v2"])
 
 
-def _cleanup_failed_job_dir(path: Path) -> None:
+def _cleanup_failed_job(job_id: str, path: Path) -> None:
     shutil.rmtree(path, ignore_errors=True)
+    base_api._store.delete(job_id)
 
 
 def _start_worker_or_fail(job_id: str, thread: Thread) -> None:
@@ -31,6 +33,13 @@ def _start_worker_or_fail(job_id: str, thread: Thread) -> None:
             error=f"백그라운드 작업을 시작하지 못했습니다: {exc}",
         )
         raise HTTPException(503, "백그라운드 작업을 시작하지 못했습니다. 작업 내역에서 다시 시도하세요.") from exc
+
+
+def _reserve_or_429(job_id: str, **values) -> None:
+    try:
+        reserve_job(base_api._store, job_id, **values)
+    except JobCapacityError as exc:
+        raise HTTPException(429, str(exc)) from exc
 
 
 @router.post("/api/jobs", status_code=202)
@@ -52,28 +61,29 @@ async def create_job_v2(
     suffix = base_api._validate_upload(file.filename, base_api._AUDIO_EXTENSIONS, "audio")
 
     job_id = uuid.uuid4().hex
+    _reserve_or_429(
+        job_id,
+        status="queued",
+        stage="uploading",
+        progress=0,
+        filename=file.filename,
+        language=language,
+        skip_lyrics=skip_lyrics,
+        preset=preset,
+        muscriptor_model=resolved_muscriptor,
+        whisperx_model=resolved_whisperx,
+    )
     job_dir = jobs_dir() / job_id
-    job_dir.mkdir(parents=True, exist_ok=False)
-    audio = job_dir / f"input{suffix}"
     try:
+        job_dir.mkdir(parents=True, exist_ok=False)
+        audio = job_dir / f"input{suffix}"
         persist_stream_atomic(file.file, audio)
-        base_api._store.create(
-            job_id,
-            status="queued",
-            stage="queued",
-            progress=0,
-            filename=file.filename,
-            language=language,
-            skip_lyrics=skip_lyrics,
-            preset=preset,
-            muscriptor_model=resolved_muscriptor,
-            whisperx_model=resolved_whisperx,
-        )
+        base_api._store.update(job_id, stage="queued")
     except UploadStorageError as exc:
-        _cleanup_failed_job_dir(job_dir)
+        _cleanup_failed_job(job_id, job_dir)
         raise HTTPException(exc.status_code, str(exc)) from exc
     except Exception:
-        _cleanup_failed_job_dir(job_dir)
+        _cleanup_failed_job(job_id, job_dir)
         raise
 
     thread = Thread(
@@ -109,31 +119,32 @@ async def create_benchmark_v2(
         base_api._validate_upload(reference_midi.filename, base_api._MIDI_EXTENSIONS, "reference MIDI")
 
     job_id = uuid.uuid4().hex
+    _reserve_or_429(
+        job_id,
+        kind="benchmark",
+        status="queued",
+        stage="uploading",
+        progress=0,
+        filename=file.filename,
+        language=language,
+        preset=profile,
+    )
     job_dir = jobs_dir() / job_id
-    job_dir.mkdir(parents=True, exist_ok=False)
-    audio = job_dir / f"input{audio_suffix}"
     reference_path: Path | None = None
 
     try:
+        job_dir.mkdir(parents=True, exist_ok=False)
+        audio = job_dir / f"input{audio_suffix}"
         persist_stream_atomic(file.file, audio)
         if reference_midi is not None:
             reference_path = job_dir / "reference.mid"
             persist_stream_atomic(reference_midi.file, reference_path)
-        base_api._store.create(
-            job_id,
-            kind="benchmark",
-            status="queued",
-            stage="queued",
-            progress=0,
-            filename=file.filename,
-            language=language,
-            preset=profile,
-        )
+        base_api._store.update(job_id, stage="queued")
     except UploadStorageError as exc:
-        _cleanup_failed_job_dir(job_dir)
+        _cleanup_failed_job(job_id, job_dir)
         raise HTTPException(exc.status_code, str(exc)) from exc
     except Exception:
-        _cleanup_failed_job_dir(job_dir)
+        _cleanup_failed_job(job_id, job_dir)
         raise
 
     thread = Thread(
