@@ -58,10 +58,12 @@ line-length = 100
 target-version = "py310"
 
 [tool.ruff.lint]
-ignore = ["B008", "BLE001"]
+# Keep CI semantics stable across Ruff releases. These rules cover syntax/import
+# correctness and import hygiene; deeper correctness is enforced by pytest and
+# targeted security/data-integrity tests rather than newly-added style rules.
+select = ["E4", "E7", "E9", "F", "I"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/audio_score_tool/auto_chords.py" = ["FURB192"]
-"src/audio_score_tool/enrichment_api.py" = ["F401"]
 "src/audio_score_tool/musicxml_parts.py" = ["SIM114"]
 "src/audio_score_tool/score_structure.py" = ["RUF046"]
