@@ -55,12 +55,12 @@ export default function DesktopUpdaterControl() {
         <small>{message || "서명된 안정 버전만 설치합니다."}</small>
       </div>
       {state === "available" ? (
-        <button type="button" onClick={() => void install()} disabled={state === "installing"}>
+        <button type="button" onClick={() => void install()}>
           v{version} 설치
         </button>
       ) : (
         <button type="button" onClick={() => void check()} disabled={state === "checking" || state === "installing"}>
-          {state === "checking" ? "확인 중…" : "업데이트 확인"}
+          {state === "checking" ? "확인 중…" : state === "installing" ? "설치 중…" : "업데이트 확인"}
         </button>
       )}
     </div>
