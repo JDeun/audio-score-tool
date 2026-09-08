@@ -220,7 +220,11 @@ def transcribe(
 
     emit("vocal_separation", 60)
 
-    vocals_path = audio_path
+    # Keep the generated vocals artifact separate from the audio used for lyrics ASR.
+    # If Demucs is unavailable or fails, WhisperX still receives the original mix, but
+    # PipelineResult.vocals_path remains None because no isolated-vocals asset exists.
+    vocals_path: Path | None = None
+    lyrics_audio_path = audio_path
     if command_exists(settings.demucs_cmd):
         try:
             run_command(
@@ -229,11 +233,11 @@ def transcribe(
                 cancel_event=cancel_event,
             )
             vocals_path = _find_one(stems_dir, "vocals.wav")
+            lyrics_audio_path = vocals_path
         except CommandCancelled as exc:
             raise PipelineCancelled("Vocal separation cancelled.") from exc
         except (CommandError, PipelineError) as exc:
             warnings.append(f"Demucs was skipped; using the original mix for lyrics: {exc}")
-            vocals_path = audio_path
     else:
         warnings.append("Demucs is unavailable; using the original mix for lyrics transcription.")
     emit("vocal_separation", 70)
@@ -241,7 +245,7 @@ def transcribe(
     emit("lyrics_asr", 72)
     lyrics_dir.mkdir(parents=True, exist_ok=True)
     whisper_args: list[object] = [
-        vocals_path,
+        lyrics_audio_path,
         "--model",
         settings.whisperx_model,
         "--output_dir",
