@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import DesktopUpdaterControl from "./DesktopUpdaterControl";
 import OperationsWorkspace from "./OperationsWorkspace";
 import SongWorkspace from "./SongWorkspace";
 import "./song-workspace.css";
@@ -234,6 +235,7 @@ export default function ProductRoot() {
               <small>{offline ? "로컬 서비스를 확인하세요" : accelerator}</small>
             </div>
           </div>
+          <DesktopUpdaterControl />
           <span className="product-version">v0.8 · 로컬 우선</span>
         </div>
       </aside>
