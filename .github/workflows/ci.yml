@@ -1,7 +1,7 @@
 name: CI
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -23,7 +23,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          persist-credentials: true
 
       - name: Setup uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
@@ -47,16 +48,16 @@ jobs:
           npm install --package-lock-only --ignore-scripts --prefix desktop
           cargo generate-lockfile --manifest-path desktop/src-tauri/Cargo.toml
 
-      - name: Upload generated lockfiles
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: dependency-lockfiles
-          path: |
-            uv.lock
-            desktop/package-lock.json
-            desktop/src-tauri/Cargo.lock
-          if-no-files-found: error
-          retention-days: 1
+      - name: Commit lockfiles to same-repository PR branch
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add uv.lock desktop/package-lock.json desktop/src-tauri/Cargo.lock
+          if ! git diff --cached --quiet; then
+            git commit -m "build: lock Python, frontend, and Rust dependencies"
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          fi
 
       - name: Install Tauri system dependencies
         run: |
