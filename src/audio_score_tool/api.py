@@ -16,7 +16,7 @@ from .sqlite_runtime import configure_sqlite
 from .startup_recovery import recover_startup_state
 
 
-# Compatibility bridge for hardened routers that share runtime worker/state helpers.
+# Compatibility bridge for hardened modules that share runtime worker/state helpers.
 # The public FastAPI application itself is owned only by this module.
 def __getattr__(name: str):
     return getattr(runtime, name)
@@ -45,14 +45,18 @@ def _youtube_worker(*args, **kwargs) -> None:
     _reconcile_completed_job_batch()
 
 
-# Imports happen only after the runtime compatibility bridge exists. The canonical
-# application explicitly owns critical mutation endpoints instead of relying on
-# compatibility-era router composition.
+# Imports happen only after the runtime compatibility bridge exists. Critical product
+# endpoints are registered explicitly below so method/path ownership does not depend on
+# compatibility-era router composition or import order.
 from .engine_api import router as engine_router  # noqa: E402
 from .enrichment_api import router as enrichment_router  # noqa: E402
 from .export_api_v2 import router as export_router  # noqa: E402
-from .job_artifact_api_v2 import router as job_artifact_router  # noqa: E402
-from .job_lifecycle_api_v2 import router as job_lifecycle_router  # noqa: E402
+from .job_artifact_api_v2 import download_job_artifact_v2  # noqa: E402
+from .job_lifecycle_api_v2 import (  # noqa: E402
+    create_youtube_job_v2,
+    delete_job_v2,
+    retry_job_v2,
+)
 from .model_manager_api import router as model_manager_router  # noqa: E402
 from .notation_api import router as notation_router  # noqa: E402
 from .notation_export_api import export_song  # noqa: E402
@@ -63,8 +67,8 @@ from .setup_center_api import router as setup_center_router  # noqa: E402
 from .song_api import router as song_router  # noqa: E402
 from .song_delete_api import delete_song_v2  # noqa: E402
 from .song_metadata_api import update_song_metadata_v2  # noqa: E402
-from .storage_api_v2 import router as storage_router  # noqa: E402
-from .upload_api_v2 import router as upload_router  # noqa: E402
+from .storage_api_v2 import cleanup_storage_v2  # noqa: E402
+from .upload_api_v2 import create_benchmark_v2, create_job_v2  # noqa: E402
 from .validation_api import router as validation_router  # noqa: E402
 
 configure_sqlite()
@@ -118,8 +122,7 @@ app.add_api_route(
     "/api/jobs/{job_id}/reveal", runtime.reveal_job, methods=["POST"], tags=["jobs"]
 )
 
-# Hardened song mutations have explicit owners in the canonical app. This makes route
-# ownership independent of module import order and eliminates compatibility route surgery.
+# Hardened song mutations have explicit owners in the canonical app.
 app.add_api_route(
     "/api/songs/{song_id}/export",
     export_song,
@@ -152,12 +155,50 @@ app.add_api_route(
     tags=["song-delete-v2"],
 )
 
-# Remaining routers do not overlap the canonical song-mutation ownership above.
+# Hardened job/storage mutations and artifact access also have explicit canonical owners.
+app.add_api_route(
+    "/api/jobs", create_job_v2, methods=["POST"], status_code=202, tags=["uploads-v2"]
+)
+app.add_api_route(
+    "/api/benchmarks",
+    create_benchmark_v2,
+    methods=["POST"],
+    status_code=202,
+    tags=["uploads-v2"],
+)
+app.add_api_route(
+    "/api/jobs/youtube",
+    create_youtube_job_v2,
+    methods=["POST"],
+    status_code=202,
+    tags=["jobs-v2"],
+)
+app.add_api_route(
+    "/api/jobs/{job_id}/retry",
+    retry_job_v2,
+    methods=["POST"],
+    status_code=202,
+    tags=["jobs-v2"],
+)
+app.add_api_route(
+    "/api/jobs/{job_id}", delete_job_v2, methods=["DELETE"], tags=["jobs-v2"]
+)
+app.add_api_route(
+    "/api/jobs/{job_id}/files/{kind}",
+    download_job_artifact_v2,
+    methods=["GET"],
+    tags=["job-artifacts-v2"],
+    response_model=None,
+)
+app.add_api_route(
+    "/api/storage/cleanup",
+    cleanup_storage_v2,
+    methods=["POST"],
+    tags=["storage-v2"],
+)
+
+# Remaining routers do not overlap the explicit canonical ownership above.
 for router in (
-    upload_router,
-    job_lifecycle_router,
-    job_artifact_router,
-    storage_router,
     song_router,
     export_router,
     engine_router,
