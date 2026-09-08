@@ -54,7 +54,7 @@ from .job_artifact_api_v2 import router as job_artifact_router  # noqa: E402
 from .job_lifecycle_api_v2 import router as job_lifecycle_router  # noqa: E402
 from .model_manager_api import router as model_manager_router  # noqa: E402
 from .notation_api import router as notation_router  # noqa: E402
-from .notation_export_api import ExportRequest, export_song  # noqa: E402
+from .notation_export_api import export_song  # noqa: E402
 from .omr_api import router as omr_router  # noqa: E402
 from .publication_api_v2 import router as publication_router  # noqa: E402
 from .revision_api_v2 import router as revision_router  # noqa: E402
