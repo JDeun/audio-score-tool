@@ -27,7 +27,6 @@ _ALLOWED = {
     "ffmpeg_cmd",
     "fluidsynth_cmd",
     "validation_soundfont",
-    "musescore_cmd",
     "llm_validation_enabled",
     "llm_validation_base_url",
     "llm_validation_model",
@@ -54,6 +53,8 @@ class SettingsStore:
             payload = json.loads(self.path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             return {}
+        # Unknown and retired keys are intentionally ignored. This keeps persisted
+        # settings forward-compatible when integrations are removed.
         result = {key: payload.get(key) for key in _ALLOWED if key in payload}
         for key in _SECRET_ENV_KEYS:
             if key not in result:
