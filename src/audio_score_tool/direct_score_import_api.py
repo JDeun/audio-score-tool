@@ -11,12 +11,13 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from .job_admission import JobCapacityError, reserve_job
 from .job_store import JobStore
 from .notation_backend import NotationBackendError, midi_to_musicxml, musicxml_to_midi
+from .omr import OMRImportError, normalize_musicxml
 from .paths import jobs_dir
 from .upload_storage import UploadStorageError, persist_stream_atomic
 
 router = APIRouter(tags=["score-import"])
 _store = JobStore()
-_MUSICXML_EXTENSIONS = {".musicxml", ".xml"}
+_MUSICXML_EXTENSIONS = {".musicxml", ".xml", ".mxl"}
 _MIDI_EXTENSIONS = {".mid", ".midi"}
 _ALLOWED = _MUSICXML_EXTENSIONS | _MIDI_EXTENSIONS
 _MAX_NOTATION_BYTES = 64 * 1024 * 1024
@@ -60,8 +61,12 @@ def _worker(job_id: str, source: Path, suffix: str) -> None:
             midi_to_musicxml(midi, musicxml)
             _validate_musicxml_file(musicxml)
         else:
-            _validate_musicxml_file(source)
-            shutil.copy2(source, musicxml)
+            if suffix == ".mxl":
+                normalize_musicxml(source, musicxml)
+                _validate_musicxml_file(musicxml)
+            else:
+                _validate_musicxml_file(source)
+                shutil.copy2(source, musicxml)
             midi = output_dir / "score.mid"
             try:
                 musicxml_to_midi(musicxml, midi)
@@ -83,7 +88,7 @@ def _worker(job_id: str, source: Path, suffix: str) -> None:
             progress=100,
             result=result,
         )
-    except (OSError, ValueError, NotationBackendError) as exc:
+    except (OSError, ValueError, NotationBackendError, OMRImportError) as exc:
         _store.update(job_id, status="failed", stage="failed", error=str(exc))
     except Exception as exc:
         _store.update(job_id, status="failed", stage="failed", error=f"악보 가져오기 실패: {exc}")
@@ -94,7 +99,10 @@ async def import_notation(file: UploadFile = File(...)) -> dict:
     filename = file.filename or "score"
     suffix = Path(filename).suffix.lower()
     if suffix not in _ALLOWED:
-        raise HTTPException(415, "MusicXML(.musicxml/.xml) 또는 MIDI(.mid/.midi)만 가져올 수 있습니다.")
+        raise HTTPException(
+            415,
+            "MusicXML(.musicxml/.xml/.mxl) 또는 MIDI(.mid/.midi)만 가져올 수 있습니다.",
+        )
 
     job_id = uuid.uuid4().hex
     try:
@@ -119,7 +127,7 @@ async def import_notation(file: UploadFile = File(...)) -> dict:
         persist_stream_atomic(file.file, source)
         if source.stat().st_size > _MAX_NOTATION_BYTES:
             raise HTTPException(413, "악보 파일은 64 MiB를 초과할 수 없습니다.")
-        if suffix in _MUSICXML_EXTENSIONS:
+        if suffix in _MUSICXML_EXTENSIONS - {".mxl"}:
             _validate_musicxml_file(source)
         _store.update(job_id, stage="queued")
     except UploadStorageError as exc:
