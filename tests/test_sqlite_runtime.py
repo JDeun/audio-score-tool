@@ -1,6 +1,5 @@
-from pathlib import Path
-
 import sqlite3
+from pathlib import Path
 
 from audio_score_tool.sqlite_runtime import configure_sqlite
 
