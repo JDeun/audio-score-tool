@@ -7,6 +7,7 @@ import uvicorn
 
 from . import api as base_api
 from .api_token import ApiTokenMiddleware
+from .direct_score_import_api import import_notation
 from .direct_score_import_api import router as direct_score_import_router
 from .engine_api import router as engine_router
 from .enrichment_api import router as enrichment_router
@@ -23,6 +24,7 @@ from .model_manager_api import router as model_manager_router
 from .notation_api import router as notation_router
 from .notation_export_api import build_exports
 from .notation_export_api import router as notation_export_router
+from .omr_api import import_score
 from .omr_api import router as omr_router
 from .publication_api_v2 import router as publication_router
 from .publication_api_v2 import update_publication_v2
@@ -170,6 +172,11 @@ _ensure_route(
     tag="job-artifacts-v2",
 )
 _ensure_route("/api/storage/cleanup", "POST", cleanup_storage_v2, tag="storage-v2")
+
+# Score import owners. FastAPI router copies can otherwise be lost while the app still
+# composes the legacy base application, so keep these product contracts explicit too.
+_ensure_route("/api/import/score", "POST", import_score, tag="omr")
+_ensure_route("/api/import/notation", "POST", import_notation, tag="score-import")
 
 
 def _server_port() -> int:
