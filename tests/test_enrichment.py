@@ -1,6 +1,11 @@
 import pytest
 
-from audio_score_tool.enrichment import EnrichmentError, LyricsProvider, choose_high_confidence, fetch_lyrics
+from audio_score_tool.enrichment import (
+    EnrichmentError,
+    LyricsProvider,
+    choose_high_confidence,
+    fetch_lyrics,
+)
 
 
 def test_choose_high_confidence_requires_threshold():
