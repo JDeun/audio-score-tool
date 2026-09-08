@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from audio_score_tool.config import Settings
 from audio_score_tool import transcription_engine
+from audio_score_tool.config import Settings
 
 
 def test_yourmt3_provider_transcribes_and_converts_musicxml(tmp_path: Path, monkeypatch):
