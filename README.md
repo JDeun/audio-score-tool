@@ -71,6 +71,10 @@ Normalized MusicXML
 
 자세한 내용: [`docs/OMR.ko.md`](docs/OMR.ko.md)
 
+### 3. MusicXML / MIDI → 직접 가져오기
+
+기존 MusicXML은 구조와 XML 안전성을 검증한 뒤 canonical score로 가져옵니다. MIDI는 기본 dependency인 `music21`로 MusicXML로 변환한 뒤 동일한 곡 라이브러리·편집·검증·출판 파이프라인을 사용합니다. 직접 가져오기는 Audiveris나 MuseScore를 요구하지 않습니다.
+
 ---
 
 ## 품질 우선 채보 정책
