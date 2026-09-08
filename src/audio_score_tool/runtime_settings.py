@@ -12,7 +12,11 @@ def runtime_settings(
     whisperx_model: str = "small",
     store: SettingsStore | None = None,
 ) -> Settings:
-    """Resolve persisted desktop settings on top of environment/defaults."""
+    """Resolve persisted desktop settings on top of environment/defaults.
+
+    Unknown/retired keys in the persisted JSON are deliberately ignored so older
+    installations remain forward-compatible when an integration is removed.
+    """
 
     saved = (store or SettingsStore()).read()
     defaults = Settings()
@@ -51,6 +55,5 @@ def runtime_settings(
         ffmpeg_cmd=saved.get("ffmpeg_cmd") or defaults.ffmpeg_cmd,
         fluidsynth_cmd=saved.get("fluidsynth_cmd") or defaults.fluidsynth_cmd,
         validation_soundfont=Path(soundfont).expanduser() if soundfont else defaults.validation_soundfont,
-        musescore_cmd=saved.get("musescore_cmd") or defaults.musescore_cmd,
         whisperx_model=whisperx_model,
     )
