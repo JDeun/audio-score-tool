@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "desktop:dev": "concurrently \"uv run --project .. audio-score-api\" \"tauri dev\"",
-    "desktop:build": "tauri icon src-tauri/icons/icon.png && uv run --project .. --extra desktop python ../scripts/build_sidecar.py && tauri build"
+    "desktop:build": "tauri icon src-tauri/icons/icon.png && uv run --project .. --frozen --extra desktop python ../scripts/build_sidecar.py && tauri build"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.8.0",
