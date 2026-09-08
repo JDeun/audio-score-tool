@@ -50,8 +50,6 @@ def runtime_settings(
         whisperx_cmd=saved.get("whisperx_cmd") or defaults.whisperx_cmd,
         yt_dlp_cmd=saved.get("yt_dlp_cmd") or defaults.yt_dlp_cmd,
         audiveris_cmd=saved.get("audiveris_cmd") or defaults.audiveris_cmd,
-        lilypond_cmd=saved.get("lilypond_cmd") or defaults.lilypond_cmd,
-        musicxml2ly_cmd=saved.get("musicxml2ly_cmd") or defaults.musicxml2ly_cmd,
         ffmpeg_cmd=saved.get("ffmpeg_cmd") or defaults.ffmpeg_cmd,
         fluidsynth_cmd=saved.get("fluidsynth_cmd") or defaults.fluidsynth_cmd,
         validation_soundfont=Path(soundfont).expanduser() if soundfont else defaults.validation_soundfont,
