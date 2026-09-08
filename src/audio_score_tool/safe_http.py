@@ -30,7 +30,7 @@ class SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
     a non-GET body so API keys/fingerprints/prompts are not forwarded to another host.
     """
 
-    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ANN001
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
         try:
             old_origin = _origin(req.full_url)
             new_origin = _origin(newurl)
