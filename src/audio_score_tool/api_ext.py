@@ -9,7 +9,13 @@ from .api_token import ApiTokenMiddleware
 from .engine_api import router as engine_router
 from .enrichment_api import router as enrichment_router
 from .export_api_v2 import router as export_router
+from .job_artifact_api_v2 import download_job_artifact_v2
 from .job_artifact_api_v2 import router as job_artifact_router
+from .job_lifecycle_api_v2 import (
+    create_youtube_job_v2,
+    delete_job_v2,
+    retry_job_v2,
+)
 from .job_lifecycle_api_v2 import router as job_lifecycle_router
 from .model_manager_api import router as model_manager_router
 from .notation_api import router as notation_router
@@ -33,7 +39,9 @@ from .song_metadata_api import update_song_metadata_v2
 from .song_mutation_lock import SongMutationSerializationMiddleware
 from .sqlite_runtime import configure_sqlite
 from .startup_recovery import recover_startup_state
+from .storage_api_v2 import cleanup_storage_v2
 from .storage_api_v2 import router as storage_router
+from .upload_api_v2 import create_benchmark_v2, create_job_v2
 from .upload_api_v2 import router as upload_router
 from .validation_api import router as validation_router
 
@@ -139,36 +147,32 @@ def _ensure_route(path: str, method: str, endpoint: Callable, *, tag: str) -> No
         raise RuntimeError(f"Duplicate public route owner: {method} {path}")
 
 
-_ensure_route(
-    "/api/songs/{song_id}/export",
-    "POST",
-    build_exports,
-    tag="notation-export",
-)
-_ensure_route(
-    "/api/songs/{song_id}/undo",
-    "POST",
-    undo_song_v2,
-    tag="revision-v2",
-)
+# Song mutation/publication owners.
+_ensure_route("/api/songs/{song_id}/export", "POST", build_exports, tag="notation-export")
+_ensure_route("/api/songs/{song_id}/undo", "POST", undo_song_v2, tag="revision-v2")
 _ensure_route(
     "/api/songs/{song_id}/publication",
     "PATCH",
     update_publication_v2,
     tag="publication-v2",
 )
+_ensure_route("/api/songs/{song_id}", "PATCH", update_song_metadata_v2, tag="song-metadata-v2")
+_ensure_route("/api/songs/{song_id}", "DELETE", delete_song_v2, tag="song-delete-v2")
+
+# Job/storage owners. These are also removed from the legacy app above, so they need
+# the same invariant rather than relying on router-copy ordering.
+_ensure_route("/api/jobs", "POST", create_job_v2, tag="uploads-v2")
+_ensure_route("/api/benchmarks", "POST", create_benchmark_v2, tag="uploads-v2")
+_ensure_route("/api/jobs/youtube", "POST", create_youtube_job_v2, tag="jobs-v2")
+_ensure_route("/api/jobs/{job_id}/retry", "POST", retry_job_v2, tag="jobs-v2")
+_ensure_route("/api/jobs/{job_id}", "DELETE", delete_job_v2, tag="jobs-v2")
 _ensure_route(
-    "/api/songs/{song_id}",
-    "PATCH",
-    update_song_metadata_v2,
-    tag="song-metadata-v2",
+    "/api/jobs/{job_id}/files/{kind}",
+    "GET",
+    download_job_artifact_v2,
+    tag="job-artifacts-v2",
 )
-_ensure_route(
-    "/api/songs/{song_id}",
-    "DELETE",
-    delete_song_v2,
-    tag="song-delete-v2",
-)
+_ensure_route("/api/storage/cleanup", "POST", cleanup_storage_v2, tag="storage-v2")
 
 
 def run() -> None:
