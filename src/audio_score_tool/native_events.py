@@ -5,7 +5,6 @@ from pathlib import Path
 
 import mido
 
-
 PAD = 0
 BOS = 1
 EOS = 2
@@ -41,7 +40,7 @@ def time_shift_token(steps: int) -> int:
 
 
 def tempo_token(bpm: int) -> int:
-    bpm = max(TEMPO_MIN, min(TEMPO_MAX, int(round(bpm))))
+    bpm = max(TEMPO_MIN, min(TEMPO_MAX, bpm))
     return TEMPO_BASE + bpm - TEMPO_MIN
 
 
@@ -68,14 +67,14 @@ def velocity_token(velocity: int) -> int:
         0,
         min(
             VELOCITY_BINS - 1,
-            int(round(velocity / 127 * (VELOCITY_BINS - 1))),
+            round(velocity / 127 * (VELOCITY_BINS - 1)),
         ),
     )
     return VELOCITY_BASE + bucket
 
 
 def _emit_time(tokens: list[int], delta_ms: int) -> None:
-    remaining = max(0, int(round(delta_ms / TIME_SHIFT_MS)))
+    remaining = max(0, round(delta_ms / TIME_SHIFT_MS))
     while remaining:
         step = min(remaining, TIME_SHIFT_BINS)
         tokens.append(time_shift_token(step))
@@ -96,7 +95,7 @@ def midi_to_tokens(path: Path, *, max_tokens: int | None = None) -> list[int]:
 
     for message in merged:
         absolute_seconds += mido.tick2second(message.time, midi.ticks_per_beat, tempo)
-        time_ms = int(round(absolute_seconds * 1000))
+        time_ms = round(absolute_seconds * 1000)
         if message.type == "set_tempo":
             tempo = message.tempo
             if not saw_tempo:
@@ -114,7 +113,7 @@ def midi_to_tokens(path: Path, *, max_tokens: int | None = None) -> list[int]:
             program = active_program.pop(key, fallback)
             events.append((time_ms, 0, program, message.note, -1))
 
-    initial_bpm = int(round(mido.tempo2bpm(initial_tempo)))
+    initial_bpm = round(mido.tempo2bpm(initial_tempo))
     tokens = [BOS, tempo_token(initial_bpm)]
     current_ms = 0
     current_program: int | None = None
@@ -175,7 +174,7 @@ def decode_tokens(tokens: list[int]) -> tuple[int, list[DecodedNote]]:
             bucket = token - VELOCITY_BASE
             velocity = max(
                 1,
-                int(round(bucket / (VELOCITY_BINS - 1) * 127)),
+                round(bucket / (VELOCITY_BINS - 1) * 127),
             )
 
     for (active_program, pitch), (start_ms, start_velocity) in active.items():
@@ -221,12 +220,8 @@ def tokens_to_midi(
             )
         events: list[tuple[int, int, mido.Message]] = []
         for note in (item for item in notes if item.program == program):
-            start_ticks = int(
-                round(mido.second2tick(note.start_ms / 1000, ticks_per_beat, tempo))
-            )
-            end_ticks = int(
-                round(mido.second2tick(note.end_ms / 1000, ticks_per_beat, tempo))
-            )
+            start_ticks = round(mido.second2tick(note.start_ms / 1000, ticks_per_beat, tempo))
+            end_ticks = round(mido.second2tick(note.end_ms / 1000, ticks_per_beat, tempo))
             events.append(
                 (
                     start_ticks,
