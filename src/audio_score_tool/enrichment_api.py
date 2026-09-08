@@ -46,7 +46,6 @@ class IdentifySourceRequest(BaseModel):
     musicbrainz_commercial_entitlement: bool = False
     acoustid_commercial_entitlement: bool = False
     acoustid_client_key_env: str = "ACOUSTID_CLIENT_KEY"
-    fpcalc_cmd: str = "fpcalc"
 
 
 def _env_flag(name: str) -> bool:
@@ -130,6 +129,7 @@ def identify_song_source(song_id: str, payload: IdentifySourceRequest) -> dict:
             "song_id": song_id,
             "selected": None,
             "applied": False,
+            "status": "no_audio",
             "skipped": "managed original audio asset is unavailable",
         }
         _store.set_analysis(song_id, "source_identification", report)
@@ -141,7 +141,6 @@ def identify_song_source(song_id: str, payload: IdentifySourceRequest) -> dict:
     report = identify_source(
         audio,
         usage_mode=settings.usage_mode,
-        fpcalc_cmd=payload.fpcalc_cmd,
         acoustid_client_key_env=payload.acoustid_client_key_env,
         acoustid_commercial_entitled=acoustid_entitled,
     )
@@ -212,6 +211,7 @@ def identify_song_source(song_id: str, payload: IdentifySourceRequest) -> dict:
         "song_id": song_id,
         "selected": selected,
         "selected_confidence": round(confidence, 4),
+        "status": "identified" if confidence >= 0.92 else "unresolved",
         "musicbrainz_isrc_candidates": musicbrainz_candidates,
         "musicbrainz_fuzzy_candidates": fuzzy_candidates,
         "musicbrainz_error": mb_error,
@@ -220,6 +220,7 @@ def identify_song_source(song_id: str, payload: IdentifySourceRequest) -> dict:
             **(report.get("policy") or {}),
             "auto_apply_threshold": 0.92,
             "priority": ["embedded tags", "ISRC", "AcoustID fingerprint", "MusicBrainz fuzzy", "model fallback"],
+            "fpcalc_executable": "fixed application dependency; not caller-controlled",
             "acoustid_client_key_embedded": False,
             "commercial_services_require_entitlement": True,
             "musicbrainz_commercial_entitlement": mb_entitled,
