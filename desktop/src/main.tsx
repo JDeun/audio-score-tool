@@ -17,9 +17,9 @@ import "./error-boundary.css";
 import "./ui-polish.css";
 
 const API_PREFIX = "http://127.0.0.1:8080/api/";
-const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+const PREFLIGHT_METHODS = new Set(["OPTIONS"]);
 
-async function installApiMutationAuth() {
+async function installApiAuth() {
   if (!("__TAURI_INTERNALS__" in window)) return;
   try {
     const token = await invoke<string>("backend_api_token");
@@ -28,7 +28,7 @@ async function installApiMutationAuth() {
     window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
       const rawUrl = input instanceof Request ? input.url : String(input);
       const method = (init?.method || (input instanceof Request ? input.method : "GET")).toUpperCase();
-      if (!rawUrl.startsWith(API_PREFIX) || SAFE_METHODS.has(method)) {
+      if (!rawUrl.startsWith(API_PREFIX) || PREFLIGHT_METHODS.has(method)) {
         return nativeFetch(input, init);
       }
       const headers = new Headers(input instanceof Request ? input.headers : undefined);
@@ -63,4 +63,4 @@ function render() {
   );
 }
 
-void installApiMutationAuth().finally(render);
+void installApiAuth().finally(render);
