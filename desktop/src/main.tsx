@@ -11,6 +11,7 @@ import OMRImportController from "./OMRImportController";
 import ProductRoot from "./ProductRoot";
 import SetupCenter from "./SetupCenter";
 import ValidationController from "./ValidationController";
+import { installModalFocusLifecycle } from "./modalFocusLifecycle";
 import "./styles.css";
 import "./error-boundary.css";
 import "./ui-polish.css";
@@ -110,6 +111,7 @@ async function installApiAuth() {
 }
 
 function render() {
+  installModalFocusLifecycle();
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
       <AppErrorBoundary>
