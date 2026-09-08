@@ -1,8 +1,11 @@
 from pathlib import Path
+from types import SimpleNamespace
 
+import audio_score_tool.benchmark as benchmark_module
 from audio_score_tool.benchmark import (
     BenchmarkResult,
     configs_for_profile,
+    run_benchmark_matrix,
     write_reports,
 )
 
@@ -48,3 +51,26 @@ def test_write_benchmark_reports(tmp_path: Path):
     assert "mr-mt3-score" in text
     assert "mt3_infer" in text
     assert "mr_mt3" in text
+
+
+def test_benchmark_disables_canonical_source_asset_preservation(tmp_path: Path, monkeypatch):
+    audio = tmp_path / "input.wav"
+    audio.write_bytes(b"audio")
+    captured: dict[str, object] = {}
+
+    def fake_transcribe(_audio, output_root, **kwargs):
+        captured.update(kwargs)
+        work_dir = Path(output_root) / "input"
+        work_dir.mkdir(parents=True)
+        return SimpleNamespace(work_dir=work_dir, midi_path=work_dir / "score.mid")
+
+    monkeypatch.setattr(benchmark_module, "transcribe", fake_transcribe)
+    results = run_benchmark_matrix(
+        audio,
+        tmp_path / "benchmark",
+        language=None,
+        configs=[configs_for_profile("score")[0]],
+    )
+
+    assert results[0].success is True
+    assert captured["preserve_source_audio"] is False
