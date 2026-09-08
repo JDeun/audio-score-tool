@@ -37,11 +37,18 @@ def test_runtime_settings_load_native_engine_from_store(tmp_path: Path):
     assert settings.native_checkpoint == checkpoint
 
 
-def test_runtime_settings_ignores_retired_musescore_key(tmp_path: Path):
+def test_runtime_settings_ignores_retired_external_notation_keys(tmp_path: Path):
     store = SettingsStore(tmp_path / "settings.json")
-    store.update({"musescore_cmd": "/legacy/MuseScore4", "lilypond_cmd": "lilypond-custom"})
+    store.update(
+        {
+            "musescore_cmd": "/legacy/MuseScore4",
+            "lilypond_cmd": "/legacy/lilypond",
+            "musicxml2ly_cmd": "/legacy/musicxml2ly",
+        }
+    )
 
     settings = runtime_settings(store=store)
 
-    assert settings.lilypond_cmd == "lilypond-custom"
     assert not hasattr(settings, "musescore_cmd")
+    assert not hasattr(settings, "lilypond_cmd")
+    assert not hasattr(settings, "musicxml2ly_cmd")
