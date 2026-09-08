@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import shutil
 import xml.etree.ElementTree as ET
 from collections.abc import Callable
@@ -157,8 +156,6 @@ def transcribe(
 
     emit("transcription", 5)
 
-    # 1) Full multi-instrument transcription. The rest of AudioScoreTool only depends
-    # on the engine contract: score.mid + score.musicxml (+ optional initial PDF).
     try:
         artifacts = engine.transcribe(
             audio_path,
@@ -176,7 +173,6 @@ def transcribe(
     initial_full_pdf = artifacts.initial_pdf_path
     emit("transcription", 47)
 
-    # 2) Infer a chord progression from the multi-instrument notation.
     emit("chord_analysis", 50)
     chord_report = work_dir / "chords.json"
     try:
@@ -187,7 +183,6 @@ def transcribe(
                 "The score remains editable in the Chord inspector."
             )
     except (OSError, ValueError, ET.ParseError) as exc:
-        inferred_chords = []
         warnings.append(f"Automatic chord analysis was skipped: {exc}")
     emit("chord_analysis", 56)
 
@@ -225,8 +220,6 @@ def transcribe(
 
     emit("vocal_separation", 60)
 
-    # 3) Vocal isolation is an optional lyrics-quality enhancement. If Demucs is not
-    # available, use the original mix so transcription can still complete.
     vocals_path = audio_path
     if command_exists(settings.demucs_cmd):
         try:
@@ -245,7 +238,6 @@ def transcribe(
         warnings.append("Demucs is unavailable; using the original mix for lyrics transcription.")
     emit("vocal_separation", 70)
 
-    # 4) WhisperX lyrics transcription.
     emit("lyrics_asr", 72)
     if not command_exists(settings.whisperx_cmd):
         raise PipelineError("WhisperX is unavailable. Install it or rerun with lyrics disabled.")
@@ -278,14 +270,11 @@ def transcribe(
         words = expand_korean_syllables(words)
     emit("lyrics_asr", 86)
 
-    # 5) Attach lyric syllables/words while preserving the engine score structure.
     emit("lyric_alignment", 88)
     lyric_musicxml = work_dir / "score_with_lyrics.musicxml"
     attach_lyrics_to_musicxml(musicxml_path, lyric_musicxml, words)
     emit("lyric_alignment", 92)
 
-    # 6) PDF and instrument part rendering are optional delivery conveniences. Their
-    # absence must never discard a valid MusicXML result.
     emit("rendering", 94)
     final_pdf = work_dir / "score_with_lyrics.pdf"
     if not _render_pdf(lyric_musicxml, final_pdf, settings, cancel_event):
