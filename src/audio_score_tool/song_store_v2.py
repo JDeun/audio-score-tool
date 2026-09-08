@@ -183,8 +183,11 @@ class SongStoreV2:
 
     @staticmethod
     def _source_kind(job: dict[str, Any]) -> str:
-        if str(job.get("kind") or "").lower() == "omr":
+        kind = str(job.get("kind") or "").lower()
+        if kind == "omr":
             return "omr"
+        if kind == "notation-import":
+            return "notation"
         filename = str(job.get("filename") or "")
         if filename and not Path(filename).suffix:
             return "youtube"

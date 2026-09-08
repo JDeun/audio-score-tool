@@ -16,8 +16,6 @@ from .sqlite_runtime import configure_sqlite
 from .startup_recovery import recover_startup_state
 
 
-# Compatibility bridge for hardened modules that share runtime worker/state helpers.
-# The public FastAPI application itself is owned only by this module.
 def __getattr__(name: str):
     return getattr(runtime, name)
 
@@ -48,6 +46,7 @@ def _youtube_worker(*args, **kwargs) -> None:
 # Imports happen only after the runtime compatibility bridge exists. Critical product
 # endpoints are registered explicitly below so method/path ownership does not depend on
 # compatibility-era router composition or import order.
+from .direct_score_import_api import import_notation  # noqa: E402
 from .engine_api import router as engine_router  # noqa: E402
 from .enrichment_api import router as enrichment_router  # noqa: E402
 from .export_api_v2 import router as export_router  # noqa: E402
@@ -60,7 +59,7 @@ from .job_lifecycle_api_v2 import (  # noqa: E402
 from .model_manager_api import router as model_manager_router  # noqa: E402
 from .notation_api import router as notation_router  # noqa: E402
 from .notation_export_api import export_song  # noqa: E402
-from .omr_api import router as omr_router  # noqa: E402
+from .omr_api import get_omr_status, import_score  # noqa: E402
 from .publication_api_v2 import update_publication_v2  # noqa: E402
 from .revision_api_v2 import undo_song_v2  # noqa: E402
 from .setup_center_api import router as setup_center_router  # noqa: E402
@@ -95,7 +94,6 @@ async def protect_local_mutations(request: Request, call_next):
     return await call_next(request)
 
 
-# Stable runtime/read endpoints retained from the original service implementation.
 app.add_api_route("/api/health", runtime.health, methods=["GET"], tags=["system"])
 app.add_api_route("/api/setup", runtime.setup, methods=["GET"], tags=["system"])
 app.add_api_route("/api/settings", runtime.get_settings, methods=["GET"], tags=["settings"])
@@ -122,7 +120,19 @@ app.add_api_route(
     "/api/jobs/{job_id}/reveal", runtime.reveal_job, methods=["POST"], tags=["jobs"]
 )
 
-# Hardened song mutations have explicit owners in the canonical app.
+# Score ingestion is explicit because these endpoints are primary desktop entrypoints.
+app.add_api_route("/api/omr/status", get_omr_status, methods=["GET"], tags=["omr"])
+app.add_api_route(
+    "/api/import/score", import_score, methods=["POST"], status_code=202, tags=["omr"]
+)
+app.add_api_route(
+    "/api/import/notation",
+    import_notation,
+    methods=["POST"],
+    status_code=202,
+    tags=["score-import"],
+)
+
 app.add_api_route(
     "/api/songs/{song_id}/export",
     export_song,
@@ -155,7 +165,6 @@ app.add_api_route(
     tags=["song-delete-v2"],
 )
 
-# Hardened job/storage mutations and artifact access also have explicit canonical owners.
 app.add_api_route(
     "/api/jobs", create_job_v2, methods=["POST"], status_code=202, tags=["uploads-v2"]
 )
@@ -197,13 +206,11 @@ app.add_api_route(
     tags=["storage-v2"],
 )
 
-# Remaining routers do not overlap the explicit canonical ownership above.
 for router in (
     song_router,
     export_router,
     engine_router,
     validation_router,
-    omr_router,
     notation_router,
     setup_center_router,
     model_manager_router,
