@@ -1,3 +1,4 @@
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -63,6 +64,35 @@ def test_musicxml_worker_generates_canonical_job_result(tmp_path: Path, monkeypa
     assert final["result"]["import_format"] == "musicxml"
     assert Path(final["result"]["musicxml"]).is_file()
     assert Path(final["result"]["midi"]).is_file()
+
+
+def test_mxl_worker_uses_safe_normalization(tmp_path: Path, monkeypatch):
+    jobs = tmp_path / "jobs"
+    source = tmp_path / "source.mxl"
+    with zipfile.ZipFile(source, "w") as archive:
+        archive.writestr(
+            "META-INF/container.xml",
+            '<?xml version="1.0"?><container><rootfiles><rootfile full-path="score.musicxml"/></rootfiles></container>',
+        )
+        archive.writestr("score.musicxml", VALID_XML)
+    store = FakeStore()
+
+    monkeypatch.setattr(imports, "_store", store)
+    monkeypatch.setattr(imports, "jobs_dir", lambda: jobs)
+
+    def fake_to_midi(_source: Path, target: Path):
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b"MThd")
+        return target
+
+    monkeypatch.setattr(imports, "musicxml_to_midi", fake_to_midi)
+    imports._worker("job-mxl", source, ".mxl")
+
+    final = store.updates[-1][1]
+    assert final["status"] == "done"
+    normalized = Path(final["result"]["musicxml"])
+    assert normalized.is_file()
+    assert "<score-partwise" in normalized.read_text(encoding="utf-8")
 
 
 def test_midi_worker_converts_to_musicxml(tmp_path: Path, monkeypatch):
