@@ -10,7 +10,8 @@ from threading import Event
 
 from .config import Settings
 from .metrics import evaluate_midi_files
-from .pipeline import PipelineError, transcribe
+from .pipeline import PipelineError
+from .pipeline_v2 import transcribe
 
 
 @dataclass(frozen=True, slots=True)
@@ -182,6 +183,7 @@ def run_benchmark_matrix(
                     whisperx_model=config.whisperx_model,
                 ),
                 cancel_event=cancel_event,
+                preserve_source_audio=False,
                 progress=(
                     (
                         lambda stage, percent, i=index, name=config.name: progress(

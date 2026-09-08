@@ -1,7 +1,7 @@
 import sqlite3
 from pathlib import Path
 
-from audio_score_tool.sqlite_runtime import configure_sqlite
+from audio_score_tool.sqlite_runtime import configure_sqlite, connect_sqlite
 
 
 def test_configure_sqlite_enables_wal(tmp_path: Path):
@@ -12,3 +12,17 @@ def test_configure_sqlite_enables_wal(tmp_path: Path):
     assert status["busy_timeout_ms"] == 10000
     with sqlite3.connect(database) as conn:
         assert conn.execute("PRAGMA journal_mode").fetchone()[0].lower() == "wal"
+
+
+def test_connect_sqlite_applies_connection_local_runtime_policy(tmp_path: Path):
+    database = tmp_path / "app.sqlite3"
+    configure_sqlite(database)
+
+    with connect_sqlite(database, row_factory=True) as conn:
+        assert conn.execute("PRAGMA busy_timeout").fetchone()[0] == 10000
+        assert conn.execute("PRAGMA synchronous").fetchone()[0] == 1  # NORMAL
+        conn.execute("CREATE TABLE demo(value TEXT)")
+        conn.execute("INSERT INTO demo(value) VALUES ('ok')")
+        row = conn.execute("SELECT value FROM demo").fetchone()
+        assert isinstance(row, sqlite3.Row)
+        assert row["value"] == "ok"
