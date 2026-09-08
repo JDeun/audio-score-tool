@@ -21,8 +21,9 @@ def preflight(settings: Settings | None = None, *, require_lyrics: bool = True) 
         "demucs": command_exists(settings.demucs_cmd),
         "whisperx": command_exists(settings.whisperx_cmd),
         "music21": notation["music21"],
-        "lilypond": notation["lilypond"],
-        "musicxml2ly": notation["musicxml2ly"],
+        "verovio": notation["verovio"],
+        "fpdf2": notation["fpdf2"],
+        "embedded_pdf": notation["verovio"] and notation["fpdf2"],
         "audiveris_optional": bool(omr["ready"]),
     }
 
@@ -33,14 +34,14 @@ def preflight(settings: Settings | None = None, *, require_lyrics: bool = True) 
         missing.append("whisperx")
     if engine.key == "muscriptor" and not huggingface_authenticated():
         missing.append("huggingface_auth")
+    if not tools["embedded_pdf"]:
+        missing.append("embedded_pdf_renderer")
 
-    # PDF rendering is not a core transcription requirement. Users can edit/export
-    # MusicXML and MIDI without LilyPond and add PDF rendering later.
     warnings: list[str] = []
-    if not (notation["lilypond"] and notation["musicxml2ly"]):
-        warnings.append("PDF renderer unavailable: install LilyPond (including musicxml2ly).")
     if not omr["ready"]:
-        warnings.append("OMR unavailable: install Audiveris to import PDF/image scores.")
+        warnings.append(
+            "OMR is optional and currently unavailable. PDF/image score import requires a bundled or configured OMR backend."
+        )
 
     return {
         "ok": not missing,
