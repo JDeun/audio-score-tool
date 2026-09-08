@@ -1,194 +1,232 @@
 # AudioScoreTool 데스크탑 릴리스 정책
 
-이 문서는 Windows/macOS/Linux 데스크탑 배포 artifact의 검증·서명·릴리스 기준을 고정합니다.
+이 문서는 Windows/macOS/Linux desktop artifact의 **QA, signing, notarization, updater, stable publication** 경계를 고정합니다.
+
+> [!IMPORTANT]
+> Tauri updater 코드와 signed updater artifact/manifest를 만드는 release pipeline 구조는 이미 구현되어 있습니다. 현재 남은 것은 실제 Windows/macOS signing credential과 Tauri private signing key를 provision하고 clean-install/update acceptance를 수행하는 운영 gate입니다. 진행 상태는 [Issue #22](https://github.com/JDeun/audio-score-tool/issues/22)에서 추적합니다.
 
 ## 1. artifact 등급
 
-### PR 검증 artifact
+### PR/CI QA artifact
 
-GitHub Actions의 `Desktop Packages`가 생성하는 PR artifact는 **테스트용 unsigned bundle**입니다.
+`Desktop Packages` workflow가 PR에서 생성하는 package는 **unsigned 테스트 artifact**입니다.
 
-목적:
-- PyInstaller sidecar가 각 OS에서 생성되는지 확인
-- packaged sidecar가 runtime loopback port에 실제 bind하는지 확인
-- `AST_API_TOKEN`이 없으면 `/api/*` 요청이 거부되는지 확인
-- token이 있으면 `/api/health`가 정상 응답하는지 확인
-- Tauri bundle이 각 OS에서 실제 생성되는지 확인
-- Windows `AudioScoreTool-Windows-Setup-EXE-unsigned` artifact에서 NSIS `.exe`를 바로 내려받을 수 있는지 확인
-- macOS `AudioScoreTool-macOS-DMG-unsigned` artifact에서 `.dmg`를 바로 내려받을 수 있는지 확인
+검증 범위:
 
-이 artifact는 설치/QA 용도이며 사용자에게 `release verified` 정식 배포로 안내하지 않습니다.
+- PyInstaller sidecar가 Windows/macOS/Linux에서 생성되는지
+- packaged sidecar가 runtime loopback port와 API token 정책으로 기동하는지
+- token 없는 API 요청이 거부되고 정상 token으로 health check가 성공하는지
+- Tauri desktop bundle이 각 OS에서 생성되는지
+- Windows NSIS `.exe`와 macOS `.dmg`가 artifact로 생성되는지
 
-### Release artifact
+이 파일들은 개발/QA 용도이며 `release verified` 정식 배포본으로 안내하지 않습니다.
 
-정식 배포 artifact는 아래 신뢰 체인을 통과해야 합니다.
+### Stable release artifact
 
-- Windows: Authenticode code signing
-- macOS: Developer ID Application signing + Apple notarization + stapling
-- Linux: CI에서 생성한 bundle checksum 제공
+정식 배포는 다음 신뢰 사슬을 통과해야 합니다.
 
-서명되지 않은 Windows/macOS artifact를 `release verified`로 표시하지 않습니다.
+```text
+CI green
+  ↓
+3-OS packaged sidecar + bundle verification
+  ↓
+Windows Authenticode / macOS Developer ID signing + notarization
+  ↓
+checksum + signed updater payload/manifest
+  ↓
+clean install / update / rollback acceptance
+  ↓
+public stable release
+```
 
-## 2. 사용자용 권장 배포 형식
-
-소스 저장소를 직접 clone하거나 Python/Node/Rust 환경을 준비하지 않아도 사용할 수 있도록 정식 릴리스에서는 설치형 artifact를 기본 진입점으로 제공합니다.
+## 2. 사용자용 배포 형식
 
 ### Windows
 
-- **주 배포:** NSIS 기반 `.exe` installer
-- **보조 배포:** 조직 배포나 관리형 설치가 필요한 경우 `.msi`
-- standalone backend 실행 파일 자체가 아니라 Tauri desktop shell, frontend, packaged Python sidecar가 함께 포함된 설치 bundle을 사용자에게 제공합니다.
+- 주 배포: NSIS `.exe`
+- 선택 배포: 조직/관리형 설치 요구가 있을 때 검증된 `.msi`
+- standalone Python backend가 아니라 Tauri shell + frontend + packaged sidecar를 하나의 desktop installer로 제공
 
-일반 사용자는 `.exe`를 우선 선택하도록 README와 GitHub Release에서 안내합니다.
+정식 release에서는 Authenticode 서명과 timestamp 검증이 필요합니다.
 
 ### macOS
 
-- **주 배포:** `.dmg`
-- DMG 안의 서명·공증된 `AudioScoreTool.app`을 Applications로 복사하는 흐름을 기본으로 합니다.
-- Apple Silicon과 Intel을 모두 지원할 경우 universal binary가 실제 sidecar/model runtime과 함께 검증될 때만 universal로 배포합니다. 그렇지 않으면 `arm64` / `x86_64` artifact를 명확히 분리합니다.
+- 주 배포: `.dmg`
+- 내부 `.app`은 Developer ID Application signing, notarization, stapling을 통과해야 함
+- arm64/x86_64를 각각 검증할 수 없다면 universal 지원을 문서로 과장하지 않음
 
 ### Linux
 
-Linux는 현재 package verification 대상으로 유지하며 AppImage/deb/rpm 중 실제 지원·검증한 형식만 Release에 노출합니다.
+현재 package regression 대상으로 유지하며, 실제로 생성·검증한 형식만 Release에 노출합니다.
 
-## 3. Windows 정책
+## 3. signing credential
 
-정식 Windows 배포 전 필수:
+credential 원문은 repository에 commit하지 않습니다.
 
-1. 신뢰 가능한 코드 서명 인증서 확보
-2. Tauri가 생성한 실행 파일과 installer에 Authenticode 적용
-3. timestamp server를 사용해 인증서 만료 후에도 서명 유효성 유지
-4. 새 Windows clean VM에서 설치/실행/제거 확인
-5. SmartScreen 경고 상태를 기록하고 초기 reputation 상태와 서명 오류를 구분
+### Windows
 
-`Desktop Release` workflow에서 사용하는 값:
+필요한 Actions secrets/variables:
 
-- GitHub secret `WINDOWS_CERTIFICATE`: base64 인코딩한 `.pfx`
-- GitHub secret `WINDOWS_CERTIFICATE_PASSWORD`: `.pfx` export password
-- GitHub secret `WINDOWS_CERTIFICATE_THUMBPRINT`: certificate thumbprint
-- repository variable `WINDOWS_TIMESTAMP_URL`: 인증서 발급기관이 권장하는 timestamp URL
+- `WINDOWS_CERTIFICATE`
+- `WINDOWS_CERTIFICATE_PASSWORD`
+- `WINDOWS_CERTIFICATE_THUMBPRINT`
+- `WINDOWS_TIMESTAMP_URL`
 
-CI secret에는 인증서 원문을 repository에 commit하지 않고 암호화된 secret으로만 전달합니다.
+검증:
 
-## 4. macOS 정책
+- installer/executable Authenticode signature
+- timestamp
+- clean Windows 환경 install/launch/remove
 
-정식 macOS 배포 전 필수:
+### macOS
 
-1. Apple Developer Program의 Developer ID Application identity 사용
-2. hardened runtime을 포함해 app/bundle 서명
-3. Apple notarization 제출
-4. notarization 성공 후 ticket staple
-5. `spctl`/Gatekeeper 기준 검증
-6. 새 macOS 사용자 환경에서 drag-install 또는 installer 실행 확인
+필요한 Actions secrets:
 
-`Desktop Release` workflow에서 사용하는 값:
+- `APPLE_CERTIFICATE`
+- `APPLE_CERTIFICATE_PASSWORD`
+- `APPLE_ID`
+- `APPLE_PASSWORD`
+- `APPLE_TEAM_ID`
+- `KEYCHAIN_PASSWORD`
 
-- GitHub secret `APPLE_CERTIFICATE`: Developer ID Application `.p12`의 base64 값
-- GitHub secret `APPLE_CERTIFICATE_PASSWORD`
-- GitHub secret `APPLE_ID`
-- GitHub secret `APPLE_PASSWORD`: app-specific password
-- GitHub secret `APPLE_TEAM_ID`
-- GitHub secret `KEYCHAIN_PASSWORD`: CI 임시 keychain password
+검증:
 
-Apple 계정 credential, App Store Connect key 또는 notarization credential은 repository 파일에 저장하지 않습니다.
+- `codesign`
+- Apple notarization
+- stapling
+- `spctl` / Gatekeeper
+- clean macOS drag-install/launch
 
-## 5. GitHub Release 동작
+### Tauri updater
 
-`.github/workflows/desktop-release.yml`은 `v*` tag에서 실행됩니다.
+필요한 값:
 
-### 서명 준비 전
+- `TAURI_SIGNING_PRIVATE_KEY`
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (암호화된 key를 사용하는 경우)
+- `TAURI_UPDATER_PUBKEY`
 
-repository variable `RELEASE_SIGNING_READY`가 `true`가 아니면:
+private key는 CI secret에만 저장하고 public key만 application configuration에서 사용합니다.
 
-1. Windows NSIS `.exe` 빌드
-2. macOS ad-hoc signed `.dmg` 빌드
-3. 두 파일을 Actions artifact로 업로드
-4. **공개 GitHub Release는 만들지 않음**
+## 4. Desktop Release workflow
 
-즉, 개발/QA 설치 파일은 받을 수 있지만 정식 배포로 오인되지 않습니다.
+`v*` tag release workflow는 signing readiness에 따라 동작을 구분합니다.
 
-### 서명 준비 후
+### signing 준비 전
 
-`RELEASE_SIGNING_READY=true`이면:
+- Windows/macOS package를 QA artifact로 만들 수 있음
+- 공개 stable Release를 신뢰 가능한 공식 배포본으로 publish하지 않음
+- updater stable channel metadata를 공식 release로 활성화하지 않음
 
-1. draft GitHub Release 생성
-2. Windows 인증서를 runner certificate store에 import
-3. NSIS `.exe` Authenticode signing + timestamp
-4. `Get-AuthenticodeSignature`로 signature 검증
-5. macOS Developer ID certificate를 임시 keychain에 import
-6. `.app` signing + Apple notarization + stapling을 포함한 DMG build
-7. `codesign`, `spctl`, `stapler validate` 검증
-8. `.exe` / `.dmg`를 draft Release에 업로드
-9. 두 플랫폼 build가 모두 성공한 경우에만 draft를 공개 Release로 전환
+### signing 준비 후
 
-한 플랫폼이라도 실패하면 Release는 draft 상태로 남습니다.
+`RELEASE_SIGNING_READY=true`와 필요한 credential이 모두 준비된 경우:
 
-## 6. updater 도입 순서
+1. draft Release 준비
+2. Windows `.exe` build/sign/timestamp/verification
+3. macOS `.app/.dmg` sign/notarize/staple/verification
+4. updater archive와 `.sig` 생성
+5. `latest.json`에 실제 signature와 platform URL 기록
+6. `SHA256SUMS.txt` 생성
+7. release artifacts를 동일 draft에 집계
+8. 양쪽 주요 플랫폼 gate가 모두 성공한 경우에만 stable publication 허용
 
-자동 업데이트는 unsigned package 단계에서 바로 추가하지 않습니다. 배포 신뢰 체인을 먼저 완성한 뒤 updater를 연결합니다.
+플랫폼 하나라도 실패하면 불완전한 artifact를 stable release로 홍보하지 않습니다.
 
-권장 순서는 다음과 같습니다.
+## 5. updater 상태
 
-1. Windows signing 및 macOS signing/notarization 구축
-2. `v*` tag 기반 검증된 `.exe` / `.dmg` GitHub Release
-3. SHA-256 checksum과 release notes 제공
-4. clean-install E2E 통과 확인
-5. Tauri updater용 `createUpdaterArtifacts`와 signed update manifest/public key 도입
-6. stable channel에서 update check 활성화
+updater는 **향후 구현 항목이 아니라 구현된 기능**입니다.
 
-updater metadata/signature 검증이 실패하면 기존 설치를 그대로 보존해야 하며, 업데이트 설치는 사용자가 명시적으로 실행하거나 동의하는 흐름을 기본으로 합니다.
+현재 코드 계약:
 
-## 7. CI 릴리스 gate
+- Tauri updater plugin으로 update metadata 확인
+- signed updater artifact와 `.sig` 사용
+- 사용자 확인 없이 강제로 업데이트하지 않음
+- install/update 실패가 기존 설치를 손상시키지 않아야 함
 
-정식 release 후보는 최소 다음을 모두 만족해야 합니다.
+아직 남은 운영 계약:
+
+- 실제 signing key/certificate provisioning
+- 실제 GitHub stable Release에서 `latest.json` 및 signature 검증
+- clean Windows/macOS에서 install → update → relaunch
+- 변조된 manifest/signature 거부
+- 한 플랫폼 실패 시 stable publication 차단
+
+즉 **updater implementation complete ≠ trusted stable update channel activated**입니다.
+
+## 6. CI / release gate
+
+정식 release 후보는 최소 다음을 통과해야 합니다.
 
 ```text
 Python lock check
-+ Python lint
-+ Python tests
++ Ruff
++ pytest
 + frontend typecheck/build
++ keyboard-only E2E
 + Cargo/Tauri check
-+ Windows package build
-+ macOS package build
-+ Linux package build
++ Windows/macOS/Linux package build
 + packaged sidecar auth/runtime-port smoke
-+ clean-install E2E
-+ Windows signing 검증
-+ macOS signing/notarization 검증
++ Windows signing verification
++ macOS signing/notarization verification
++ updater signature/manifest verification
++ clean-install/update acceptance
 ```
 
-PR CI가 green이라는 이유만으로 정식 릴리스로 간주하지 않습니다.
+PR CI green이나 unsigned package 생성만으로 `release verified`라고 부르지 않습니다.
 
-## 8. clean-install E2E 최소 항목
+## 7. clean-install/update acceptance
 
-### 공통
+### 공통 runtime
 
-- 새 사용자 데이터 디렉터리에서 첫 실행
-- backend가 고정 8080이 아닌 runtime port로 시작
-- duplicate app launch가 기존 창으로 전달됨
-- local API token 없는 요청 거부
+- 새 user data directory에서 첫 실행
+- backend가 runtime loopback port로 시작
+- API token 없는 요청 거부
+- duplicate launch 처리
 - 앱 종료 시 sidecar 종료
-- 앱 재실행 후 SQLite/startup recovery 정상
-- startup diagnostics에 recovery/ingestion 결과 노출
+- 재실행 시 SQLite/startup recovery 정상
+- startup diagnostics 노출
 
-### 제품 흐름
+### 제품 flow
 
 - local audio import
 - YouTube import
 - PDF/image OMR
-- MusicXML edit/revision/undo
+- MusicXML/MXL 직접 import
+- MIDI 직접 import
+- score edit/revision/undo
 - publication settings
-- LilyPond full score/part export
-- export 실패 후 기존 정상 export 보존
-- LLM 완전 OFF
-- 선택적 external enrichment를 사용자가 명시적으로 실행할 때만 네트워크 요청
+- MusicXML/MIDI export
+- LilyPond가 있는 환경에서 full score/part PDF export
+- export 실패 시 이전 정상 export 보존
+- LLM OFF 상태의 핵심 workflow
 
-## 9. 릴리스 상태 용어
+### updater
 
-- `static-review complete`: 정적 고위험 코드 리뷰 이슈를 닫은 상태
-- `CI green`: 현재 commit의 자동 test/build가 모두 성공한 상태
-- `package verified`: 지원 OS package build와 packaged-sidecar smoke가 성공한 상태
-- `release candidate`: clean-install E2E까지 통과한 상태
-- `release verified`: signing/notarization을 포함한 배포 신뢰 체인까지 통과한 상태
+- 이전 stable version 설치
+- 새 signed version 감지
+- 사용자 동의 후 update
+- relaunch 후 DB/migration 정상
+- invalid signature/manifest 거부
+- download/install 실패 시 기존 version 실행 가능
 
-각 용어는 이전 단계를 포함하며, 실제 증거 없이 상위 상태를 사용하지 않습니다.
+## 8. 상태 용어
+
+| 용어 | 의미 |
+|---|---|
+| `CI green` | 현재 commit의 자동 lint/test/build 계약 성공 |
+| `package verified` | 지원 OS package build + packaged sidecar smoke 성공 |
+| `release candidate` | signing 준비 + clean-install acceptance 대상으로 승격된 artifact |
+| `release verified` | signing/notarization/updater trust chain과 clean-install/update acceptance까지 성공 |
+
+증거 없이 상위 상태를 사용하지 않습니다.
+
+## 9. 현재 v0.8 상태
+
+- CI: 구현 및 반복 검증됨
+- Windows/macOS/Linux package regression: 구현됨
+- Windows `.exe` / macOS `.dmg` unsigned QA artifact: 생성 가능
+- Tauri updater integration: 구현됨
+- signed updater artifact/manifest pipeline: 구현됨
+- 실제 signing credential provisioning: **미완료 (#22)**
+- signed clean-install/update acceptance: **미완료 (#22)**
+- 공식 `release verified` stable publication: **#22 완료 후**
