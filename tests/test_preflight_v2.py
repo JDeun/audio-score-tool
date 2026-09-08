@@ -1,7 +1,7 @@
 import sys
 
-from audio_score_tool.config import Settings
 from audio_score_tool import preflight_v2
+from audio_score_tool.config import Settings
 
 
 def test_preflight_does_not_require_musescore(monkeypatch):
