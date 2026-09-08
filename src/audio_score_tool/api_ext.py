@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Callable
+from threading import Lock
 
 import uvicorn
 
@@ -51,6 +52,12 @@ app.version = "0.8.0"
 app.add_middleware(RequestSizeLimitMiddleware)
 app.add_middleware(SongMutationSerializationMiddleware)
 app.add_middleware(ApiTokenMiddleware)
+
+_startup_lock = Lock()
+_startup_diagnostics: dict = {
+    "recovery_completed": False,
+    "recovery": None,
+}
 
 # Remove legacy handlers that now have v0.8 owners. This avoids request-order shadowing
 # and keeps OpenAPI aligned with the endpoint users actually reach.
@@ -170,6 +177,17 @@ _ensure_route(
 _ensure_route("/api/storage/cleanup", "POST", cleanup_storage_v2, tag="storage-v2")
 
 
+@app.get("/api/startup-diagnostics", tags=["system"])
+def startup_diagnostics() -> dict:
+    """Expose the most recent startup-recovery result for local troubleshooting."""
+    with _startup_lock:
+        return {
+            "app_version": app.version,
+            "recovery_completed": bool(_startup_diagnostics["recovery_completed"]),
+            "recovery": _startup_diagnostics["recovery"],
+        }
+
+
 def _server_port() -> int:
     raw = os.getenv("AST_API_PORT", "8080").strip()
     try:
@@ -185,7 +203,10 @@ def run() -> None:
     # Filesystem recovery removes partial uploads/work buffers and can restore an export
     # backup. Keep that side effect out of module import so pytest/OpenAPI inspection is
     # non-destructive; execute it only when the actual sidecar/server is launched.
-    recover_startup_state(job_store=base_api._store)
+    recovery = recover_startup_state(job_store=base_api._store)
+    with _startup_lock:
+        _startup_diagnostics["recovery_completed"] = True
+        _startup_diagnostics["recovery"] = recovery
     uvicorn.run(
         "audio_score_tool.api_ext:app",
         host="127.0.0.1",
