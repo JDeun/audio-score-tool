@@ -65,7 +65,7 @@ pub fn run() {
                 if let Some(child) = guard.take() {
                     let _ = child.kill();
                 }
-            }
+            };
         }
     });
 }
