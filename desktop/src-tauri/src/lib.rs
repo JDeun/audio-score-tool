@@ -18,24 +18,24 @@ fn backend_api_base_url(state: State<'_, BackendApiBaseUrl>) -> String {
     state.0.clone()
 }
 
-fn available_loopback_port() -> std::io::Result<u16> {
-    let listener = TcpListener::bind(("127.0.0.1", 0))?;
-    let port = listener.local_addr()?.port();
-    drop(listener);
-    Ok(port)
-}
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let api_token = Uuid::new_v4().simple().to_string();
     let sidecar_token = api_token.clone();
+
     // Development starts the Python API independently through npm and keeps the
-    // conventional port. Packaged builds choose an ephemeral loopback port so an
-    // unrelated local process cannot prevent AudioScoreTool from starting.
-    let api_port = if cfg!(debug_assertions) {
-        8080
+    // conventional port. Packaged builds reserve an ephemeral loopback port until
+    // immediately before the sidecar is spawned, minimizing the bind race window.
+    let (api_port, mut reserved_listener) = if cfg!(debug_assertions) {
+        (8080, None)
     } else {
-        available_loopback_port().expect("failed to allocate backend loopback port")
+        let listener = TcpListener::bind(("127.0.0.1", 0))
+            .expect("failed to reserve backend loopback port");
+        let port = listener
+            .local_addr()
+            .expect("failed to inspect backend loopback port")
+            .port();
+        (port, Some(listener))
     };
     let api_base_url = format!("http://127.0.0.1:{api_port}");
     let sidecar_port = api_port.to_string();
@@ -65,6 +65,8 @@ pub fn run() {
             // Packaged builds launch the bundled PyInstaller orchestration sidecar.
             let mut child = None;
             if !cfg!(debug_assertions) {
+                // Release the reserved socket only when the sidecar is ready to bind it.
+                drop(reserved_listener.take());
                 let sidecar = app
                     .shell()
                     .sidecar("audio-score-backend")?
