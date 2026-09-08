@@ -239,8 +239,6 @@ def transcribe(
     emit("vocal_separation", 70)
 
     emit("lyrics_asr", 72)
-    if not command_exists(settings.whisperx_cmd):
-        raise PipelineError("WhisperX is unavailable. Install it or rerun with lyrics disabled.")
     lyrics_dir.mkdir(parents=True, exist_ok=True)
     whisper_args: list[object] = [
         vocals_path,
