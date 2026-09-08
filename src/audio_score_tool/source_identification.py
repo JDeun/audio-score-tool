@@ -85,7 +85,7 @@ def _fpcalc(path: Path, command: str = "fpcalc") -> tuple[int, str]:
         fingerprint = str(payload["fingerprint"])
         if len(fingerprint) > 4 * 1024 * 1024:
             raise SourceIdentificationError("fpcalc fingerprint is unexpectedly large")
-        return int(round(float(payload["duration"]))), fingerprint
+        return round(float(payload["duration"])), fingerprint
     except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
         raise SourceIdentificationError("fpcalc returned invalid JSON") from exc
 
