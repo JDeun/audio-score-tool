@@ -10,7 +10,8 @@ from threading import Event
 
 from .config import Settings
 from .metrics import evaluate_midi_files
-from .pipeline import PipelineError, transcribe
+from .pipeline import PipelineError
+from .pipeline_v2 import transcribe
 
 
 @dataclass(frozen=True, slots=True)
