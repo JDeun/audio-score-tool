@@ -9,6 +9,7 @@ from typing import Any
 
 from .paths import app_data_dir, database_path
 from .publication_layout import merged_publication_settings
+from .sqlite_runtime import connect_sqlite
 
 
 def _now() -> str:
@@ -30,9 +31,7 @@ class PublicationStoreV2:
         self._init()
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.path, timeout=10)
-        conn.row_factory = sqlite3.Row
-        return conn
+        return connect_sqlite(self.path, row_factory=True)
 
     def _init(self) -> None:
         with self._connect() as conn:
