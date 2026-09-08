@@ -54,7 +54,7 @@ from .job_artifact_api_v2 import router as job_artifact_router  # noqa: E402
 from .job_lifecycle_api_v2 import router as job_lifecycle_router  # noqa: E402
 from .model_manager_api import router as model_manager_router  # noqa: E402
 from .notation_api import router as notation_router  # noqa: E402
-from .notation_export_api import router as notation_export_router  # noqa: E402
+from .notation_export_api import ExportRequest, export_song  # noqa: E402
 from .omr_api import router as omr_router  # noqa: E402
 from .publication_api_v2 import router as publication_router  # noqa: E402
 from .revision_api_v2 import router as revision_router  # noqa: E402
@@ -117,6 +117,16 @@ app.add_api_route(
     "/api/jobs/{job_id}/reveal", runtime.reveal_job, methods=["POST"], tags=["jobs"]
 )
 
+# This critical product route is registered directly by the canonical application so
+# its ownership cannot be altered by compatibility router composition.
+app.add_api_route(
+    "/api/songs/{song_id}/export",
+    export_song,
+    methods=["POST"],
+    tags=["notation-export"],
+    response_model=None,
+)
+
 # Product-facing mutation/read routers. Each public method/path has one owner; no route
 # arrays are mutated and no `_ensure_route` fallback is required.
 for router in (
@@ -124,7 +134,6 @@ for router in (
     job_lifecycle_router,
     job_artifact_router,
     storage_router,
-    notation_export_router,
     song_delete_router,
     song_metadata_router,
     revision_router,
