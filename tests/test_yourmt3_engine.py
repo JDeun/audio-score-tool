@@ -18,7 +18,6 @@ def test_yourmt3_compatibility_provider_transcribes_and_converts_musicxml(tmp_pa
             "music21": True,
             "lilypond": False,
             "musicxml2ly": False,
-            "musescore": False,
         },
     )
 
