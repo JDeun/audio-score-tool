@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from .musicxml_editor import set_score_title
 from .publication_layout import apply_publication_layout
-from .song_api_v2 import (
+from .song_routes import (
     _discard_snapshot,
     _public,
     _publication_store,
