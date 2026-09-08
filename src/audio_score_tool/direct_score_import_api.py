@@ -8,6 +8,7 @@ from threading import Thread
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
+from .job_admission import JobCapacityError, reserve_job
 from .job_store import JobStore
 from .notation_backend import NotationBackendError, midi_to_musicxml, musicxml_to_midi
 from .paths import jobs_dir
@@ -38,6 +39,11 @@ def _validate_musicxml_file(path: Path) -> None:
         raise ValueError(f"MusicXML을 파싱할 수 없습니다: {exc}") from exc
     if root.tag.rsplit("}", 1)[-1] not in {"score-partwise", "score-timewise"}:
         raise ValueError("유효한 MusicXML score 문서가 아닙니다.")
+
+
+def _cleanup_reservation(job_id: str, job_dir: Path) -> None:
+    shutil.rmtree(job_dir, ignore_errors=True)
+    _store.delete(job_id)
 
 
 def _worker(job_id: str, source: Path, suffix: str) -> None:
@@ -91,36 +97,53 @@ async def import_notation(file: UploadFile = File(...)) -> dict:
         raise HTTPException(415, "MusicXML(.musicxml/.xml) 또는 MIDI(.mid/.midi)만 가져올 수 있습니다.")
 
     job_id = uuid.uuid4().hex
-    job_dir = jobs_dir() / job_id
-    job_dir.mkdir(parents=True, exist_ok=False)
-    source = job_dir / f"source{suffix}"
     try:
-        persist_stream_atomic(file.file, source)
-        if source.stat().st_size > _MAX_NOTATION_BYTES:
-            raise HTTPException(413, "악보 파일은 64 MiB를 초과할 수 없습니다.")
-        if suffix in _MUSICXML_EXTENSIONS:
-            _validate_musicxml_file(source)
-        _store.create(
+        reserve_job(
+            _store,
             job_id,
             kind="notation-import",
             status="queued",
-            stage="queued",
+            stage="uploading",
             progress=0,
             filename=filename,
             preset="direct-notation-import",
             skip_lyrics=True,
         )
-        Thread(target=_worker, args=(job_id, source, suffix), daemon=True).start()
+    except JobCapacityError as exc:
+        raise HTTPException(429, str(exc)) from exc
+
+    job_dir = jobs_dir() / job_id
+    source = job_dir / f"source{suffix}"
+    try:
+        job_dir.mkdir(parents=True, exist_ok=False)
+        persist_stream_atomic(file.file, source)
+        if source.stat().st_size > _MAX_NOTATION_BYTES:
+            raise HTTPException(413, "악보 파일은 64 MiB를 초과할 수 없습니다.")
+        if suffix in _MUSICXML_EXTENSIONS:
+            _validate_musicxml_file(source)
+        _store.update(job_id, stage="queued")
     except UploadStorageError as exc:
-        shutil.rmtree(job_dir, ignore_errors=True)
+        _cleanup_reservation(job_id, job_dir)
         raise HTTPException(exc.status_code, str(exc)) from exc
     except HTTPException:
-        shutil.rmtree(job_dir, ignore_errors=True)
+        _cleanup_reservation(job_id, job_dir)
         raise
     except ValueError as exc:
-        shutil.rmtree(job_dir, ignore_errors=True)
+        _cleanup_reservation(job_id, job_dir)
         raise HTTPException(422, str(exc)) from exc
     except Exception:
-        shutil.rmtree(job_dir, ignore_errors=True)
+        _cleanup_reservation(job_id, job_dir)
         raise
+
+    thread = Thread(target=_worker, args=(job_id, source, suffix), daemon=True)
+    try:
+        thread.start()
+    except RuntimeError as exc:
+        _store.update(
+            job_id,
+            status="failed",
+            stage="failed",
+            error=f"백그라운드 작업을 시작하지 못했습니다: {exc}",
+        )
+        raise HTTPException(503, "백그라운드 악보 가져오기 작업을 시작하지 못했습니다.") from exc
     return {"job_id": job_id, "status": "queued", "kind": "notation-import"}
