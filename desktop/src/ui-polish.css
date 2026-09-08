@@ -1,0 +1,136 @@
+:root {
+  --ui-bg: #f3f2ee;
+  --ui-surface: #fffefa;
+  --ui-surface-soft: #faf9f5;
+  --ui-border: #deddd6;
+  --ui-text: #262922;
+  --ui-text-soft: #6d7168;
+  --ui-accent: #4c6047;
+  --ui-accent-hover: #3e503a;
+  --ui-radius: 17px;
+  --ui-shadow: 0 12px 34px rgba(35, 39, 32, .055);
+  --ui-shadow-lg: 0 34px 100px rgba(29, 32, 27, .16);
+}
+
+html { background: var(--ui-bg); }
+body {
+  background:
+    radial-gradient(circle at 78% -10%, rgba(117, 137, 107, .07), transparent 31rem),
+    radial-gradient(circle at 12% 110%, rgba(167, 147, 113, .055), transparent 28rem),
+    var(--ui-bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: rgba(93, 116, 84, .18); }
+* { scrollbar-width: thin; scrollbar-color: #c8c8c0 transparent; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 999px; background: #c8c8c0; background-clip: padding-box; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+.product-sidebar {
+  border-right-color: rgba(204, 203, 195, .82);
+  background: rgba(250, 249, 246, .91);
+  box-shadow: 8px 0 32px rgba(37, 40, 34, .025);
+}
+.brand-mark { border: 1px solid rgba(255,255,255,.18); }
+.brand-lockup strong { font-weight: 760; letter-spacing: -.35px; }
+
+.product-page-header { min-height: 132px; }
+.product-page-header h1 { font-weight: 740; letter-spacing: -.95px; }
+.product-page-header p { max-width: 760px; }
+.page-eyebrow, .card-kicker { letter-spacing: 1.55px; }
+
+.work-card {
+  background: rgba(255, 255, 252, .9);
+  box-shadow: var(--ui-shadow);
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+.work-card:hover { border-color: #d4d4cc; box-shadow: 0 15px 40px rgba(35, 39, 32, .065); }
+
+.primary-button, .secondary-button, .danger-button, .ghost-button,
+.model-primary, .model-secondary,
+.setup-component-actions button,
+.setup-component-actions a {
+  transition: transform .14s ease, box-shadow .14s ease, background .14s ease, border-color .14s ease, opacity .14s ease;
+}
+.primary-button:not(:disabled):hover, .model-primary:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 7px 18px rgba(59, 76, 53, .15); }
+.secondary-button:not(:disabled):hover, .model-secondary:not(:disabled):hover { transform: translateY(-1px); }
+button:active:not(:disabled) { transform: translateY(0) scale(.985); }
+
+input, select, textarea { transition: border-color .15s ease, box-shadow .15s ease, background .15s ease; }
+input:hover, select:hover, textarea:hover { border-color: #c9cbc2; }
+input:focus, select:focus, textarea:focus { border-color: #9eaa99; box-shadow: 0 0 0 3px rgba(86, 107, 78, .08); background: #fff; }
+
+.premium-dropzone { box-shadow: inset 0 1px 0 rgba(255,255,255,.7); }
+.premium-dropzone:hover, .premium-dropzone.dragging { box-shadow: 0 15px 40px rgba(70, 86, 64, .065); }
+.segmented-control { border: 1px solid rgba(216,215,208,.75); }
+.segmented-control button.active { box-shadow: 0 3px 11px rgba(40,42,36,.075); }
+
+.compact-status, .hardware-badge, .ui-status { backdrop-filter: blur(10px); }
+
+/* Keep floating utilities visually grouped instead of looking like unrelated plugins. */
+.setup-center-trigger, .model-manager-trigger, .validation-dock-trigger {
+  font-weight: 740;
+  letter-spacing: -.05px;
+}
+.setup-center-trigger { bottom: 26px !important; }
+.model-manager-trigger { bottom: 74px; }
+.validation-dock-trigger { bottom: 122px !important; }
+
+.onboarding-card, .setup-center-modal, .model-manager-modal,
+.validation-modal, .notation-settings-modal, .omr-modal, .export-modal {
+  border-color: rgba(213, 212, 204, .92);
+  box-shadow: var(--ui-shadow-lg);
+}
+
+/* Unify older blue-gray utility dialogs with the main paper/olive product palette. */
+.validation-backdrop, .omr-modal-backdrop, .export-modal-backdrop {
+  background: rgba(31, 34, 29, .46);
+  backdrop-filter: blur(9px);
+}
+.validation-modal, .omr-modal, .export-modal {
+  background: #fbfaf6;
+  color: var(--ui-text);
+}
+.validation-modal header span, .export-modal-eyebrow {
+  color: #888d82;
+}
+.omr-eyebrow { color: #697b62; }
+.validation-modal header p, .validation-policy p,
+.omr-modal header p, .omr-file-card > span, .omr-file-card > small,
+.omr-flow, .export-modal p, .export-modal small {
+  color: var(--ui-text-soft);
+}
+.validation-policy, .omr-progress-card, .omr-message {
+  background: #f1f0eb;
+}
+.omr-file-card {
+  border-color: #c9cbc1;
+  background: #f7f6f2;
+}
+.omr-file-card.selected {
+  border-color: #82907b;
+  background: #f3f7f0;
+}
+.omr-flow span {
+  background: #ecefe9;
+  color: #4f5d4a;
+}
+.export-format-grid label {
+  border-color: #d8d7d0;
+  background: rgba(255,255,255,.6);
+}
+.export-format-grid label.selected {
+  border-color: #9eae97;
+  background: #f0f5ed;
+}
+.validation-settings-grid input,
+.export-destination input {
+  border-color: #d8d7d0;
+  background: #fffefa;
+}
+
+@media (max-width: 980px) {
+  .product-main { padding-left: 24px; padding-right: 24px; }
+}

@@ -17,15 +17,36 @@ def _find_executable(name: str) -> str | None:
     if found:
         return found
 
-    suffix = ".exe" if platform.system() == "Windows" else ""
+    system = platform.system()
+    suffix = ".exe" if system == "Windows" else ""
     candidates = [
         Path.home() / ".local" / "bin" / f"{name}{suffix}",
         Path.home() / ".cargo" / "bin" / f"{name}{suffix}",
     ]
-    if platform.system() == "Windows":
+    if system == "Darwin":
+        # Finder-launched GUI apps often inherit a much smaller PATH than Terminal.
         candidates += [
-            Path(os.getenv("USERPROFILE", str(Path.home()))) / ".local" / "bin" / f"{name}.exe",
+            Path("/opt/homebrew/bin") / name,
+            Path("/usr/local/bin") / name,
+            Path("/usr/bin") / name,
+            Path("/opt/homebrew/sbin") / name,
+            Path("/usr/local/sbin") / name,
         ]
+    elif system == "Linux":
+        candidates += [
+            Path("/usr/local/bin") / name,
+            Path("/usr/bin") / name,
+            Path("/snap/bin") / name,
+        ]
+    elif system == "Windows":
+        user = Path(os.getenv("USERPROFILE", str(Path.home())))
+        local_app_data = Path(os.getenv("LOCALAPPDATA", str(user / "AppData" / "Local")))
+        candidates += [
+            user / ".local" / "bin" / f"{name}.exe",
+            local_app_data / "Microsoft" / "WindowsApps" / f"{name}.exe",
+            Path(os.getenv("ProgramFiles", "C:/Program Files")) / name / f"{name}.exe",
+        ]
+
     for candidate in candidates:
         if candidate.is_file():
             return str(candidate)
@@ -41,17 +62,9 @@ def _uvx_command(package: str) -> str | None:
     if not uvx:
         return None
     flags: list[str] = []
-    if platform.system() == "Windows" and _has_nvidia() and package in {
-        "muscriptor",
-        "demucs",
-        "whisperx",
-    }:
+    if platform.system() == "Windows" and _has_nvidia() and package in {"muscriptor", "demucs", "whisperx"}:
         flags.append("--torch-backend=cu128")
-    if (
-        package == "muscriptor"
-        and platform.system() == "Darwin"
-        and platform.machine().lower() not in {"arm64", "aarch64"}
-    ):
+    if package == "muscriptor" and platform.system() == "Darwin" and platform.machine().lower() not in {"arm64", "aarch64"}:
         flags.extend(["--python", "3.12"])
     executable = f'"{uvx}"' if " " in uvx else uvx
     return " ".join([executable, *flags, package])
@@ -67,13 +80,7 @@ def _default_mt3_infer_command() -> str:
         args = [executable]
         if platform.system() == "Windows" and _has_nvidia():
             args.append("--torch-backend=cu128")
-        args.extend(
-            [
-                "--from",
-                f"mt3-infer[torch]=={MT3_INFER_VERSION}",
-                "mt3-infer",
-            ]
-        )
+        args.extend(["--from", f"mt3-infer[torch]=={MT3_INFER_VERSION}", "mt3-infer"])
         return " ".join(args)
     return "mt3-infer"
 
@@ -86,6 +93,10 @@ def _default_command(name: str) -> str:
     if uvx:
         return uvx
     return name
+
+
+def _external_command(name: str) -> str:
+    return _find_executable(name) or name
 
 
 def _saved_settings() -> dict[str, str | None]:
@@ -113,54 +124,49 @@ def _optional_path(key: str, env_name: str) -> Path | None:
     return Path(raw).expanduser() if raw else None
 
 
+def _saved_usage_mode() -> str:
+    raw = (_saved_or_env("usage_mode", "AST_USAGE_MODE", "personal") or "personal").strip().lower()
+    return raw if raw in {"personal", "commercial"} else "personal"
+
+
 def _saved_engine() -> str:
-    raw = (_saved_or_env("transcription_engine", "AST_TRANSCRIPTION_ENGINE", "mt3_infer") or "mt3_infer").strip().lower()
-    # v0.7 prerelease builds briefly stored `yourmt3` as the provider key.
-    return "mt3_infer" if raw == "yourmt3" else raw
+    explicit = _saved_or_env("transcription_engine", "AST_TRANSCRIPTION_ENGINE")
+    if explicit:
+        raw = explicit.strip().lower()
+        return "mt3_infer" if raw == "yourmt3" else raw
+    return "muscriptor" if _saved_usage_mode() == "personal" else "mt3_infer"
+
+
+def _saved_mt3_model() -> str:
+    return (_saved_or_env("mt3_model", "AST_MT3_MODEL", "yourmt3") or "yourmt3").strip().lower()
+
+
+def _saved_muscriptor_model() -> str:
+    return (_saved_or_env("muscriptor_model", "AST_MUSCRIPTOR_MODEL", "large") or "large").strip().lower()
 
 
 @dataclass(slots=True)
 class Settings:
+    usage_mode: str = field(default_factory=_saved_usage_mode)
     transcription_engine: str = field(default_factory=_saved_engine)
-    mt3_infer_cmd: str = field(
-        default_factory=lambda: _saved_or_env("mt3_infer_cmd", "AST_MT3_INFER_CMD")
-        or _saved_or_env("yourmt3_cmd", "AST_YOURMT3_CMD")
-        or _default_mt3_infer_command()
-    )
-    mt3_model: str = field(
-        default_factory=lambda: (
-            _saved_or_env("mt3_model", "AST_MT3_MODEL", "mr_mt3") or "mr_mt3"
-        ).strip().lower()
-    )
-    muscriptor_cmd: str = field(
-        default_factory=lambda: _saved_or_env("muscriptor_cmd", "AST_MUSCRIPTOR_CMD")
-        or _default_command("muscriptor")
-    )
-    native_engine_cmd: str = field(
-        default_factory=lambda: _saved_or_env("native_engine_cmd", "AST_NATIVE_ENGINE_CMD")
-        or _default_command("audio-score-native")
-    )
-    native_checkpoint: Path | None = field(
-        default_factory=lambda: _optional_path("native_checkpoint", "AST_NATIVE_CHECKPOINT")
-    )
-    demucs_cmd: str = field(
-        default_factory=lambda: _saved_or_env("demucs_cmd", "AST_DEMUCS_CMD")
-        or _default_command("demucs")
-    )
-    whisperx_cmd: str = field(
-        default_factory=lambda: _saved_or_env("whisperx_cmd", "AST_WHISPERX_CMD")
-        or _default_command("whisperx")
-    )
-    yt_dlp_cmd: str = field(
-        default_factory=lambda: _saved_or_env("yt_dlp_cmd", "AST_YT_DLP_CMD")
-        or _default_command("yt-dlp")
-    )
-    musescore_cmd: str | None = field(
-        default_factory=lambda: _saved_or_env("musescore_cmd", "AST_MUSESCORE_CMD")
-    )
-    muscriptor_model: str = field(
-        default_factory=lambda: os.getenv("AST_MUSCRIPTOR_MODEL", "medium")
-    )
-    whisperx_model: str = field(
-        default_factory=lambda: os.getenv("AST_WHISPERX_MODEL", "small")
-    )
+    mt3_infer_cmd: str = field(default_factory=lambda: _saved_or_env("mt3_infer_cmd", "AST_MT3_INFER_CMD") or _saved_or_env("yourmt3_cmd", "AST_YOURMT3_CMD") or _default_mt3_infer_command())
+    mt3_model: str = field(default_factory=_saved_mt3_model)
+    muscriptor_cmd: str = field(default_factory=lambda: _saved_or_env("muscriptor_cmd", "AST_MUSCRIPTOR_CMD") or _default_command("muscriptor"))
+    muscriptor_model: str = field(default_factory=_saved_muscriptor_model)
+    native_engine_cmd: str = field(default_factory=lambda: _saved_or_env("native_engine_cmd", "AST_NATIVE_ENGINE_CMD") or _default_command("audio-score-native"))
+    native_checkpoint: Path | None = field(default_factory=lambda: _optional_path("native_checkpoint", "AST_NATIVE_CHECKPOINT"))
+    demucs_cmd: str = field(default_factory=lambda: _saved_or_env("demucs_cmd", "AST_DEMUCS_CMD") or _default_command("demucs"))
+    whisperx_cmd: str = field(default_factory=lambda: _saved_or_env("whisperx_cmd", "AST_WHISPERX_CMD") or _default_command("whisperx"))
+    yt_dlp_cmd: str = field(default_factory=lambda: _saved_or_env("yt_dlp_cmd", "AST_YT_DLP_CMD") or _default_command("yt-dlp"))
+    audiveris_cmd: str = field(default_factory=lambda: _saved_or_env("audiveris_cmd", "AST_AUDIVERIS_CMD") or _external_command("audiveris"))
+    lilypond_cmd: str = field(default_factory=lambda: _saved_or_env("lilypond_cmd", "AST_LILYPOND_CMD") or _external_command("lilypond"))
+    musicxml2ly_cmd: str = field(default_factory=lambda: _saved_or_env("musicxml2ly_cmd", "AST_MUSICXML2LY_CMD") or _external_command("musicxml2ly"))
+    ffmpeg_cmd: str = field(default_factory=lambda: _saved_or_env("ffmpeg_cmd", "AST_FFMPEG_CMD") or _external_command("ffmpeg"))
+    fluidsynth_cmd: str = field(default_factory=lambda: _saved_or_env("fluidsynth_cmd", "AST_FLUIDSYNTH_CMD") or _external_command("fluidsynth"))
+    validation_soundfont: Path | None = field(default_factory=lambda: _optional_path("validation_soundfont", "AST_VALIDATION_SOUNDFONT"))
+    musescore_cmd: str | None = field(default_factory=lambda: _saved_or_env("musescore_cmd", "AST_MUSESCORE_CMD"))
+    whisperx_model: str = field(default_factory=lambda: os.getenv("AST_WHISPERX_MODEL", "small"))
+
+    @property
+    def yourmt3_cmd(self) -> str:
+        return self.mt3_infer_cmd

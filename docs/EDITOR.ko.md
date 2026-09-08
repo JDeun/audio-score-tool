@@ -4,21 +4,27 @@
 
 AudioScoreTool 편집기는 SVG를 직접 수정하지 않습니다.
 
-OpenSheetMusicDisplay(OSMD)는 MusicXML을 렌더링하는 미리보기 엔진이고, 모든 편집은 MusicXML 구조에 반영됩니다.
+OpenSheetMusicDisplay(OSMD)는 MusicXML을 렌더링하는 미리보기 엔진이고, 모든 편집은 MusicXML 구조에 반영됩니다. v0.8부터는 **현재 MusicXML 문서가 SQLite 안에 저장되며 DB가 canonical state**입니다. 파일은 OSMD/MuseScore 등 파일 경로가 필요한 처리에서만 관리형 cache로 materialize합니다.
 
 ```text
-MusicXML
+SQLite current_score_xml
+  ↓
+managed MusicXML cache
   ↓
 Inspector edit
   ↓
-MusicXML revision
+validation + publication layout
+  ↓
+SQLite revision commit
   ↓
 OSMD re-render
+  ↓
+[사용자가 최종 Export 요청]
   ↓
 MuseScore export
 ```
 
-미리보기와 최종 PDF가 서로 다른 데이터를 사용하는 문제를 방지하기 위해 현재 MusicXML을 단일 source of truth로 유지합니다.
+따라서 미리보기와 최종 PDF는 동일한 DB Revision에서 파생됩니다.
 
 ## 편집 가능한 항목
 
@@ -72,33 +78,29 @@ MuseScore export
 
 자동 화성 분석이 생성한 코드는 MusicXML `<harmony>` 요소로 저장됩니다.
 
-사용자는 잘못 추정된 코드만 Inspector에서 보정합니다.
-
-코드는 note onset에 anchor되므로 한 마디 안에서 여러 번 변경할 수 있습니다.
+사용자는 잘못 추정된 코드만 Inspector에서 보정합니다. 코드는 note onset에 anchor되므로 한 마디 안에서도 여러 번 변경할 수 있습니다.
 
 ## Revision / Undo
 
-편집 전 현재 상태를 snapshot합니다.
+편집 전 현재 DB 상태를 `song_revisions`에 snapshot합니다.
 
 Revision에는 다음이 포함됩니다.
 
-- note / rhythm
-- insert / delete
-- measure structure
-- key / time
-- lyric
-- chord
+- MusicXML 전체 문서
+- note / rhythm / insert / delete
+- measure structure / key / time
+- lyric / chord
 - tie / slur / beam / articulation
-- title / credits
+- title / artist
 - publication settings
 
 한 번의 사용자 저장을 하나의 Revision으로 처리하는 것을 원칙으로 합니다.
 
-Undo는 MusicXML과 해당 시점의 publication settings를 함께 되돌립니다.
+Undo는 해당 Revision의 MusicXML, 제목/아티스트, publication settings를 함께 되돌립니다. 새 편집이 commit되면 이전 Revision에서 생성된 export는 자동 무효화합니다.
 
 ## 출판 조판
 
-MusicXML의 layout 정보를 이용해 다음을 저장합니다.
+MusicXML의 layout 정보를 이용해 다음을 반영하고 설정 원본은 SQLite `publication_settings`에 저장합니다.
 
 - page size
 - orientation
@@ -117,27 +119,36 @@ MusicXML의 layout 정보를 이용해 다음을 저장합니다.
 - arranger
 - rights/source
 
-화면 오버레이가 아니라 MusicXML `credit`, `identification`, `rights`에 기록합니다.
+화면 오버레이가 아니라 최종 MusicXML의 `credit`, `identification`, `rights`에도 기록합니다.
 
 ## Export 일관성
 
-악보 Revision이 변경되면 이전 PDF / MIDI / part export를 현재 파일로 취급하지 않습니다.
+채보 완료 시점에는 PDF/MIDI/파트보를 만들지 않습니다. 사용자가 현재 Revision을 검수한 뒤 **최종 파일 생성**을 실행해야 persistent export가 생깁니다.
 
-사용자가 현재 Revision에서 다시 Export해야 다운로드 가능한 최신 파일이 생성됩니다.
+Export 창에서 다음을 선택합니다.
 
-최종 Export:
+- MusicXML
+- Full Score PDF
+- MIDI
+- 파트별 MusicXML + PDF
+- OS 저장 폴더
+
+동일한 곡 이름의 폴더가 이미 있으면 `(2)`, `(3)`처럼 충돌 없이 새 폴더를 만듭니다.
+
+최종 Export 구조 예시:
 
 ```text
-Full Score
-├─ MusicXML
-├─ PDF
-└─ MIDI
-
-Parts
-├─ Voice.musicxml / Voice.pdf
-├─ Piano.musicxml / Piano.pdf
-├─ Guitar.musicxml / Guitar.pdf
-├─ Bass.musicxml / Bass.pdf
-├─ Drums.musicxml / Drums.pdf
-└─ ...
+곡 제목/
+├─ score.musicxml
+├─ score.pdf
+├─ score.mid
+└─ parts/
+   ├─ 01_voice.musicxml / 01_voice.pdf
+   ├─ 02_piano.musicxml / 02_piano.pdf
+   ├─ 03_guitar.musicxml / 03_guitar.pdf
+   ├─ 04_bass.musicxml / 04_bass.pdf
+   ├─ 05_drums.musicxml / 05_drums.pdf
+   └─ ... 감지된 기타 파트
 ```
+
+MusicXML만 내보내는 경우 MuseScore가 없어도 가능하며, PDF/MIDI/파트 PDF에는 MuseScore 4가 필요합니다.

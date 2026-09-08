@@ -4,7 +4,7 @@ from audio_score_tool.runtime_settings import runtime_settings
 from audio_score_tool.settings_store import SettingsStore
 
 
-def test_runtime_settings_load_yourmt3_engine_from_store(tmp_path: Path):
+def test_runtime_settings_migrates_legacy_yourmt3_engine_from_store(tmp_path: Path):
     store = SettingsStore(tmp_path / "settings.json")
     store.update(
         {
@@ -14,7 +14,10 @@ def test_runtime_settings_load_yourmt3_engine_from_store(tmp_path: Path):
     )
 
     settings = runtime_settings(store=store)
-    assert settings.transcription_engine == "yourmt3"
+    assert settings.transcription_engine == "mt3_infer"
+    assert settings.mt3_infer_cmd == "mt3-infer-custom"
+    # Compatibility alias remains available to older callers while the persisted
+    # engine key is normalized to the current MT3-Infer implementation.
     assert settings.yourmt3_cmd == "mt3-infer-custom"
 
 

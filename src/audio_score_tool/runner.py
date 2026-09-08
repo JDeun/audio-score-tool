@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import os
+import platform
 import shlex
 import shutil
 import signal
 import subprocess
+import tempfile
+import time
 from collections.abc import Iterable
 from pathlib import Path
 from threading import Event
@@ -28,17 +31,59 @@ def split_command(value: str) -> list[str]:
     return parts
 
 
+def resolve_executable(name: str) -> str | None:
+    """Resolve CLI tools from PATH and common GUI-app installation locations."""
+    expanded = Path(name).expanduser()
+    if expanded.is_file():
+        return str(expanded)
+    found = shutil.which(name)
+    if found:
+        return found
+
+    suffix = ".exe" if os.name == "nt" else ""
+    executable = f"{name}{suffix}" if suffix and not name.lower().endswith(suffix) else name
+    candidates = [
+        Path.home() / ".local" / "bin" / executable,
+        Path.home() / ".cargo" / "bin" / executable,
+    ]
+    system = platform.system()
+    if system == "Darwin":
+        candidates += [
+            Path("/opt/homebrew/bin") / executable,
+            Path("/usr/local/bin") / executable,
+            Path("/opt/homebrew/sbin") / executable,
+            Path("/usr/local/sbin") / executable,
+            Path("/usr/bin") / executable,
+        ]
+    elif system == "Linux":
+        candidates += [
+            Path("/usr/local/bin") / executable,
+            Path("/usr/bin") / executable,
+            Path("/snap/bin") / executable,
+        ]
+    elif system == "Windows":
+        userprofile = Path(os.getenv("USERPROFILE", str(Path.home())))
+        localappdata = Path(os.getenv("LOCALAPPDATA", str(userprofile / "AppData" / "Local")))
+        candidates += [
+            userprofile / ".local" / "bin" / executable,
+            localappdata / "Programs" / "Python" / "Scripts" / executable,
+            localappdata / "Microsoft" / "WinGet" / "Links" / executable,
+        ]
+    for candidate in candidates:
+        if candidate.is_file():
+            return str(candidate)
+    return None
+
+
 def command_exists(command: str) -> bool:
     parts = split_command(command)
     if not parts:
         return False
-    first = parts[0]
-    if Path(first).is_file():
-        return True
-    return shutil.which(first) is not None
+    return resolve_executable(parts[0]) is not None
 
 
-def _terminate_process_tree(proc: subprocess.Popen[str]) -> None:
+def terminate_process_tree(proc: subprocess.Popen) -> None:
+    """Terminate a managed subprocess and its descendants on all supported desktop OSes."""
     if proc.poll() is not None:
         return
     if os.name == "nt":
@@ -67,6 +112,21 @@ def _terminate_process_tree(proc: subprocess.Popen[str]) -> None:
             pass
 
 
+# Backwards-compatible private name for older internal callers.
+_terminate_process_tree = terminate_process_tree
+
+
+def _read_log_tail(handle, max_output_bytes: int) -> str:
+    handle.flush()
+    handle.seek(0, os.SEEK_END)
+    size = handle.tell()
+    start = max(0, size - max(1, max_output_bytes))
+    handle.seek(start)
+    raw = handle.read(max(1, max_output_bytes))
+    prefix = "[... command output truncated ...]\n" if start > 0 else ""
+    return prefix + raw.decode("utf-8", errors="replace")
+
+
 def run_command(
     command: str,
     args: Iterable[str | Path],
@@ -74,55 +134,71 @@ def run_command(
     cwd: Path | None = None,
     env: dict[str, str] | None = None,
     cancel_event: Event | None = None,
+    timeout_seconds: float | None = None,
+    max_output_bytes: int = 1024 * 1024,
 ) -> subprocess.CompletedProcess[str]:
+    """Run an external command with bounded in-memory output.
+
+    Child stdout/stderr is spooled to a temporary file instead of an unbounded PIPE.
+    The returned ``stdout`` contains only the final bounded tail, which is sufficient for
+    diagnostics while protecting long transcription/render/install processes from log-
+    driven memory growth.
+    """
     parts = split_command(command)
     if not parts:
         raise CommandError("Command is empty.")
+    resolved = resolve_executable(parts[0])
+    if resolved:
+        parts[0] = resolved
 
     argv = [*parts, *(str(a) for a in args)]
     merged_env = os.environ.copy()
     if env:
         merged_env.update(env)
 
-    try:
-        popen_kwargs: dict = {}
-        if os.name == "nt":
-            popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
-        else:
-            popen_kwargs["start_new_session"] = True
+    popen_kwargs: dict = {}
+    if os.name == "nt":
+        popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+    else:
+        popen_kwargs["start_new_session"] = True
 
-        proc = subprocess.Popen(
-            argv,
-            cwd=cwd,
-            env=merged_env,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            **popen_kwargs,
-        )
-    except OSError as exc:
-        raise CommandError(f"Could not start command: {argv[0]} ({exc})") from exc
-
-    output = ""
-    while True:
+    started = time.monotonic()
+    with tempfile.TemporaryFile(mode="w+b") as log:
         try:
-            stdout, _ = proc.communicate(timeout=0.25)
-            output = stdout or output
-            break
-        except subprocess.TimeoutExpired as exc:
-            if exc.output:
-                output = exc.output if isinstance(exc.output, str) else exc.output.decode()
+            proc = subprocess.Popen(
+                argv,
+                cwd=cwd,
+                env=merged_env,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                **popen_kwargs,
+            )
+        except OSError as exc:
+            raise CommandError(f"Could not start command: {argv[0]} ({exc})") from exc
+
+        while proc.poll() is None:
             if cancel_event is not None and cancel_event.is_set():
-                _terminate_process_tree(proc)
-                stdout, _ = proc.communicate()
-                output = stdout or output
+                terminate_process_tree(proc)
+                proc.wait()
+                output = _read_log_tail(log, max_output_bytes)
                 raise CommandCancelled(
                     f"Command cancelled: {' '.join(argv)}\n\n{output}"
                 )
+            if timeout_seconds is not None and time.monotonic() - started > timeout_seconds:
+                terminate_process_tree(proc)
+                proc.wait()
+                output = _read_log_tail(log, max_output_bytes)
+                raise CommandError(
+                    f"Command timed out after {timeout_seconds:g}s: {' '.join(argv)}\n\n{output}"
+                )
+            time.sleep(0.25)
 
-    completed = subprocess.CompletedProcess(argv, proc.returncode, output)
-    if proc.returncode != 0:
+        returncode = proc.wait()
+        output = _read_log_tail(log, max_output_bytes)
+
+    completed = subprocess.CompletedProcess(argv, returncode, output)
+    if returncode != 0:
         raise CommandError(
-            f"Command failed ({proc.returncode}): {' '.join(argv)}\n\n{output}"
+            f"Command failed ({returncode}): {' '.join(argv)}\n\n{output}"
         )
     return completed

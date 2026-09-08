@@ -1,35 +1,134 @@
 # AudioScoreTool
 
-> **음원 한 곡을 출판 가능한 악보로.**  
-> 로컬 음원이나 YouTube 링크를 넣으면 다중 악기 채보, 코드·가사 정렬, 악보 수정, 출판 조판까지 한 앱에서 처리하는 로컬 우선 데스크탑 악보 제작 도구입니다.
+> **음원이나 기존 악보를 출판 가능한 편집 악보로.**  
+> 로컬 음원·YouTube·PDF/이미지 악보를 MusicXML 중심 프로젝트로 통합하고, 자동 채보/OMR, 코드·가사, 검증, 편집, 출판 조판, 최종 파일 생성을 처리하는 로컬 우선 데스크탑 악보 제작 도구입니다.
 
-**현재 버전: v0.7.0**
+**현재 버전: v0.8.0**
 
 ---
 
-## 무엇을 하나요?
+## 기본 원칙
+
+AudioScoreTool은 처음부터 모든 음표를 직접 입력하게 하는 악보 작성기가 아닙니다.
+
+> **AI/OMR이 먼저 최대한 완성된 악보를 만들고, 사용자는 잘못된 부분과 출판 디테일만 수정합니다.**
 
 ```text
-음원 파일 / YouTube URL
-          ↓
- MR-MT3 다중 악기 자동 채보
-          ↓
-보컬 · 피아노 · 기타 · 베이스 · 드럼 · 기타 감지 파트
-          ↓
-자동 코드 심벌 · 가사 인식/정렬
-          ↓
-      곡 라이브러리
-          ↓
-미리보기 · 세부 수정 · 출판 조판
-          ↓
-PDF · MusicXML · MIDI · 파트보
+음원 파일 / YouTube URL ─→ AMT ─┐
+PDF / 이미지 악보 ───────→ OMR ─┼→ Canonical MusicXML
+MusicXML / MIDI ────────────────┘
+                                  ↓
+                         SQLite 곡 라이브러리
+                                  ↓
+                  미리보기 · 검증 · 편집 · Revision
+                                  ↓
+                         출판 조판 · 최종 Export
 ```
 
-AudioScoreTool의 기본 원칙은 단순합니다.
+---
 
-> **AI가 먼저 최대한 완성된 악보를 만들고, 사용자는 틀린 부분과 출판 디테일만 수정합니다.**
+## v0.8: DB 중심 프로젝트 관리
 
-처음부터 음표나 코드를 사람이 입력하는 프로그램이 아닙니다.
+v0.8부터 **SQLite가 곡과 악보의 canonical state**입니다.
+
+- 원본/현재 MusicXML 문서: SQLite
+- Revision별 악보: SQLite
+- 자동 코드/가사 alignment/검증 결과: SQLite JSON
+- 출판 설정: SQLite
+- OSMD/외부 도구가 요구하는 MusicXML 파일: 관리형 cache
+- OMR 원본 PDF/이미지: managed asset
+- PDF/MIDI/MusicXML/파트보: 사용자가 `최종 파일 생성`을 실행했을 때만 export
+
+채보가 끝났다는 이유만으로 PDF나 파트보를 미리 만들지 않습니다. 수정 중인 악보는 DB에서 관리하며, 악보를 수정하면 이전 Revision의 export는 자동 폐기됩니다.
+
+기존 `jobs.sqlite3`는 최초 실행 시 `audio-score-tool.sqlite3`로 마이그레이션되고, 기존 파일 기반 Song/Publication 데이터도 순차적으로 DB로 이관됩니다.
+
+자세한 내용: [`docs/STORAGE_V2.ko.md`](docs/STORAGE_V2.ko.md)
+
+---
+
+## 입력 방식
+
+### 1. 음원 / YouTube → 자동 채보
+
+완성된 믹스 음원을 다중 악기 채보 모델로 처리합니다.
+
+### 2. PDF / 이미지 악보 → OMR
+
+Audiveris를 외부 OMR backend로 사용해 PDF/PNG/JPG/TIFF/BMP 악보를 MusicXML로 변환합니다.
+
+```text
+PDF / Scan
+   ↓
+Audiveris OMR
+   ↓
+Normalized MusicXML
+   ↓
+기존 DB / 검증 / 편집 / 조판 파이프라인
+```
+
+원본 PDF/이미지는 나중에 OMR 결과와 대조 검증할 수 있도록 곡별 managed asset으로 보존합니다. OMR 결과는 자동으로 정답으로 간주하지 않으며, 기존 결정론적 validator와 선택적 LLM critic으로 검토합니다.
+
+자세한 내용: [`docs/OMR.ko.md`](docs/OMR.ko.md)
+
+---
+
+## 품질 우선 채보 정책
+
+속도보다 **최종 악보까지 필요한 사람의 수정량**을 줄이는 것을 우선합니다.
+
+### 개인 / 비상업
+
+```text
+1. MuScriptor large    ← 기본값, 품질 최우선
+2. YourMT3+            ← fallback
+3. MR-MT3              ← 빠른 fallback
+```
+
+MuScriptor code는 MIT지만 공개 weights는 **CC BY-NC 4.0**입니다. 따라서 개인/비상업 모드에서만 허용합니다.
+
+### 상용
+
+```text
+1. YourMT3+ via MT3-Infer  ← 정확도 우선 후보
+2. MR-MT3                  ← MIT provenance가 더 단순한 fallback
+```
+
+YourMT3+ checkpoint와 `mt3-infer` vendored implementation은 Apache-2.0으로 표기되지만 공식 GitHub 저장소는 GPL-3.0으로 표시되므로 상용 배포 전 고정 revision 기준 provenance 검토가 필요합니다.
+
+`auto` preset은 v0.8부터 **Quality**로 해석합니다. 제한된 하드웨어에서 속도를 우선해야 할 때만 Fast/Balanced를 명시적으로 선택합니다.
+
+모델 비교와 근거: [`docs/ENGINE_PERFORMANCE.ko.md`](docs/ENGINE_PERFORMANCE.ko.md)
+
+---
+
+## MuseScore는 필수인가?
+
+**아닙니다. v0.8부터 MuseScore는 필수가 아니라 선택적 compatibility fallback입니다.**
+
+역할을 다음처럼 분리합니다.
+
+```text
+미리보기            OSMD
+MIDI ↔ MusicXML     music21 (BSD)
+파트 분리           AudioScoreTool 자체 MusicXML 처리
+MusicXML → PDF       LilyPond 우선
+                     MuseScore 선택적 fallback
+OMR                 Audiveris
+```
+
+따라서 MuseScore가 없어도 다음이 가능합니다.
+
+- MuScriptor 결과 편집
+- MT3 계열 MIDI → MusicXML 변환 (`music21`)
+- MusicXML 미리보기/편집
+- MusicXML export
+- MIDI export
+- LilyPond가 설치되어 있으면 PDF/파트 PDF export
+
+MuseScore는 LilyPond에서 변환이 잘 되지 않는 특정 MusicXML 호환성 문제나 기존 MuseScore 레이아웃을 선호할 때 fallback으로 사용할 수 있습니다.
+
+LilyPond의 `musicxml2ly`는 MusicXML의 모든 기능을 완벽하게 보존하는 것은 아니므로, 실제 타깃 악보 Golden Set에서 PDF fidelity를 비교해야 합니다.
 
 ---
 
@@ -39,15 +138,15 @@ AudioScoreTool의 기본 원칙은 단순합니다.
 
 - 완성된 믹스 음원에서 다중 악기 자동 채보
 - 보컬 / 피아노·키보드 / 기타 / 베이스 / 드럼 등 감지된 파트 생성
-- Full Score + 악기별 파트보 생성
-- 자동 코드 진행 추정 및 오선 위 코드 심벌 삽입
-- Demucs + WhisperX 기반 가사 인식 및 vocal-like part 정렬
+- 자동 코드 진행 추정 및 MusicXML `<harmony>` 삽입
+- Demucs + WhisperX 기반 가사 인식/정렬
 - 로컬 파일 / YouTube URL 입력
-- 교체 가능한 채보 provider 구조
+- PDF/이미지 악보 OMR 가져오기
+- 교체 가능한 transcription / notation backend
 
-### 악보 편집
+### 앱 내 악보 편집
 
-- MusicXML 기반 앱 내 실시간 미리보기
+- MusicXML 기반 OSMD 실시간 미리보기
 - 음정 / 옥타브 / 샵·플랫
 - 온음표 ~ 64분음표 / 점음표
 - 음표 ↔ 쉼표
@@ -57,62 +156,49 @@ AudioScoreTool의 기본 원칙은 단순합니다.
 - 가사 / 코드 심벌
 - Tie / Slur / Beam
 - Staccato / Tenuto / Accent / Marcato
-- Revision / Undo / 원본 복원
+- DB 기반 Revision / Undo / 원본 복원
 
-### 출판용 조판
+### 악보 검증
 
-- A4 / Letter
-- 세로 / 가로
+검증은 LLM 단독 판정이 아니라 다음 두 단계입니다.
+
+1. **결정론적 검사**: 마디 duration, 일반 음역 이탈, 쉼표 lyric, 비정상 tie, 빈 part 등
+2. **선택적 LLM critic**: 음악적 문맥에서 의심 구간을 우선순위화하고 검토 이유를 설명
+
+LLM은 원음을 직접 측정하는 acoustic verifier가 아니므로 `LLM 가설`로 표시하며 **악보를 자동 수정하지 않습니다.** 결과는 DB의 `song_analysis.validation_report`에 저장됩니다.
+
+OMR 입력의 경우 원본 PDF/이미지를 보존하므로 향후 원본 악보 이미지 ↔ 인식 MusicXML 렌더링의 멀티모달 차이 검증을 추가할 수 있습니다.
+
+자세한 내용: [`docs/VALIDATION.ko.md`](docs/VALIDATION.ko.md)
+
+### 출판 조판
+
+- A4 / Letter, 세로 / 가로
 - 한 줄당 마디 수
-- 한 페이지당 시스템 수
+- 페이지당 시스템 수
 - 시스템 간격
-- 상·하·좌·우 여백
+- 페이지 여백
 - 첫 페이지 제목 영역
 - 제목 / 부제 / 작곡 / 작사 / 편곡 / 저작권·출처
-- Full Score 및 파트별 PDF / MusicXML
 
-### 데스크탑 제품 기능
+### 최종 Export
 
-- `새 악보 / 곡 라이브러리 / 작업 내역 / 성능 비교 / 설정` 단일 내비게이션
-- 첫 실행 온보딩
-- CUDA / Apple Metal(MPS) / CPU 자동 감지
-- 작업 큐 및 동시 GPU 작업 방지
-- 실행 중 전체 프로세스 트리 취소
-- SQLite 작업 히스토리
-- 실패 작업 재실행
-- 출력 폴더 열기
-- 저장공간 정리
-- Windows / macOS / Linux 패키징
+`최종 파일 생성` 전에는 PDF/파트보를 만들지 않습니다.
 
----
+지원 포맷:
 
-# v0.7 채보 엔진
+- Full Score MusicXML
+- Full Score PDF
+- MIDI
+- 감지된 각 악기별 MusicXML / PDF
 
-AudioScoreTool은 채보 엔진을 제품 코드와 분리했습니다.
-
-| 엔진 | 역할 | 모델 학습 필요 | 상업화 관점 |
-|---|---|---:|---|
-| **MR-MT3 via MT3-Infer** | **기본 권장** 다중 악기 채보 | 아니오 | MT3-Infer MIT, MR-MT3 코드/공개 checkpoint MIT 표기 |
-| **YourMT3+ via MT3-Infer** | 고품질 비교·실험 | 아니오 | checkpoint 배포본은 Apache-2.0 표기지만 upstream 코드 표기가 달라 출시 전 재검토 권장 |
-| **AudioScore Native** | 장기 R&D / 완전한 모델 소유 | 예 | project-owned checkpoint 목표 |
-| **MuScriptor** | 호환 / 연구 / 비교 | 아니오 | 공개 weights 비상업 조건이므로 상용 기본값에서 제외 |
-
-기본 설정은 다음과 같습니다.
-
-```text
-provider = mt3_infer
-model    = mr_mt3
-```
-
-MT3-Infer는 `0.2.0`을 기본 runtime revision으로 고정하며, MR-MT3 checkpoint는 첫 사용 시 upstream에서 로컬 캐시로 자동 다운로드합니다. 별도의 자체 모델 학습은 필요하지 않습니다.
-
-> 이 문서는 기술적 라이선스 점검을 기록한 것이며 법률 자문을 대체하지 않습니다. 유료 배포 직전에는 고정된 runtime/checkpoint revision과 THIRD_PARTY_NOTICES를 다시 확인해야 합니다.
+Tauri native folder picker에서 실제 저장 위치를 선택합니다. 같은 이름의 폴더가 이미 있으면 `(2)`, `(3)`처럼 충돌 없이 생성합니다.
 
 ---
 
-# 빠른 시작
+## 빠른 시작
 
-## 1. 저장소 준비
+### 1. 프로젝트 설치
 
 ```bash
 git clone https://github.com/JDeun/audio-score-tool.git
@@ -120,21 +206,58 @@ cd audio-score-tool
 uv sync --extra dev
 ```
 
-MT3-Infer를 프로젝트 환경에 직접 설치하려면:
+`music21`은 기본 dependency에 포함되어 MIDI↔MusicXML 변환을 담당합니다.
+
+### 2. 개인/비상업 품질 최우선 — MuScriptor
+
+먼저 Hugging Face에서 MuScriptor model license를 수락하고 로그인합니다.
 
 ```bash
-uv sync --extra mt3
+uvx hf auth login
+export AST_USAGE_MODE=personal
 ```
 
-설치하지 않아도 `uvx`가 있으면 AudioScoreTool이 고정된 `mt3-infer[torch]==0.2.0` runtime을 실행할 수 있습니다.
+기본 정책이 `personal → muscriptor → large`이므로 별도 provider 설정 없이 사용 가능합니다.
 
-## 2. MuseScore 4 설치
+### 3. 상용 모드
 
-MR-MT3는 다중 트랙 MIDI를 만들고, AudioScoreTool이 MuseScore를 외부 프로세스로 호출해 MusicXML과 PDF를 생성합니다.
+```bash
+export AST_USAGE_MODE=commercial
+```
 
-앱이 MuseScore를 자동으로 찾지 못하면 설정 화면에서 실행 파일 경로를 지정할 수 있습니다.
+MuScriptor는 자동 차단되고 MT3-Infer + YourMT3+가 품질 우선 후보가 됩니다. MR-MT3로 고정하려면:
 
-## 3. 데스크탑 앱 실행
+```bash
+export AST_TRANSCRIPTION_ENGINE=mt3_infer
+export AST_MT3_MODEL=mr_mt3
+```
+
+### 4. PDF export — LilyPond 권장
+
+현재 production stable은 LilyPond 2.26 계열입니다. `lilypond`와 `musicxml2ly`가 PATH에 있으면 자동 인식합니다.
+
+```bash
+export AST_LILYPOND_CMD=lilypond
+export AST_MUSICXML2LY_CMD=musicxml2ly
+```
+
+### 5. PDF/이미지 OMR — Audiveris
+
+Audiveris를 설치하고 CLI 경로를 지정합니다.
+
+```bash
+export AST_AUDIVERIS_CMD=audiveris
+```
+
+### 6. MuseScore — 선택 사항
+
+필요할 때만 fallback으로 지정합니다.
+
+```bash
+export AST_MUSESCORE_CMD=/path/to/musescore
+```
+
+### 7. 데스크탑 앱
 
 ```bash
 cd desktop
@@ -142,241 +265,73 @@ npm install
 npm run desktop:dev
 ```
 
-기본 MR-MT3 경로에서는 **MuScriptor Hugging Face 라이선스 승인도, 자체 모델 학습도 필요하지 않습니다.** 첫 채보 시 checkpoint 다운로드 때문에 평소보다 시간이 더 걸릴 수 있습니다.
-
 ---
 
-# 채보 엔진 설정
-
-## MR-MT3 — 기본 권장
-
-```bash
-export AST_TRANSCRIPTION_ENGINE=mt3_infer
-export AST_MT3_MODEL=mr_mt3
-```
-
-외부 CLI를 직접 고정하려면:
-
-```bash
-export AST_MT3_INFER_CMD=mt3-infer
-```
-
-## YourMT3+ — 품질 비교용
-
-```bash
-export AST_TRANSCRIPTION_ENGINE=mt3_infer
-export AST_MT3_MODEL=yourmt3
-```
-
-다중 파트 품질 비교에 사용할 수 있지만, 상용 릴리스 기본값으로 고정하기 전 upstream 라이선스 provenance를 다시 확인하세요.
-
-## MuScriptor — 호환용
-
-```bash
-export AST_TRANSCRIPTION_ENGINE=muscriptor
-uvx hf auth login
-```
-
-공개 MuScriptor weights의 비상업 조건 때문에 상용 기본 provider로 사용하지 않습니다.
-
-## AudioScore Native — 선택적 R&D
-
-```bash
-uv sync --extra native
-export AST_TRANSCRIPTION_ENGINE=native
-export AST_NATIVE_CHECKPOINT=/path/to/audio-score-native.pt
-```
-
-일반 사용자는 Native 모델을 학습할 필요가 없습니다. 이 경로는 장기적으로 외부 checkpoint까지 제거하고 모델 weights를 직접 소유해야 할 때를 위한 연구 경로입니다.
-
-자세한 내용: [`docs/NATIVE_MODEL.ko.md`](docs/NATIVE_MODEL.ko.md)
-
----
-
-# 사용 흐름
-
-## 새 악보 — 로컬 파일
-
-1. WAV / MP3 / FLAC / M4A 등의 음원 선택 또는 드래그 앤 드롭
-2. 채보 엔진과 가사 옵션 확인
-3. **자동 채보 시작**
-4. 완료 후 **곡 라이브러리에서 편집**
-
-## 새 악보 — YouTube
-
-1. `새 악보 → YouTube 링크`
-2. URL 입력
-3. 제목·채널·재생시간 확인
-4. 콘텐츠 처리 권한 확인
-5. 자동 채보 시작
-
-재생목록 일괄 처리는 지원하지 않습니다. 사용자가 다운로드·처리 권한을 가지고 있거나 YouTube/권리자가 허용한 콘텐츠에만 사용해야 합니다.
-
----
-
-# 자동 생성 결과
+## 데이터 구조
 
 ```text
-곡 이름/
-├─ Full Score
-│  ├─ score.musicxml
-│  ├─ score.pdf
-│  └─ score.mid
-│
-└─ Parts
-   ├─ Voice.musicxml / Voice.pdf
-   ├─ Piano.musicxml / Piano.pdf
-   ├─ Guitar.musicxml / Guitar.pdf
-   ├─ Bass.musicxml / Bass.pdf
-   ├─ Drums.musicxml / Drums.pdf
-   └─ ... 감지된 기타 파트
+SQLite: audio-score-tool.sqlite3
+├─ jobs
+├─ songs
+├─ song_revisions
+├─ song_analysis
+└─ publication_settings
+
+Application Data/
+├─ cache/          # 재생성 가능한 working materialization
+├─ assets/         # MIDI, OMR 원본 등 곡별 managed asset
+├─ jobs/           # 실행 중/히스토리용 job workspace
+└─ exports/        # 명시적 최종 파일 생성 결과만 존재
 ```
 
-실제 모델이 감지한 파트를 기준으로 생성하며, 음원에 없는 악기를 임의로 추가하지 않습니다.
+대용량 원본 audio, Demucs stem, 모델 checkpoint는 SQLite BLOB으로 넣지 않습니다.
 
 ---
 
-# 자동 코드와 가사
+## 제품용 성능 평가
 
-채보된 pitched part를 시간축으로 합산해 화성을 추정하고 MusicXML `<harmony>`로 저장합니다.
+공개 leaderboard의 숫자만으로 최종 엔진을 고르지 않습니다. 실제 타깃 곡 Golden Set에서 다음을 함께 측정하는 것이 핵심입니다.
 
-```text
-| C        Am7      | F        G/B      |
-| C/E      F        | Dm7      G7       |
-```
+- note onset/offset F1
+- instrument assignment F1
+- drum/bass/melody F1
+- chord/lyrics accuracy
+- OMR measure/note/accidental/tie error rate
+- 사람이 수정한 note/chord 수 / 음악 1분
+- 최종 악보까지의 실제 편집 시간
+- real-time factor / peak VRAM
+- 검증기가 실제 오류를 얼마나 잘 우선순위화했는지
 
-코드 Inspector는 처음부터 코드를 입력하는 화면이 아니라 **자동 분석 결과를 보정하는 화면**입니다.
-
-가사가 포함된 곡은 Demucs로 보컬을 분리한 뒤 WhisperX word timing을 MusicXML의 vocal-like part에 정렬합니다.
-
----
-
-# 곡 라이브러리와 편집기
-
-완료된 채보는 Job이 아니라 Song 단위로 관리합니다.
-
-```text
-Song
-├─ 원본 MusicXML
-├─ 현재 MusicXML
-├─ 자동 코드
-├─ 감지된 악기 파트
-├─ 가사
-├─ 출판 설정
-├─ Revision
-└─ Export
-```
-
-OpenSheetMusicDisplay(OSMD)가 현재 MusicXML을 앱 안에서 렌더링합니다. MusicXML을 single source of truth로 유지하며, 수정하면 이전 PDF/MIDI/파트보를 구버전 처리하고 현재 Revision에서 다시 Export합니다.
+**최종 편집 시간이 가장 중요한 제품 KPI**입니다.
 
 ---
 
-# 성능 비교
+## 라이선스
 
-앱의 성능 비교에서는 다음을 구분해 실행할 수 있습니다.
-
-- MR-MT3
-- YourMT3+
-- MuScriptor small / medium / large
-- AudioScore Native(checkpoint가 있을 때)
-
-Ground Truth MIDI 없이:
-
-- 처리 시간
-- 성공 여부
-- 가사 attachment ratio
-
-Ground Truth MIDI가 있으면 추가로:
-
-- Note Precision
-- Note Recall
-- Note F1
-- Onset MAE
-
-를 계산합니다.
-
----
-
-# AudioScore Native는 왜 남겨두나요?
-
-MR-MT3 공개 checkpoint를 사용할 수 있으므로 **지금 당장 자체 모델을 처음부터 학습할 필요는 없습니다.**
-
-다만 장기적으로 외부 checkpoint 자체를 전혀 사용하지 않는 제품이 필요할 수 있어 Native 학습/추론 골격을 별도 R&D 경로로 유지합니다.
-
-저장소에는 다음이 포함됩니다.
-
-- multi-instrument event vocabulary
-- MIDI ↔ event codec
-- log-Mel frontend
-- Transformer encoder/decoder
-- CUDA / MPS / CPU inference
-- `audio-score-native` CLI
-- `audio-score-native-v1` checkpoint 포맷
-- manifest 기반 training loop
-- validation / best checkpoint
-- training-license allowlist
-- Slakh2100 manifest 준비 도구
-
-학습 manifest는 비상업 라이선스 데이터를 자동 거부합니다. 이는 앱 사용의 선행조건이 아닙니다.
-
----
-
-# 데스크탑 빌드
-
-```bash
-uv sync --extra desktop
-cd desktop
-npm install
-npm run desktop:build
-```
-
-GitHub Actions는 Windows / macOS / Linux unsigned bundle을 생성하도록 구성되어 있습니다. 코드서명/notarization은 소유자 인증서가 필요한 별도 배포 단계입니다.
-
----
-
-# 라이선스 / 제3자 구성요소
-
-AudioScoreTool 코드와 외부 모델 weights의 라이선스는 별개로 관리합니다.
-
+- MuScriptor code: MIT / 공개 weights: CC BY-NC 4.0 → 개인·비상업만
 - MT3-Infer: MIT
-- MR-MT3 원 구현: MIT
-- MR-MT3 공개 Hugging Face checkpoint: MIT 표기
-- YourMT3+ checkpoint 배포본: Apache-2.0 표기, upstream 코드 provenance 재검토 권장
-- MuScriptor 공개 weights: 비상업 조건으로 상용 기본 경로에서 제외
+- YourMT3+ checkpoint: Apache-2.0 표기 / 공식 source repo GPL-3.0 → 상용 배포 전 provenance 검토
+- MR-MT3 원 구현/공개 checkpoint: MIT 표기
+- music21: BSD 3-Clause
+- LilyPond: GPL → 외부 실행 프로그램으로 사용
+- Audiveris: GNU AGPL v3 → 외부 OMR 프로그램으로 사용, 번들/수정 시 별도 의무 검토
+- MuseScore: GPL → 선택적 외부 fallback
 - AudioScore Native: project-owned checkpoint 목표
 
-자세한 provenance와 배포 전 확인사항은 [`docs/THIRD_PARTY_LICENSES.ko.md`](docs/THIRD_PARTY_LICENSES.ko.md)를 참고하세요.
+유료 배포 전에는 고정한 runtime/checkpoint/external-tool revision과 실제 배포 artifact의 라이선스를 다시 검토해야 합니다.
+
+자세한 내용: [`docs/THIRD_PARTY_LICENSES.ko.md`](docs/THIRD_PARTY_LICENSES.ko.md)
 
 ---
 
-# 문서
+## 문서
 
+- [저장 구조 v0.8](docs/STORAGE_V2.ko.md)
+- [엔진 성능/선택](docs/ENGINE_PERFORMANCE.ko.md)
+- [PDF/이미지 OMR](docs/OMR.ko.md)
+- [악보 검증](docs/VALIDATION.ko.md)
 - [아키텍처](docs/ARCHITECTURE.ko.md)
 - [악보 편집기](docs/EDITOR.ko.md)
 - [벤치마크](docs/BENCHMARK.ko.md)
 - [AudioScore Native](docs/NATIVE_MODEL.ko.md)
 - [제3자 모델·라이선스](docs/THIRD_PARTY_LICENSES.ko.md)
-
----
-
-# 테스트
-
-```bash
-uv sync --extra dev
-uv run ruff check src tests training scripts
-uv run pytest -q
-```
-
-Native 모델 학습 코드를 실제 실행할 때만:
-
-```bash
-uv sync --extra native
-```
-
----
-
-## 현재 제품 철학
-
-AudioScoreTool은 **AI 자동 생성 → 사람이 세부 보정 → 출판 가능한 결과물**이라는 흐름을 목표로 합니다.
-
-현재 기본 엔진은 학습 부담이 없는 MR-MT3이며, 자체 AudioScore Native는 향후 완전한 모델 소유가 필요할 때 선택할 수 있는 별도 경로입니다.

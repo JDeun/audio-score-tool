@@ -1,8 +1,9 @@
 [package]
 name = "audio-score-tool-desktop"
-version = "0.6.0"
+version = "0.8.0"
 description = "Desktop shell for AudioScoreTool"
 authors = ["JDeun"]
+license = "Apache-2.0"
 edition = "2021"
 
 [lib]
@@ -14,4 +15,8 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
 tauri-plugin-shell = "2"
+tauri-plugin-single-instance = "2"
+uuid = { version = "1", features = ["v4"] }

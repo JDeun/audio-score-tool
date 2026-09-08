@@ -1,46 +1,51 @@
 name: CI
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 on:
+  workflow_dispatch:
   push:
-    branches: ["main", "feat/**"]
+    branches: ["main"]
   pull_request:
+    branches: ["main"]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  verify:
+    name: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
-      - name: Install
-        run: uv sync --extra dev
-      - name: Lint
-        run: uv run ruff check src tests training scripts
-      - name: Test
-        run: uv run pytest -q
-
-  desktop-ui:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: desktop
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v5
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 22
-      - name: Install frontend
-        run: npm install
-      - name: Typecheck and build frontend
-        run: npm run build
+          persist-credentials: false
 
-  desktop-shell:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      - name: Setup uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: 0.12.10
+          enable-cache: true
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.23.2
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.98.1
+
+      - name: Verify Python lockfile
+        run: uv lock --check
+
       - name: Install Tauri system dependencies
         run: |
           sudo apt-get update
@@ -51,19 +56,33 @@ jobs:
             libssl-dev \
             libayatana-appindicator3-dev \
             librsvg2-dev
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-      - name: Install desktop tooling
+
+      - name: Install Python dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Python lint
+        run: uv run --frozen ruff check src tests training scripts
+
+      - name: Python tests
+        run: uv run --frozen pytest -q
+
+      - name: Install frontend
         working-directory: desktop
-        run: npm install
+        run: npm ci
+
+      - name: Typecheck and build frontend
+        working-directory: desktop
+        run: npm run build
+
       - name: Generate Tauri icons
         working-directory: desktop
-        run: npx tauri icon src-tauri/icons/icon.png
-      - uses: dtolnay/rust-toolchain@stable
+        run: npx --no-install tauri icon src-tauri/icons/icon.png
+
       - name: Create CI sidecar placeholder
         run: |
+          mkdir -p desktop/src-tauri/binaries
           touch desktop/src-tauri/binaries/audio-score-backend-x86_64-unknown-linux-gnu
           chmod +x desktop/src-tauri/binaries/audio-score-backend-x86_64-unknown-linux-gnu
+
       - name: Check Tauri shell
-        run: cargo check --manifest-path desktop/src-tauri/Cargo.toml
+        run: cargo check --locked --manifest-path desktop/src-tauri/Cargo.toml

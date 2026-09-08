@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import math
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Event
@@ -26,6 +28,15 @@ _ALLOWED_HOSTS = {
     "youtu.be",
 }
 _VIDEO_PATH_PREFIXES = ("/shorts/", "/live/", "/embed/")
+_DEFAULT_MAX_DURATION_SECONDS = 4 * 60 * 60
+
+
+def _max_duration_seconds() -> int:
+    raw = os.getenv("AST_MAX_YOUTUBE_DURATION_SECONDS", str(_DEFAULT_MAX_DURATION_SECONDS))
+    try:
+        return max(60, min(int(raw), 24 * 60 * 60))
+    except ValueError:
+        return _DEFAULT_MAX_DURATION_SECONDS
 
 
 @dataclass(slots=True)
@@ -52,8 +63,8 @@ def validate_youtube_url(value: str) -> str:
         raise YouTubeSourceError("YouTube URL is required.")
 
     parsed = urlparse(value)
-    if parsed.scheme not in {"http", "https"}:
-        raise YouTubeSourceError("YouTube URL must use http or https.")
+    if parsed.scheme != "https":
+        raise YouTubeSourceError("YouTube URL must use HTTPS.")
 
     host = (parsed.hostname or "").lower().rstrip(".")
     if host not in _ALLOWED_HOSTS:
@@ -81,6 +92,8 @@ def youtube_tool_status(settings: Settings | None = None) -> dict:
     return {
         "ready": command_exists(settings.yt_dlp_cmd),
         "command": settings.yt_dlp_cmd,
+        "max_duration_seconds": _max_duration_seconds(),
+        "live_broadcasts_allowed": False,
         "fallback_note": (
             "Installed yt-dlp is preferred; uvx yt-dlp is used automatically "
             "when uvx is available."
@@ -107,6 +120,8 @@ def inspect_youtube(
                 url,
             ],
             cancel_event=cancel_event,
+            timeout_seconds=120,
+            max_output_bytes=4 * 1024 * 1024,
         )
     except CommandCancelled as exc:
         raise YouTubeSourceCancelled("YouTube inspection cancelled.") from exc
@@ -118,19 +133,34 @@ def inspect_youtube(
     except (json.JSONDecodeError, TypeError) as exc:
         raise YouTubeSourceError("yt-dlp returned invalid metadata.") from exc
 
-    title = str(payload.get("title") or "YouTube audio")
+    if bool(payload.get("is_live")):
+        raise YouTubeSourceError("현재 진행 중인 YouTube 생방송은 가져올 수 없습니다. 방송 종료 후 다시 시도하세요.")
+
+    title = str(payload.get("title") or "YouTube audio").strip()[:300] or "YouTube audio"
+    uploader_raw = payload.get("uploader") or payload.get("channel")
+    uploader = str(uploader_raw).strip()[:300] if uploader_raw else None
     duration_raw = payload.get("duration")
     try:
         duration = float(duration_raw) if duration_raw is not None else None
+        if duration is not None and (not math.isfinite(duration) or duration < 0):
+            duration = None
     except (TypeError, ValueError):
         duration = None
+    if duration is not None and duration > _max_duration_seconds():
+        raise YouTubeSourceError(
+            f"영상 길이가 허용된 최대 {_max_duration_seconds() // 60}분을 초과합니다. "
+            "필요하면 AST_MAX_YOUTUBE_DURATION_SECONDS를 조정하세요."
+        )
 
+    webpage_url = str(payload.get("webpage_url") or url)[:2_000]
+    thumbnail_raw = payload.get("thumbnail")
+    thumbnail = str(thumbnail_raw)[:2_000] if thumbnail_raw else None
     return YouTubeMetadata(
         title=title,
-        uploader=payload.get("uploader") or payload.get("channel"),
+        uploader=uploader,
         duration=duration,
-        webpage_url=str(payload.get("webpage_url") or url),
-        thumbnail=payload.get("thumbnail"),
+        webpage_url=webpage_url,
+        thumbnail=thumbnail,
     )
 
 
@@ -161,6 +191,7 @@ def download_youtube_audio(
                 url,
             ],
             cancel_event=cancel_event,
+            timeout_seconds=max(600, min(_max_duration_seconds() * 2, 8 * 60 * 60)),
         )
     except CommandCancelled as exc:
         raise YouTubeSourceCancelled("YouTube audio import cancelled.") from exc

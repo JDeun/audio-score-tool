@@ -1,14 +1,10 @@
 name: Desktop Packages
 
+permissions:
+  contents: read
+
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - "desktop/**"
-      - "scripts/**"
-      - "src/**"
-      - "pyproject.toml"
-      - ".github/workflows/desktop-packages.yml"
   push:
     tags:
       - "v*"
@@ -19,6 +15,7 @@ concurrency:
 
 jobs:
   build:
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -32,13 +29,28 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: astral-sh/setup-uv@v6
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 22
-      - uses: dtolnay/rust-toolchain@stable
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: 0.12.10
+          enable-cache: true
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.23.2
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.98.1
+
+      - name: Verify dependency locks
+        run: uv lock --check
+
+      - name: Verify Rust lock
+        run: cargo metadata --locked --manifest-path desktop/src-tauri/Cargo.toml --format-version 1 --no-deps
 
       - name: Install Linux Tauri dependencies
         if: runner.os == 'Linux'
@@ -53,24 +65,23 @@ jobs:
             librsvg2-dev
 
       - name: Install Python desktop build dependencies
-        run: uv sync --extra desktop
+        run: uv sync --frozen --extra desktop
 
       - name: Install desktop frontend
         working-directory: desktop
-        run: npm install
+        run: npm ci
 
       - name: Generate platform icons
         working-directory: desktop
-        run: npx tauri icon src-tauri/icons/icon.png
+        run: npx --no-install tauri icon src-tauri/icons/icon.png
 
       - name: Build desktop package
         working-directory: desktop
         run: npm run desktop:build
 
       - name: Upload unsigned bundles
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: AudioScoreTool-${{ matrix.name }}-unsigned
-          path: |
-            desktop/src-tauri/target/release/bundle/**
+          path: desktop/src-tauri/target/release/bundle/**
           if-no-files-found: error

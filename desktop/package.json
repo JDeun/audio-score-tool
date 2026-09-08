@@ -1,16 +1,19 @@
 {
   "name": "audio-score-tool-desktop",
   "private": true,
-  "version": "0.7.0",
+  "version": "0.8.0",
+  "license": "Apache-2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "desktop:dev": "concurrently \"uv run --project .. audio-score-api\" \"tauri dev\"",
-    "desktop:build": "tauri icon src-tauri/icons/icon.png && uv run --project .. --extra desktop python ../scripts/build_sidecar.py && tauri build"
+    "desktop:build": "tauri icon src-tauri/icons/icon.png && uv run --project .. --frozen --extra desktop python ../scripts/build_sidecar.py && tauri build"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.8.0",
+    "@tauri-apps/plugin-dialog": "^2.0.0",
+    "@tauri-apps/plugin-opener": "^2.5.0",
     "opensheetmusicdisplay": "^2.1.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"

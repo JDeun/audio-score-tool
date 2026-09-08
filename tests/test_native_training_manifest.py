@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from training.train_native import load_manifest
+from audio_score_tool.native_training import load_manifest
 
 
 def _row(license_name: str) -> str:

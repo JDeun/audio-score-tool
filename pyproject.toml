@@ -4,13 +4,18 @@ build-backend = "hatchling.build"
 
 [project]
 name = "audio-score-tool"
-version = "0.7.0"
+version = "0.8.0"
 description = "Local-first desktop audio-to-sheet-music transcription, editing, and publishing workspace."
 readme = "README.md"
+license = "Apache-2.0"
 requires-python = ">=3.10"
 dependencies = [
   "fastapi>=0.116",
   "mido>=1.3",
+  "music21>=9.7,<11",
+  "mutagen>=1.47",
+  "numpy>=1.26,<3",
+  "pillow>=11.0",
   "python-multipart>=0.0.20",
   "typer>=0.16",
   "uvicorn[standard]>=0.35",
@@ -54,7 +59,10 @@ line-length = 100
 target-version = "py310"
 
 [tool.ruff.lint]
-ignore = ["B008", "BLE001"]
+# Keep CI semantics stable across Ruff releases. These rules cover syntax/import
+# correctness and import hygiene; deeper correctness is enforced by pytest and
+# targeted security/data-integrity tests rather than newly-added style rules.
+select = ["E4", "E7", "E9", "F", "I"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/audio_score_tool/auto_chords.py" = ["FURB192"]

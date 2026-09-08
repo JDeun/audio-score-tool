@@ -2,121 +2,166 @@
 
 이 문서는 **법률 자문이 아니라 제품 배포를 위한 기술적 provenance 체크리스트**입니다. 실제 유료 배포 직전에는 고정된 버전·모델 revision을 기준으로 다시 검토해야 합니다.
 
-## 1. 기본 채보 엔진: MR-MT3 via MT3-Infer
+## 1. 사용 모드
+
+v0.8부터 엔진 선택에 `usage_mode`를 둡니다.
+
+### `personal`
+
+- 개인 / 비상업 사용
+- 정확도를 최우선
+- MuScriptor-large 사용 허용
+- 공개 weights의 CC BY-NC 4.0 조건을 사용자가 수락한 상태를 전제로 함
+
+### `commercial`
+
+- 유료 제품 / 상업적 서비스 / 상업 배포를 위한 모드
+- MuScriptor 공개 weights를 API와 UI에서 차단
+- MT3-Infer 계열 또는 project-owned Native만 선택 가능
+
+`usage_mode`는 법률 판단을 대신하는 장치가 아니라, 명백한 비상업 weights가 상용 경로에 실수로 들어가는 것을 막는 제품 안전장치입니다.
+
+## 2. MuScriptor
+
+- 소스 코드: MIT
+- 공개 model weights: CC BY-NC 4.0
+- 개인/비상업 기본 모델: `large`
+
+```text
+personal   → 사용 허용
+commercial → 사용 차단
+```
+
+## 3. MT3-Infer / YourMT3+ / MR-MT3
 
 ### MT3-Infer
 
-- 프로젝트: `openmirlab/mt3-infer`
-- PyPI: `mt3-infer`
-- AudioScoreTool 기준 고정 버전: **0.2.0**
-- 프로젝트 라이선스: **MIT**
-- 역할: MR-MT3 / YourMT3 등 MT3 계열 모델의 inference wrapper, checkpoint 관리, CLI
+- AudioScoreTool 고정 버전: `0.2.0`
+- wrapper: MIT
+- model/checkpoint provenance는 wrapper와 분리해서 확인
 
-MT3-Infer는 model weights를 wheel에 포함하지 않고 첫 사용 시 upstream에서 다운로드하는 구조입니다.
+### YourMT3+
+
+- Hugging Face checkpoint metadata: Apache-2.0 표기
+- `mt3-infer` vendored implementation: Apache-2.0 표기
+- 공식 GitHub repository: GPL-3.0 표시
+
+따라서 정확도 우선 상용 후보로는 유지하지만 실제 배포 source/checkpoint revision을 고정한 후 재검토해야 합니다.
 
 ### MR-MT3
 
-- 원 구현: `gudgud96/MR-MT3`
-- 모델: Memory Retaining Multi-Track Music Transcription
-- 용도: multi-instrument / multi-track automatic music transcription
-- 원 구현 라이선스: **MIT 표기**
-- AudioScoreTool이 기본으로 사용하는 공개 checkpoint: `gudgud1014/MR-MT3`
-- Hugging Face model metadata: **MIT 표기**
+- 원 구현/공개 checkpoint: MIT 표기
+- YourMT3+보다 정확도가 낮을 수 있으나 provenance가 상대적으로 단순한 fallback
 
-현재 AudioScoreTool은 이 조합을 **상업 기본 후보**로 사용합니다. checkpoint를 installer 안에 복사해 넣지 않고 MT3-Infer가 upstream에서 로컬 캐시로 가져오게 합니다.
+## 4. MIROS
 
-### 배포 전 확인
+2025 AMT Challenge winner 계열 후보입니다. provider에 포함하기 전 repository/checkpoint/encoder license와 재현 가능한 inference artifact를 고정해야 합니다.
 
-- [ ] `mt3-infer==0.2.0` 또는 최종 선택 버전을 고정
-- [ ] MT3-Infer LICENSE 및 `external_integrations` provenance 재확인
-- [ ] MR-MT3 원 저장소 라이선스가 MIT인지 재확인
-- [ ] 사용할 MR-MT3 checkpoint revision의 Hugging Face license metadata가 MIT인지 재확인
-- [ ] checkpoint revision / SHA-256을 THIRD_PARTY_NOTICES에 기록
-- [ ] checkpoint를 제품 installer에 직접 재배포할 경우 별도 배포 조건 검토
+## 5. AudioScore Native
 
-## 2. YourMT3+
+- project-owned checkpoint 목표
+- 일반 사용에는 필요 없음
+- training manifest는 CC-BY-4.0 / CC0-1.0 / MIT / Apache-2.0 / project-owned만 자동 허용
 
-- `mt3-infer`에서 선택 가능한 고품질 다중 악기 backend
-- checkpoint Hugging Face 저장소 `mimbres/YourMT3`는 Apache-2.0으로 표기
-- 반면 공식 GitHub source repository는 GPL-3.0으로 표시되는 시점이 있어 **source/checkpoint provenance 표기가 일관되지 않음**
-- 따라서 품질 비교·실험 옵션으로는 유지하지만 상용 기본값으로 고정하지 않음
+데이터셋 표기만으로 음원 저작권·실연권·데이터베이스권이 해결되는 것은 아니므로 실제 학습 전 별도 provenance 검토가 필요합니다.
 
-유료 제품에서 YourMT3+를 기본 엔진으로 바꾸기 전에는 사용할 source snapshot과 checkpoint를 기준으로 별도 라이선스 검토가 필요합니다.
+## 6. music21
 
-## 3. MuScriptor
+- 라이선스: BSD 3-Clause
+- 역할: MIDI ↔ MusicXML 변환
+- v0.8부터 기본 Python dependency
+- MuseScore 없이 MT3 계열 MIDI를 MusicXML로 변환하고 최종 MusicXML을 MIDI로 export하는 경로에 사용
 
-- 소스 코드와 공개 model weights의 조건이 동일하지 않음
-- 공개 weights에는 비상업 조건이 포함됨
-- AudioScoreTool에서는 **상용 기본 엔진으로 사용하지 않음**
-- 호환성 / 연구 / 비교용 provider로만 유지
+MIDI는 표기 정보를 완전히 보존하는 형식이 아니므로 실제 AMT 결과에 대해 MuseScore 변환과의 notation fidelity를 Golden Set으로 비교하는 것이 좋습니다.
 
-## 4. AudioScore Native
+## 7. LilyPond / musicxml2ly
 
-- AudioScoreTool 자체 R&D 경로
-- 목표: project-owned checkpoint
-- 일반 앱 사용에는 필요하지 않음
-- 학습 manifest는 다음 라이선스만 자동 허용:
-  - CC-BY-4.0
-  - CC0-1.0
-  - MIT
-  - Apache-2.0
-  - project-owned
-- 비상업 라이선스 데이터가 들어오면 training 시작 전 거부
+- 라이선스: GNU GPL
+- 역할: MusicXML → LilyPond → PDF engraving
+- AudioScoreTool에서는 별도 설치된 외부 실행 프로그램으로 호출
+- installer에 직접 번들하는 경우 GPL 배포 의무를 별도로 검토
 
-데이터셋의 표기 라이선스가 allowlist에 있다는 사실만으로 모든 음원 저작권·실연권·데이터베이스권 문제가 자동 해결되는 것은 아닙니다. 실제 자체 모델 학습 전에는 dataset별 provenance를 별도로 검토해야 합니다.
+`musicxml2ly`는 MusicXML의 notes/articulations/score structure/lyrics 등을 변환하지만 모든 MusicXML 기능을 완벽하게 지원하는 것은 아닙니다. 따라서 PDF fidelity가 중요한 악보에서는 결과 검증이 필요합니다.
 
-## 5. Basic Pitch
+## 8. Audiveris
 
-- 프로젝트: Spotify `basic-pitch`
-- 라이선스: Apache-2.0
-- 장점: 작고 빠르며 instrument-agnostic polyphonic note transcription 지원
-- 한계: 공식 문서 기준 한 번에 한 악기에서 가장 잘 동작함
+- 라이선스: GNU Affero GPL v3
+- 역할: PDF/이미지 악보 OMR → MusicXML
+- AudioScoreTool에서는 별도 설치된 외부 CLI로 호출
+- 현재 Audiveris source/library를 Python 프로세스에 링크하지 않음
 
-따라서 다중 악기 full-mix 기본 엔진보다는 stem별 보조 / fallback 후보에 가깝습니다.
+상용 installer에 Audiveris binary를 번들하거나 수정 버전을 배포한다면 AGPL 의무를 배포 방식 기준으로 별도 검토해야 합니다.
 
-## 6. Demucs
+## 9. Basic Pitch
+
+- Apache-2.0
+- full-mix multi-instrument 기본 엔진보다는 stem별 보조/fallback 후보
+
+## 10. Demucs
 
 - 코드: MIT
-- 역할: 현재 가사 인식 품질을 위한 vocal separation
-- 주의: pretrained model weights의 라이선스 범위는 코드 라이선스와 별도 확인 필요
+- 역할: 가사 인식 품질을 위한 vocal separation
+- pretrained weights 조건은 코드와 별도 확인 필요
 
-AudioScoreTool은 Demucs를 악기별 채보 핵심 엔진으로 사용하지 않고 가사 인식 보조 경로에만 사용합니다. 상용 installer에 weights를 직접 번들하려면 별도 검토가 필요합니다.
+## 11. WhisperX
 
-## 7. WhisperX
-
-- 프로젝트: `m-bain/whisperX`
-- 코드 라이선스: BSD-2-Clause
+- 코드: BSD-2-Clause
 - 역할: word-level lyric timing
+- Whisper/faster-whisper/alignment model weights는 실제 구성별 확인 필요
 
-실제 실행 중 내려받는 Whisper / faster-whisper / align model 등의 weights 조건은 개별 구성요소로 확인해야 합니다.
+## 12. OpenSheetMusicDisplay
 
-## 8. OpenSheetMusicDisplay
+- BSD-3-Clause
+- MusicXML 앱 내 미리보기
 
-- 라이선스: BSD-3-Clause
-- 역할: 데스크탑 앱의 MusicXML 미리보기
+## 13. MuseScore Studio
 
-## 9. MuseScore Studio
-
-- 라이선스: GPL-3.0
+- GPL-3.0
+- **v0.8부터 필수 dependency가 아니라 선택적 compatibility fallback**
 - AudioScoreTool에서는 외부 실행 프로그램으로 호출
-- 역할: MIDI → MusicXML 변환 및 PDF 렌더링
+- 현재 installer에 MuseScore 자체를 번들하지 않음
 
-현재 패키지는 MuseScore 코드를 정적으로 링크하거나 바이너리를 제품에 포함하지 않습니다. MuseScore 자체를 installer에 번들하는 전략으로 바꾸면 GPL 의무를 별도로 검토해야 합니다.
+MuseScore binary를 직접 포함하는 전략으로 변경하면 GPL 의무를 별도 검토해야 합니다.
 
-## 권장 상용 구성
+---
+
+## 현재 권장 구성
+
+### 개인 / 비상업
 
 ```text
+MuScriptor large
+      ↓
+canonical MusicXML
+      ↓
 AudioScoreTool
-    ↓
-MR-MT3 via MT3-Infer
-    ↓
-multi-track MIDI
-    ↓
-MuseScore (external process)
-    ↓
-MusicXML
-    ↓
-자동 코드 + 가사 + 편집 + 조판
 ```
 
-이 구성이 현재 기준으로 **처음부터 자체 AMT 모델을 학습하지 않으면서 MuScriptor의 비상업 weights를 기본 경로에서 제거하는 가장 현실적인 구조**입니다.
+### 상용 후보
+
+```text
+YourMT3+ via MT3-Infer
+      ↓
+music21 MIDI→MusicXML
+      ↓
+AudioScoreTool
+```
+
+YourMT3+는 상용 배포 전 provenance 검토가 필요합니다.
+
+### 악보 이미지/PDF
+
+```text
+Audiveris (external)
+      ↓
+MusicXML
+      ↓
+AudioScoreTool validation/edit
+```
+
+### PDF 출력
+
+```text
+LilyPond/musicxml2ly (external)  ← 기본 대안
+MuseScore (external)             ← 선택적 fallback
+```
