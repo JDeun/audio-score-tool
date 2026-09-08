@@ -21,7 +21,7 @@ from .notation_backend import (
 from .paths import cache_dir
 from .publication_layout import apply_publication_layout
 from .runtime_settings import runtime_settings
-from .song_api_v2 import (
+from .song_routes import (
     _part_exports,
     _public,
     _publication_store,
@@ -88,62 +88,52 @@ def build_exports_v3(song_id: str, payload: ExportRequest | None = None) -> dict
     _song_store.export_root.mkdir(parents=True, exist_ok=True)
     cache_root = cache_dir() / "export"
     cache_root.mkdir(parents=True, exist_ok=True)
-    renderers: set[str] = set()
-    staged = Path(tempfile.mkdtemp(prefix=f".{song_id}-staged-", dir=_song_store.export_root))
+    with tempfile.TemporaryDirectory(prefix=f"{song_id}-", dir=cache_root) as tmp:
+        staged = Path(tmp) / "tree"
+        staged.mkdir(parents=True)
+        score = _song_store.checkout_current(song_id)
+        publication = _publication_store.read(song_id)
+        apply_publication_layout(score, title=song["title"], settings=publication)
 
-    try:
-        with tempfile.TemporaryDirectory(prefix=f"{song_id}-work-", dir=cache_root) as raw_temp:
-            temp_dir = Path(raw_temp)
-            source = temp_dir / "score.musicxml"
-            source.write_text(_song_store.score_xml(song_id), encoding="utf-8")
-            apply_publication_layout(
-                source,
-                title=song["title"],
-                settings=_publication_store.read(song_id),
-            )
-
+        try:
             if "musicxml" in requested:
-                shutil.copy2(source, staged / "score.musicxml")
+                shutil.copy2(score, staged / "score.musicxml")
             if "pdf" in requested:
-                _, renderer = render_pdf(source, staged / "score.pdf", settings=settings)
-                renderers.add(renderer)
+                render_pdf(score, staged / "score.pdf", settings=settings)
             if "midi" in requested:
-                musicxml_to_midi(source, staged / "score.mid")
+                musicxml_to_midi(score, staged / "score.mid")
             if "parts" in requested:
                 parts_dir = staged / "parts"
-                parts_dir.mkdir(parents=True, exist_ok=True)
-                for part in list_score_parts(source):
-                    slug = str(part["slug"])
+                parts_dir.mkdir()
+                for part in list_score_parts(score):
+                    slug = part["slug"]
                     part_xml = parts_dir / f"{slug}.musicxml"
-                    part_pdf = parts_dir / f"{slug}.pdf"
-                    extract_part_musicxml(source, str(part["part_id"]), part_xml)
-                    _, renderer = render_pdf(part_xml, part_pdf, settings=settings)
-                    renderers.add(renderer)
+                    extract_part_musicxml(score, str(part["id"]), part_xml)
+                    render_pdf(part_xml, parts_dir / f"{slug}.pdf", settings=settings)
+        except (NotationBackendError, NotationBackendUnavailable, OSError) as exc:
+            raise _export_error(exc) from exc
+        except Exception as exc:
+            raise _export_error(exc) from exc
 
-        _publish_export_tree(song_id, staged)
-    except (NotationBackendError, NotationBackendUnavailable, ValueError, OSError) as exc:
-        shutil.rmtree(staged, ignore_errors=True)
-        raise _export_error(exc) from exc
-    except Exception:
-        shutil.rmtree(staged, ignore_errors=True)
-        raise
+        try:
+            final = _publish_export_tree(song_id, staged)
+        except Exception as exc:
+            raise _export_error(exc) from exc
 
+    exports = {
+        "pdf": (final / "score.pdf").exists(),
+        "midi": (final / "score.mid").exists(),
+        "musicxml": (final / "score.musicxml").exists(),
+    }
+    _song_store.set_exports(song_id, exports)
     updated = _song_store.get(song_id) or song
-    files = {
-        kind: f"/api/songs/{song_id}/files/{kind}"
-        for kind in ("musicxml", "pdf", "midi")
-        if kind in requested
-    }
-    return {
-        "song": _public(updated),
-        "files": files,
-        "parts": _part_exports(updated),
-        "formats": sorted(requested),
-        "notation_backends": status,
-        "pdf_renderers_used": sorted(renderers),
-    }
+    return {"song": _public(updated), "parts": _part_exports(updated)}
+
+
+def build_exports(song_id: str, payload: ExportRequest | None = None) -> dict:
+    return build_exports_v3(song_id, payload)
 
 
 @router.post("/{song_id}/export")
-def build_exports(song_id: str, payload: ExportRequest | None = None) -> dict:
+def export_song(song_id: str, payload: ExportRequest | None = None) -> dict:
     return build_exports_v3(song_id, payload)

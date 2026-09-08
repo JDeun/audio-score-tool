@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException
 
 from .publication_layout import merged_publication_settings
-from .song_api_v2 import _public, _require_song, _song_store
+from .song_routes import _public, _require_song, _song_store
 
 router = APIRouter(prefix="/api/songs", tags=["revision-v2"])
 

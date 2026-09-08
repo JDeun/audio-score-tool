@@ -52,6 +52,10 @@ class JobStore:
             if "kind" not in columns:
                 conn.execute("ALTER TABLE jobs ADD COLUMN kind TEXT NOT NULL DEFAULT 'transcription'")
             conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_jobs_completed_cursor "
+                "ON jobs(status, updated_at, job_id)"
+            )
+            conn.execute(
                 "UPDATE jobs SET status='interrupted', stage='interrupted' "
                 "WHERE status IN ('queued', 'running', 'cancelling')"
             )
@@ -114,6 +118,33 @@ class JobStore:
             rows = conn.execute(
                 "SELECT * FROM jobs ORDER BY created_at DESC LIMIT ?",
                 (max(1, min(limit, 5000)),),
+            ).fetchall()
+        return [self._row(row) for row in rows]
+
+    def list_completed_after(
+        self,
+        *,
+        cursor_updated_at: str = "",
+        cursor_job_id: str = "",
+        limit: int = 200,
+    ) -> list[dict[str, Any]]:
+        """Return completed non-benchmark jobs in stable cursor order.
+
+        This query is intentionally independent from the user-facing history limit so
+        Job -> Song reconciliation never loses old completed jobs after 5,000 records.
+        """
+        page_size = max(1, min(limit, 2000))
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM jobs
+                WHERE status='done'
+                  AND kind <> 'benchmark'
+                  AND (updated_at > ? OR (updated_at = ? AND job_id > ?))
+                ORDER BY updated_at ASC, job_id ASC
+                LIMIT ?
+                """,
+                (cursor_updated_at, cursor_updated_at, cursor_job_id, page_size),
             ).fetchall()
         return [self._row(row) for row in rows]
 
