@@ -3,7 +3,6 @@ from pathlib import Path
 from audio_score_tool.song_store_v2 import SongStoreV2
 from audio_score_tool.startup_recovery import recover_startup_state
 
-
 SCORE = """<?xml version="1.0" encoding="UTF-8"?>
 <score-partwise version="4.0">
   <part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
