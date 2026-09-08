@@ -15,6 +15,7 @@ from .song_mutation_lock import SongMutationSerializationMiddleware
 from .sqlite_runtime import configure_sqlite
 from .startup_recovery import recover_startup_state
 
+
 # Compatibility bridge for the hardened routers that share runtime worker/state helpers.
 # The public FastAPI app itself is owned only by this module.
 def __getattr__(name: str):
