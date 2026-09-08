@@ -22,14 +22,11 @@ from .notation_api import router as notation_router
 from .notation_export_api import build_exports
 from .notation_export_api import router as notation_export_router
 from .omr_api import router as omr_router
-from .pipeline_v2 import transcribe as transcribe_v2
-from .preflight_v2 import preflight as preflight_v2
 from .publication_api_v2 import router as publication_router
 from .publication_api_v2 import update_publication_v2
 from .request_limits import RequestSizeLimitMiddleware
 from .revision_api_v2 import router as revision_router
 from .revision_api_v2 import undo_song_v2
-from .runtime_settings import runtime_settings
 from .setup_center_api import router as setup_center_router
 from .song_api_v2 import router as song_router
 from .song_delete_api import delete_song_v2
@@ -47,9 +44,6 @@ from .validation_api import router as validation_router
 
 # v0.8 keeps the proven workers/read APIs while switching product-facing mutation
 # persistence and lifecycle handling to hardened v0.8 routes.
-base_api._runtime_settings = runtime_settings
-base_api.transcribe = transcribe_v2
-base_api.preflight = preflight_v2
 configure_sqlite()
 app = base_api.app
 app.version = "0.8.0"
