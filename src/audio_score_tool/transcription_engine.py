@@ -5,12 +5,7 @@ from pathlib import Path
 from threading import Event
 
 from .config import Settings
-from .notation_backend import (
-    NotationBackendError,
-    backend_status,
-    convert_with_musescore,
-    midi_to_musicxml,
-)
+from .notation_backend import NotationBackendError, backend_status, midi_to_musicxml
 from .runner import CommandCancelled, CommandError, command_exists, run_command
 
 
@@ -103,10 +98,7 @@ class MT3InferEngine(BaseTranscriptionEngine):
     supported_models = {"mr_mt3", "yourmt3"}
 
     def ready(self) -> bool:
-        conversion = backend_status(self.settings)
-        return command_exists(self.settings.mt3_infer_cmd) and (
-            conversion["music21"] or conversion["musescore"]
-        )
+        return command_exists(self.settings.mt3_infer_cmd) and backend_status(self.settings)["music21"]
 
     def describe(self) -> dict[str, object]:
         model = self.settings.mt3_model
@@ -144,10 +136,9 @@ class MT3InferEngine(BaseTranscriptionEngine):
             raise TranscriptionEngineUnavailable(
                 f"Unsupported MT3-Infer model: {model}. Use mr_mt3 or yourmt3."
             )
-        conversion = backend_status(self.settings)
-        if not conversion["music21"] and not conversion["musescore"]:
+        if not backend_status(self.settings)["music21"]:
             raise TranscriptionEngineUnavailable(
-                "MIDI→MusicXML 변환 backend가 없습니다. music21을 설치하거나 선택적으로 MuseScore를 지정하세요."
+                "MT3-Infer의 MIDI→MusicXML 변환에는 기본 dependency인 music21이 필요합니다."
             )
 
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -172,15 +163,7 @@ class MT3InferEngine(BaseTranscriptionEngine):
                 raise TranscriptionEngineError(
                     f"MT3-Infer did not produce the expected MIDI: {midi_path}"
                 )
-            if conversion["music21"]:
-                midi_to_musicxml(midi_path, musicxml_path)
-            else:
-                convert_with_musescore(
-                    midi_path,
-                    musicxml_path,
-                    settings=self.settings,
-                    cancel_event=cancel_event,
-                )
+            midi_to_musicxml(midi_path, musicxml_path)
         except CommandCancelled as exc:
             raise TranscriptionEngineCancelled("MT3-Infer transcription cancelled.") from exc
         except (CommandError, NotationBackendError) as exc:
