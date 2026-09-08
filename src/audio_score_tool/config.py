@@ -158,8 +158,6 @@ class Settings:
     whisperx_cmd: str = field(default_factory=lambda: _saved_or_env("whisperx_cmd", "AST_WHISPERX_CMD") or _default_command("whisperx"))
     yt_dlp_cmd: str = field(default_factory=lambda: _saved_or_env("yt_dlp_cmd", "AST_YT_DLP_CMD") or _default_command("yt-dlp"))
     audiveris_cmd: str = field(default_factory=lambda: _saved_or_env("audiveris_cmd", "AST_AUDIVERIS_CMD") or _external_command("audiveris"))
-    lilypond_cmd: str = field(default_factory=lambda: _saved_or_env("lilypond_cmd", "AST_LILYPOND_CMD") or _external_command("lilypond"))
-    musicxml2ly_cmd: str = field(default_factory=lambda: _saved_or_env("musicxml2ly_cmd", "AST_MUSICXML2LY_CMD") or _external_command("musicxml2ly"))
     ffmpeg_cmd: str = field(default_factory=lambda: _saved_or_env("ffmpeg_cmd", "AST_FFMPEG_CMD") or _external_command("ffmpeg"))
     fluidsynth_cmd: str = field(default_factory=lambda: _saved_or_env("fluidsynth_cmd", "AST_FLUIDSYNTH_CMD") or _external_command("fluidsynth"))
     validation_soundfont: Path | None = field(default_factory=lambda: _optional_path("validation_soundfont", "AST_VALIDATION_SOUNDFONT"))
