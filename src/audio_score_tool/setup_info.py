@@ -20,7 +20,7 @@ def setup_instructions() -> dict:
             "route": "/api/setup/center",
             "policy": (
                 "첫 실행 설치 도우미는 기본 채보에 필요한 항목과 선택 기능을 분리합니다. "
-                "OMR, Audio evidence, LLM/Vision은 기본 채보를 막지 않습니다."
+                "OMR, PDF renderer, Audio evidence, LLM/Vision은 기본 채보를 막지 않습니다."
             ),
             "automatic_install": (
                 "신뢰할 수 있는 OS 패키지 관리자가 확인된 구성요소만 앱에서 자동 설치합니다. "
@@ -35,9 +35,13 @@ def setup_instructions() -> dict:
             {"name": "WhisperX", "command": settings.whisperx_cmd},
         ],
         "notation": {
+            "preview": "OSMD가 앱 내 MusicXML 미리보기를 담당합니다.",
             "music21": "기본 Python dependency이며 MIDI↔MusicXML 변환을 담당합니다.",
-            "lilypond": "PDF 생성용 권장 renderer입니다. macOS/Homebrew 환경에서는 Setup Center에서 자동 설치할 수 있습니다.",
-            "musescore": "필수가 아닙니다. 특정 MusicXML 호환성 문제를 위한 선택적 fallback입니다.",
+            "lilypond": (
+                "PDF 생성용 renderer입니다. macOS/Homebrew 환경에서는 Setup Center에서 자동 설치할 수 있습니다. "
+                "PDF가 필요하지 않다면 설치 없이 MusicXML/MIDI 작업이 가능합니다."
+            ),
+            "policy": "MuseScore에 의존하지 않습니다.",
         },
         "omr": "PDF/이미지 악보 가져오기를 사용할 때만 Audiveris가 필요합니다.",
         "validation": {
