@@ -7,7 +7,12 @@ from pathlib import Path
 
 from audio_score_tool.native_audio import load_log_mel
 from audio_score_tool.native_events import PAD, midi_to_tokens
-from audio_score_tool.native_model import NativeModelConfig, build_model, require_torch, save_checkpoint
+from audio_score_tool.native_model import (
+    NativeModelConfig,
+    build_model,
+    require_torch,
+    save_checkpoint,
+)
 
 ALLOWED_TRAINING_LICENSES = {
     "CC-BY-4.0",
