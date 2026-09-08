@@ -16,8 +16,8 @@ from .sqlite_runtime import configure_sqlite
 from .startup_recovery import recover_startup_state
 
 
-# Compatibility bridge for the hardened routers that share runtime worker/state helpers.
-# The public FastAPI app itself is owned only by this module.
+# Compatibility bridge for hardened routers that share runtime worker/state helpers.
+# The public FastAPI application itself is owned only by this module.
 def __getattr__(name: str):
     return getattr(runtime, name)
 
@@ -45,8 +45,9 @@ def _youtube_worker(*args, **kwargs) -> None:
     _reconcile_completed_job_batch()
 
 
-# Routers are imported only after the runtime bridge is established. Several of them
-# intentionally import `audio_score_tool.api` for the shared JobStore/worker helpers.
+# Imports happen only after the runtime compatibility bridge exists. The canonical
+# application explicitly owns critical mutation endpoints instead of relying on
+# compatibility-era router composition.
 from .engine_api import router as engine_router  # noqa: E402
 from .enrichment_api import router as enrichment_router  # noqa: E402
 from .export_api_v2 import router as export_router  # noqa: E402
@@ -56,12 +57,12 @@ from .model_manager_api import router as model_manager_router  # noqa: E402
 from .notation_api import router as notation_router  # noqa: E402
 from .notation_export_api import export_song  # noqa: E402
 from .omr_api import router as omr_router  # noqa: E402
-from .publication_api_v2 import router as publication_router  # noqa: E402
-from .revision_api_v2 import router as revision_router  # noqa: E402
+from .publication_api_v2 import update_publication_v2  # noqa: E402
+from .revision_api_v2 import undo_song_v2  # noqa: E402
 from .setup_center_api import router as setup_center_router  # noqa: E402
 from .song_api import router as song_router  # noqa: E402
-from .song_delete_api import router as song_delete_router  # noqa: E402
-from .song_metadata_api import router as song_metadata_router  # noqa: E402
+from .song_delete_api import delete_song_v2  # noqa: E402
+from .song_metadata_api import update_song_metadata_v2  # noqa: E402
 from .storage_api_v2 import router as storage_router  # noqa: E402
 from .upload_api_v2 import router as upload_router  # noqa: E402
 from .validation_api import router as validation_router  # noqa: E402
@@ -117,8 +118,8 @@ app.add_api_route(
     "/api/jobs/{job_id}/reveal", runtime.reveal_job, methods=["POST"], tags=["jobs"]
 )
 
-# This critical product route is registered directly by the canonical application so
-# its ownership cannot be altered by compatibility router composition.
+# Hardened song mutations have explicit owners in the canonical app. This makes route
+# ownership independent of module import order and eliminates compatibility route surgery.
 app.add_api_route(
     "/api/songs/{song_id}/export",
     export_song,
@@ -126,18 +127,37 @@ app.add_api_route(
     tags=["notation-export"],
     response_model=None,
 )
+app.add_api_route(
+    "/api/songs/{song_id}/undo",
+    undo_song_v2,
+    methods=["POST"],
+    tags=["revision-v2"],
+)
+app.add_api_route(
+    "/api/songs/{song_id}/publication",
+    update_publication_v2,
+    methods=["PATCH"],
+    tags=["publication-v2"],
+)
+app.add_api_route(
+    "/api/songs/{song_id}",
+    update_song_metadata_v2,
+    methods=["PATCH"],
+    tags=["song-metadata-v2"],
+)
+app.add_api_route(
+    "/api/songs/{song_id}",
+    delete_song_v2,
+    methods=["DELETE"],
+    tags=["song-delete-v2"],
+)
 
-# Product-facing mutation/read routers. Each public method/path has one owner; no route
-# arrays are mutated and no `_ensure_route` fallback is required.
+# Remaining routers do not overlap the canonical song-mutation ownership above.
 for router in (
     upload_router,
     job_lifecycle_router,
     job_artifact_router,
     storage_router,
-    song_delete_router,
-    song_metadata_router,
-    revision_router,
-    publication_router,
     song_router,
     export_router,
     engine_router,
