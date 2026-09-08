@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import uvicorn
 
 from . import api as base_api
@@ -17,13 +19,17 @@ from .omr_api import router as omr_router
 from .pipeline_v2 import transcribe as transcribe_v2
 from .preflight_v2 import preflight as preflight_v2
 from .publication_api_v2 import router as publication_router
+from .publication_api_v2 import update_publication_v2
 from .request_limits import RequestSizeLimitMiddleware
 from .revision_api_v2 import router as revision_router
+from .revision_api_v2 import undo_song_v2
 from .runtime_settings import runtime_settings
 from .setup_center_api import router as setup_center_router
 from .song_api_v2 import router as song_router
+from .song_delete_api import delete_song_v2
 from .song_delete_api import router as song_delete_router
 from .song_metadata_api import router as song_metadata_router
+from .song_metadata_api import update_song_metadata_v2
 from .song_mutation_lock import SongMutationSerializationMiddleware
 from .sqlite_runtime import configure_sqlite
 from .startup_recovery import recover_startup_state
@@ -113,20 +119,56 @@ app.include_router(setup_center_router)
 app.include_router(model_manager_router)
 app.include_router(enrichment_router)
 
-# FastAPI copies APIRouter routes when including them. Some legacy modules also mutate
-# their router contents for backwards compatibility, so make the single public v0.8
-# export owner an explicit invariant instead of relying on import/include order.
-if not any(
-    getattr(route, "path", None) == "/api/songs/{song_id}/export"
-    and "POST" in (getattr(route, "methods", None) or set())
-    for route in app.routes
-):
-    app.add_api_route(
-        "/api/songs/{song_id}/export",
-        build_exports,
-        methods=["POST"],
-        tags=["notation-export"],
-    )
+
+def _ensure_route(path: str, method: str, endpoint: Callable, *, tag: str) -> None:
+    """Guarantee one public owner for v0.8 routes after legacy router composition.
+
+    FastAPI copies APIRouter routes at include time. This app still composes a legacy
+    base router with v0.8 replacements, so make the public contract explicit rather
+    than depending on import/include ordering while that migration remains in place.
+    """
+    matches = [
+        route
+        for route in app.routes
+        if getattr(route, "path", None) == path
+        and method in (getattr(route, "methods", None) or set())
+    ]
+    if not matches:
+        app.add_api_route(path, endpoint, methods=[method], tags=[tag])
+    elif len(matches) > 1:
+        raise RuntimeError(f"Duplicate public route owner: {method} {path}")
+
+
+_ensure_route(
+    "/api/songs/{song_id}/export",
+    "POST",
+    build_exports,
+    tag="notation-export",
+)
+_ensure_route(
+    "/api/songs/{song_id}/undo",
+    "POST",
+    undo_song_v2,
+    tag="revision-v2",
+)
+_ensure_route(
+    "/api/songs/{song_id}/publication",
+    "PATCH",
+    update_publication_v2,
+    tag="publication-v2",
+)
+_ensure_route(
+    "/api/songs/{song_id}",
+    "PATCH",
+    update_song_metadata_v2,
+    tag="song-metadata-v2",
+)
+_ensure_route(
+    "/api/songs/{song_id}",
+    "DELETE",
+    delete_song_v2,
+    tag="song-delete-v2",
+)
 
 
 def run() -> None:
