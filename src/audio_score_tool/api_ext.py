@@ -11,7 +11,7 @@ from .job_artifact_api_v2 import router as job_artifact_router
 from .job_lifecycle_api_v2 import router as job_lifecycle_router
 from .model_manager_api import router as model_manager_router
 from .notation_api import router as notation_router
-from .notation_export_api import router as notation_export_router
+from .notation_export_api import build_exports, router as notation_export_router
 from .omr_api import router as omr_router
 from .pipeline_v2 import transcribe as transcribe_v2
 from .preflight_v2 import preflight as preflight_v2
@@ -111,6 +111,21 @@ app.include_router(notation_router)
 app.include_router(setup_center_router)
 app.include_router(model_manager_router)
 app.include_router(enrichment_router)
+
+# FastAPI copies APIRouter routes when including them. Some legacy modules also mutate
+# their router contents for backwards compatibility, so make the single public v0.8
+# export owner an explicit invariant instead of relying on import/include order.
+if not any(
+    getattr(route, "path", None) == "/api/songs/{song_id}/export"
+    and "POST" in (getattr(route, "methods", None) or set())
+    for route in app.routes
+):
+    app.add_api_route(
+        "/api/songs/{song_id}/export",
+        build_exports,
+        methods=["POST"],
+        tags=["notation-export"],
+    )
 
 
 def run() -> None:
