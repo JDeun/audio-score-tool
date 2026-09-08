@@ -1,10 +1,11 @@
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import "./omr-import.css";
 
 const API = "http://127.0.0.1:8080";
+const DIRECT_EXTENSIONS = new Set(["musicxml", "xml", "mid", "midi"]);
 
-type OMRJob = {
+type ImportJob = {
   job_id: string;
   status: "queued" | "running" | "done" | "failed" | "cancelled" | "interrupted";
   stage?: string;
@@ -12,14 +13,20 @@ type OMRJob = {
   error?: string;
 };
 
+function extensionOf(file: File | null) {
+  if (!file) return "";
+  return file.name.split(".").pop()?.toLowerCase() ?? "";
+}
+
 export default function OMRImportController() {
   const [host, setHost] = useState<Element | null>(null);
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const [job, setJob] = useState<OMRJob | null>(null);
+  const [job, setJob] = useState<ImportJob | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const directImport = useMemo(() => DIRECT_EXTENSIONS.has(extensionOf(file)), [file]);
 
   useEffect(() => {
     const findHost = () => setHost(document.querySelector(".new-score-page .segmented-control"));
@@ -38,16 +45,20 @@ export default function OMRImportController() {
         const fresh = await response.json();
         setJob(fresh);
         if (fresh.status === "done") {
-          setMessage("악보 인식이 완료되었습니다. 곡 라이브러리에서 검증·수정할 수 있습니다.");
+          setMessage(
+            directImport
+              ? "악보 파일을 가져왔습니다. 곡 라이브러리에서 검증·수정할 수 있습니다."
+              : "악보 인식이 완료되었습니다. 곡 라이브러리에서 검증·수정할 수 있습니다.",
+          );
         } else if (fresh.status === "failed") {
-          setMessage(fresh.error || "악보 인식에 실패했습니다.");
+          setMessage(fresh.error || "악보 가져오기에 실패했습니다.");
         }
       } catch {
         // Keep the modal state while the local sidecar reconnects.
       }
     }, 900);
     return () => window.clearInterval(timer);
-  }, [job?.job_id, job?.status]);
+  }, [job?.job_id, job?.status, directImport]);
 
   const reset = () => {
     if (busy || (job && ["queued", "running"].includes(job.status))) return;
@@ -71,7 +82,8 @@ export default function OMRImportController() {
     try {
       const body = new FormData();
       body.append("file", file);
-      const response = await fetch(`${API}/api/import/score`, { method: "POST", body });
+      const endpoint = directImport ? "/api/import/notation" : "/api/import/score";
+      const response = await fetch(`${API}${endpoint}`, { method: "POST", body });
       const payload = await response.json().catch(() => null);
       if (!response.ok) throw new Error(payload?.detail ?? "악보 가져오기를 시작하지 못했습니다.");
       setJob({ job_id: payload.job_id, status: "queued", stage: "queued", progress: 0 });
@@ -98,11 +110,15 @@ export default function OMRImportController() {
             setMessage("");
           }}
         >
-          PDF / 이미지 악보
+          기존 악보 / MusicXML / MIDI
         </button>,
         host,
       )
     : null;
+
+  const flow = directImport
+    ? ["기존 파일", "→", extensionOf(file).startsWith("mid") ? "music21" : "구조 검증", "→", "MusicXML", "→", "검증·편집"]
+    : ["원본 악보", "→", "Audiveris OMR", "→", "MusicXML", "→", "검증·편집"];
 
   return (
     <>
@@ -112,9 +128,9 @@ export default function OMRImportController() {
           <section className="omr-modal" role="dialog" aria-modal="true" aria-labelledby="omr-title">
             <header>
               <div>
-                <span className="omr-eyebrow">OPTICAL MUSIC RECOGNITION</span>
+                <span className="omr-eyebrow">SCORE IMPORT</span>
                 <h2 id="omr-title">기존 악보 가져오기</h2>
-                <p>PDF 또는 스캔 이미지를 MusicXML로 인식한 뒤 기존 편집·검증 파이프라인에 넣습니다.</p>
+                <p>PDF/스캔 이미지는 OMR로 인식하고, MusicXML/MIDI는 직접 가져와 동일한 편집·검증 파이프라인에 넣습니다.</p>
               </div>
               <button className="omr-close" type="button" onClick={reset} aria-label="닫기">×</button>
             </header>
@@ -123,7 +139,7 @@ export default function OMRImportController() {
               ref={inputRef}
               type="file"
               hidden
-              accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.bmp,application/pdf,image/png,image/jpeg,image/tiff,image/bmp"
+              accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.bmp,.musicxml,.xml,.mid,.midi,application/pdf,image/png,image/jpeg,image/tiff,image/bmp,application/vnd.recordare.musicxml+xml,audio/midi"
               onChange={chooseFile}
             />
             <button
@@ -133,21 +149,25 @@ export default function OMRImportController() {
               onClick={() => inputRef.current?.click()}
             >
               <span>{file ? "선택한 악보" : "악보 파일 선택"}</span>
-              <strong>{file?.name ?? "PDF · PNG · JPG · TIFF · BMP"}</strong>
-              <small>스캔 해상도와 대비가 높을수록 인식 품질이 좋아집니다.</small>
+              <strong>{file?.name ?? "PDF · 이미지 · MusicXML · MIDI"}</strong>
+              <small>
+                {directImport
+                  ? "MusicXML은 구조를 검증하고, MIDI는 music21로 MusicXML로 변환합니다."
+                  : "PDF/이미지는 스캔 해상도와 대비가 높을수록 OMR 품질이 좋아집니다."}
+              </small>
             </button>
 
             <div className="omr-flow">
-              <span>원본 악보</span><i>→</i><span>Audiveris OMR</span><i>→</i><span>MusicXML</span><i>→</i><span>검증·편집</span>
+              {flow.map((item, index) => item === "→" ? <i key={`${item}-${index}`}>→</i> : <span key={`${item}-${index}`}>{item}</span>)}
             </div>
 
             {job && (
               <div className="omr-progress-card">
-                <div><strong>{job.status === "done" ? "인식 완료" : "악보 인식 중"}</strong><span>{job.progress ?? 0}%</span></div>
+                <div><strong>{job.status === "done" ? "가져오기 완료" : directImport ? "악보 가져오는 중" : "악보 인식 중"}</strong><span>{job.progress ?? 0}%</span></div>
                 <div className="omr-progress"><span style={{ width: `${job.progress ?? 0}%` }} /></div>
               </div>
             )}
-            {message && <div className={`omr-message ${job?.status === "failed" ? "error" : ""}`}>{message}</div>}
+            {message && <div className={`omr-message ${job?.status === "failed" ? "error" : ""}`} role="status">{message}</div>}
 
             <footer>
               <button type="button" className="secondary-button" onClick={reset}>닫기</button>
@@ -160,7 +180,7 @@ export default function OMRImportController() {
                   disabled={!file || busy || !!job && ["queued", "running"].includes(job.status)}
                   onClick={() => void startImport()}
                 >
-                  {job && ["queued", "running"].includes(job.status) ? "인식 중…" : "악보 가져오기"}
+                  {job && ["queued", "running"].includes(job.status) ? "가져오는 중…" : "악보 가져오기"}
                 </button>
               )}
             </footer>
