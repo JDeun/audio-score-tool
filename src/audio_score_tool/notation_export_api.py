@@ -5,8 +5,10 @@ import shutil
 import tempfile
 import uuid
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
 from .musicxml_parts import extract_part_musicxml, list_score_parts
 from .notation_backend import (
@@ -20,7 +22,6 @@ from .paths import cache_dir
 from .publication_layout import apply_publication_layout
 from .runtime_settings import runtime_settings
 from .song_api_v2 import (
-    ExportRequest,
     _part_exports,
     _public,
     _publication_store,
@@ -29,6 +30,15 @@ from .song_api_v2 import (
 )
 
 router = APIRouter(prefix="/api/songs", tags=["notation-export"])
+
+ExportKind = Literal["musicxml", "pdf", "midi", "parts"]
+
+
+class ExportRequest(BaseModel):
+    formats: list[ExportKind] = Field(
+        default_factory=lambda: ["musicxml", "pdf", "midi", "parts"],
+        min_length=1,
+    )
 
 
 def _publish_export_tree(song_id: str, staged: Path) -> Path:
