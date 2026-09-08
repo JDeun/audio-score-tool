@@ -48,6 +48,7 @@ def _youtube_worker(*args, **kwargs) -> None:
 # Imports happen only after the runtime compatibility bridge exists. Critical product
 # endpoints are registered explicitly below so method/path ownership does not depend on
 # compatibility-era router composition or import order.
+from .direct_score_import_api import router as direct_score_import_router  # noqa: E402
 from .engine_api import router as engine_router  # noqa: E402
 from .enrichment_api import router as enrichment_router  # noqa: E402
 from .export_api_v2 import router as export_router  # noqa: E402
@@ -204,6 +205,7 @@ for router in (
     engine_router,
     validation_router,
     omr_router,
+    direct_score_import_router,
     notation_router,
     setup_center_router,
     model_manager_router,
