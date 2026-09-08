@@ -5,8 +5,10 @@ import shutil
 import tempfile
 import uuid
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
 from .musicxml_parts import extract_part_musicxml, list_score_parts
 from .notation_backend import (
@@ -20,7 +22,6 @@ from .paths import cache_dir
 from .publication_layout import apply_publication_layout
 from .runtime_settings import runtime_settings
 from .song_api_v2 import (
-    ExportRequest,
     _part_exports,
     _public,
     _publication_store,
@@ -29,6 +30,15 @@ from .song_api_v2 import (
 )
 
 router = APIRouter(prefix="/api/songs", tags=["notation-export"])
+
+ExportKind = Literal["musicxml", "pdf", "midi", "parts"]
+
+
+class ExportRequest(BaseModel):
+    formats: list[ExportKind] = Field(
+        default_factory=lambda: ["musicxml", "pdf", "midi", "parts"],
+        min_length=1,
+    )
 
 
 def _publish_export_tree(song_id: str, staged: Path) -> Path:
@@ -67,11 +77,12 @@ def build_exports_v3(song_id: str, payload: ExportRequest | None = None) -> dict
     if "midi" in requested and not status["music21"]:
         raise HTTPException(409, "MIDI export에는 music21이 필요합니다.")
     if requested & {"pdf", "parts"} and not (
-        (status["lilypond"] and status["musicxml2ly"]) or status["musescore"]
+        status["lilypond"] and status["musicxml2ly"]
     ):
         raise HTTPException(
             409,
-            "PDF renderer가 없습니다. LilyPond를 설치하거나 선택적으로 MuseScore를 지정하세요.",
+            "PDF export에는 LilyPond와 musicxml2ly가 필요합니다. "
+            "MusicXML/MIDI export는 PDF renderer 없이도 사용할 수 있습니다.",
         )
 
     _song_store.export_root.mkdir(parents=True, exist_ok=True)

@@ -23,14 +23,12 @@ class NotationBackendStatus:
     music21: bool
     lilypond: bool
     musicxml2ly: bool
-    musescore: bool
 
     def as_dict(self) -> dict[str, bool]:
         return {
             "music21": self.music21,
             "lilypond": self.lilypond,
             "musicxml2ly": self.musicxml2ly,
-            "musescore": self.musescore,
         }
 
 
@@ -42,25 +40,11 @@ def music21_available() -> bool:
     return True
 
 
-def _resolve_musescore(settings: Settings) -> str | None:
-    if settings.musescore_cmd and command_exists(settings.musescore_cmd):
-        return settings.musescore_cmd
-    candidates = ("mscore", "musescore", "MuseScore4", "musescore4", "MuseScore")
-    for candidate in candidates:
-        if shutil.which(candidate):
-            return candidate
-    mac = Path("/Applications/MuseScore 4.app/Contents/MacOS/mscore")
-    if mac.is_file():
-        return str(mac)
-    return None
-
-
 def backend_status(settings: Settings) -> dict[str, bool]:
     return NotationBackendStatus(
         music21=music21_available(),
         lilypond=command_exists(settings.lilypond_cmd),
         musicxml2ly=command_exists(settings.musicxml2ly_cmd),
-        musescore=_resolve_musescore(settings) is not None,
     ).as_dict()
 
 
@@ -111,12 +95,11 @@ def musicxml_to_pdf_lilypond(
 ) -> Path:
     if not command_exists(settings.musicxml2ly_cmd) or not command_exists(settings.lilypond_cmd):
         raise NotationBackendUnavailable(
-            "LilyPond PDF backend에는 musicxml2ly와 lilypond 실행 파일이 필요합니다."
+            "PDF 생성에는 musicxml2ly와 LilyPond 실행 파일이 필요합니다."
         )
     target.parent.mkdir(parents=True, exist_ok=True)
-    # Never place renderer intermediates in the user-facing export tree. A unique
-    # temporary workspace also prevents two export requests from clobbering the same
-    # score.ly/score.pdf files.
+    # Renderer intermediates stay outside the user-facing export tree. A unique
+    # temporary workspace also prevents concurrent exports from clobbering each other.
     with tempfile.TemporaryDirectory(prefix="audioscore-lilypond-") as raw_work:
         work = Path(raw_work)
         ly_path = work / "score.ly"
@@ -146,25 +129,6 @@ def musicxml_to_pdf_lilypond(
     return target
 
 
-def convert_with_musescore(
-    source: Path,
-    target: Path,
-    *,
-    settings: Settings,
-    cancel_event: Event | None = None,
-) -> Path:
-    command = _resolve_musescore(settings)
-    if not command:
-        raise NotationBackendUnavailable("MuseScore를 찾을 수 없습니다.")
-    try:
-        run_command(command, ["-o", target, source], cancel_event=cancel_event)
-    except CommandError as exc:
-        raise NotationBackendError(f"MuseScore 변환 실패:\n{exc}") from exc
-    if not target.is_file():
-        raise NotationBackendError(f"MuseScore가 {target.name}을 생성하지 않았습니다.")
-    return target
-
-
 def render_pdf(
     source: Path,
     target: Path,
@@ -172,7 +136,7 @@ def render_pdf(
     settings: Settings,
     cancel_event: Event | None = None,
 ) -> tuple[Path, str]:
-    """Render PDF without making MuseScore mandatory."""
+    """Render a PDF using the MuseScore-free production backend."""
 
     if command_exists(settings.musicxml2ly_cmd) and command_exists(settings.lilypond_cmd):
         return (
@@ -184,16 +148,7 @@ def render_pdf(
             ),
             "lilypond",
         )
-    if _resolve_musescore(settings):
-        return (
-            convert_with_musescore(
-                source,
-                target,
-                settings=settings,
-                cancel_event=cancel_event,
-            ),
-            "musescore",
-        )
     raise NotationBackendUnavailable(
-        "PDF 생성 backend가 없습니다. LilyPond를 설치하거나 선택적으로 MuseScore를 지정하세요."
+        "PDF 생성 backend가 없습니다. LilyPond와 musicxml2ly를 설치하세요. "
+        "MusicXML/MIDI 편집과 내보내기는 PDF renderer 없이도 사용할 수 있습니다."
     )

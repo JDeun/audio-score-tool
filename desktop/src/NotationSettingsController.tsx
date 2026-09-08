@@ -9,11 +9,10 @@ type Settings = {
     audiveris_cmd?: string | null;
     lilypond_cmd?: string | null;
     musicxml2ly_cmd?: string | null;
-    musescore_cmd?: string | null;
   };
   backends: Record<string, boolean>;
   omr: { ready: boolean };
-  policy: { musescore_required: boolean; pdf_preferred: string; pdf_fallback: string };
+  policy: { musescore_required: boolean; pdf_renderer: string };
 };
 
 export default function NotationSettingsController() {
@@ -57,7 +56,6 @@ export default function NotationSettingsController() {
           audiveris_cmd: paths.audiveris_cmd || null,
           lilypond_cmd: paths.lilypond_cmd || null,
           musicxml2ly_cmd: paths.musicxml2ly_cmd || null,
-          musescore_cmd: paths.musescore_cmd || null,
         }),
       });
       if (!response.ok) throw new Error(await response.text());
@@ -78,16 +76,15 @@ export default function NotationSettingsController() {
       <div className="section-title-row">
         <div>
           <span className="card-kicker">악보 입출력 엔진</span>
-          <h2>MuseScore 없이도 사용할 수 있습니다</h2>
-          <p>MusicXML/MIDI는 music21, PDF는 LilyPond를 우선 사용하고 MuseScore는 호환성 fallback으로만 사용합니다.</p>
+          <h2>MuseScore 없이 작동합니다</h2>
+          <p>MusicXML/MIDI는 music21, PDF는 LilyPond, PDF·이미지 악보 인식은 Audiveris를 사용합니다.</p>
         </div>
       </div>
 
       <div className="notation-backend-grid">
         <div><span className={data.omr.ready ? "ready" : "missing"}>{data.omr.ready ? "✓" : "!"}</span><strong>Audiveris</strong><small>PDF/이미지 → MusicXML</small></div>
         <div><span className={data.backends.music21 ? "ready" : "missing"}>{data.backends.music21 ? "✓" : "!"}</span><strong>music21</strong><small>MIDI ↔ MusicXML</small></div>
-        <div><span className={data.backends.lilypond && data.backends.musicxml2ly ? "ready" : "missing"}>{data.backends.lilypond && data.backends.musicxml2ly ? "✓" : "!"}</span><strong>LilyPond</strong><small>MusicXML → PDF 우선</small></div>
-        <div><span className={data.backends.musescore ? "ready" : "optional"}>{data.backends.musescore ? "✓" : "○"}</span><strong>MuseScore</strong><small>선택적 fallback</small></div>
+        <div><span className={data.backends.lilypond && data.backends.musicxml2ly ? "ready" : "missing"}>{data.backends.lilypond && data.backends.musicxml2ly ? "✓" : "!"}</span><strong>LilyPond</strong><small>MusicXML → PDF</small></div>
       </div>
 
       <div className="notation-paths">
@@ -95,7 +92,6 @@ export default function NotationSettingsController() {
           ["audiveris_cmd", "Audiveris"],
           ["lilypond_cmd", "LilyPond"],
           ["musicxml2ly_cmd", "musicxml2ly"],
-          ["musescore_cmd", "MuseScore (선택)"],
         ].map(([key, label]) => (
           <label key={key}>
             <span>{label}</span>

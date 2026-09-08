@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from collections.abc import Callable
 
 import uvicorn
@@ -22,14 +23,11 @@ from .notation_api import router as notation_router
 from .notation_export_api import build_exports
 from .notation_export_api import router as notation_export_router
 from .omr_api import router as omr_router
-from .pipeline_v2 import transcribe as transcribe_v2
-from .preflight_v2 import preflight as preflight_v2
 from .publication_api_v2 import router as publication_router
 from .publication_api_v2 import update_publication_v2
 from .request_limits import RequestSizeLimitMiddleware
 from .revision_api_v2 import router as revision_router
 from .revision_api_v2 import undo_song_v2
-from .runtime_settings import runtime_settings
 from .setup_center_api import router as setup_center_router
 from .song_api_v2 import router as song_router
 from .song_delete_api import delete_song_v2
@@ -47,9 +45,6 @@ from .validation_api import router as validation_router
 
 # v0.8 keeps the proven workers/read APIs while switching product-facing mutation
 # persistence and lifecycle handling to hardened v0.8 routes.
-base_api._runtime_settings = runtime_settings
-base_api.transcribe = transcribe_v2
-base_api.preflight = preflight_v2
 configure_sqlite()
 app = base_api.app
 app.version = "0.8.0"
@@ -175,12 +170,28 @@ _ensure_route(
 _ensure_route("/api/storage/cleanup", "POST", cleanup_storage_v2, tag="storage-v2")
 
 
+def _server_port() -> int:
+    raw = os.getenv("AST_API_PORT", "8080").strip()
+    try:
+        port = int(raw)
+    except ValueError as exc:
+        raise RuntimeError("AST_API_PORT must be an integer between 1 and 65535") from exc
+    if not 1 <= port <= 65535:
+        raise RuntimeError("AST_API_PORT must be an integer between 1 and 65535")
+    return port
+
+
 def run() -> None:
     # Filesystem recovery removes partial uploads/work buffers and can restore an export
     # backup. Keep that side effect out of module import so pytest/OpenAPI inspection is
     # non-destructive; execute it only when the actual sidecar/server is launched.
     recover_startup_state(job_store=base_api._store)
-    uvicorn.run("audio_score_tool.api_ext:app", host="127.0.0.1", port=8080, reload=False)
+    uvicorn.run(
+        "audio_score_tool.api_ext:app",
+        host="127.0.0.1",
+        port=_server_port(),
+        reload=False,
+    )
 
 
 if __name__ == "__main__":

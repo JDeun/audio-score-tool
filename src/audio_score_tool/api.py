@@ -5,20 +5,21 @@ import uuid
 from pathlib import Path
 from threading import Event, Lock, Thread
 
-import uvicorn
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
 from .benchmark import configs_for_profile, run_benchmark_matrix
-from .config import Settings
 from .desktop_utils import reveal_in_file_manager
 from .devices import detect_device_plan
 from .job_store import JobStore
 from .paths import jobs_dir
-from .pipeline import PipelineCancelled, preflight, transcribe
+from .pipeline import PipelineCancelled
+from .pipeline_v2 import transcribe
+from .preflight_v2 import preflight
 from .presets import list_presets, resolve_preset
+from .runtime_settings import runtime_settings
 from .settings_store import SettingsStore
 from .setup_info import setup_instructions
 from .system_status import storage_status
@@ -89,7 +90,6 @@ class ToolPathSettings(BaseModel):
     demucs_cmd: str | None = None
     whisperx_cmd: str | None = None
     yt_dlp_cmd: str | None = None
-    musescore_cmd: str | None = None
 
 
 class YouTubeInspectRequest(BaseModel):
@@ -108,19 +108,13 @@ class YouTubeJobRequest(BaseModel):
 
 def _runtime_settings(
     *,
-    muscriptor_model: str = "medium",
+    muscriptor_model: str | None = None,
     whisperx_model: str = "small",
-) -> Settings:
-    saved = _settings_store.read()
-    defaults = Settings()
-    return Settings(
-        muscriptor_cmd=saved.get("muscriptor_cmd") or defaults.muscriptor_cmd,
-        demucs_cmd=saved.get("demucs_cmd") or defaults.demucs_cmd,
-        whisperx_cmd=saved.get("whisperx_cmd") or defaults.whisperx_cmd,
-        yt_dlp_cmd=saved.get("yt_dlp_cmd") or defaults.yt_dlp_cmd,
-        musescore_cmd=saved.get("musescore_cmd") or defaults.musescore_cmd,
+):
+    return runtime_settings(
         muscriptor_model=muscriptor_model,
         whisperx_model=whisperx_model,
+        store=_settings_store,
     )
 
 
@@ -727,10 +721,3 @@ def download(job_id: str, kind: str) -> FileResponse:
         raise HTTPException(404, "Artifact file is missing")
     return FileResponse(path, filename=path.name)
 
-
-def run() -> None:
-    uvicorn.run("audio_score_tool.api:app", host="127.0.0.1", port=8080, reload=False)
-
-
-if __name__ == "__main__":
-    run()

@@ -24,7 +24,6 @@ def _find_executable(name: str) -> str | None:
         Path.home() / ".cargo" / "bin" / f"{name}{suffix}",
     ]
     if system == "Darwin":
-        # Finder-launched GUI apps often inherit a much smaller PATH than Terminal.
         candidates += [
             Path("/opt/homebrew/bin") / name,
             Path("/usr/local/bin") / name,
@@ -164,7 +163,6 @@ class Settings:
     ffmpeg_cmd: str = field(default_factory=lambda: _saved_or_env("ffmpeg_cmd", "AST_FFMPEG_CMD") or _external_command("ffmpeg"))
     fluidsynth_cmd: str = field(default_factory=lambda: _saved_or_env("fluidsynth_cmd", "AST_FLUIDSYNTH_CMD") or _external_command("fluidsynth"))
     validation_soundfont: Path | None = field(default_factory=lambda: _optional_path("validation_soundfont", "AST_VALIDATION_SOUNDFONT"))
-    musescore_cmd: str | None = field(default_factory=lambda: _saved_or_env("musescore_cmd", "AST_MUSESCORE_CMD"))
     whisperx_model: str = field(default_factory=lambda: os.getenv("AST_WHISPERX_MODEL", "small"))
 
     @property

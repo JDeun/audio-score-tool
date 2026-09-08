@@ -23,7 +23,6 @@ def preflight(settings: Settings | None = None, *, require_lyrics: bool = True) 
         "music21": notation["music21"],
         "lilypond": notation["lilypond"],
         "musicxml2ly": notation["musicxml2ly"],
-        "musescore_optional": notation["musescore"],
         "audiveris_optional": bool(omr["ready"]),
     }
 
@@ -35,11 +34,11 @@ def preflight(settings: Settings | None = None, *, require_lyrics: bool = True) 
     if engine.key == "muscriptor" and not huggingface_authenticated():
         missing.append("huggingface_auth")
 
-    # PDF rendering is intentionally not a core transcription requirement. Users can
-    # edit/export MusicXML without LilyPond or MuseScore, and install a renderer later.
+    # PDF rendering is not a core transcription requirement. Users can edit/export
+    # MusicXML and MIDI without LilyPond and add PDF rendering later.
     warnings: list[str] = []
-    if not ((notation["lilypond"] and notation["musicxml2ly"]) or notation["musescore"]):
-        warnings.append("PDF renderer unavailable: install LilyPond or optionally MuseScore.")
+    if not (notation["lilypond"] and notation["musicxml2ly"]):
+        warnings.append("PDF renderer unavailable: install LilyPond (including musicxml2ly).")
     if not omr["ready"]:
         warnings.append("OMR unavailable: install Audiveris to import PDF/image scores.")
 

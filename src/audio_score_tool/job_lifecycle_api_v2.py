@@ -8,6 +8,7 @@ from threading import Thread
 from fastapi import APIRouter, HTTPException
 
 from . import api as base_api
+from .job_admission import JobCapacityError, reserve_job
 from .paths import jobs_dir, song_assets_dir
 from .runtime_settings import runtime_settings
 from .song_store_v2 import SongStoreV2
@@ -31,6 +32,18 @@ def _start_or_mark_failed(job_id: str, thread: Thread) -> None:
             500,
             "백그라운드 작업을 시작하지 못했습니다. 원본 입력은 재시도를 위해 보존했습니다.",
         ) from exc
+
+
+def _reserve_or_429(job_id: str, **values) -> None:
+    try:
+        reserve_job(base_api._store, job_id, **values)
+    except JobCapacityError as exc:
+        raise HTTPException(429, str(exc)) from exc
+
+
+def _cleanup_failed_reservation(job_id: str, path: Path) -> None:
+    shutil.rmtree(path, ignore_errors=True)
+    base_api._store.delete(job_id)
 
 
 def _copy_retry_input(source: Path, target: Path) -> None:
@@ -86,23 +99,23 @@ def create_youtube_job_v2(payload: base_api.YouTubeJobRequest) -> dict:
     resolved_muscriptor = payload.muscriptor_model or selected.muscriptor_model
     resolved_whisperx = payload.whisperx_model or selected.whisperx_model
     job_id = uuid.uuid4().hex
+    _reserve_or_429(
+        job_id,
+        status="queued",
+        stage="queued",
+        progress=0,
+        filename="YouTube import",
+        language=payload.language,
+        skip_lyrics=payload.skip_lyrics,
+        preset=payload.preset,
+        muscriptor_model=resolved_muscriptor,
+        whisperx_model=resolved_whisperx,
+    )
     job_dir = jobs_dir() / job_id
-    job_dir.mkdir(parents=True, exist_ok=False)
     try:
-        base_api._store.create(
-            job_id,
-            status="queued",
-            stage="queued",
-            progress=0,
-            filename="YouTube import",
-            language=payload.language,
-            skip_lyrics=payload.skip_lyrics,
-            preset=payload.preset,
-            muscriptor_model=resolved_muscriptor,
-            whisperx_model=resolved_whisperx,
-        )
+        job_dir.mkdir(parents=True, exist_ok=False)
     except Exception:
-        shutil.rmtree(job_dir, ignore_errors=True)
+        _cleanup_failed_reservation(job_id, job_dir)
         raise
 
     thread = Thread(
@@ -136,49 +149,53 @@ def retry_job_v2(job_id: str) -> dict:
 
     settings = runtime_settings()
     new_id = uuid.uuid4().hex
+    is_benchmark = source.get("kind") == "benchmark"
+    if is_benchmark:
+        profile = source.get("preset") or "all"
+        _reserve_or_429(
+            new_id,
+            kind="benchmark",
+            status="queued",
+            stage="queued",
+            progress=0,
+            filename=source.get("filename"),
+            language=source.get("language"),
+            preset=profile,
+        )
+    else:
+        muscriptor_model = source.get("muscriptor_model") or settings.muscriptor_model
+        whisperx_model = source.get("whisperx_model") or settings.whisperx_model
+        _reserve_or_429(
+            new_id,
+            kind="transcription",
+            status="queued",
+            stage="queued",
+            progress=0,
+            filename=source.get("filename"),
+            language=source.get("language"),
+            skip_lyrics=source.get("skip_lyrics", False),
+            preset=source.get("preset") or "auto",
+            muscriptor_model=muscriptor_model,
+            whisperx_model=whisperx_model,
+        )
+
     target_dir = jobs_dir() / new_id
-    target_dir.mkdir(parents=True, exist_ok=False)
     audio = target_dir / audio_candidates[0].name
     try:
+        target_dir.mkdir(parents=True, exist_ok=False)
         _copy_retry_input(audio_candidates[0], audio)
 
-        if source.get("kind") == "benchmark":
+        if is_benchmark:
             reference_source = source_dir / "reference.mid"
             reference_target = target_dir / "reference.mid" if reference_source.exists() else None
             if reference_target is not None:
                 _copy_retry_input(reference_source, reference_target)
-            profile = source.get("preset") or "all"
-            base_api._store.create(
-                new_id,
-                kind="benchmark",
-                status="queued",
-                stage="queued",
-                progress=0,
-                filename=source.get("filename"),
-                language=source.get("language"),
-                preset=profile,
-            )
             thread = Thread(
                 target=base_api._benchmark_worker,
                 args=(new_id, audio, reference_target, source.get("language"), profile),
                 daemon=True,
             )
         else:
-            muscriptor_model = source.get("muscriptor_model") or settings.muscriptor_model
-            whisperx_model = source.get("whisperx_model") or settings.whisperx_model
-            base_api._store.create(
-                new_id,
-                kind="transcription",
-                status="queued",
-                stage="queued",
-                progress=0,
-                filename=source.get("filename"),
-                language=source.get("language"),
-                skip_lyrics=source.get("skip_lyrics", False),
-                preset=source.get("preset") or "auto",
-                muscriptor_model=muscriptor_model,
-                whisperx_model=whisperx_model,
-            )
             thread = Thread(
                 target=base_api._worker,
                 args=(
@@ -192,7 +209,7 @@ def retry_job_v2(job_id: str) -> dict:
                 daemon=True,
             )
     except Exception:
-        shutil.rmtree(target_dir, ignore_errors=True)
+        _cleanup_failed_reservation(new_id, target_dir)
         raise
 
     _start_or_mark_failed(new_id, thread)

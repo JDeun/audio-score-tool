@@ -44,7 +44,7 @@ AI 도구를 격리 실행할 때 `uv/uvx`가 필요한 환경에서는 Setup Ce
 ```
 
 - WhisperX: 가사 인식/정렬
-- LilyPond: PDF 생성
+- LilyPond + musicxml2ly: PDF 생성
 
 가사를 사용하지 않거나 PDF가 당장 필요 없다면 설치하지 않아도 기본 채보는 가능합니다.
 
@@ -53,9 +53,23 @@ AI 도구를 격리 실행할 때 `uv/uvx`가 필요한 환경에서는 Setup Ce
 - Audiveris: PDF/이미지 OMR
 - FFmpeg + FluidSynth + SoundFont: Audio evidence 검증
 - LLM/Vision API: 보조 검증
-- MuseScore: notation compatibility fallback
+- Chromaprint/fpcalc: 사용자가 요청한 원음 fingerprint 기반 곡 식별
 
 이 기능들이 없어도 기본 채보/편집은 `준비 안 됨`으로 취급하지 않습니다.
+
+## MuseScore 비의존 정책
+
+AudioScoreTool은 MuseScore 실행 파일이나 MuseScore CLI를 호출하지 않습니다.
+
+```text
+앱 내 미리보기       OSMD
+MIDI ↔ MusicXML      music21
+MusicXML → PDF        LilyPond + musicxml2ly
+PDF/이미지 → MusicXML Audiveris
+파트 분리             AudioScoreTool 자체 MusicXML 처리
+```
+
+따라서 MuseScore 설치 여부는 Setup Center readiness, PDF export 가능 여부, 채보 가능 여부에 영향을 주지 않습니다.
 
 ## 자동 설치 정책
 

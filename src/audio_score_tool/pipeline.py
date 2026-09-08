@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
-import platform
 import shutil
 import xml.etree.ElementTree as ET
 from collections.abc import Callable
@@ -15,6 +13,7 @@ from .devices import detect_device_plan
 from .lyrics import attach_lyrics_to_musicxml, expand_korean_syllables, load_whisperx_words
 from .models import PipelineResult
 from .musicxml_parts import extract_part_musicxml, list_score_parts
+from .notation_backend import NotationBackendError, render_pdf
 from .runner import CommandCancelled, CommandError, command_exists, run_command
 from .system_status import huggingface_authenticated
 from .transcription_engine import (
@@ -49,46 +48,18 @@ def _find_whisper_json(output_dir: Path) -> Path:
     return candidates[0]
 
 
-def _resolve_musescore(settings: Settings) -> str | None:
-    if settings.musescore_cmd:
-        return settings.musescore_cmd
-    env_path = os.getenv("MUSCRIPTOR_MUSESCORE")
-    if env_path:
-        return env_path
-    for candidate in ("mscore", "musescore", "MuseScore4", "musescore4", "MuseScore"):
-        if shutil.which(candidate):
-            return candidate
-    for candidate in (
-        "/Applications/MuseScore 4.app/Contents/MacOS/mscore",
-        str(Path("~/MuseScore.AppImage").expanduser()),
-        str(Path("~/Applications/MuseScore.AppImage").expanduser()),
-    ):
-        if Path(candidate).is_file():
-            return candidate
-    return None
-
-
 def _render_pdf(
     musicxml: Path,
     pdf: Path,
     settings: Settings,
     cancel_event: Event | None = None,
 ) -> bool:
-    cmd = _resolve_musescore(settings)
-    if not cmd:
-        return False
     try:
-        env = None
-        if platform.system() == "Linux":
-            env = {
-                "QT_QPA_PLATFORM": "offscreen",
-                "MU_QT_QPA_PLATFORM": "offscreen",
-            }
-        run_command(cmd, ["-o", pdf, musicxml], env=env, cancel_event=cancel_event)
+        render_pdf(musicxml, pdf, settings=settings, cancel_event=cancel_event)
         return pdf.exists()
     except CommandCancelled:
         raise
-    except CommandError:
+    except NotationBackendError:
         return False
 
 
@@ -120,13 +91,10 @@ def preflight(settings: Settings | None = None, *, require_lyrics: bool = True) 
         "transcription_engine": engine.ready(),
         "demucs": command_exists(settings.demucs_cmd),
         "whisperx": command_exists(settings.whisperx_cmd),
-        "musescore_override_or_path": _resolve_musescore(settings) is not None,
     }
     missing: list[str] = []
     if not engine.ready():
         missing.append(f"transcription_engine:{engine.key}")
-    if not tools["musescore_override_or_path"]:
-        missing.append("musescore")
     if require_lyrics and not tools["whisperx"]:
         missing.append("whisperx")
 
@@ -188,9 +156,6 @@ def transcribe(
     engine = resolve_transcription_engine(settings)
 
     emit("transcription", 5)
-
-    # 1) Full multi-instrument transcription. The rest of AudioScoreTool only depends
-    # on the engine contract: score.mid + score.musicxml (+ optional initial PDF).
     try:
         artifacts = engine.transcribe(
             audio_path,
@@ -208,7 +173,6 @@ def transcribe(
     initial_full_pdf = artifacts.initial_pdf_path
     emit("transcription", 47)
 
-    # 2) Infer a chord progression from the multi-instrument notation.
     emit("chord_analysis", 50)
     chord_report = work_dir / "chords.json"
     try:
@@ -228,7 +192,7 @@ def transcribe(
         if not _render_pdf(musicxml_path, final_pdf, settings, cancel_event):
             final_pdf = initial_full_pdf
             warnings.append(
-                "Could not render the chord-enriched full score with MuseScore. "
+                "Could not render the chord-enriched full score with LilyPond. "
                 "MusicXML still contains the inferred chord symbols."
             )
         try:
@@ -257,8 +221,8 @@ def transcribe(
 
     emit("vocal_separation", 60)
 
-    # 3) Vocal isolation is an optional lyrics-quality enhancement. If Demucs is not
-    # installed or its separation fails, WhisperX falls back to the original full mix.
+    # Vocal isolation is optional. Keep the real isolated-vocals artifact distinct
+    # from the audio source passed to WhisperX when falling back to the full mix.
     stems_dir.mkdir()
     vocals_path: Path | None = None
     lyrics_audio = audio_path
@@ -295,7 +259,6 @@ def transcribe(
     emit("vocal_separation", 70)
     emit("lyrics_asr", 73)
 
-    # 4) Singing lyrics transcription + word-level forced alignment.
     lyrics_dir.mkdir()
     whisper_args: list[str | Path] = [
         lyrics_audio,
@@ -329,8 +292,6 @@ def transcribe(
     aligned_tokens = expand_korean_syllables(words) if language == "ko" else words
 
     emit("lyric_alignment", 87)
-
-    # 5) Attach timed lyric tokens to the vocal-like MusicXML part.
     lyric_musicxml = work_dir / "score_with_lyrics.musicxml"
     part_id, attached = attach_lyrics_to_musicxml(
         musicxml_path,
@@ -354,9 +315,6 @@ def transcribe(
     )
 
     emit("rendering", 93)
-
-    # 6) Render the final full score and one PDF per detected instrument from the
-    # same lyric/chord-enriched MusicXML.
     lyric_pdf = work_dir / "score_with_lyrics.pdf"
     try:
         rendered = _render_pdf(lyric_musicxml, lyric_pdf, settings, cancel_event)
@@ -372,7 +330,7 @@ def transcribe(
     if not rendered:
         lyric_pdf = initial_full_pdf
         warnings.append(
-            "Could not render score_with_lyrics.pdf with MuseScore. "
+            "Could not render score_with_lyrics.pdf with LilyPond. "
             "The lyric/chord-enriched MusicXML was generated correctly."
         )
 

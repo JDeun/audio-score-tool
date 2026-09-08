@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import platform
 import shutil
-import tempfile
 from pathlib import Path
 from typing import Literal
 
@@ -14,13 +12,9 @@ from .chord_editor import ChordEditError, set_chord_at_note
 from .chord_listing import list_chords
 from .job_store import JobStore
 from .musicxml_editor import MusicXMLEditError, score_summary, set_score_title, update_note
-from .musicxml_parts import extract_part_musicxml, list_score_parts
-from .paths import cache_dir
-from .pipeline import _resolve_musescore
+from .musicxml_parts import list_score_parts
 from .publication_layout import apply_publication_layout, merged_publication_settings
 from .publication_store_v2 import PublicationStoreV2
-from .runner import CommandError, run_command
-from .runtime_settings import runtime_settings
 from .score_structure import (
     delete_measure,
     delete_note,
@@ -110,16 +104,6 @@ class SignaturePatch(BaseModel):
     key_mode: Literal["major", "minor"] | None = None
     beats: int | None = Field(default=None, ge=1, le=32)
     beat_type: Literal[1, 2, 4, 8, 16, 32] | None = None
-
-
-ExportKind = Literal["musicxml", "pdf", "midi", "parts"]
-
-
-class ExportRequest(BaseModel):
-    formats: list[ExportKind] = Field(
-        default_factory=lambda: ["musicxml", "pdf", "midi", "parts"],
-        min_length=1,
-    )
 
 
 def _sync() -> None:
@@ -215,12 +199,6 @@ def _refresh_layout(song: dict, path: Path | None = None) -> Path:
         settings=_publication_store.read(song["song_id"]),
     )
     return target
-
-
-def _musescore_env() -> dict[str, str] | None:
-    if platform.system() != "Linux":
-        return None
-    return {"QT_QPA_PLATFORM": "offscreen", "MU_QT_QPA_PLATFORM": "offscreen"}
 
 
 def _mutate(song_id: str, operation) -> dict:
@@ -505,69 +483,6 @@ def patch_measure_signature(song_id: str, measure_index: int, payload: Signature
         return {"measure_index": measure_index}
 
     return _mutate(song_id, operation)
-
-
-@router.post("/{song_id}/export")
-def build_exports(song_id: str, payload: ExportRequest | None = None) -> dict:
-    song = _require_song(song_id)
-    requested = set((payload or ExportRequest()).formats)
-    needs_renderer = bool(requested & {"pdf", "midi", "parts"})
-    settings = runtime_settings()
-    musescore = _resolve_musescore(settings) if needs_renderer else None
-    if needs_renderer and not musescore:
-        raise HTTPException(
-            409,
-            "MuseScore 4 실행 파일을 찾을 수 없습니다. Setup에서 경로를 지정하세요.",
-        )
-
-    _song_store.clear_exports(song_id)
-    export_dir = _song_store.export_dir(song_id)
-    env = _musescore_env()
-    cache_root = cache_dir() / "export"
-    cache_root.mkdir(parents=True, exist_ok=True)
-
-    try:
-        with tempfile.TemporaryDirectory(prefix=f"{song_id}-", dir=cache_root) as raw_temp:
-            temp_dir = Path(raw_temp)
-            source = temp_dir / "score.musicxml"
-            source.write_text(_song_store.score_xml(song_id), encoding="utf-8")
-            apply_publication_layout(
-                source,
-                title=song["title"],
-                settings=_publication_store.read(song_id),
-            )
-
-            if "musicxml" in requested:
-                shutil.copy2(source, export_dir / "score.musicxml")
-            if "pdf" in requested:
-                run_command(musescore, ["-o", export_dir / "score.pdf", source], env=env)
-            if "midi" in requested:
-                run_command(musescore, ["-o", export_dir / "score.mid", source], env=env)
-            if "parts" in requested:
-                parts_dir = export_dir / "parts"
-                parts_dir.mkdir(parents=True, exist_ok=True)
-                for part in list_score_parts(source):
-                    slug = str(part["slug"])
-                    part_xml = parts_dir / f"{slug}.musicxml"
-                    part_pdf = parts_dir / f"{slug}.pdf"
-                    extract_part_musicxml(source, str(part["part_id"]), part_xml)
-                    run_command(musescore, ["-o", part_pdf, part_xml], env=env)
-    except (CommandError, ValueError) as exc:
-        _song_store.clear_exports(song_id)
-        raise HTTPException(500, f"MuseScore export failed: {exc}") from exc
-
-    updated = _song_store.get(song_id) or song
-    files = {
-        kind: f"/api/songs/{song_id}/files/{kind}"
-        for kind in ("musicxml", "pdf", "midi")
-        if kind in requested
-    }
-    return {
-        "song": _public(updated),
-        "files": files,
-        "parts": _part_exports(updated),
-        "formats": sorted(requested),
-    }
 
 
 @router.get("/{song_id}/files/parts/{slug}/{kind}")

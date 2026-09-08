@@ -16,7 +16,6 @@ class NotationSettingsPayload(BaseModel):
     audiveris_cmd: str | None = None
     lilypond_cmd: str | None = None
     musicxml2ly_cmd: str | None = None
-    musescore_cmd: str | None = None
 
 
 def _snapshot() -> dict:
@@ -26,15 +25,13 @@ def _snapshot() -> dict:
             "audiveris_cmd": settings.audiveris_cmd,
             "lilypond_cmd": settings.lilypond_cmd,
             "musicxml2ly_cmd": settings.musicxml2ly_cmd,
-            "musescore_cmd": settings.musescore_cmd,
         },
         "backends": backend_status(settings),
         "omr": audiveris_status(settings.audiveris_cmd),
         "policy": {
             "preview": "osmd",
             "midi_musicxml": "music21",
-            "pdf_preferred": "lilypond",
-            "pdf_fallback": "musescore",
+            "pdf_renderer": "lilypond",
             "musescore_required": False,
         },
     }

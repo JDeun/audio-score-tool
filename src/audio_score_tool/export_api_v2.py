@@ -8,8 +8,8 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from .notation_export_api import build_exports_v3
-from .song_api_v2 import ExportKind, ExportRequest, _require_song, _song_store
+from .notation_export_api import ExportKind, ExportRequest, build_exports_v3
+from .song_api_v2 import _require_song, _song_store
 
 router = APIRouter(prefix="/api/songs", tags=["desktop-export-v2"])
 
