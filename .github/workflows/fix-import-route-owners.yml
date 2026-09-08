@@ -1,0 +1,47 @@
+name: One-shot Import Route Owner Fix
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches: ["chore/post-merge-hardening"]
+    paths: [".github/workflows/fix-import-route-owners.yml"]
+
+jobs:
+  fix:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: true
+      - name: Apply route owner invariants
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path("src/audio_score_tool/api_ext.py")
+          text = path.read_text(encoding="utf-8")
+          text = text.replace(
+              "from .direct_score_import_api import router as direct_score_import_router\n",
+              "from .direct_score_import_api import import_notation\nfrom .direct_score_import_api import router as direct_score_import_router\n",
+              1,
+          )
+          text = text.replace(
+              "from .omr_api import router as omr_router\n",
+              "from .omr_api import import_score\nfrom .omr_api import router as omr_router\n",
+              1,
+          )
+          anchor = '_ensure_route("/api/storage/cleanup", "POST", cleanup_storage_v2, tag="storage-v2")\n'
+          replacement = anchor + '\n# Score import owners. FastAPI router copies can otherwise be lost while the app still\n# composes the legacy base application, so keep these product contracts explicit too.\n_ensure_route("/api/import/score", "POST", import_score, tag="omr")\n_ensure_route("/api/import/notation", "POST", import_notation, tag="score-import")\n'
+          if anchor not in text:
+              raise SystemExit("route anchor not found")
+          text = text.replace(anchor, replacement, 1)
+          path.write_text(text, encoding="utf-8")
+          Path(".github/workflows/fix-import-route-owners.yml").unlink()
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: guarantee public score import route owners"
+          git push
