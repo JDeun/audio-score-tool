@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import shutil
-import zipfile
 import xml.etree.ElementTree as ET
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Event
@@ -50,10 +50,7 @@ def _is_musicxml(text: str) -> bool:
 
 
 def _read_zip_member(archive: zipfile.ZipFile, name: str, *, max_bytes: int) -> bytes:
-    try:
-        info = archive.getinfo(name)
-    except KeyError:
-        raise
+    info = archive.getinfo(name)
     if info.file_size < 0 or info.file_size > max_bytes:
         raise OMRImportError(f"MXL 항목이 허용 크기를 초과합니다: {name}")
     with archive.open(info, "r") as handle:
