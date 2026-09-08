@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from collections.abc import Callable
 
 import uvicorn
@@ -169,12 +170,28 @@ _ensure_route(
 _ensure_route("/api/storage/cleanup", "POST", cleanup_storage_v2, tag="storage-v2")
 
 
+def _server_port() -> int:
+    raw = os.getenv("AST_API_PORT", "8080").strip()
+    try:
+        port = int(raw)
+    except ValueError as exc:
+        raise RuntimeError("AST_API_PORT must be an integer between 1 and 65535") from exc
+    if not 1 <= port <= 65535:
+        raise RuntimeError("AST_API_PORT must be an integer between 1 and 65535")
+    return port
+
+
 def run() -> None:
     # Filesystem recovery removes partial uploads/work buffers and can restore an export
     # backup. Keep that side effect out of module import so pytest/OpenAPI inspection is
     # non-destructive; execute it only when the actual sidecar/server is launched.
     recover_startup_state(job_store=base_api._store)
-    uvicorn.run("audio_score_tool.api_ext:app", host="127.0.0.1", port=8080, reload=False)
+    uvicorn.run(
+        "audio_score_tool.api_ext:app",
+        host="127.0.0.1",
+        port=_server_port(),
+        reload=False,
+    )
 
 
 if __name__ == "__main__":
