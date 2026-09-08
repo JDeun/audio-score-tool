@@ -3,12 +3,20 @@ from __future__ import annotations
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Protocol
 
 from .job_store import JobStore
 from .paths import database_path
-from .song_store_v2 import SongStoreV2
-from .song_tombstones import SongTombstoneStore
 from .sqlite_runtime import connect_sqlite
+
+
+class SongIngestionStore(Protocol):
+    def sync_completed_jobs(self, jobs: list[dict]) -> int: ...
+    def get_by_job(self, job_id: str) -> dict | None: ...
+
+
+class TombstoneLookup(Protocol):
+    def contains(self, job_id: str | None) -> bool: ...
 
 
 @dataclass(frozen=True)
@@ -73,17 +81,18 @@ class JobIngestionState:
 def reconcile_completed_jobs(
     *,
     job_store: JobStore,
-    song_store: SongStoreV2,
-    tombstones: SongTombstoneStore,
+    song_store: SongIngestionStore,
+    tombstones: TombstoneLookup,
     state: JobIngestionState | None = None,
     batch_size: int = 200,
     max_batches: int | None = 1,
 ) -> dict[str, int | str]:
     """Incrementally ingest completed jobs without scanning the whole job table.
 
-    Cursor advancement is ordered by `(updated_at, job_id)`, making restart behavior
-    deterministic. `SongStoreV2.sync_completed_jobs` remains the idempotency boundary
-    through its unique `job_id` constraint.
+    The durable cursor advances only after a Job is known to be safe to pass: it was
+    explicitly tombstoned, was already ingested, or was successfully ingested now.
+    A transient missing/corrupt score therefore blocks at that Job and is retried on
+    the next reconciliation instead of being skipped forever.
     """
 
     state = state or JobIngestionState(job_store.path)
@@ -91,6 +100,7 @@ def reconcile_completed_jobs(
     scanned = 0
     created = 0
     batches = 0
+    blocked = 0
 
     while max_batches is None or batches < max_batches:
         jobs = job_store.list_completed_after(
@@ -101,18 +111,40 @@ def reconcile_completed_jobs(
         if not jobs:
             break
         batches += 1
-        scanned += len(jobs)
-        eligible = [job for job in jobs if not tombstones.contains(job.get("job_id"))]
-        created += song_store.sync_completed_jobs(eligible)
-        last = jobs[-1]
-        cursor = IngestionCursor(str(last["updated_at"]), str(last["job_id"]))
-        state.write(cursor)
-        if len(jobs) < batch_size:
-            break
+
+        for job in jobs:
+            scanned += 1
+            job_id = str(job.get("job_id") or "")
+            if not job_id:
+                blocked += 1
+                break
+
+            if tombstones.contains(job_id):
+                cursor = IngestionCursor(str(job["updated_at"]), job_id)
+                state.write(cursor)
+                continue
+
+            if song_store.get_by_job(job_id) is None:
+                created_now = song_store.sync_completed_jobs([job])
+                created += created_now
+                if created_now == 0 and song_store.get_by_job(job_id) is None:
+                    blocked += 1
+                    break
+
+            cursor = IngestionCursor(str(job["updated_at"]), job_id)
+            state.write(cursor)
+        else:
+            if len(jobs) < batch_size:
+                break
+            continue
+
+        # A blocked Job must remain the next candidate on a later pass.
+        break
 
     return {
         "scanned": scanned,
         "created": created,
+        "blocked": blocked,
         "batches": batches,
         "cursor_updated_at": cursor.updated_at,
         "cursor_job_id": cursor.job_id,
@@ -122,8 +154,8 @@ def reconcile_completed_jobs(
 def full_reconcile_completed_jobs(
     *,
     job_store: JobStore,
-    song_store: SongStoreV2,
-    tombstones: SongTombstoneStore,
+    song_store: SongIngestionStore,
+    tombstones: TombstoneLookup,
     batch_size: int = 500,
 ) -> dict[str, int | str]:
     return reconcile_completed_jobs(
