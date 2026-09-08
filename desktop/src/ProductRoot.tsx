@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import DesktopUpdaterControl from "./DesktopUpdaterControl";
 import OperationsWorkspace from "./OperationsWorkspace";
 import SongWorkspace from "./SongWorkspace";
 import "./song-workspace.css";
@@ -56,6 +57,14 @@ function NavIcon({ name }: { name: ProductSection }) {
   return <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
 }
 
+function focusableElements(container: HTMLElement): HTMLElement[] {
+  return Array.from(
+    container.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ),
+  ).filter((element) => !element.hasAttribute("hidden") && element.getAttribute("aria-hidden") !== "true");
+}
+
 export default function ProductRoot() {
   const [section, setSection] = useState<ProductSection>(() => {
     const saved = window.localStorage.getItem("ast-section");
@@ -69,6 +78,8 @@ export default function ProductRoot() {
     () => window.localStorage.getItem("ast-onboarding-v1") !== "done",
   );
   const [onboardingStep, setOnboardingStep] = useState(0);
+  const onboardingDialogRef = useRef<HTMLElement | null>(null);
+  const onboardingReturnFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     window.localStorage.setItem("ast-section", section);
@@ -92,6 +103,7 @@ export default function ProductRoot() {
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
+      if (showOnboarding) return;
       if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) return;
       const keyMap: Record<string, ProductSection> = { n: "new", l: "songs", h: "history", b: "benchmark", s: "settings" };
@@ -100,7 +112,7 @@ export default function ProductRoot() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [showOnboarding]);
 
   const accelerator = useMemo(() => {
     const device = health?.device_plan.muscriptor_device;
@@ -120,6 +132,62 @@ export default function ProductRoot() {
     setShowOnboarding(false);
     setSection(destination);
   };
+
+  useEffect(() => {
+    if (!showOnboarding) {
+      const returnTarget = onboardingReturnFocusRef.current;
+      onboardingReturnFocusRef.current = null;
+      if (returnTarget?.isConnected) {
+        window.requestAnimationFrame(() => returnTarget.focus());
+      }
+      return;
+    }
+
+    if (!onboardingReturnFocusRef.current && document.activeElement instanceof HTMLElement) {
+      onboardingReturnFocusRef.current = document.activeElement;
+    }
+
+    const dialog = onboardingDialogRef.current;
+    if (!dialog) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const focusables = focusableElements(dialog);
+      (focusables[0] ?? dialog).focus();
+    });
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        finishOnboarding("new");
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const focusables = focusableElements(dialog);
+      if (focusables.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey && (active === first || !dialog.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [showOnboarding, onboardingStep]);
 
   return (
     <div className="product-frame">
@@ -167,6 +235,7 @@ export default function ProductRoot() {
               <small>{offline ? "로컬 서비스를 확인하세요" : accelerator}</small>
             </div>
           </div>
+          <DesktopUpdaterControl />
           <span className="product-version">v0.8 · 로컬 우선</span>
         </div>
       </aside>
@@ -198,7 +267,15 @@ export default function ProductRoot() {
 
       {showOnboarding && (
         <div className="onboarding-backdrop" role="presentation">
-          <section className="onboarding-card" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+          <section
+            ref={onboardingDialogRef}
+            className="onboarding-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="onboarding-title"
+            aria-describedby="onboarding-description"
+            tabIndex={-1}
+          >
             <div className="onboarding-progress" aria-label={`3단계 중 ${onboardingStep + 1}단계`}>
               {[0, 1, 2].map((step) => <span key={step} className={step <= onboardingStep ? "active" : ""} />)}
             </div>
@@ -208,7 +285,7 @@ export default function ProductRoot() {
                 <div className="onboarding-icon">♬</div>
                 <span className="page-eyebrow">WELCOME</span>
                 <h2 id="onboarding-title">입력 소스를 출판 가능한 악보 프로젝트로</h2>
-                <p>AudioScoreTool은 음원·YouTube를 자동 채보하고 PDF/이미지 악보를 OMR로 가져와, 앱 안에서 검증·수정·조판한 뒤 PDF/MusicXML/MIDI로 내보내는 로컬 데스크탑 앱입니다.</p>
+                <p id="onboarding-description">AudioScoreTool은 음원·YouTube를 자동 채보하고 PDF/이미지 악보를 OMR로 가져와, 앱 안에서 검증·수정·조판한 뒤 PDF/MusicXML/MIDI로 내보내는 로컬 데스크탑 앱입니다.</p>
                 <div className="onboarding-features">
                   <span>다중 악기 자동 채보</span><span>OMR·코드·가사</span><span>출판용 악보 편집</span>
                 </div>
@@ -219,7 +296,7 @@ export default function ProductRoot() {
               <div className="onboarding-content">
                 <span className="page-eyebrow">ENVIRONMENT CHECK</span>
                 <h2 id="onboarding-title">실행 환경 확인</h2>
-                <p>핵심 채보는 로컬에서 실행되며, LLM/Vision 검증은 선택 사항입니다. 아래 필수 항목이 준비되면 바로 시작할 수 있습니다.</p>
+                <p id="onboarding-description">핵심 채보는 로컬에서 실행되며, LLM/Vision 검증은 선택 사항입니다. 아래 필수 항목이 준비되면 바로 시작할 수 있습니다.</p>
                 <div className="check-list">
                   <div><span className={offline ? "check-bad" : "check-good"}>{offline ? "!" : "✓"}</span><strong>AudioScoreTool 백엔드</strong><small>{offline ? "연결되지 않음" : "정상"}</small></div>
                   <div><span className={ready ? "check-good" : "check-warn"}>{ready ? "✓" : "!"}</span><strong>로컬 도구</strong><small>{ready ? "필수 도구 확인됨" : `${health?.preflight.missing?.length ?? 0}개 항목 확인 필요`}</small></div>
@@ -232,7 +309,7 @@ export default function ProductRoot() {
               <div className="onboarding-content">
                 <span className="page-eyebrow">READY</span>
                 <h2 id="onboarding-title">준비가 끝났습니다</h2>
-                <p>로컬 음원, YouTube 링크, PDF/이미지 악보 중 원하는 입력으로 시작하세요. 결과는 자동으로 곡 라이브러리에 저장됩니다.</p>
+                <p id="onboarding-description">로컬 음원, YouTube 링크, PDF/이미지 악보 중 원하는 입력으로 시작하세요. 결과는 자동으로 곡 라이브러리에 저장됩니다.</p>
                 <div className="onboarding-actions-grid">
                   <button onClick={() => finishOnboarding("new")}><strong>새 악보 만들기</strong><span>음원·YouTube·기존 악보에서 시작</span></button>
                   <button onClick={() => finishOnboarding("settings")}><strong>설정 먼저 확인</strong><span>모델·인증·실행 경로 점검</span></button>

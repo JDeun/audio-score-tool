@@ -74,6 +74,14 @@ jobs:
         working-directory: desktop
         run: npm run build
 
+      - name: Install Playwright Chromium
+        working-directory: desktop
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Keyboard accessibility E2E
+        working-directory: desktop
+        run: npm run test:e2e
+
       - name: Generate Tauri icons
         working-directory: desktop
         run: npx --no-install tauri icon src-tauri/icons/icon.png
