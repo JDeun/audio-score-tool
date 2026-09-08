@@ -84,10 +84,16 @@ async fn install_pending_update(
         .await
         .map_err(|error| error.to_string())?;
 
-    #[cfg(not(target_os = "windows"))]
-    app.restart();
+    #[cfg(target_os = "windows")]
+    {
+        let _ = app;
+        Ok(())
+    }
 
-    Ok(())
+    #[cfg(not(target_os = "windows"))]
+    {
+        app.restart()
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
