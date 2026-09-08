@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from .song_api_v2 import _require_song, _song_store, _tombstones
+from .song_routes import _require_song, _song_store, _tombstones
 
 router = APIRouter(prefix="/api/songs", tags=["song-delete-v2"])
 
