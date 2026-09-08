@@ -1,12 +1,17 @@
-use std::{net::TcpListener, sync::Mutex};
+use std::{net::TcpListener, sync::Mutex, time::Duration};
 
-use tauri::{Manager, RunEvent, State};
+use tauri::{AppHandle, Manager, RunEvent, State};
 use tauri_plugin_shell::{process::CommandChild, ShellExt};
+#[cfg(desktop)]
+use tauri_plugin_updater::{Update, UpdaterExt};
 use uuid::Uuid;
 
 type BackendChild = Mutex<Option<CommandChild>>;
 struct BackendApiToken(String);
 struct BackendApiBaseUrl(String);
+
+#[cfg(desktop)]
+struct PendingUpdate(Mutex<Option<Update>>);
 
 #[tauri::command]
 fn backend_api_token(state: State<'_, BackendApiToken>) -> String {
@@ -16,6 +21,73 @@ fn backend_api_token(state: State<'_, BackendApiToken>) -> String {
 #[tauri::command]
 fn backend_api_base_url(state: State<'_, BackendApiBaseUrl>) -> String {
     state.0.clone()
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+fn updater_configured() -> bool {
+    option_env!("AST_UPDATER_PUBKEY").is_some()
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+async fn check_for_update(
+    app: AppHandle,
+    pending_update: State<'_, PendingUpdate>,
+) -> Result<Option<String>, String> {
+    let Some(pubkey) = option_env!("AST_UPDATER_PUBKEY") else {
+        return Ok(None);
+    };
+
+    let endpoint = "https://github.com/JDeun/audio-score-tool/releases/latest/download/latest.json"
+        .parse()
+        .map_err(|error| format!("invalid updater endpoint: {error}"))?;
+    let update = app
+        .updater_builder()
+        .pubkey(pubkey)
+        .endpoints(vec![endpoint])
+        .map_err(|error| error.to_string())?
+        .timeout(Duration::from_secs(20))
+        .build()
+        .map_err(|error| error.to_string())?
+        .check()
+        .await
+        .map_err(|error| error.to_string())?;
+    let version = update.as_ref().map(|candidate| candidate.version.clone());
+
+    let mut guard = pending_update
+        .0
+        .lock()
+        .map_err(|_| "updater state lock is poisoned".to_string())?;
+    *guard = update;
+    Ok(version)
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+async fn install_pending_update(
+    app: AppHandle,
+    pending_update: State<'_, PendingUpdate>,
+) -> Result<(), String> {
+    let update = {
+        let mut guard = pending_update
+            .0
+            .lock()
+            .map_err(|_| "updater state lock is poisoned".to_string())?;
+        guard
+            .take()
+            .ok_or_else(|| "there is no pending update".to_string())?
+    };
+
+    update
+        .download_and_install(|_, _| {}, || {})
+        .await
+        .map_err(|error| error.to_string())?;
+
+    #[cfg(not(target_os = "windows"))]
+    app.restart();
+
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -58,9 +130,27 @@ pub fn run() {
         .manage(BackendApiBaseUrl(api_base_url))
         .invoke_handler(tauri::generate_handler![
             backend_api_token,
-            backend_api_base_url
+            backend_api_base_url,
+            #[cfg(desktop)]
+            updater_configured,
+            #[cfg(desktop)]
+            check_for_update,
+            #[cfg(desktop)]
+            install_pending_update
         ])
         .setup(move |app| {
+            #[cfg(desktop)]
+            {
+                app.manage(PendingUpdate(Mutex::new(None)));
+                if let Some(pubkey) = option_env!("AST_UPDATER_PUBKEY") {
+                    app.handle().plugin(
+                        tauri_plugin_updater::Builder::new()
+                            .pubkey(pubkey)
+                            .build(),
+                    )?;
+                }
+            }
+
             // Development starts the Python API via npm's desktop:dev script.
             // Packaged builds launch the bundled PyInstaller orchestration sidecar.
             let mut child = None;
