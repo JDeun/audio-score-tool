@@ -1,0 +1,86 @@
+name: Remove final MuseScore runtime paths (temporary)
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches: ["fix/remove-musescore-dependency"]
+    paths: [".github/workflows/remove-final-musescore-temp.yml"]
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: fix/remove-musescore-dependency
+      - name: Apply cleanup
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          # Legacy song router: v0.8 owns export; delete the retired MuseScore implementation.
+          path = Path("src/audio_score_tool/song_api.py")
+          text = path.read_text(encoding="utf-8")
+          text = text.replace("import platform\n", "")
+          text = text.replace("from .config import Settings\n", "")
+          text = text.replace("from .musicxml_parts import extract_part_musicxml, list_score_parts\n", "from .musicxml_parts import list_score_parts\n")
+          text = text.replace("from .pipeline import _resolve_musescore\n", "")
+          text = text.replace("from .runner import CommandError, run_command\n", "")
+          text = text.replace("from .settings_store import SettingsStore\n", "")
+          text = text.replace("_settings_store = SettingsStore()\n", "")
+          text = re.sub(r"\n\ndef _runtime_settings\(\).*?\n\ndef _initialize_publication", "\n\ndef _initialize_publication", text, flags=re.S)
+          text = re.sub(r"\n\ndef _musescore_env\(\).*?\n\n@router\.get\(\"\"\)", "\n\n@router.get(\"\")", text, flags=re.S)
+          text = re.sub(r"\n\n@router\.post\(\"/\{song_id\}/export\"\).*?(?=\n\n@router\.|\Z)", "", text, flags=re.S)
+          path.write_text(text, encoding="utf-8")
+
+          # Native engine: MIDI -> MusicXML is music21; PDF is an explicit later export.
+          path = Path("src/audio_score_tool/native_cli.py")
+          text = path.read_text(encoding="utf-8")
+          text = text.replace("import os\n", "")
+          text = text.replace("import shutil\n", "")
+          text = text.replace("from .runner import CommandError, run_command\n", "from .notation_backend import NotationBackendError, midi_to_musicxml\n")
+          text = re.sub(r"\n\ndef _resolve_musescore\(\).*?\n\ndef _torch_device", "\n\ndef _torch_device", text, flags=re.S)
+          old = '''    musescore = _resolve_musescore()\n    if not musescore:\n        raise typer.BadParameter(\n            "MuseScore 4 is required to quantize the native MIDI result into MusicXML. "\n            "Set AST_MUSESCORE_CMD when it is not discoverable on PATH."\n        )\n\n    musicxml_path = output / "score.musicxml"\n    pdf_path = output / "full_score.pdf"\n    try:\n        run_command(musescore, ["-o", musicxml_path, midi_path])\n        run_command(musescore, ["-o", pdf_path, musicxml_path])\n    except CommandError as exc:\n        raise typer.Exit(code=2) from exc\n'''
+          assert old in text
+          text = text.replace(old, '''    musicxml_path = output / "score.musicxml"\n    try:\n        midi_to_musicxml(midi_path, musicxml_path)\n    except NotationBackendError as exc:\n        typer.echo(f"MusicXML conversion failed: {exc}", err=True)\n        raise typer.Exit(code=2) from exc\n''')
+          path.write_text(text, encoding="utf-8")
+
+          # Legacy pipeline remains importable for helpers/tests, but renderer is MuseScore-free.
+          path = Path("src/audio_score_tool/pipeline.py")
+          text = path.read_text(encoding="utf-8")
+          text = text.replace("import os\n", "")
+          text = text.replace("import platform\n", "")
+          text = text.replace("from .models import PipelineResult\n", "from .models import PipelineResult\nfrom .notation_backend import NotationBackendError, render_pdf\n")
+          text = re.sub(r"\n\ndef _resolve_musescore\(.*?\n\ndef _render_pdf", "\n\ndef _render_pdf", text, flags=re.S)
+          text = re.sub(
+              r"def _render_pdf\(\n    musicxml: Path,\n    pdf: Path,\n    settings: Settings,\n    cancel_event: Event \| None = None,\n\) -> bool:\n.*?\n\ndef _render_instrument_parts",
+              '''def _render_pdf(\n    musicxml: Path,\n    pdf: Path,\n    settings: Settings,\n    cancel_event: Event | None = None,\n) -> bool:\n    try:\n        render_pdf(musicxml, pdf, settings=settings, cancel_event=cancel_event)\n        return pdf.exists()\n    except CommandCancelled:\n        raise\n    except NotationBackendError:\n        return False\n\n\ndef _render_instrument_parts''',
+              text,
+              flags=re.S,
+          )
+          text = text.replace('        "musescore_override_or_path": _resolve_musescore(settings) is not None,\n', '')
+          text = text.replace('    if not tools["musescore_override_or_path"]:\n        missing.append("musescore")\n', '')
+          text = text.replace('"Could not render the chord-enriched full score with MuseScore. "', '"Could not render the chord-enriched full score with LilyPond. "')
+          path.write_text(text, encoding="utf-8")
+
+          # Legacy operations screen: remove retired path field from request and UI.
+          path = Path("desktop/src/OperationsWorkspace.tsx")
+          text = path.read_text(encoding="utf-8")
+          text = text.replace('    musescore: string;\n', '')
+          text = text.replace('          musescore_cmd: toolPaths.musescore_cmd || null,\n', '')
+          text = text.replace(', ["musescore_cmd", "MuseScore"]', '')
+          path.write_text(text, encoding="utf-8")
+      - name: Verify no runtime command reference remains
+        run: |
+          ! grep -Rni --include='*.py' --include='*.ts' --include='*.tsx' 'musescore_cmd' src/audio_score_tool desktop/src
+      - name: Commit cleanup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/audio_score_tool/song_api.py src/audio_score_tool/native_cli.py src/audio_score_tool/pipeline.py desktop/src/OperationsWorkspace.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m "refactor: remove final MuseScore runtime paths"
+          git push origin HEAD:fix/remove-musescore-dependency
