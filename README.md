@@ -102,33 +102,24 @@ YourMT3+ checkpoint와 `mt3-infer` vendored implementation은 Apache-2.0으로 �
 
 ---
 
-## MuseScore는 필수인가?
+## MuseScore 비의존 정책
 
-**아닙니다. v0.8부터 MuseScore는 필수가 아니라 선택적 compatibility fallback입니다.**
-
-역할을 다음처럼 분리합니다.
+AudioScoreTool은 **MuseScore 4를 설치하지 않아도 전체 핵심 워크플로가 동작하도록 설계합니다.** MuseScore CLI를 runtime fallback으로 호출하지 않습니다.
 
 ```text
 미리보기            OSMD
 MIDI ↔ MusicXML     music21 (BSD)
 파트 분리           AudioScoreTool 자체 MusicXML 처리
-MusicXML → PDF       LilyPond 우선
-                     MuseScore 선택적 fallback
+MusicXML → PDF       LilyPond + musicxml2ly
 OMR                 Audiveris
 ```
 
-따라서 MuseScore가 없어도 다음이 가능합니다.
+- MusicXML 미리보기/편집 및 export는 MuseScore와 무관합니다.
+- MIDI 변환은 `music21`이 담당합니다.
+- PDF/파트 PDF가 필요할 때만 LilyPond와 `musicxml2ly`가 필요합니다.
+- PDF renderer가 없어도 채보·편집·MusicXML/MIDI 작업은 계속 사용할 수 있습니다.
 
-- MuScriptor 결과 편집
-- MT3 계열 MIDI → MusicXML 변환 (`music21`)
-- MusicXML 미리보기/편집
-- MusicXML export
-- MIDI export
-- LilyPond가 설치되어 있으면 PDF/파트 PDF export
-
-MuseScore는 LilyPond에서 변환이 잘 되지 않는 특정 MusicXML 호환성 문제나 기존 MuseScore 레이아웃을 선호할 때 fallback으로 사용할 수 있습니다.
-
-LilyPond의 `musicxml2ly`는 MusicXML의 모든 기능을 완벽하게 보존하는 것은 아니므로, 실제 타깃 악보 Golden Set에서 PDF fidelity를 비교해야 합니다.
+`musicxml2ly`가 MusicXML의 모든 표기 기능을 완벽하게 보존하는 것은 아니므로 실제 타깃 악보 Golden Set에서 PDF fidelity는 별도로 검증합니다.
 
 ---
 
@@ -249,15 +240,7 @@ Audiveris를 설치하고 CLI 경로를 지정합니다.
 export AST_AUDIVERIS_CMD=audiveris
 ```
 
-### 6. MuseScore — 선택 사항
-
-필요할 때만 fallback으로 지정합니다.
-
-```bash
-export AST_MUSESCORE_CMD=/path/to/musescore
-```
-
-### 7. 데스크탑 앱
+### 6. 데스크탑 앱
 
 ```bash
 cd desktop
@@ -315,7 +298,6 @@ Application Data/
 - music21: BSD 3-Clause
 - LilyPond: GPL → 외부 실행 프로그램으로 사용
 - Audiveris: GNU AGPL v3 → 외부 OMR 프로그램으로 사용, 번들/수정 시 별도 의무 검토
-- MuseScore: GPL → 선택적 외부 fallback
 - AudioScore Native: project-owned checkpoint 목표
 
 유료 배포 전에는 고정한 runtime/checkpoint/external-tool revision과 실제 배포 artifact의 라이선스를 다시 검토해야 합니다.

@@ -89,7 +89,6 @@ class ToolPathSettings(BaseModel):
     demucs_cmd: str | None = None
     whisperx_cmd: str | None = None
     yt_dlp_cmd: str | None = None
-    musescore_cmd: str | None = None
 
 
 class YouTubeInspectRequest(BaseModel):
@@ -118,7 +117,6 @@ def _runtime_settings(
         demucs_cmd=saved.get("demucs_cmd") or defaults.demucs_cmd,
         whisperx_cmd=saved.get("whisperx_cmd") or defaults.whisperx_cmd,
         yt_dlp_cmd=saved.get("yt_dlp_cmd") or defaults.yt_dlp_cmd,
-        musescore_cmd=saved.get("musescore_cmd") or defaults.musescore_cmd,
         muscriptor_model=muscriptor_model,
         whisperx_model=whisperx_model,
     )
