@@ -11,7 +11,8 @@ from .job_artifact_api_v2 import router as job_artifact_router
 from .job_lifecycle_api_v2 import router as job_lifecycle_router
 from .model_manager_api import router as model_manager_router
 from .notation_api import router as notation_router
-from .notation_export_api import build_exports, router as notation_export_router
+from .notation_export_api import build_exports
+from .notation_export_api import router as notation_export_router
 from .omr_api import router as omr_router
 from .pipeline_v2 import transcribe as transcribe_v2
 from .preflight_v2 import preflight as preflight_v2
