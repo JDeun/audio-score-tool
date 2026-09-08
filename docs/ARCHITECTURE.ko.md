@@ -2,102 +2,124 @@
 
 ## 목표
 
-AudioScoreTool은 완성된 음원 또는 YouTube URL을 입력으로 받아 다중 악기 악보를 생성하고, 곡 단위로 DB에 저장·편집·검증한 뒤 사용자가 확정한 시점에만 출판 파일을 만드는 로컬 우선 데스크탑 애플리케이션입니다.
+AudioScoreTool은 음원·YouTube·기존 악보를 **Canonical MusicXML**로 통합하고, 곡 단위 SQLite 프로젝트로 저장·검증·편집한 뒤 사용자가 확정한 시점에만 최종 출판 파일을 만드는 local-first 데스크탑 애플리케이션입니다.
 
-핵심 정책은 두 가지입니다.
+핵심 원칙은 다음과 같습니다.
 
-1. **속도보다 최종 악보 품질 우선**
-2. **LLM은 검증 critic이지 acoustic ground truth가 아님**
+1. **속도보다 최종 악보 품질과 수정량 감소 우선**
+2. **SQLite + MusicXML을 편집 상태의 canonical source로 사용**
+3. **채보/OMR/직접 import와 export를 분리**
+4. **선택 기능의 실패가 핵심 편집 workflow 전체를 막지 않도록 degradation**
+5. **LLM은 critic이지 acoustic ground truth가 아님**
 
-## 전체 흐름
+## 전체 데이터 흐름
 
 ```text
-Local Audio / YouTube
-        ↓
-Input preparation
-        ↓
-Usage-aware Transcription Policy
-├─ personal   → MuScriptor large (quality first)
-│                └─ fallback: YourMT3+ → MR-MT3
-└─ commercial → YourMT3+ (quality candidate)
-                 └─ fallback: MR-MT3
-        ↓
-MIDI + MusicXML
-        ↓
-Auto chord analysis
-        ↓
-MusicXML <harmony>
-
-Audio
-  ↓
-Demucs (optional)
-  ↓
-vocals.wav
-  ↓
-WhisperX
-  ↓
-word timestamps
-  ↓
-lyric-note alignment
-        ↓
-Canonical MusicXML
-        ↓
-SQLite Song Store
-├─ current/original score
-├─ revisions
-├─ analysis JSON
-└─ publication settings
-        ↓
-OSMD Preview / Inspector Edit
-        ↓
-DB Revision Commit
-        ↓
-Validation
-├─ deterministic score checks
-└─ optional OpenAI-compatible LLM critic
-        ↓
-사용자 확인
-        ↓
-[사용자: 최종 파일 생성]
-        ↓
-Temporary MusicXML materialization
-        ↓
-MuseScore
-        ↓
-MusicXML / PDF / MIDI / Part Scores
+Audio / YouTube ──→ AMT ───────────────┐
+                                        │
+PDF / Images ─────→ Audiveris OMR ─────┤
+                                        ├→ Canonical MusicXML
+MusicXML / MXL ───→ Validate/Normalize ─┤
+                                        │
+MIDI ─────────────→ music21 ────────────┘
+                                                ↓
+                                      SQLite Song Library
+                                  ┌─────────────┼─────────────┐
+                                  ↓             ↓             ↓
+                              Revisions      Analysis     Publication
+                                  └─────────────┼─────────────┘
+                                                ↓
+                                  OSMD Preview / Inspector Edit
+                                                ↓
+                              Deterministic Validation + optional LLM
+                                                ↓
+                                  [사용자: 최종 파일 생성]
+                                                ↓
+                                  Temporary MusicXML materialization
+                                                ↓
+                            ┌───────────────────┴──────────────────┐
+                            ↓                                      ↓
+                   music21 / 자체 처리                   LilyPond + musicxml2ly
+                     MIDI / MusicXML                         PDF / Part PDF
 ```
 
-채보 Job이 끝났다고 PDF나 파트보를 자동 생성하지 않습니다. PDF/MIDI/파트보는 명시적 Export 단계의 산출물입니다.
+채보 Job이 끝났다는 이유만으로 PDF나 파트보를 자동 생성하지 않습니다. export는 사용자 의사에 따라 수행되는 별도 단계입니다.
 
 ## 데스크탑 구조
 
 ```text
-Tauri 2
-├─ native folder dialog
+Tauri 2 shell
+├─ single-instance / native dialogs
+├─ bundled Python sidecar lifecycle
+├─ dynamic loopback port + runtime API token
+├─ updater integration
 └─ React + TypeScript + Vite
-   └─ http://127.0.0.1:8080
-      └─ FastAPI / Python sidecar
-         ├─ SQLite application DB
-         │  ├─ jobs
-         │  ├─ songs
-         │  ├─ song_revisions
-         │  ├─ song_analysis
-         │  └─ publication_settings
-         ├─ managed cache / assets
-         ├─ transcription providers
-         ├─ deterministic + LLM validation
-         ├─ Demucs / WhisperX
-         ├─ MusicXML editor
-         └─ MuseScore export
+       ↓ runtime endpoint discovery
+FastAPI / Python sidecar
+├─ canonical api.py application
+├─ SQLite application DB
+│  ├─ jobs
+│  ├─ songs
+│  ├─ song_revisions
+│  ├─ song_analysis
+│  └─ publication_settings
+├─ managed cache / assets / job workspaces
+├─ transcription providers
+├─ OMR / direct notation ingest
+├─ deterministic + optional LLM validation
+├─ MusicXML editor/mutation services
+└─ explicit export services
 ```
 
-### Tauri
+### Tauri shell
 
-데스크탑 shell과 OS 번들링을 담당합니다. 릴리스 빌드에서는 PyInstaller로 생성한 Python/FastAPI sidecar를 함께 실행합니다. 최종 Export에서는 Tauri dialog plugin으로 사용자가 실제 저장 폴더를 선택합니다.
+데스크탑 shell, OS 번들링, native folder dialog, single-instance, bundled sidecar lifecycle, updater integration을 담당합니다.
+
+packaged build는 고정 `8080` 포트를 전제로 하지 않습니다. shell이 사용 가능한 loopback port와 API token을 런타임에 준비하고 sidecar에 전달합니다. 개발 환경에서는 별도 개발 endpoint를 사용할 수 있지만, packaged runtime architecture를 문서에서 고정 localhost port로 모델링하지 않습니다.
 
 ### FastAPI sidecar
 
-모델 실행, 작업 큐, 저장공간 관리, 곡 API, 편집 API, DB Revision, validation, Export, 벤치마크를 제공합니다.
+공개 FastAPI application의 단일 owner는 `audio_score_tool.api`입니다. 주요 mutation/ingest endpoint는 method/path 소유자가 명시적으로 등록되어 import order나 compatibility router 조립에 의존하지 않습니다.
+
+sidecar는 다음을 제공합니다.
+
+- job 생성/취소/재시도/조회
+- song/revision/publication 저장
+- score ingest와 편집
+- validation/enrichment
+- storage cleanup/recovery
+- final export
+- startup diagnostics
+
+## 입력 계층
+
+### Audio / YouTube
+
+```text
+Input preparation
+        ↓
+Usage-aware Transcription Policy
+├─ personal   → MuScriptor large
+│                └─ fallback: YourMT3+ → MR-MT3
+└─ commercial → YourMT3+
+                 └─ fallback: MR-MT3
+        ↓
+MIDI + MusicXML
+        ↓
+선택적 chord / lyric enrichment
+```
+
+### PDF / Image OMR
+
+Audiveris를 외부 OMR backend로 사용합니다. 원본 asset을 보존하고 결과 MusicXML은 canonical validation/edit pipeline으로 들어갑니다.
+
+### MusicXML / MXL 직접 import
+
+MusicXML은 크기와 XML 구조를 검증합니다. 위험한 `DOCTYPE`/`ENTITY` 구조를 허용하지 않습니다. MXL은 안전하게 정규화한 뒤 동일한 MusicXML pipeline으로 들어갑니다.
+
+### MIDI 직접 import
+
+music21을 사용해 MusicXML로 변환합니다. 결과는 별도 임시 기능이 아니라 다른 입력과 동일한 Song/Revision/Validation pipeline으로 관리합니다.
 
 ## Job과 Song
 
@@ -105,13 +127,15 @@ Tauri 2
 
 ```text
 Job
-├─ queued/running/done/failed
+├─ kind / source provenance
+├─ queued / running / done / failed / cancelled
 ├─ input/cache
-└─ transcription intermediates
+└─ processing intermediates
 
-Song (SQLite canonical state)
+Song
 ├─ original_score_xml
 ├─ current_score_xml
+├─ source_kind
 ├─ publication_settings
 ├─ song_revisions
 ├─ song_analysis
@@ -121,91 +145,70 @@ Song (SQLite canonical state)
 └─ export state
 ```
 
-완료된 transcription Job은 Song으로 동기화됩니다. Song을 삭제한 경우 동일 Job에서 다시 생성되지 않도록 tombstone을 유지합니다.
-
-## 채보 정책
-
-### Personal / non-commercial
-
-정확도 최우선 경로입니다.
-
-```text
-MuScriptor large → YourMT3+ → MR-MT3
-```
-
-MuScriptor 공개 weights는 CC BY-NC 4.0이므로 personal mode에서만 허용합니다.
-
-### Commercial
-
-MuScriptor를 실행 단계에서 차단합니다.
-
-```text
-YourMT3+ → MR-MT3
-```
-
-YourMT3+는 정확도 우선 후보지만 source/checkpoint 라이선스 표기가 서로 달라 상용 배포 전 고정 revision 기준 provenance 검토가 필요합니다. MR-MT3는 MIT 경로가 더 단순한 fallback입니다.
-
-`auto` preset은 `quality`로 해석합니다. Fast/Balanced는 사용자가 명시적으로 선택할 때만 사용합니다.
+완료된 관련 Job은 incremental ingestion을 통해 Song으로 동기화합니다. 목록 조회가 전체 Job history를 매번 scan하지 않으며, startup/full reconciliation은 복구 경로로 사용합니다. 삭제한 Song이 같은 Job에서 다시 생성되지 않도록 tombstone을 유지합니다.
 
 ## 저장 계층
 
-### SQLite
+### SQLite canonical state
 
 악보 편집 상태의 단일 기준입니다. MusicXML 본문 자체를 `songs`와 `song_revisions`에 저장합니다.
 
 ### Managed cache
 
-OSMD 편집 도구나 MuseScore처럼 파일 경로가 필요한 구성요소를 위해 DB MusicXML을 잠시 materialize합니다. 이 파일은 삭제되어도 DB에서 다시 만들 수 있습니다.
+OSMD나 외부 notation tool처럼 파일 경로가 필요한 구성요소를 위해 DB MusicXML을 필요할 때 materialize합니다. cache는 삭제되어도 DB에서 재생성할 수 있어야 합니다.
 
 ### Managed assets
 
-MIDI 등 다시 사용할 가치가 있는 비교적 작은 binary artifact를 앱 데이터 디렉터리에 저장하고 DB가 위치를 관리합니다. 원본 대용량 음원, stem, 모델 checkpoint를 SQLite BLOB으로 넣지는 않습니다.
+OMR 원본, MIDI 등 다시 사용할 가치가 있는 비교적 작은 artifact를 앱 데이터 디렉터리에 저장하고 DB가 위치를 관리합니다. 대용량 원본 음원, Demucs stem, model checkpoint를 SQLite BLOB으로 넣지 않습니다.
 
 ### Explicit exports
 
-사용자가 `최종 파일 생성`을 실행할 때만 PDF/MIDI/MusicXML/파트보를 생성합니다. 악보 Revision이 바뀌면 앱 내부의 이전 export cache는 무효화합니다.
+사용자가 `최종 파일 생성`을 실행할 때만 MusicXML/MIDI/PDF/파트보를 생성합니다. Revision이 바뀌면 이전 export state를 stale로 처리합니다.
 
-자세한 내용은 [`STORAGE_V2.ko.md`](STORAGE_V2.ko.md)를 참고하세요.
+자세한 내용은 [`STORAGE_V2.ko.md`](STORAGE_V2.ko.md)를 참고하십시오.
+
+## Notation / export backend
+
+MuseScore CLI는 핵심 runtime dependency 또는 fallback이 아닙니다.
+
+| 기능 | 구현 경로 |
+|---|---|
+| 화면 미리보기 | OpenSheetMusicDisplay |
+| MIDI ↔ MusicXML | music21 |
+| MusicXML mutation / part 처리 | project-owned Python logic |
+| MusicXML → PDF | LilyPond + `musicxml2ly` |
+| PDF/Image → MusicXML | Audiveris |
+
+PDF renderer가 없어도 MusicXML/MIDI 중심의 ingest·채보·편집은 계속 동작해야 합니다.
 
 ## 검증 계층
 
-### Deterministic
+### Deterministic validator
 
-MusicXML에서 직접 확인 가능한 구조적 문제를 먼저 검사합니다.
+MusicXML에서 직접 확인 가능한 구조적 문제를 검사합니다.
 
-- 박자 대비 단순 마디 duration
+- 박자 대비 마디 duration
 - 악기 일반 음역 이탈
 - rest lyric
-- 중복 tie
+- 비정상 tie
 - 빈 part
 
-### LLM critic
+### Optional LLM critic
 
-OpenAI-compatible endpoint를 선택적으로 연결합니다. LLM은 결정론적 결과와 bounded symbolic analysis만 보고 음악적 이상치의 우선순위와 검토 이유를 제안합니다.
+OpenAI-compatible endpoint를 선택적으로 연결할 수 있습니다. LLM은 bounded symbolic evidence와 결정론적 결과를 바탕으로 검토 우선순위와 이유를 제안합니다.
 
 - 자동 수정 금지
 - acoustic correctness 확정 금지
 - API key 값 자체는 저장하지 않음
-- 원격 endpoint는 HTTPS만 허용
+- 원격 endpoint는 HTTPS 정책 적용
 
-장기적으로는 resynthesized score와 원음의 audio-symbol discrepancy를 먼저 계산한 뒤 LLM이 해당 evidence를 설명하는 구조를 목표로 합니다.
+## 작업 큐와 복구
 
-자세한 내용은 [`VALIDATION.ko.md`](VALIDATION.ko.md)를 참고하세요.
+Transcription provider, Demucs, WhisperX는 CPU/GPU 메모리를 크게 사용할 수 있으므로 heavy inference는 기본적으로 제한된 concurrency로 실행합니다.
 
-## 작업 큐
+Job lifecycle은 queued/running/done/failed/cancelled/interrupted를 구분하고, startup recovery에서 staged export/upload/job deletion 등 crash residue를 정리·복구합니다. 복구 결과는 startup diagnostics로 노출됩니다.
 
-Transcription provider / Demucs / WhisperX는 메모리와 GPU VRAM을 크게 사용할 수 있으므로 heavy inference는 기본적으로 하나씩 직렬 실행합니다.
-
-대기 중인 Job은 `queued`, 실행 중인 Job은 `running` 상태로 관리됩니다.
-
-## 취소
-
-취소는 UI 상태만 변경하지 않습니다. 실행 중인 외부 프로세스와 그 자식 프로세스 트리를 종료합니다.
-
-- Windows: `taskkill /T /F`
-- Unix 계열: process group SIGTERM → 필요 시 SIGKILL
-
-`uvx`가 실제 모델 Python 프로세스를 자식으로 실행해도 종료가 전파되도록 설계했습니다.
+취소는 UI 상태만 바꾸는 것이 아니라 실행 중 외부 프로세스와 자식 process tree까지 종료해야 합니다.
 
 ## 장치 정책
 
@@ -215,15 +218,33 @@ Transcription provider / Demucs / WhisperX는 메모리와 GPU VRAM을 크게 �
 | Apple Silicon | provider 지원 범위 내 MPS | CPU | CPU / INT8 |
 | CPU | CPU | CPU | CPU / INT8 |
 
-품질이 기본 목표이므로 GPU가 느리더라도 자동으로 작은 모델로 downgrade하지 않습니다. 사용자가 Fast/Balanced를 명시적으로 선택할 때만 모델 크기를 낮춥니다.
+품질이 기본 목표이므로 GPU가 느리다는 이유만으로 자동으로 작은 모델로 downgrade하지 않습니다. 사용자가 Fast/Balanced를 명시적으로 선택할 때만 품질/속도 trade-off를 적용합니다.
 
-## 실행 파일 탐색
+## 보안 경계
 
-앱은 다음 순서로 외부 도구를 찾습니다.
+- sidecar는 loopback interface에만 bind합니다.
+- packaged runtime은 API token을 사용합니다.
+- mutation 요청에는 origin/token 정책을 적용합니다.
+- upload는 size limit과 atomic persistence를 사용합니다.
+- XML/archive 입력은 unsafe structure/path traversal을 방지해야 합니다.
+- 외부 실행 프로그램에 user input을 shell string으로 직접 결합하지 않습니다.
+- updater는 signed metadata/payload 검증을 전제로 stable channel을 구성합니다.
 
-1. 사용자가 설정 화면에서 저장한 경로
-2. 설치된 standalone CLI
-3. `uvx` fallback
+상세 보안 보고 정책은 [`../SECURITY.md`](../SECURITY.md)를 참고하십시오.
+
+## 릴리스 구조
+
+PR CI와 Desktop Packages는 개발/QA 단계입니다. stable release는 다음 신뢰 사슬을 통과해야 합니다.
+
+```text
+CI → packaged smoke → unsigned QA artifact
+   → Windows signing / macOS signing+notarization
+   → checksum + updater signature/manifest
+   → clean-install/update acceptance
+   → public stable release
+```
+
+updater 코드와 release workflow scaffolding은 구현되어 있으며, 실제 인증서/private key provisioning과 signed acceptance는 [Issue #22](https://github.com/JDeun/audio-score-tool/issues/22) 운영 gate입니다.
 
 ## 데이터 위치
 
@@ -231,12 +252,4 @@ Transcription provider / Demucs / WhisperX는 메모리와 GPU VRAM을 크게 �
 - Windows: `%LOCALAPPDATA%\AudioScoreTool`
 - Linux: `$XDG_DATA_HOME/audio-score-tool` 또는 `~/.local/share/audio-score-tool`
 
-v0.8의 기본 DB 이름은 `audio-score-tool.sqlite3`입니다. 기존 `jobs.sqlite3`는 최초 실행 시 마이그레이션합니다.
-
-## 보안
-
-FastAPI는 `127.0.0.1`에만 바인딩합니다.
-
-변경 요청은 Tauri/개발 origin 또는 Origin이 없는 로컬 클라이언트만 허용하여 외부 웹 페이지가 localhost API에 임의 POST를 보내는 위험을 줄입니다.
-
-Hugging Face token 값과 LLM API key 값은 앱 설정 파일에 직접 저장하지 않습니다. LLM은 환경변수 이름만 저장합니다.
+기본 DB 이름은 `audio-score-tool.sqlite3`이며 기존 `jobs.sqlite3`가 존재하면 migration 경로를 사용합니다.

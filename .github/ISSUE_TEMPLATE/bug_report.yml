@@ -1,0 +1,76 @@
+name: Bug report
+description: 재현 가능한 오동작이나 회귀를 보고합니다.
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        보안 취약점은 공개 Issue에 exploit 세부정보를 남기지 말고 SECURITY.md를 따라 주세요.
+  - type: textarea
+    id: summary
+    attributes:
+      label: 문제 요약
+      description: 실제 동작과 기대 동작의 차이를 간결하게 설명해 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 재현 절차
+      description: 최소 재현 절차를 순서대로 적어 주세요.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대 동작
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 영역
+      options:
+        - Desktop UI / Editor
+        - Audio / YouTube transcription
+        - PDF / Image OMR
+        - MusicXML / MIDI import
+        - Validation / Enrichment
+        - Storage / Revision / Export
+        - Packaging / Updater
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: 버전 또는 commit
+      placeholder: v0.8.0 / commit SHA
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 환경
+      placeholder: macOS 26 arm64 / Windows 11 x64 / Ubuntu 24.04
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 로그 / 추가 정보
+      description: secret, token, 개인정보는 제거하고 필요한 로그만 첨부해 주세요.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 확인
+      options:
+        - label: 기존 Issue를 검색했습니다.
+          required: true
+        - label: 보안 취약점 보고가 아닙니다.
+          required: true
