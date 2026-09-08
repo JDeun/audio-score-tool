@@ -7,6 +7,7 @@ import uvicorn
 
 from . import api as base_api
 from .api_token import ApiTokenMiddleware
+from .direct_score_import_api import router as direct_score_import_router
 from .engine_api import router as engine_router
 from .enrichment_api import router as enrichment_router
 from .export_api_v2 import router as export_router
@@ -117,6 +118,7 @@ app.include_router(export_router)
 app.include_router(engine_router)
 app.include_router(validation_router)
 app.include_router(omr_router)
+app.include_router(direct_score_import_router)
 app.include_router(notation_router)
 app.include_router(setup_center_router)
 app.include_router(model_manager_router)
