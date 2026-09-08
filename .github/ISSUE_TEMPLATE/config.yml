@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security policy
+    url: https://github.com/JDeun/audio-score-tool/blob/main/SECURITY.md
+    about: 보안 취약점은 공개 Issue에 exploit 세부정보를 남기기 전에 보안 정책을 확인해 주세요.
+  - name: Documentation
+    url: https://github.com/JDeun/audio-score-tool/blob/main/docs/README.md
+    about: 설치, 아키텍처, 모델, 검증, 릴리스 문서를 먼저 확인해 주세요.
