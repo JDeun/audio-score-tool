@@ -67,11 +67,12 @@ def build_exports_v3(song_id: str, payload: ExportRequest | None = None) -> dict
     if "midi" in requested and not status["music21"]:
         raise HTTPException(409, "MIDI export에는 music21이 필요합니다.")
     if requested & {"pdf", "parts"} and not (
-        (status["lilypond"] and status["musicxml2ly"]) or status["musescore"]
+        status["lilypond"] and status["musicxml2ly"]
     ):
         raise HTTPException(
             409,
-            "PDF renderer가 없습니다. LilyPond를 설치하거나 선택적으로 MuseScore를 지정하세요.",
+            "PDF export에는 LilyPond와 musicxml2ly가 필요합니다. "
+            "MusicXML/MIDI export는 PDF renderer 없이도 사용할 수 있습니다.",
         )
 
     _song_store.export_root.mkdir(parents=True, exist_ok=True)
