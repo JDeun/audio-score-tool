@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException
 
 from .publication_layout import apply_publication_layout, merged_publication_settings
-from .song_api_v2 import (
+from .song_routes import (
     PublicationPatch,
     _discard_snapshot,
     _public,
