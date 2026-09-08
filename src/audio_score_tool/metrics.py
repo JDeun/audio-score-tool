@@ -20,8 +20,10 @@ class MidiNote:
     def instrument_key(self) -> tuple[bool, int]:
         # Channel numbers are allocator-dependent and are therefore not stable enough
         # for cross-render comparison. General-MIDI program plus the drum flag is a
-        # better portable proxy for instrument assignment.
-        return self.is_drum, self.program
+        # better portable proxy for pitched instruments. GM percussion is identified
+        # by channel 10 (zero-based channel 9), and program changes there do not define
+        # the percussion family, so normalize all drum notes to one instrument key.
+        return (True, 0) if self.is_drum else (False, self.program)
 
 
 @dataclass(frozen=True, slots=True)
@@ -180,13 +182,12 @@ def evaluate_midi_files(
     onset_errors = [abs(pred_note.onset - ref_note.onset) for pred_note, ref_note in matches]
     offset_errors = [abs(pred_note.offset - ref_note.offset) for pred_note, ref_note in matches]
 
-    instrument_matches, instrument_matched = _match_notes(
+    _instrument_matches, instrument_matched = _match_notes(
         pred,
         ref,
         onset_tolerance_seconds=onset_tolerance_seconds,
         require_instrument=True,
     )
-    del instrument_matches
     instrument_precision, instrument_recall, instrument_f1 = _prf(
         instrument_matched,
         len(pred),
