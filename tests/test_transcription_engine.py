@@ -56,7 +56,7 @@ def test_resolve_transcription_engine_types(tmp_path: Path):
     assert muscriptor.settings.muscriptor_model == "large"
 
 
-def test_available_engines_reports_quality_and_license_status(tmp_path: Path):
+def test_available_engines_reports_quality_license_and_amt_capabilities(tmp_path: Path):
     checkpoint = tmp_path / "native.pt"
     checkpoint.write_bytes(b"checkpoint")
     settings = Settings(
@@ -79,6 +79,13 @@ def test_available_engines_reports_quality_and_license_status(tmp_path: Path):
     assert engines["muscriptor"]["commercial_status"] == "noncommercial_weights"
     assert engines["muscriptor"]["quality_rank"] == 1
     assert engines["muscriptor"]["model"] == "large"
+
+    for engine in engines.values():
+        assert engine["task_family"] == "automatic_music_transcription"
+        assert engine["input_mode"] == "mixed_audio"
+        assert engine["supports_polyphonic"] is True
+        assert engine["supports_multi_instrument"] is True
+        assert engine["supports_real_time"] is False
 
 
 def test_yourmt3_is_quality_first_mt3_option():

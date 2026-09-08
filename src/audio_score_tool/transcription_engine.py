@@ -54,6 +54,11 @@ class BaseTranscriptionEngine:
     display_name = "Base"
     commercial_status = "unknown"
     quality_rank = 99
+    task_family = "automatic_music_transcription"
+    input_mode = "mixed_audio"
+    supports_polyphonic = True
+    supports_multi_instrument = True
+    supports_real_time = False
 
     def __init__(self, settings: Settings):
         self.settings = settings
@@ -78,6 +83,11 @@ class BaseTranscriptionEngine:
             "ready": self.ready(),
             "commercial_status": self.commercial_status,
             "quality_rank": self.quality_rank,
+            "task_family": self.task_family,
+            "input_mode": self.input_mode,
+            "supports_polyphonic": self.supports_polyphonic,
+            "supports_multi_instrument": self.supports_multi_instrument,
+            "supports_real_time": self.supports_real_time,
             "allowed_for_usage_mode": not (
                 self.settings.usage_mode == "commercial"
                 and self.commercial_status == "noncommercial_weights"

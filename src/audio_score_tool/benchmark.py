@@ -39,6 +39,10 @@ class BenchmarkResult:
     note_recall: float | None = None
     note_f1: float | None = None
     onset_mae_ms: float | None = None
+    offset_mae_ms: float | None = None
+    instrument_precision: float | None = None
+    instrument_recall: float | None = None
+    instrument_f1: float | None = None
 
 
 MR_MT3_CONFIGS = [
@@ -209,6 +213,10 @@ def run_benchmark_matrix(
                     note_recall=metrics.recall if metrics else None,
                     note_f1=metrics.f1 if metrics else None,
                     onset_mae_ms=metrics.onset_mae_ms if metrics else None,
+                    offset_mae_ms=metrics.offset_mae_ms if metrics else None,
+                    instrument_precision=metrics.instrument_precision if metrics else None,
+                    instrument_recall=metrics.instrument_recall if metrics else None,
+                    instrument_f1=metrics.instrument_f1 if metrics else None,
                 )
             )
         except (PipelineError, OSError, ValueError) as exc:
@@ -256,6 +264,10 @@ def write_reports(output_root: Path, results: list[BenchmarkResult]) -> None:
         "note_recall",
         "note_f1",
         "onset_mae_ms",
+        "offset_mae_ms",
+        "instrument_precision",
+        "instrument_recall",
+        "instrument_f1",
     ]
     with csv_path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(
