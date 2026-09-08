@@ -44,6 +44,7 @@ jobs:
 
       - name: Generate lockfiles
         run: |
+          rm -f uv.lock
           uv lock
           npm install --package-lock-only --ignore-scripts --prefix desktop
           cargo generate-lockfile --manifest-path desktop/src-tauri/Cargo.toml
