@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import "./omr-import.css";
 
 const API = "http://127.0.0.1:8080";
-const DIRECT_EXTENSIONS = new Set(["musicxml", "xml", "mid", "midi"]);
+const DIRECT_EXTENSIONS = new Set(["musicxml", "xml", "mxl", "mid", "midi"]);
 
 type ImportJob = {
   job_id: string;
@@ -130,7 +130,7 @@ export default function OMRImportController() {
               <div>
                 <span className="omr-eyebrow">SCORE IMPORT</span>
                 <h2 id="omr-title">기존 악보 가져오기</h2>
-                <p>PDF/스캔 이미지는 OMR로 인식하고, MusicXML/MIDI는 직접 가져와 동일한 편집·검증 파이프라인에 넣습니다.</p>
+                <p>PDF/스캔 이미지는 OMR로 인식하고, MusicXML/MXL/MIDI는 직접 가져와 동일한 편집·검증 파이프라인에 넣습니다.</p>
               </div>
               <button className="omr-close" type="button" onClick={reset} aria-label="닫기">×</button>
             </header>
@@ -139,7 +139,7 @@ export default function OMRImportController() {
               ref={inputRef}
               type="file"
               hidden
-              accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.bmp,.musicxml,.xml,.mid,.midi,application/pdf,image/png,image/jpeg,image/tiff,image/bmp,application/vnd.recordare.musicxml+xml,audio/midi"
+              accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.bmp,.musicxml,.xml,.mxl,.mid,.midi,application/pdf,image/png,image/jpeg,image/tiff,image/bmp,application/vnd.recordare.musicxml+xml,application/vnd.recordare.musicxml,audio/midi"
               onChange={chooseFile}
             />
             <button
@@ -149,10 +149,10 @@ export default function OMRImportController() {
               onClick={() => inputRef.current?.click()}
             >
               <span>{file ? "선택한 악보" : "악보 파일 선택"}</span>
-              <strong>{file?.name ?? "PDF · 이미지 · MusicXML · MIDI"}</strong>
+              <strong>{file?.name ?? "PDF · 이미지 · MusicXML/MXL · MIDI"}</strong>
               <small>
                 {directImport
-                  ? "MusicXML은 구조를 검증하고, MIDI는 music21로 MusicXML로 변환합니다."
+                  ? "MusicXML/MXL은 구조를 검증하고, MIDI는 music21로 MusicXML로 변환합니다."
                   : "PDF/이미지는 스캔 해상도와 대비가 높을수록 OMR 품질이 좋아집니다."}
               </small>
             </button>
