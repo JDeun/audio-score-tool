@@ -34,7 +34,8 @@ def _preserve_source_audio(audio_path: Path, output_root: Path) -> Path | None:
 
     Normal job output is ``jobs/<job-id>/outputs``. The song id is the job id, so
     preserving here covers local uploads and downloaded YouTube audio without coupling
-    the ingestion code to either source route.
+    the ingestion code to either source route. Callers whose output hierarchy is not a
+    canonical Song Job (for example benchmark matrices) must disable preservation.
     """
     try:
         job_id = output_root.parent.name
@@ -60,6 +61,7 @@ def transcribe(
     settings: Settings | None = None,
     progress: Callable[[str, int], None] | None = None,
     cancel_event: Event | None = None,
+    preserve_source_audio: bool = True,
 ) -> PipelineResult:
     """Transcribe to editable canonical score data without creating final exports."""
 
@@ -75,7 +77,8 @@ def transcribe(
 
     output_root = output_root.expanduser().resolve()
     output_root.mkdir(parents=True, exist_ok=True)
-    _preserve_source_audio(audio_path, output_root)
+    if preserve_source_audio:
+        _preserve_source_audio(audio_path, output_root)
     stem = audio_path.stem.replace(" ", "_")
     work_dir = output_root / stem
     if work_dir.exists():
