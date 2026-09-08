@@ -3,7 +3,6 @@ import json
 from audio_score_tool import score_validation
 from audio_score_tool.score_validation import deterministic_validate
 
-
 VALID_SCORE = """<?xml version="1.0" encoding="UTF-8"?>
 <score-partwise version="4.0">
   <part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
