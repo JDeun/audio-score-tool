@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import shutil
 import xml.etree.ElementTree as ET
 from collections.abc import Callable
@@ -155,7 +156,6 @@ def transcribe(
     engine = resolve_transcription_engine(settings)
 
     emit("transcription", 5)
-
     try:
         artifacts = engine.transcribe(
             audio_path,
@@ -183,6 +183,7 @@ def transcribe(
                 "The score remains editable in the Chord inspector."
             )
     except (OSError, ValueError, ET.ParseError) as exc:
+        inferred_chords = []
         warnings.append(f"Automatic chord analysis was skipped: {exc}")
     emit("chord_analysis", 56)
 
@@ -220,45 +221,61 @@ def transcribe(
 
     emit("vocal_separation", 60)
 
-    # Keep the generated vocals artifact separate from the audio used for lyrics ASR.
-    # If Demucs is unavailable or fails, WhisperX still receives the original mix, but
-    # PipelineResult.vocals_path remains None because no isolated-vocals asset exists.
+    # Vocal isolation is optional. Keep the real isolated-vocals artifact distinct
+    # from the audio source passed to WhisperX when falling back to the full mix.
+    stems_dir.mkdir()
     vocals_path: Path | None = None
-    lyrics_audio_path = audio_path
+    lyrics_audio = audio_path
     if command_exists(settings.demucs_cmd):
         try:
             run_command(
                 settings.demucs_cmd,
-                ["--two-stems", "vocals", "-o", stems_dir, audio_path],
+                [
+                    "--two-stems",
+                    "vocals",
+                    "-d",
+                    device.demucs_device,
+                    "-o",
+                    stems_dir,
+                    audio_path,
+                ],
                 cancel_event=cancel_event,
             )
             vocals_path = _find_one(stems_dir, "vocals.wav")
-            lyrics_audio_path = vocals_path
+            lyrics_audio = vocals_path
         except CommandCancelled as exc:
             raise PipelineCancelled("Vocal separation cancelled.") from exc
         except (CommandError, PipelineError) as exc:
-            warnings.append(f"Demucs was skipped; using the original mix for lyrics: {exc}")
+            warnings.append(
+                "Demucs vocal separation failed; lyrics ASR is using the original mix instead. "
+                f"Details: {exc}"
+            )
     else:
-        warnings.append("Demucs is unavailable; using the original mix for lyrics transcription.")
-    emit("vocal_separation", 70)
+        warnings.append(
+            "Demucs is not available; lyrics ASR is using the original mix. "
+            "Install Demucs only if isolated vocals improve your lyric accuracy."
+        )
 
-    emit("lyrics_asr", 72)
-    lyrics_dir.mkdir(parents=True, exist_ok=True)
-    whisper_args: list[object] = [
-        lyrics_audio_path,
+    emit("vocal_separation", 70)
+    emit("lyrics_asr", 73)
+
+    lyrics_dir.mkdir()
+    whisper_args: list[str | Path] = [
+        lyrics_audio,
         "--model",
         settings.whisperx_model,
-        "--output_dir",
-        lyrics_dir,
-        "--output_format",
-        "json",
         "--device",
         device.whisperx_device,
         "--compute_type",
         device.whisperx_compute_type,
+        "--output_dir",
+        lyrics_dir,
+        "--output_format",
+        "json",
     ]
     if language:
-        whisper_args.extend(["--language", language])
+        whisper_args += ["--language", language]
+
     try:
         run_command(settings.whisperx_cmd, whisper_args, cancel_event=cancel_event)
     except CommandCancelled as exc:
@@ -267,24 +284,40 @@ def transcribe(
         raise PipelineError(f"WhisperX failed.\n{exc}") from exc
 
     transcript_json = _find_whisper_json(lyrics_dir)
+    emit("lyrics_asr", 85)
     words = load_whisperx_words(transcript_json)
-    if language == "ko":
-        words = expand_korean_syllables(words)
-    emit("lyrics_asr", 86)
+    if not words:
+        raise PipelineError("WhisperX completed but produced no word-level timings.")
 
-    emit("lyric_alignment", 88)
+    aligned_tokens = expand_korean_syllables(words) if language == "ko" else words
+
+    emit("lyric_alignment", 87)
     lyric_musicxml = work_dir / "score_with_lyrics.musicxml"
-    attach_lyrics_to_musicxml(musicxml_path, lyric_musicxml, words)
-    emit("lyric_alignment", 92)
+    part_id, attached = attach_lyrics_to_musicxml(
+        musicxml_path,
+        lyric_musicxml,
+        aligned_tokens,
+    )
+    metadata = {
+        "language": language,
+        "selected_part_id": part_id,
+        "word_count": len(words),
+        "lyric_token_count": len(aligned_tokens),
+        "attached_token_count": attached,
+        "automatic_chord_count": len(inferred_chords),
+        "transcription_engine": engine.key,
+        "vocal_separation": "demucs" if vocals_path else "full_mix_fallback",
+        "device_plan": device.as_dict(),
+    }
+    (work_dir / "alignment.json").write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
-    emit("rendering", 94)
-    final_pdf = work_dir / "score_with_lyrics.pdf"
-    if not _render_pdf(lyric_musicxml, final_pdf, settings, cancel_event):
-        final_pdf = initial_full_pdf
-        warnings.append(
-            "Could not render the lyric score with LilyPond. MusicXML remains available."
-        )
+    emit("rendering", 93)
+    lyric_pdf = work_dir / "score_with_lyrics.pdf"
     try:
+        rendered = _render_pdf(lyric_musicxml, lyric_pdf, settings, cancel_event)
         part_pdfs = _render_instrument_parts(
             lyric_musicxml,
             parts_dir,
@@ -292,7 +325,15 @@ def transcribe(
             cancel_event,
         )
     except CommandCancelled as exc:
-        raise PipelineCancelled("Part rendering cancelled.") from exc
+        raise PipelineCancelled("Score rendering cancelled.") from exc
+
+    if not rendered:
+        lyric_pdf = initial_full_pdf
+        warnings.append(
+            "Could not render score_with_lyrics.pdf with LilyPond. "
+            "The lyric/chord-enriched MusicXML was generated correctly."
+        )
+
     emit("complete", 100)
 
     return PipelineResult(
@@ -301,7 +342,7 @@ def transcribe(
         midi_path=midi_path,
         musicxml_path=musicxml_path,
         lyric_musicxml_path=lyric_musicxml,
-        pdf_path=final_pdf,
+        pdf_path=lyric_pdf,
         transcript_json_path=transcript_json,
         vocals_path=vocals_path,
         chord_report_path=chord_report if chord_report.exists() else None,
