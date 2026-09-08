@@ -1,0 +1,62 @@
+name: Consolidate API path (temporary)
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches: ["fix/remove-musescore-dependency"]
+    paths: [".github/workflows/consolidate-api-temp.yml"]
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: fix/remove-musescore-dependency
+      - name: Apply exact API consolidation
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("src/audio_score_tool/api.py")
+          text = path.read_text(encoding="utf-8")
+          text = text.replace("import uvicorn\n", "", 1)
+          text = text.replace("from .config import Settings\n", "", 1)
+          text = text.replace(
+              "from .pipeline import PipelineCancelled, preflight, transcribe\n",
+              "from .pipeline import PipelineCancelled\nfrom .pipeline_v2 import transcribe\nfrom .preflight_v2 import preflight\n",
+              1,
+          )
+          text = text.replace(
+              "from .presets import list_presets, resolve_preset\n",
+              "from .presets import list_presets, resolve_preset\nfrom .runtime_settings import runtime_settings\n",
+              1,
+          )
+          start = text.index("def _runtime_settings(\n")
+          end = text.index("\n\n_cancel_events:", start)
+          replacement = '''def _runtime_settings(\n    *,\n    muscriptor_model: str | None = None,\n    whisperx_model: str = "small",\n):\n    return runtime_settings(\n        muscriptor_model=muscriptor_model,\n        whisperx_model=whisperx_model,\n        store=_settings_store,\n    )\n'''
+          text = text[:start] + replacement + text[end:]
+          run_block = '''\n\ndef run() -> None:\n    uvicorn.run("audio_score_tool.api:app", host="127.0.0.1", port=8080, reload=False)\n\n\nif __name__ == "__main__":\n    run()\n'''
+          assert run_block in text
+          text = text.replace(run_block, "\n", 1)
+          path.write_text(text, encoding="utf-8")
+
+          ext = Path("src/audio_score_tool/api_ext.py")
+          text = ext.read_text(encoding="utf-8")
+          text = text.replace("from .pipeline_v2 import transcribe as transcribe_v2\n", "")
+          text = text.replace("from .preflight_v2 import preflight as preflight_v2\n", "")
+          text = text.replace("from .runtime_settings import runtime_settings\n", "")
+          block = '''base_api._runtime_settings = runtime_settings\nbase_api.transcribe = transcribe_v2\nbase_api.preflight = preflight_v2\n'''
+          assert block in text
+          text = text.replace(block, "", 1)
+          ext.write_text(text, encoding="utf-8")
+      - name: Commit consolidation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/audio_score_tool/api.py src/audio_score_tool/api_ext.py
+          git diff --cached --quiet && exit 0
+          git commit -m "refactor: consolidate API workers on v0.8 pipeline"
+          git push origin HEAD:fix/remove-musescore-dependency
