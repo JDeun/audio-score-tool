@@ -1,0 +1,54 @@
+name: Remove legacy export route (temporary)
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches: ["fix/remove-musescore-dependency"]
+    paths: [".github/workflows/remove-legacy-export-temp.yml"]
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: fix/remove-musescore-dependency
+      - name: Remove retired export implementation
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          path = Path("src/audio_score_tool/song_api_v2.py")
+          text = path.read_text(encoding="utf-8")
+          for line in [
+              "import platform\n",
+              "import tempfile\n",
+              "from .musicxml_parts import extract_part_musicxml, list_score_parts\n",
+              "from .paths import cache_dir\n",
+              "from .pipeline import _resolve_musescore\n",
+              "from .runner import CommandError, run_command\n",
+              "from .runtime_settings import runtime_settings\n",
+          ]:
+              text = text.replace(line, "")
+          text = text.replace(
+              "from .musicxml_editor import MusicXMLEditError, score_summary, set_score_title, update_note\n",
+              "from .musicxml_editor import MusicXMLEditError, score_summary, set_score_title, update_note\nfrom .musicxml_parts import list_score_parts\n",
+          )
+          text = re.sub(r'\n\nExportKind = Literal\["musicxml", "pdf", "midi", "parts"\]\n\n\nclass ExportRequest\(BaseModel\):\n    formats: list\[ExportKind\] = Field\(\n        default_factory=lambda: \["musicxml", "pdf", "midi", "parts"\],\n        min_length=1,\n    \)\n', '', text)
+          text = re.sub(r'\n\ndef _musescore_env\(\) -> dict\[str, str\] \| None:\n.*?(?=\n\ndef _mutate)', '', text, flags=re.S)
+          text = re.sub(r'\n\n@router\.post\("/\{song_id\}/export"\)\ndef build_exports\(.*?(?=\n\n@router\.get\("/\{song_id\}/files/parts)', '', text, flags=re.S)
+          path.write_text(text, encoding="utf-8")
+      - name: Verify retired references are gone
+        run: |
+          ! grep -nE '_resolve_musescore|musescore|MuseScore|run_command|runtime_settings|cache_dir|tempfile|platform' src/audio_score_tool/song_api_v2.py
+      - name: Commit cleanup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/audio_score_tool/song_api_v2.py
+          git diff --cached --quiet && exit 0
+          git commit -m "refactor: remove retired song export route"
+          git push origin HEAD:fix/remove-musescore-dependency
