@@ -1,67 +1,53 @@
 from pathlib import Path
 
-import pytest
-
-from audio_score_tool.config import Settings
-from audio_score_tool.notation_backend import (
-    NotationBackendUnavailable,
-    backend_status,
-    musicxml_to_pdf_lilypond,
-    render_pdf,
-)
+from audio_score_tool.notation_backend import backend_status, render_pdf
 
 
-def test_lilypond_export_does_not_leak_work_files(tmp_path: Path, monkeypatch):
+SIMPLE_SCORE = """<?xml version='1.0' encoding='UTF-8'?>
+<score-partwise version='4.0'>
+  <part-list>
+    <score-part id='P1'><part-name>Piano</part-name></score-part>
+  </part-list>
+  <part id='P1'>
+    <measure number='1'>
+      <attributes>
+        <divisions>1</divisions>
+        <key><fifths>0</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note>
+        <pitch><step>C</step><octave>4</octave></pitch>
+        <duration>4</duration><type>whole</type>
+      </note>
+    </measure>
+  </part>
+</score-partwise>
+"""
+
+
+def test_backend_status_has_only_embedded_notation_dependencies(monkeypatch):
+    monkeypatch.setattr("audio_score_tool.notation_backend.music21_available", lambda: True)
+    monkeypatch.setattr("audio_score_tool.notation_backend.verovio_available", lambda: True)
+    monkeypatch.setattr("audio_score_tool.notation_backend.fpdf2_available", lambda: True)
+
+    status = backend_status()
+
+    assert status == {"music21": True, "verovio": True, "fpdf2": True}
+    assert "musescore" not in status
+    assert "lilypond" not in status
+    assert "musicxml2ly" not in status
+
+
+def test_render_pdf_is_self_contained(tmp_path: Path):
     source = tmp_path / "score.musicxml"
-    source.write_text("<score-partwise version='4.0'><part-list/></score-partwise>", encoding="utf-8")
-    target = tmp_path / "exports" / "score.pdf"
+    source.write_text(SIMPLE_SCORE, encoding="utf-8")
+    target = tmp_path / "score.pdf"
 
-    monkeypatch.setattr("audio_score_tool.notation_backend.command_exists", lambda _command: True)
-
-    def fake_run(command, args, **_kwargs):
-        args = [str(value) for value in args]
-        if command == "musicxml2ly":
-            output = Path(args[args.index("-o") + 1])
-            output.write_text("\\version \"2.26.0\"", encoding="utf-8")
-        elif command == "lilypond":
-            output_base = Path(args[args.index("-o") + 1])
-            output_base.with_suffix(".pdf").write_bytes(b"%PDF-test")
-
-        class Result:
-            stdout = ""
-
-        return Result()
-
-    monkeypatch.setattr("audio_score_tool.notation_backend.run_command", fake_run)
-    settings = Settings(lilypond_cmd="lilypond", musicxml2ly_cmd="musicxml2ly")
-
-    result = musicxml_to_pdf_lilypond(source, target, settings=settings)
+    result, renderer = render_pdf(source, target)
 
     assert result == target
-    assert target.read_bytes() == b"%PDF-test"
-    assert not any(path.name.startswith(".lilypond-work") for path in target.parent.rglob("*"))
-    assert not any(path.suffix == ".ly" for path in target.parent.rglob("*"))
-
-
-def test_backend_status_has_no_musescore_surface(monkeypatch):
-    monkeypatch.setattr("audio_score_tool.notation_backend.music21_available", lambda: True)
-    monkeypatch.setattr("audio_score_tool.notation_backend.command_exists", lambda _command: True)
-
-    status = backend_status(Settings(lilypond_cmd="lilypond", musicxml2ly_cmd="musicxml2ly"))
-
-    assert status == {"music21": True, "lilypond": True, "musicxml2ly": True}
-    assert "musescore" not in status
-
-
-def test_render_pdf_does_not_fallback_to_musescore(tmp_path: Path, monkeypatch):
-    source = tmp_path / "score.musicxml"
-    source.write_text("<score-partwise version='4.0'><part-list/></score-partwise>", encoding="utf-8")
-    target = tmp_path / "score.pdf"
-    monkeypatch.setattr("audio_score_tool.notation_backend.command_exists", lambda _command: False)
-
-    with pytest.raises(NotationBackendUnavailable, match="LilyPond"):
-        render_pdf(
-            source,
-            target,
-            settings=Settings(lilypond_cmd="missing-lilypond", musicxml2ly_cmd="missing-musicxml2ly"),
-        )
+    assert renderer == "verovio-fpdf2"
+    assert target.read_bytes().startswith(b"%PDF-")
+    assert target.stat().st_size > 500
+    assert not list(tmp_path.glob("*.ly"))
