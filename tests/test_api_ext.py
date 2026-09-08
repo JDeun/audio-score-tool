@@ -227,7 +227,10 @@ def test_packaged_api_token_blocks_unsafe_requests(monkeypatch):
     assert allowed.status_code == 422
 
 
-def test_packaged_api_token_does_not_block_reads(monkeypatch):
+def test_packaged_api_token_requires_authentication_for_reads(monkeypatch):
     monkeypatch.setenv("AST_API_TOKEN", "test-token")
     client = TestClient(app)
-    assert client.get("/api/health").status_code == 200
+    blocked = client.get("/api/health")
+    assert blocked.status_code == 401
+    allowed = client.get("/api/health", headers={"X-AudioScore-Token": "test-token"})
+    assert allowed.status_code == 200
