@@ -183,6 +183,7 @@ def run_benchmark_matrix(
                     whisperx_model=config.whisperx_model,
                 ),
                 cancel_event=cancel_event,
+                preserve_source_audio=False,
                 progress=(
                     (
                         lambda stage, percent, i=index, name=config.name: progress(
