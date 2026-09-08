@@ -12,6 +12,7 @@ on:
       - "desktop/**"
       - "scripts/backend_entry.py"
       - "scripts/build_sidecar.py"
+      - "scripts/smoke_packaged_sidecar.py"
       - "src/**"
       - "pyproject.toml"
       - "uv.lock"
@@ -85,9 +86,17 @@ jobs:
         working-directory: desktop
         run: npx --no-install tauri icon src-tauri/icons/icon.png
 
+      - name: Build packaged sidecar
+        working-directory: desktop
+        run: uv run --project .. --frozen --extra desktop python ../scripts/build_sidecar.py
+
+      - name: Smoke packaged sidecar
+        working-directory: desktop
+        run: uv run --project .. --frozen --extra desktop python ../scripts/smoke_packaged_sidecar.py
+
       - name: Build desktop package
         working-directory: desktop
-        run: npm run desktop:build
+        run: npx --no-install tauri build
 
       - name: Upload unsigned bundles
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
