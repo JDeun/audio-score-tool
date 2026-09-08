@@ -97,10 +97,7 @@ def setup_center_status() -> dict:
     tools = state["tools"]
     hf_ready = huggingface_authenticated()
     uv_ready = _find_executable("uv") is not None or _find_executable("uvx") is not None
-    renderer_ready = bool(
-        (tools.get("lilypond") and tools.get("musicxml2ly"))
-        or tools.get("musescore_optional")
-    )
+    renderer_ready = bool(tools.get("lilypond") and tools.get("musicxml2ly"))
     engine_ready = bool(tools.get("transcription_engine"))
     engine_uses_managed_runtime = any(
         "uvx" in str(command)
@@ -153,9 +150,10 @@ def setup_center_status() -> dict:
             "LilyPond PDF 엔진",
             renderer_ready,
             tier="recommended",
-            role="출판용 PDF를 생성합니다. MuseScore는 선택적 fallback입니다.",
+            role="MusicXML을 출판용 PDF로 렌더링합니다.",
             required_for=["pdf_export"],
             download_url="https://lilypond.org/download.html",
+            note="PDF가 필요하지 않다면 설치하지 않아도 MusicXML/MIDI 편집과 export는 가능합니다.",
         ),
         _component(
             "chromaprint",
@@ -221,6 +219,7 @@ def setup_center_status() -> dict:
             "full": "OMR, source identification 및 Audio/LLM 검증까지 포함",
         },
         "policy": {
+            "pdf_renderer": "lilypond",
             "llm_required": False,
             "musescore_required": False,
             "developer_toolchain_required": False,
