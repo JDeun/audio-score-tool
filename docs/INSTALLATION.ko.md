@@ -4,6 +4,18 @@ AudioScoreTool의 설치 목표는 다음입니다.
 
 > **새 PC에서 설치 파일 하나를 실행한 뒤, CLI 지식 없이 첫 악보를 만들 수 있어야 합니다.**
 
+## 현재 배포 상태
+
+설치 방법은 세 등급을 구분합니다.
+
+| 등급 | 용도 | 상태 |
+|---|---|---|
+| source/development | 개발·기여 | 사용 가능 |
+| unsigned Desktop Packages | Windows/macOS/Linux QA | CI에서 생성 가능 |
+| signed stable installer | 일반 사용자 공식 배포 | signing/acceptance 전 (#22) |
+
+GitHub Actions가 만드는 Windows `.exe`와 macOS `.dmg`를 사용할 수는 있지만, signing/notarization이 완료되기 전에는 **공식 release verified 설치본으로 안내하지 않습니다.** 실제 stable distribution activation은 [Issue #22](https://github.com/JDeun/audio-score-tool/issues/22)에서 추적합니다.
+
 ## 사용자에게 요구하지 않는 것
 
 일반 사용자는 다음을 알 필요가 없어야 합니다.
@@ -13,71 +25,79 @@ AudioScoreTool의 설치 목표는 다음입니다.
 - PATH 수동 편집
 - 개별 Python package의 가상환경 관리
 
-Desktop package는 앱과 Python orchestration sidecar를 함께 배포하는 것을 전제로 합니다. 개발 명령은 저장소 개발자용입니다.
+Desktop package는 Tauri app과 Python orchestration sidecar를 함께 배포합니다. repository 개발 명령은 일반 사용자 설치 절차가 아닙니다.
 
-AI 도구를 격리 실행할 때 `uv/uvx`가 필요한 환경에서는 Setup Center가 이를 **관리형 AI 런타임**으로 취급합니다. 사용자가 Python 환경을 직접 구성하는 방식으로 안내하지 않습니다.
+## 입력별 최소 요구사항
+
+| 입력/기능 | 추가 요구사항 |
+|---|---|
+| MusicXML/XML/MXL 직접 import | 기본 앱 |
+| MIDI 직접 import | 기본 dependency의 music21 |
+| 음원/YouTube 자동 채보 | 선택한 transcription engine/model |
+| PDF/이미지 OMR | Audiveris |
+| MusicXML/MIDI 편집·export | 기본 앱 |
+| PDF/파트 PDF export | LilyPond + `musicxml2ly` |
+| 가사 인식/정렬 | WhisperX |
+
+즉 Audiveris나 LilyPond가 없다는 이유로 MusicXML/MIDI 기반 핵심 workflow까지 `준비 안 됨`으로 처리하지 않습니다.
 
 ## Setup Center
 
-첫 실행 소개 온보딩이 끝난 뒤 기본 채보 환경이 준비되지 않았다면 Setup Center가 이어서 열립니다. 두 모달이 겹치지 않도록 순차 실행합니다. 이후 우측 하단 `설치 도우미`에서 언제든 다시 열 수 있습니다.
+첫 실행 온보딩이 끝난 뒤 기본 채보 환경이 준비되지 않았다면 Setup Center가 순차적으로 열립니다. 이후 앱의 설치 도우미에서 다시 열 수 있습니다.
 
-구성요소는 세 단계로 나눕니다.
+구성요소를 기능 영향도에 따라 구분합니다.
 
-### 필수
-
-기본 목표:
+### 필수 — 자동 채보를 사용할 때
 
 ```text
 음원 → 자동 채보 → 편집 가능한 MusicXML
 ```
 
 - 선택된 transcription engine
-- 필요 시 관리형 `uv/uvx` 런타임
+- 필요 시 관리형 `uv/uvx` runtime
 - MuScriptor 사용 시 Hugging Face 인증과 모델 준비
 
-만 기본 사용에 직접 영향을 줍니다.
+MusicXML/MXL/MIDI 직접 import만 사용하는 경우 transcription model은 필수가 아닙니다.
 
 ### 권장
 
 ```text
-기본 채보 + 가사 + PDF 출판
+기본 악보 workflow + 가사 + PDF 출판
 ```
 
 - WhisperX: 가사 인식/정렬
-- LilyPond + musicxml2ly: PDF 생성
-
-가사를 사용하지 않거나 PDF가 당장 필요 없다면 설치하지 않아도 기본 채보는 가능합니다.
+- LilyPond + `musicxml2ly`: PDF 생성
 
 ### 선택
 
 - Audiveris: PDF/이미지 OMR
-- FFmpeg + FluidSynth + SoundFont: Audio evidence 검증
+- FFmpeg + FluidSynth + SoundFont: audio evidence 검증
 - LLM/Vision API: 보조 검증
 - Chromaprint/fpcalc: 사용자가 요청한 원음 fingerprint 기반 곡 식별
 
-이 기능들이 없어도 기본 채보/편집은 `준비 안 됨`으로 취급하지 않습니다.
+이 기능들의 부재가 무관한 입력/편집 workflow를 차단해서는 안 됩니다.
 
 ## MuseScore 비의존 정책
 
-AudioScoreTool은 MuseScore 실행 파일이나 MuseScore CLI를 호출하지 않습니다.
+AudioScoreTool은 MuseScore 실행 파일이나 MuseScore CLI를 핵심 runtime/fallback으로 호출하지 않습니다.
 
 ```text
-앱 내 미리보기       OSMD
-MIDI ↔ MusicXML      music21
-MusicXML → PDF        LilyPond + musicxml2ly
-PDF/이미지 → MusicXML Audiveris
-파트 분리             AudioScoreTool 자체 MusicXML 처리
+앱 내 미리보기        OSMD
+MIDI ↔ MusicXML       music21
+MusicXML → PDF         LilyPond + musicxml2ly
+PDF/이미지 → MusicXML  Audiveris
+파트 분리              AudioScoreTool 자체 MusicXML 처리
 ```
 
-따라서 MuseScore 설치 여부는 Setup Center readiness, PDF export 가능 여부, 채보 가능 여부에 영향을 주지 않습니다.
+따라서 MuseScore 설치 여부는 readiness에 영향을 주지 않습니다.
 
 ## 자동 설치 정책
 
-앱이 임의의 shell command를 조합해 실행하지 않습니다. 운영체제별로 검토된 고정 package-manager recipe만 사용합니다.
+앱이 사용자 입력을 섞은 임의 shell command를 조합해 실행하지 않습니다. 운영체제별로 검토된 고정 package-manager recipe만 사용합니다.
 
 ### macOS
 
-Homebrew가 이미 설치되어 있을 때 Setup Center에서 다음을 자동 실행할 수 있습니다.
+Homebrew가 이미 설치되어 있을 때 검토된 구성요소를 Setup Center에서 준비할 수 있습니다.
 
 ```bash
 brew install uv
@@ -86,81 +106,47 @@ brew install fluid-synth
 brew install lilypond
 ```
 
-Finder에서 실행한 GUI 앱은 터미널과 PATH가 다를 수 있으므로 `/opt/homebrew/bin`, `/usr/local/bin` 등 일반 설치 위치도 직접 탐색합니다.
+Finder에서 실행한 GUI app은 terminal PATH와 다를 수 있으므로 `/opt/homebrew/bin`, `/usr/local/bin` 같은 일반 설치 위치도 탐색합니다.
 
 ### Windows
 
-winget이 있을 때 현재 검증된 FFmpeg package ID만 자동 설치 대상으로 둡니다.
-
-```powershell
-winget install -e --id Gyan.FFmpeg --accept-package-agreements --accept-source-agreements
-```
-
-다른 구성요소는 package ID와 배포 경로를 충분히 고정할 수 있을 때만 자동 설치 대상으로 추가합니다.
+`winget`을 사용할 수 있을 때 검증된 package ID만 자동 설치 대상으로 둡니다. package ID와 공급망을 고정하지 못한 구성요소를 임의 검색·설치하지 않습니다.
 
 ### Linux
 
-배포판마다 package manager와 package version이 크게 다르므로 현재 자동 관리자 설치를 강제하지 않습니다. 공식 다운로드 또는 사용 중인 배포판 package manager를 사용합니다.
+배포판 차이가 크므로 단일 package manager recipe를 강제하지 않습니다. 공식 다운로드 또는 사용 중인 배포판 package manager를 사용합니다.
 
 ## AI 모델 관리자
 
-앱의 `AI 모델` 창에서 MuScriptor 모델을 별도로 관리합니다.
+앱의 AI 모델 관리 UI는 모델 크기, 예상/실제 cache, 선택 상태, 디스크 공간, 라이선스와 상용 모드 허용 여부를 보여주는 것을 목표로 합니다.
 
-제공 정보:
-
-- Small / Medium / Large 모델
-- parameter 규모
-- 예상 weights 용량
-- 실제 로컬 cache 사용량
-- 현재 선택 모델
-- 남은 디스크 공간
-- 라이선스
-- 상용 모드 사용 가능 여부
-
-정책:
+기본 정책:
 
 ```text
 자동 다운로드 = OFF
 명시적 사용자 동의 후 다운로드
-상용 모드에서 MuScriptor 다운로드/선택 차단
+상용 모드에서 비상업 weights 차단
 ```
 
-MuScriptor 공개 weights는 CC BY-NC 4.0이므로 개인/비상업 모드에서만 모델 관리자에 의해 준비할 수 있습니다.
+MuScriptor 공개 weights는 CC BY-NC 4.0이므로 personal/non-commercial mode에서만 허용합니다. 모델 license 수락이나 authentication이 필요한 경우 공식 provider flow를 사용하고 AudioScoreTool DB에 token 값을 직접 저장하지 않습니다.
 
-Large는 정확도 우선 기본값이며 weights가 약 5.47 GB이므로 다운로드 전 여유 공간을 검사합니다.
+## Hugging Face 인증
 
-### 다운로드 진행률
-
-`hf download`를 background job으로 실행하고 Hugging Face cache 증가량을 기준으로 진행률을 표시합니다.
+gated weights가 필요한 경우 사용자가 공식 browser/device authentication을 수행하게 합니다.
 
 ```text
-MuScriptor Large 다운로드 중
-3.9 GB / 약 5.5 GB
-██████████████░░░░ 72%
+1. 모델 라이선스 확인/수락
+2. 공식 인증 시작
+3. browser/device flow 완료
+4. 앱에서 readiness 재검사
+5. 사용자가 선택한 모델 준비
 ```
 
-완료된 모델은 다시 다운로드하지 않으며, 사용하지 않는 모델은 모델 관리자에서 cache를 제거할 수 있습니다.
+token 저장은 Hugging Face tooling의 책임으로 유지합니다.
 
-## Hugging Face 인앱 인증
+## 외부 도구 fallback
 
-MuScriptor gated weights를 위해 인증은 필요하지만 사용자가 터미널 명령을 직접 실행하는 것을 기본 UX로 요구하지 않습니다.
-
-흐름:
-
-```text
-1. 모델 라이선스 페이지 열기
-2. 라이선스 수락
-3. 앱에서 `로그인 시작`
-4. Hugging Face 공식 browser/device 인증
-5. 앱에서 자동으로 인증 완료 확인
-6. 모델 준비
-```
-
-인증은 Hugging Face 공식 `hf auth login` browser/device flow를 사용합니다. AudioScoreTool이 토큰 값을 입력받거나 자체 DB/settings에 저장하지 않습니다. 인증 token storage는 Hugging Face CLI가 `HF_HOME`에서 관리합니다.
-
-## 공식 다운로드 fallback
-
-자동 설치를 지원하지 않는 항목은 Setup Center에서 공식 배포 페이지를 제공합니다. Tauri opener를 사용해 시스템 기본 브라우저에서 엽니다.
+자동 설치를 지원하지 않는 항목은 공식 배포 페이지로 연결하고 설치 후 `다시 검사`로 readiness를 평가합니다.
 
 - uv: `https://docs.astral.sh/uv/getting-started/installation/`
 - LilyPond: `https://lilypond.org/download.html`
@@ -169,31 +155,43 @@ MuScriptor gated weights를 위해 인증은 필요하지만 사용자가 터미
 - FluidSynth: `https://www.fluidsynth.org/download/`
 - Hugging Face: `https://huggingface.co/`
 
-설치 후 `다시 검사`를 누르면 readiness를 재평가합니다.
+## LLM은 필수 설치 항목이 아님
 
-## LLM은 설치 항목이 아님
-
-LLM/Vision validator는 기본 OFF이며 필수가 아닙니다.
-
-사용하려면 둘 중 하나만 선택합니다.
+LLM/Vision validator는 기본 OFF인 선택 기능입니다.
 
 ```text
-로컬 Ollama / vLLM / LM Studio
+Local OpenAI-compatible endpoint
 또는
-HTTPS OpenAI-compatible hosted API
+HTTPS hosted OpenAI-compatible API
 ```
 
-원격 API를 쓰는 경우 로컬 LLM 설치는 필요하지 않습니다.
+LLM을 사용하지 않아도 ingest → edit → deterministic validation → export 핵심 workflow가 동작해야 합니다.
 
-## 상용 v1.0 이전 추가 목표
+## 개발자 설치
 
-모델 관리자와 Setup Center까지 구현된 이후 남은 설치 UX의 핵심은 다음입니다.
+```bash
+git clone https://github.com/JDeun/audio-score-tool.git
+cd audio-score-tool
+uv sync --extra dev
 
-1. Windows/macOS signed installer 실제 검증
-2. 앱 번들에 포함할 수 있는 외부 runtime의 라이선스 검토
-3. 설치 완료 후 sample score smoke test
-4. 앱 업데이트와 DB/runtime migration 검증
-5. MT3 계열 모델도 같은 Model Library UX로 통합
-6. 다운로드 취소/재개와 불완전 cache 정리 고도화
+cd desktop
+npm ci
+npm run desktop:dev
+```
 
-외부 GPL/AGPL binary를 installer에 직접 번들하기 전에는 해당 배포 의무를 별도로 검토합니다.
+CI와 동일한 검증 명령은 [`../CONTRIBUTING.md`](../CONTRIBUTING.md)를 참조하십시오.
+
+## stable installer 활성화 전 남은 운영 작업
+
+코드 구현과 package build 외에 실제 배포 계정/credential이 필요한 단계입니다.
+
+1. Windows Authenticode certificate provisioning
+2. macOS Developer ID signing/notarization credential provisioning
+3. Tauri updater private signing key/public key 설정
+4. clean Windows/macOS install → launch → update → relaunch acceptance
+5. invalid updater signature/manifest rejection 확인
+6. stable Release artifact/checksum/manifest 검증
+
+이 작업은 [#22](https://github.com/JDeun/audio-score-tool/issues/22)에서만 완료로 판정합니다.
+
+외부 GPL/AGPL binary를 installer에 직접 bundle하기 전에는 해당 배포 의무를 별도로 검토합니다.
