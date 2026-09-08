@@ -25,7 +25,7 @@ class NativeModelConfig:
 def require_torch():
     try:
         import torch
-        import torch.nn as nn
+        from torch import nn
     except ImportError as exc:  # pragma: no cover - exercised only without optional runtime
         raise RuntimeError(
             "AudioScore Native requires the optional native dependencies. "
