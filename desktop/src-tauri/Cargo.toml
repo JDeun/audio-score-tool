@@ -3,6 +3,7 @@ name = "audio-score-tool-desktop"
 version = "0.8.0"
 description = "Desktop shell for AudioScoreTool"
 authors = ["JDeun"]
+license = "Apache-2.0"
 edition = "2021"
 
 [lib]
