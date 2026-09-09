@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 
 const API = "http://127.0.0.1:8080";
 
@@ -247,18 +246,25 @@ export default function SongWorkspace() {
     let cancelled = false;
     const target = scoreRef.current;
     target.innerHTML = "";
-    const osmd = new OpenSheetMusicDisplay(target, {
-      autoResize: true,
-      drawTitle: true,
-      drawPartNames: true,
-      backend: "svg",
-    });
-    osmd.Zoom = previewZoom / 100;
-    void osmd.load(xml).then(() => {
-      if (!cancelled) osmd.render();
-    }).catch((error) => {
-      if (!cancelled) setMessage(`악보 미리보기 오류: ${String(error)}`);
-    });
+
+    void (async () => {
+      try {
+        const { OpenSheetMusicDisplay } = await import("opensheetmusicdisplay");
+        if (cancelled) return;
+        const osmd = new OpenSheetMusicDisplay(target, {
+          autoResize: true,
+          drawTitle: true,
+          drawPartNames: true,
+          backend: "svg",
+        });
+        osmd.Zoom = previewZoom / 100;
+        await osmd.load(xml);
+        if (!cancelled) osmd.render();
+      } catch (error) {
+        if (!cancelled) setMessage(`악보 미리보기 오류: ${String(error)}`);
+      }
+    })();
+
     return () => { cancelled = true; };
   }, [xml, previewZoom]);
 

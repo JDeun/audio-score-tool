@@ -117,3 +117,25 @@ def test_midi_worker_converts_to_musicxml(tmp_path: Path, monkeypatch):
     assert final["result"]["import_format"] == "midi"
     assert Path(final["result"]["musicxml"]).is_file()
     assert Path(final["result"]["midi"]).read_bytes() == b"MThd"
+
+
+def test_malformed_midi_failure_is_contained_to_job(tmp_path: Path, monkeypatch):
+    jobs = tmp_path / "jobs"
+    source = tmp_path / "broken.mid"
+    source.write_bytes(b"not-a-midi-file")
+    store = FakeStore()
+
+    monkeypatch.setattr(imports, "_store", store)
+    monkeypatch.setattr(imports, "jobs_dir", lambda: jobs)
+
+    def reject_midi(_source: Path, _target: Path):
+        raise imports.NotationBackendError("malformed MIDI")
+
+    monkeypatch.setattr(imports, "midi_to_musicxml", reject_midi)
+    imports._worker("job-broken-midi", source, ".mid")
+
+    final = store.updates[-1][1]
+    assert final["status"] == "failed"
+    assert final["stage"] == "failed"
+    assert "malformed MIDI" in final["error"]
+    assert not (jobs / "job-broken-midi" / "outputs" / "score.musicxml").exists()

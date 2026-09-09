@@ -1,0 +1,213 @@
+/*
+ * AudioScoreTool visual system
+ * Precision Editorial + Pro Audio Workstation + restrained Geometric Modernism.
+ *
+ * - Editorial rules govern hierarchy, typography, spacing, and management surfaces.
+ * - Pro-audio / notation-workstation rules govern dense Studio controls and panel boundaries.
+ * - Geometric modernism is reserved for brand geometry and small state accents.
+ * - Brand/action color (olive) and editing-selection color (cobalt) are intentionally distinct.
+ * - Glass, neumorphic, retro-skeuomorphic, and brutalist effects are not global themes;
+ *   they are allowed only when a local interaction benefits from that physical cue.
+ */
+:root {
+  --ast-paper: #fffef9;
+  --ast-canvas: #242724;
+  --ast-chrome: #2c302c;
+  --ast-chrome-raised: #353a35;
+  --ast-surface: #fbfaf6;
+  --ast-surface-subtle: #f2f1ec;
+  --ast-line: #d7d6cf;
+  --ast-line-strong: #bfc1b9;
+  --ast-ink: #20241f;
+  --ast-ink-secondary: #62685f;
+  --ast-ink-tertiary: #81867e;
+
+  /* Brand/action semantics. */
+  --ast-accent: #52634d;
+  --ast-accent-strong: #40503c;
+  --ast-accent-soft: #e5ebe2;
+
+  /* Editing/selection semantics: deliberately not the brand color. */
+  --ast-selection: #356fa8;
+  --ast-selection-strong: #285a8b;
+  --ast-selection-soft: #e2edf8;
+  --ast-focus: #356fa8;
+
+  --ast-radius-panel: 9px;
+  --ast-radius-control: 6px;
+  --ast-shadow-paper: 0 18px 46px rgba(0, 0, 0, .25), 0 0 0 1px rgba(0, 0, 0, .14);
+}
+
+/* Editorial surfaces: grid, border, and spacing carry hierarchy rather than decoration. */
+.work-card,
+.source-card,
+.transcription-options,
+.benchmark-card,
+.history-card {
+  border-radius: var(--ast-radius-panel);
+  border-color: var(--ast-line);
+  background: var(--ast-surface);
+  box-shadow: 0 1px 0 rgba(255,255,255,.75), 0 3px 10px rgba(31,35,30,.025);
+}
+.work-card:hover { box-shadow: 0 1px 0 rgba(255,255,255,.8), 0 4px 14px rgba(31,35,30,.035); }
+
+.primary-button,
+.secondary-button,
+.ghost-button,
+.danger-button,
+button,
+input,
+select,
+textarea {
+  border-radius: var(--ast-radius-control);
+}
+
+.primary-button:not(:disabled):hover,
+.secondary-button:not(:disabled):hover,
+.model-primary:not(:disabled):hover,
+.model-secondary:not(:disabled):hover,
+button:active:not(:disabled) {
+  transform: none;
+}
+
+/* Brand mark is geometric and flat; avoid decorative gradients that compete with the score. */
+.brand-mark {
+  background: var(--ast-accent-strong) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+/* Selected editing state uses cobalt. Tiny inset depth is a local tactile cue, not a theme. */
+.segmented-control button.active,
+.inspector-tabs button.active,
+.studio-view-controls button.active {
+  box-shadow: inset 0 1px 2px rgba(25, 29, 24, .18), inset 0 -1px rgba(255,255,255,.09);
+}
+.segmented-control button.active,
+.product-stage .inspector-tabs button.active {
+  border-color: #a9bfd5;
+  background: var(--ast-selection-soft);
+  color: #244f78;
+}
+.studio-view-controls button.active {
+  background: #3e5f7f;
+  color: #fff;
+}
+
+/* Studio chrome follows notation/DAW workstation logic: quiet shell, explicit boundaries, bright paper. */
+.product-stage .song-layout {
+  border-radius: 8px;
+  border-color: #bfc1b9;
+  box-shadow: 0 8px 26px rgba(28,31,27,.07);
+}
+.product-stage .score-workbench { background: var(--ast-canvas); }
+.product-stage .score-toolbar {
+  background: var(--ast-chrome-raised);
+  border-bottom-color: #484e48;
+}
+.product-stage .export-links { background: var(--ast-chrome); }
+.product-stage .score-canvas {
+  background: var(--ast-canvas);
+  background-image: none;
+}
+.product-stage .score-canvas svg {
+  background: var(--ast-paper);
+  box-shadow: var(--ast-shadow-paper);
+}
+.product-stage .song-library,
+.product-stage .score-inspector {
+  background: #f5f4ef;
+}
+.product-stage .song-item,
+.product-stage .inspector-tabs button { border-radius: 5px; }
+.product-stage .song-item.active {
+  border-color: #9fb9d2;
+  background: var(--ast-selection-soft);
+}
+
+/* Focus visibility is a first-class visual state. */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--ast-focus) !important;
+  outline-offset: 2px;
+}
+
+/* Type hierarchy: professional density without dashboard microtext. */
+.product-nav button span,
+.sidebar-setup span,
+.product-stage .score-actions button,
+.product-stage .export-links a,
+.studio-view-controls button {
+  font-size: 11px;
+}
+.product-stage .score-toolbar .eyebrow,
+.page-eyebrow,
+.card-kicker { font-size: 10px; }
+.product-stage .song-item small,
+.runtime-summary small,
+.product-version { font-size: 10.5px; }
+
+/* Motion explains state; it does not decorate the workstation. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .001ms !important;
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --ast-line: #a6aaa0;
+    --ast-line-strong: #7e8478;
+    --ast-ink-secondary: #464c43;
+    --ast-selection: #155f9d;
+  }
+  .work-card,
+  .product-stage .song-layout,
+  .product-stage .song-library,
+  .product-stage .score-inspector,
+  input,
+  select,
+  textarea,
+  button { border-color: var(--ast-line-strong) !important; }
+}
+
+@media (forced-colors: active) {
+  .brand-mark,
+  .product-stage .score-canvas,
+  .product-stage .score-toolbar,
+  .product-stage .export-links,
+  .studio-view-controls {
+    forced-color-adjust: auto;
+  }
+  .product-stage .score-canvas svg { box-shadow: none; }
+}
+
+@media (prefers-color-scheme: dark) {
+  /* Management chrome can darken; print paper remains invariant for WYSIWYG. */
+  :root {
+    --ast-surface: #272a27;
+    --ast-surface-subtle: #303330;
+    --ast-line: #454a44;
+    --ast-line-strong: #5b615a;
+    --ast-ink: #eef0ec;
+    --ast-ink-secondary: #bbc0b8;
+    --ast-ink-tertiary: #999f96;
+    --ast-selection-soft: #273d52;
+  }
+  .work-card,
+  .source-card,
+  .transcription-options,
+  .benchmark-card,
+  .history-card { background: var(--ast-surface); border-color: var(--ast-line); }
+  .product-stage .song-library,
+  .product-stage .score-inspector { background: #292d29; }
+  .product-stage .song-item.active,
+  .product-stage .inspector-tabs button.active {
+    border-color: #547da3;
+    background: var(--ast-selection-soft);
+    color: #e7f2fc;
+  }
+  .product-stage .score-canvas svg { background: var(--ast-paper); }
+}

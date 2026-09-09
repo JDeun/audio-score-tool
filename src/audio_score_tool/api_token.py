@@ -26,11 +26,14 @@ class ApiTokenMiddleware:
         self.app = app
 
     @staticmethod
-    def _provided(scope: Scope) -> str:
-        for key, value in scope.get("headers") or []:
-            if key.lower() == _HEADER:
-                return value.decode("utf-8", errors="ignore")
-        return ""
+    def _provided(scope: Scope) -> str | None:
+        values = [value for key, value in scope.get("headers") or [] if key.lower() == _HEADER]
+        if len(values) != 1:
+            return None
+        try:
+            return values[0].decode("utf-8", errors="strict")
+        except UnicodeDecodeError:
+            return None
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         expected = os.getenv("AST_API_TOKEN", "")
@@ -41,7 +44,7 @@ class ApiTokenMiddleware:
             and str(scope.get("method") or "GET").upper() not in _PREFLIGHT_METHODS
         ):
             provided = self._provided(scope)
-            if not provided or not hmac.compare_digest(provided, expected):
+            if provided is None or not hmac.compare_digest(provided, expected):
                 response = JSONResponse({"detail": "Invalid local API token"}, status_code=401)
                 await response(scope, receive, send)
                 return

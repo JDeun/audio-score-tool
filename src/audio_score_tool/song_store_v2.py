@@ -11,6 +11,7 @@ from threading import Lock, get_ident
 from typing import Any
 
 from .paths import cache_dir, database_path, exports_dir, jobs_dir, song_assets_dir
+from .sqlite_runtime import connect_sqlite
 
 
 def _now() -> str:
@@ -61,9 +62,7 @@ class SongStoreV2:
         self._migrate_source_kinds()
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.path, timeout=10)
-        conn.row_factory = sqlite3.Row
-        return conn
+        return connect_sqlite(self.path, row_factory=True)
 
     @staticmethod
     def _columns(conn: sqlite3.Connection, table: str) -> set[str]:

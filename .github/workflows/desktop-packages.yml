@@ -84,7 +84,7 @@ jobs:
 
       - name: Generate platform icons
         working-directory: desktop
-        run: npx --no-install tauri icon src-tauri/icons/icon.png
+        run: npx --no-install tauri icon src-tauri/app-icon.svg
 
       - name: Build packaged sidecar
         working-directory: desktop

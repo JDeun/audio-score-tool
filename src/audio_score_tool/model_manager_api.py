@@ -232,9 +232,13 @@ def _run_download(job_id: str, variant: str) -> None:
                 )
             _prune_locked(_jobs)
     except Exception as exc:
+        # Do not reflect arbitrary upstream exception messages into the local API. An
+        # HTTP/library error could contain request metadata; credentials must never enter
+        # a persisted/UI-visible job error. The exception type is enough for diagnostics.
         with _jobs_lock:
             status = "cancelled" if _jobs.get(job_id, {}).get("cancel_requested") else "failed"
-            _update_job(_jobs, job_id, status=status, error=None if status == "cancelled" else str(exc))
+            error = None if status == "cancelled" else f"Hugging Face 다운로드 실패 ({type(exc).__name__})"
+            _update_job(_jobs, job_id, status=status, error=error)
             _prune_locked(_jobs)
 
 
@@ -249,7 +253,10 @@ def set_hf_session(payload: HfTokenRequest) -> dict:
     try:
         who = HfApi(token=token).whoami()
     except Exception as exc:
-        raise HTTPException(422, f"Hugging Face token을 검증하지 못했습니다: {exc}") from exc
+        # Upstream exception messages are intentionally not reflected because this route
+        # handles a secret bearer token. Keep the detailed exception only in the causal
+        # chain and expose a stable, non-secret message to the UI.
+        raise HTTPException(422, "Hugging Face token을 검증하지 못했습니다.") from exc
     name = str(who.get("name") or who.get("fullname") or "authenticated-user")
     set_session(token, name)
     return {"authenticated": True, "identity": name, "status": model_manager_status()}

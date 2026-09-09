@@ -16,6 +16,7 @@ import { installModalFocusLifecycle } from "./modalFocusLifecycle";
 import "./styles.css";
 import "./error-boundary.css";
 import "./ui-polish.css";
+import "./aesthetic-system.css";
 
 const DEVELOPMENT_API_ORIGIN = "http://127.0.0.1:8080";
 let runtimeApiOrigin = DEVELOPMENT_API_ORIGIN;

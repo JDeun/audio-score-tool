@@ -65,6 +65,14 @@ def validate_youtube_url(value: str) -> str:
     parsed = urlparse(value)
     if parsed.scheme != "https":
         raise YouTubeSourceError("YouTube URL must use HTTPS.")
+    if parsed.username is not None or parsed.password is not None:
+        raise YouTubeSourceError("YouTube URL must not contain embedded credentials.")
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise YouTubeSourceError("YouTube URL contains an invalid port.") from exc
+    if port not in {None, 443}:
+        raise YouTubeSourceError("YouTube URL must use the standard HTTPS port.")
 
     host = (parsed.hostname or "").lower().rstrip(".")
     if host not in _ALLOWED_HOSTS:
