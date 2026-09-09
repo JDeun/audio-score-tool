@@ -1,0 +1,83 @@
+.studio-view-controls {
+  position: fixed;
+  z-index: 95;
+  right: 26px;
+  bottom: 22px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid rgba(86, 92, 84, .72);
+  border-radius: 10px;
+  background: rgba(43, 46, 42, .94);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .22);
+  color: #e7ebe4;
+  backdrop-filter: blur(12px);
+}
+
+.studio-view-controls button {
+  min-height: 30px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 9px;
+  background: transparent;
+  color: #bac0b7;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 680;
+  letter-spacing: .05px;
+}
+
+.studio-view-controls button:hover { background: #3b403a; color: #f4f6f2; }
+.studio-view-controls button.active { background: #53614e; color: #fff; }
+.studio-view-controls button:focus-visible { outline-color: rgba(206, 224, 198, .9); }
+.studio-view-divider { width: 1px; height: 18px; margin: 0 2px; background: #565c55; }
+
+/* User-controlled panel visibility. The grid becomes denser without unmounting any editor state. */
+html.ast-library-hidden .product-stage .song-layout { grid-template-columns: minmax(560px, 1fr) 360px; }
+html.ast-library-hidden .product-stage .song-library { display: none; }
+html.ast-inspector-hidden .product-stage .song-layout { grid-template-columns: 240px minmax(560px, 1fr); }
+html.ast-inspector-hidden .product-stage .score-inspector { display: none; }
+html.ast-library-hidden.ast-inspector-hidden .product-stage .song-layout { grid-template-columns: minmax(0, 1fr); }
+
+/* Focus mode removes application navigation chrome but preserves the Studio toolbar as the exit affordance. */
+html.ast-studio-focus .product-frame { grid-template-columns: minmax(0, 1fr); }
+html.ast-studio-focus .product-sidebar { display: none; }
+html.ast-studio-focus .product-main { padding-left: 14px !important; padding-right: 14px !important; }
+html.ast-studio-focus .product-main:has(.song-layout) .product-page-header { display: none; }
+html.ast-studio-focus .product-main:has(.song-layout) .product-stage { padding-top: 12px; }
+html.ast-studio-focus .product-stage .song-layout { min-height: calc(100vh - 24px); }
+html.ast-studio-focus .product-stage .score-inspector { max-height: calc(100vh - 24px); }
+html.ast-studio-focus .product-stage .song-list { max-height: calc(100vh - 90px); }
+
+/* Continuous view keeps canonical SVG geometry, but visually joins page output for navigation/editing. */
+html.ast-score-continuous .product-stage .score-canvas { padding-top: 18px; padding-bottom: 28px; }
+html.ast-score-continuous .product-stage .score-canvas svg {
+  margin-bottom: 2px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.15);
+}
+html.ast-score-continuous .product-stage .score-canvas svg + svg { border-top: 1px dashed #b9b9b3; }
+
+@media (max-width: 1460px) {
+  html.ast-library-hidden .product-stage .song-layout { grid-template-columns: minmax(500px, 1fr) 330px; }
+  html.ast-inspector-hidden .product-stage .song-layout { grid-template-columns: 210px minmax(500px, 1fr); }
+}
+
+@media (max-width: 1180px) {
+  .studio-view-controls { right: 18px; bottom: 16px; }
+  html.ast-library-hidden .product-stage .song-layout,
+  html.ast-inspector-hidden .product-stage .song-layout,
+  html.ast-library-hidden.ast-inspector-hidden .product-stage .song-layout { grid-template-columns: 1fr; }
+  html:not(.ast-inspector-hidden) .product-stage .score-inspector { display: flex; }
+}
+
+@media (max-width: 760px) {
+  .studio-view-controls {
+    left: 12px;
+    right: 12px;
+    bottom: 10px;
+    justify-content: center;
+    overflow-x: auto;
+  }
+  .studio-view-controls button { padding: 0 7px; font-size: 9px; }
+}
