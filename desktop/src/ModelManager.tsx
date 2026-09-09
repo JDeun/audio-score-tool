@@ -26,8 +26,8 @@ type ModelsStatus = {
   selected_engine: string;
   selected_muscriptor_model: string;
   hf_authenticated: boolean;
+  hf_identity?: string | null;
   hf_home: string;
-  hf_cli_ready: boolean;
   disk_free_bytes: number;
   models: ManagedModel[];
   policy: {
@@ -36,11 +36,12 @@ type ModelsStatus = {
     commercial_mode_blocks_muscriptor: boolean;
     model_license_acceptance_required: boolean;
     auth_token_stored_by_app: boolean;
+    auth_token_scope: string;
+    download_transport: string;
   };
 };
 
 type JobStatus = "queued" | "running" | "cancelling" | "cancelled" | "done" | "failed";
-type AuthStatus = JobStatus | "waiting_for_user";
 
 type DownloadJob = {
   job_id: string;
@@ -50,16 +51,6 @@ type DownloadJob = {
   progress: number;
   cached_bytes: number;
   target_bytes: number;
-  error?: string | null;
-};
-
-type AuthJob = {
-  auth_id: string;
-  status: AuthStatus;
-  authenticated: boolean;
-  verification_url?: string | null;
-  user_code?: string | null;
-  message?: string | null;
   error?: string | null;
 };
 
@@ -79,7 +70,7 @@ export default function ModelManager() {
   const [status, setStatus] = useState<ModelsStatus | null>(null);
   const [open, setOpen] = useState(false);
   const [job, setJob] = useState<DownloadJob | null>(null);
-  const [authJob, setAuthJob] = useState<AuthJob | null>(null);
+  const [hfToken, setHfToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -113,7 +104,7 @@ export default function ModelManager() {
         } else if (fresh.status === "failed") {
           setMessage(fresh.error || "모델 다운로드에 실패했습니다.");
         } else if (fresh.status === "cancelled") {
-          setMessage("모델 다운로드를 취소했습니다. 이미 받은 캐시는 다음 다운로드에서 재사용될 수 있습니다.");
+          setMessage("모델 다운로드 취소 요청이 반영되었습니다. 이미 받은 캐시는 다음 시도에서 재사용될 수 있습니다.");
           await refresh();
         }
       } catch {
@@ -123,44 +114,27 @@ export default function ModelManager() {
     return () => window.clearInterval(timer);
   }, [job?.job_id, job?.status]);
 
-  useEffect(() => {
-    if (!authJob || ["done", "failed", "cancelled"].includes(authJob.status)) return;
-    const timer = window.setInterval(async () => {
-      try {
-        const response = await fetch(`${API}/api/models/hf-auth/${authJob.auth_id}`);
-        if (!response.ok) return;
-        const fresh: AuthJob = await response.json();
-        setAuthJob(fresh);
-        if (fresh.status === "done") {
-          setMessage("Hugging Face 로그인이 완료되었습니다.");
-          await refresh();
-        } else if (fresh.status === "failed") {
-          setMessage(fresh.error || "Hugging Face 로그인에 실패했습니다.");
-        } else if (fresh.status === "cancelled") {
-          setMessage("Hugging Face 로그인을 취소했습니다.");
-        }
-      } catch {
-        // Preserve the browser-auth code while reconnecting.
-      }
-    }, 850);
-    return () => window.clearInterval(timer);
-  }, [authJob?.auth_id, authJob?.status]);
-
   const selected = useMemo(() => status?.models.find((model) => model.selected), [status]);
 
-  const startAuth = async () => {
+  const authenticate = async () => {
+    const token = hfToken.trim();
+    if (!token) {
+      setMessage("Hugging Face read token을 입력하세요.");
+      return;
+    }
     setBusy(true);
     setMessage("");
     try {
-      const response = await fetch(`${API}/api/models/hf-auth/start`, { method: "POST" });
+      const response = await fetch(`${API}/api/models/hf-auth/token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
       const body = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(body?.detail ?? "Hugging Face 로그인을 시작하지 못했습니다.");
-      if (body.already_authenticated) {
-        setMessage("이미 Hugging Face에 로그인되어 있습니다.");
-        await refresh();
-      } else {
-        setAuthJob({ auth_id: body.auth_id, status: body.status ?? "queued", authenticated: false });
-      }
+      if (!response.ok) throw new Error(body?.detail ?? "Hugging Face 인증에 실패했습니다.");
+      setHfToken("");
+      setMessage(`${body.identity ?? "Hugging Face"} 계정으로 이 세션을 인증했습니다. 토큰은 디스크에 저장하지 않습니다.`);
+      await refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -168,21 +142,18 @@ export default function ModelManager() {
     }
   };
 
-  const cancelAuth = async () => {
-    if (!authJob || ["done", "failed", "cancelled"].includes(authJob.status)) return;
+  const clearAuthentication = async () => {
+    setBusy(true);
     try {
-      const response = await fetch(`${API}/api/models/hf-auth/${authJob.auth_id}/cancel`, { method: "POST" });
-      const body = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(body?.detail ?? "로그인 취소에 실패했습니다.");
-      setAuthJob((current) => current ? { ...current, status: body.status ?? "cancelling" } : current);
+      const response = await fetch(`${API}/api/models/hf-auth/token`, { method: "DELETE" });
+      if (!response.ok) throw new Error("세션 인증을 해제하지 못했습니다.");
+      setMessage("AudioScoreTool 세션의 Hugging Face 인증을 해제했습니다.");
+      await refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setBusy(false);
     }
-  };
-
-  const openAuthPage = async () => {
-    const url = authJob?.verification_url ?? "https://huggingface.co/oauth/device";
-    await openUrl(url);
   };
 
   const prepare = async (model: ManagedModel) => {
@@ -224,6 +195,7 @@ export default function ModelManager() {
       const body = await response.json().catch(() => null);
       if (!response.ok) throw new Error(body?.detail ?? "다운로드 취소에 실패했습니다.");
       setJob((current) => current ? { ...current, status: body.status ?? "cancelling" } : current);
+      setMessage(body?.note ?? "다운로드 취소를 요청했습니다.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     }
@@ -292,13 +264,13 @@ export default function ModelManager() {
         <div className="model-manager-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setOpen(false)}>
           <section className="model-manager-modal" role="dialog" aria-modal="true" aria-label="AI 모델 관리자">
             <header>
-              <div><span className="model-eyebrow">MODEL LIBRARY</span><h2>AI 모델 관리자</h2><p>필요한 모델만 명시적으로 다운로드합니다. 기본 선택은 품질 우선 Large입니다.</p></div>
+              <div><span className="model-eyebrow">MODEL LIBRARY</span><h2>AI 모델 관리자</h2><p>필요한 모델만 앱이 직접 다운로드합니다. 별도 hf/uvx CLI는 사용하지 않습니다.</p></div>
               <button className="model-close" type="button" onClick={() => setOpen(false)} aria-label="닫기">×</button>
             </header>
 
             <div className="model-manager-summary">
               <div><span>현재 모델</span><strong>{selected ? `MuScriptor ${selected.label}` : status.selected_engine}</strong></div>
-              <div><span>Hugging Face</span><strong className={status.hf_authenticated ? "positive" : "attention"}>{status.hf_authenticated ? "인증됨" : "인증 필요"}</strong></div>
+              <div><span>Hugging Face</span><strong className={status.hf_authenticated ? "positive" : "attention"}>{status.hf_authenticated ? (status.hf_identity ?? "인증됨") : "세션 인증 필요"}</strong></div>
               <div><span>남은 디스크</span><strong>{formatBytes(status.disk_free_bytes)}</strong></div>
             </div>
 
@@ -309,31 +281,38 @@ export default function ModelManager() {
             {!status.hf_authenticated && status.usage_mode === "personal" && (
               <div className="model-auth-callout model-auth-flow">
                 <div>
-                  <strong>Hugging Face 로그인과 모델 라이선스 수락이 필요합니다.</strong>
-                  <span>토큰은 AudioScoreTool이 저장하지 않습니다. Hugging Face 공식 CLI의 브라우저 인증을 사용합니다.</span>
-                  {authJob?.user_code && <code>{authJob.user_code}</code>}
+                  <strong>Hugging Face 라이선스 수락과 세션 인증이 필요합니다.</strong>
+                  <span>MuScriptor 모델 페이지에서 라이선스를 수락한 뒤 read 권한 access token을 입력하세요. 토큰은 AudioScoreTool DB나 설정 파일에 저장하지 않고 현재 backend 프로세스 메모리에만 유지합니다.</span>
+                  <input
+                    type="password"
+                    value={hfToken}
+                    autoComplete="off"
+                    spellCheck={false}
+                    aria-label="Hugging Face read token"
+                    placeholder="hf_..."
+                    onChange={(event) => setHfToken(event.target.value)}
+                  />
                 </div>
                 <div className="model-auth-actions">
-                  <button type="button" onClick={() => void openUrl("https://huggingface.co/MuScriptor/muscriptor-large")}>1. 라이선스 수락</button>
-                  {!authJob || ["failed", "cancelled"].includes(authJob.status) ? (
-                    <button type="button" disabled={busy || !status.hf_cli_ready} onClick={() => void startAuth()}>2. 로그인 시작</button>
-                  ) : authJob.status === "done" ? (
-                    <span>로그인 완료</span>
-                  ) : (
-                    <>
-                      {authJob.status !== "cancelling" && <button type="button" onClick={() => void openAuthPage()}>{authJob.user_code ? "브라우저에서 코드 입력" : "인증 페이지 열기"}</button>}
-                      <button type="button" className="model-secondary" disabled={authJob.status === "cancelling"} onClick={() => void cancelAuth()}>{authJob.status === "cancelling" ? "취소 중…" : "로그인 취소"}</button>
-                    </>
-                  )}
+                  <button type="button" onClick={() => void openUrl("https://huggingface.co/MuScriptor/muscriptor-large")}>1. 모델 라이선스 확인</button>
+                  <button type="button" onClick={() => void openUrl("https://huggingface.co/settings/tokens")}>2. Read token 만들기</button>
+                  <button type="button" disabled={busy || !hfToken.trim()} onClick={() => void authenticate()}>3. 이 세션 인증</button>
                 </div>
+              </div>
+            )}
+
+            {status.hf_authenticated && status.usage_mode === "personal" && (
+              <div className="model-auth-callout">
+                <div><strong>세션 인증됨</strong><span>토큰은 디스크에 저장되지 않으며 앱 backend가 종료되면 세션 인증도 사라집니다.</span></div>
+                <button type="button" className="model-secondary" disabled={busy} onClick={() => void clearAuthentication()}>세션 인증 해제</button>
               </div>
             )}
 
             {job && !["done", "failed", "cancelled"].includes(job.status) && (
               <div className="model-download-banner">
-                <div><strong>MuScriptor {job.variant} {job.status === "cancelling" ? "취소 중" : "다운로드 중"}</strong><span>{formatBytes(job.cached_bytes)} / 약 {formatBytes(job.target_bytes)}</span></div>
+                <div><strong>MuScriptor {job.variant} {job.status === "cancelling" ? "취소 대기" : "다운로드 중"}</strong><span>{formatBytes(job.cached_bytes)} / 약 {formatBytes(job.target_bytes)}</span></div>
                 <div className="model-progress"><span style={{ width: `${job.progress}%` }} /></div><b>{job.progress}%</b>
-                <button type="button" className="model-secondary" disabled={job.status === "cancelling"} onClick={() => void cancelDownload()}>{job.status === "cancelling" ? "취소 중…" : "다운로드 취소"}</button>
+                <button type="button" className="model-secondary" disabled={job.status === "cancelling"} onClick={() => void cancelDownload()}>{job.status === "cancelling" ? "취소 대기…" : "다운로드 취소"}</button>
               </div>
             )}
 
@@ -344,7 +323,7 @@ export default function ModelManager() {
                   <p>{model.description}</p>
                   <dl><div><dt>Weights</dt><dd>약 {formatBytes(model.weight_bytes)}</dd></div><div><dt>License</dt><dd>{model.license}</dd></div><div><dt>Cache</dt><dd>{model.ready ? formatBytes(model.cached_bytes) : "—"}</dd></div></dl>
                   <div className="model-card-actions">
-                    {!model.ready && <button className="model-primary" type="button" disabled={busy || !model.allowed_for_usage_mode || !status.hf_authenticated || !status.hf_cli_ready} onClick={() => void prepare(model)}>모델 준비</button>}
+                    {!model.ready && <button className="model-primary" type="button" disabled={busy || !model.allowed_for_usage_mode || !status.hf_authenticated} onClick={() => void prepare(model)}>모델 준비</button>}
                     {model.ready && !model.selected && <button className="model-primary" type="button" disabled={busy || !model.allowed_for_usage_mode} onClick={() => void useModel(model)}>이 모델 사용</button>}
                     {model.ready && !model.selected && <button className="model-secondary" type="button" disabled={busy} onClick={() => void remove(model)}>캐시 삭제</button>}
                   </div>
@@ -352,7 +331,7 @@ export default function ModelManager() {
               ))}
             </div>
 
-            <div className="model-manager-footnote"><span>모델 캐시: {status.hf_home}</span><span>자동 다운로드 OFF · 사용자 동의 후에만 다운로드</span></div>
+            <div className="model-manager-footnote"><span>앱 관리 모델 캐시: {status.hf_home}</span><span>자동 다운로드 OFF · 사용자 동의 후 Python API로 직접 다운로드</span></div>
             {message && <div className="model-manager-message">{message}</div>}
           </section>
         </div>
