@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "components": {
+    "transcription_engine": {
+      "version": "0.8-runtime-1",
+      "license": "runtime-specific",
+      "provenance": "AudioScoreTool release managed runtime",
+      "artifacts": {}
+    },
+    "youtube_runtime": {
+      "version": "0.8-runtime-1",
+      "license": "runtime-specific",
+      "provenance": "AudioScoreTool release managed runtime",
+      "artifacts": {}
+    },
+    "audiveris": {
+      "version": "0.8-runtime-1",
+      "license": "AGPL-3.0-or-later / runtime-specific",
+      "provenance": "AudioScoreTool release managed runtime",
+      "artifacts": {}
+    },
+    "whisperx": {
+      "version": "0.8-runtime-1",
+      "license": "runtime-specific",
+      "provenance": "AudioScoreTool release managed runtime",
+      "artifacts": {}
+    },
+    "audio_validation": {
+      "version": "0.8-runtime-1",
+      "license": "runtime-specific",
+      "provenance": "AudioScoreTool release managed runtime",
+      "artifacts": {}
+    }
+  }
+}
