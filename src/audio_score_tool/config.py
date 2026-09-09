@@ -12,7 +12,30 @@ from .paths import app_data_dir
 MT3_INFER_VERSION = "0.2.0"
 
 
+def packaged_runtime() -> bool:
+    return os.getenv("AST_PACKAGED", "").strip() == "1"
+
+
+def component_dir() -> Path:
+    configured = os.getenv("AST_COMPONENT_DIR")
+    if configured:
+        return Path(configured).expanduser()
+    return app_data_dir() / "components"
+
+
+def managed_executable_path(name: str) -> Path:
+    suffix = ".exe" if platform.system() == "Windows" else ""
+    return component_dir() / "bin" / f"{name}{suffix}"
+
+
 def _find_executable(name: str) -> str | None:
+    # A packaged desktop app must never become accidentally dependent on a user's
+    # shell environment. Only executables owned by AudioScoreTool's managed component
+    # directory are eligible in release mode.
+    if packaged_runtime():
+        managed = managed_executable_path(name)
+        return str(managed) if managed.is_file() else None
+
     found = shutil.which(name)
     if found:
         return found
@@ -53,10 +76,14 @@ def _find_executable(name: str) -> str | None:
 
 
 def _has_nvidia() -> bool:
-    return _find_executable("nvidia-smi") is not None
+    if packaged_runtime():
+        return False
+    return shutil.which("nvidia-smi") is not None
 
 
 def _uvx_command(package: str) -> str | None:
+    if packaged_runtime():
+        return None
     uvx = _find_executable("uvx")
     if not uvx:
         return None
@@ -69,7 +96,15 @@ def _uvx_command(package: str) -> str | None:
     return " ".join([executable, *flags, package])
 
 
+def _packaged_command(name: str) -> str:
+    # Return the deterministic managed path even before the component exists. This
+    # makes command_exists() report false without falling through to the system PATH.
+    return str(managed_executable_path(name))
+
+
 def _default_mt3_infer_command() -> str:
+    if packaged_runtime():
+        return _packaged_command("mt3-infer")
     installed = _find_executable("mt3-infer")
     if installed:
         return installed
@@ -85,6 +120,8 @@ def _default_mt3_infer_command() -> str:
 
 
 def _default_command(name: str) -> str:
+    if packaged_runtime():
+        return _packaged_command(name)
     installed = _find_executable(name)
     if installed:
         return installed
@@ -95,6 +132,8 @@ def _default_command(name: str) -> str:
 
 
 def _external_command(name: str) -> str:
+    if packaged_runtime():
+        return _packaged_command(name)
     return _find_executable(name) or name
 
 
@@ -116,6 +155,15 @@ def _saved_or_env(key: str, env_name: str, default: str | None = None) -> str | 
     if value:
         return str(value)
     return default
+
+
+def _command_setting(key: str, env_name: str, name: str, *, uvx: bool = True) -> str:
+    if packaged_runtime():
+        return _packaged_command(name)
+    override = _saved_or_env(key, env_name)
+    if override:
+        return override
+    return _default_command(name) if uvx else _external_command(name)
 
 
 def _optional_path(key: str, env_name: str) -> Path | None:
@@ -148,18 +196,26 @@ def _saved_muscriptor_model() -> str:
 class Settings:
     usage_mode: str = field(default_factory=_saved_usage_mode)
     transcription_engine: str = field(default_factory=_saved_engine)
-    mt3_infer_cmd: str = field(default_factory=lambda: _saved_or_env("mt3_infer_cmd", "AST_MT3_INFER_CMD") or _saved_or_env("yourmt3_cmd", "AST_YOURMT3_CMD") or _default_mt3_infer_command())
+    mt3_infer_cmd: str = field(
+        default_factory=lambda: _packaged_command("mt3-infer")
+        if packaged_runtime()
+        else (
+            _saved_or_env("mt3_infer_cmd", "AST_MT3_INFER_CMD")
+            or _saved_or_env("yourmt3_cmd", "AST_YOURMT3_CMD")
+            or _default_mt3_infer_command()
+        )
+    )
     mt3_model: str = field(default_factory=_saved_mt3_model)
-    muscriptor_cmd: str = field(default_factory=lambda: _saved_or_env("muscriptor_cmd", "AST_MUSCRIPTOR_CMD") or _default_command("muscriptor"))
+    muscriptor_cmd: str = field(default_factory=lambda: _command_setting("muscriptor_cmd", "AST_MUSCRIPTOR_CMD", "muscriptor"))
     muscriptor_model: str = field(default_factory=_saved_muscriptor_model)
-    native_engine_cmd: str = field(default_factory=lambda: _saved_or_env("native_engine_cmd", "AST_NATIVE_ENGINE_CMD") or _default_command("audio-score-native"))
+    native_engine_cmd: str = field(default_factory=lambda: _command_setting("native_engine_cmd", "AST_NATIVE_ENGINE_CMD", "audio-score-native"))
     native_checkpoint: Path | None = field(default_factory=lambda: _optional_path("native_checkpoint", "AST_NATIVE_CHECKPOINT"))
-    demucs_cmd: str = field(default_factory=lambda: _saved_or_env("demucs_cmd", "AST_DEMUCS_CMD") or _default_command("demucs"))
-    whisperx_cmd: str = field(default_factory=lambda: _saved_or_env("whisperx_cmd", "AST_WHISPERX_CMD") or _default_command("whisperx"))
-    yt_dlp_cmd: str = field(default_factory=lambda: _saved_or_env("yt_dlp_cmd", "AST_YT_DLP_CMD") or _default_command("yt-dlp"))
-    audiveris_cmd: str = field(default_factory=lambda: _saved_or_env("audiveris_cmd", "AST_AUDIVERIS_CMD") or _external_command("audiveris"))
-    ffmpeg_cmd: str = field(default_factory=lambda: _saved_or_env("ffmpeg_cmd", "AST_FFMPEG_CMD") or _external_command("ffmpeg"))
-    fluidsynth_cmd: str = field(default_factory=lambda: _saved_or_env("fluidsynth_cmd", "AST_FLUIDSYNTH_CMD") or _external_command("fluidsynth"))
+    demucs_cmd: str = field(default_factory=lambda: _command_setting("demucs_cmd", "AST_DEMUCS_CMD", "demucs"))
+    whisperx_cmd: str = field(default_factory=lambda: _command_setting("whisperx_cmd", "AST_WHISPERX_CMD", "whisperx"))
+    yt_dlp_cmd: str = field(default_factory=lambda: _command_setting("yt_dlp_cmd", "AST_YT_DLP_CMD", "yt-dlp"))
+    audiveris_cmd: str = field(default_factory=lambda: _command_setting("audiveris_cmd", "AST_AUDIVERIS_CMD", "audiveris", uvx=False))
+    ffmpeg_cmd: str = field(default_factory=lambda: _command_setting("ffmpeg_cmd", "AST_FFMPEG_CMD", "ffmpeg", uvx=False))
+    fluidsynth_cmd: str = field(default_factory=lambda: _command_setting("fluidsynth_cmd", "AST_FLUIDSYNTH_CMD", "fluidsynth", uvx=False))
     validation_soundfont: Path | None = field(default_factory=lambda: _optional_path("validation_soundfont", "AST_VALIDATION_SOUNDFONT"))
     whisperx_model: str = field(default_factory=lambda: os.getenv("AST_WHISPERX_MODEL", "small"))
 
