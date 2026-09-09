@@ -115,9 +115,7 @@ async def import_notation(file: UploadFile = File(...)) -> dict:
     source = job_dir / f"source{suffix}"
     try:
         job_dir.mkdir(parents=True, exist_ok=False)
-        persist_stream_atomic(file.file, source)
-        if source.stat().st_size > _MAX_NOTATION_BYTES:
-            raise HTTPException(413, "악보 파일은 64 MiB를 초과할 수 없습니다.")
+        persist_stream_atomic(file.file, source, max_bytes=_MAX_NOTATION_BYTES)
         if suffix in _MUSICXML_EXTENSIONS - {".mxl"}:
             _validate_musicxml_file(source)
         _store.update(job_id, stage="queued")
