@@ -1,4 +1,6 @@
-# AudioScoreTool
+<p align="center">
+  <img src="docs/assets/audioscoretool-logo.svg" alt="AudioScoreTool" width="520">
+</p>
 
 <p align="center">
   <strong>음원과 기존 악보를 편집 가능한 출판 악보로.</strong><br>
@@ -202,10 +204,10 @@ AudioScoreTool의 UI는 특정 유행 스타일 하나를 그대로 적용하지
 
 - **Precision Editorial** — Management 화면의 grid, typography, spacing, 정보 위계
 - **Pro Audio / Notation Workstation** — Studio의 graphite chrome, panel boundary, compact command surface, score-first workspace
-- **Restrained Geometric Modernism** — app icon과 staff/waveform 브랜드 geometry
+- **Restrained Geometric Modernism** — waveform이 score line으로 변환되는 정식 브랜드 마크와 app icon geometry
 - **Print-first Paper** — 실제 악보 page는 장식보다 조판 fidelity를 우선
 
-색상 의미도 분리합니다. muted olive는 브랜드/primary action, cobalt는 현재 편집 selection/focus를 나타냅니다. Neumorphic/glass/acrylic/skeuomorphic 표현은 global theme가 아니라 **상태 전달에 실제 도움이 되는 micro-interaction에만** 제한적으로 허용합니다.
+UI action의 muted olive와 편집 selection/focus의 muted cobalt는 기능 의미를 위해 분리합니다. 브랜드 마크는 이 둘과 구별되는 더 선명한 cobalt와 graphite만 사용해 **audio → score** 변환을 직접 표현합니다. Neumorphic/glass/acrylic/skeuomorphic 표현은 global theme가 아니라 **상태 전달에 실제 도움이 되는 micro-interaction에만** 제한적으로 허용합니다.
 
 ## 릴리스 신뢰 모델
 
@@ -257,15 +259,3 @@ stable acceptance에는 서명뿐 아니라 **system Python/Node/Rust/uv/pip가 
 - 버그와 기능 요청은 GitHub Issue templates를 사용해 주십시오.
 
 큰 아키텍처 변경, 모델/라이선스 provenance 변경, canonical storage schema 변경은 구현 전에 Issue에서 범위와 근거를 먼저 합의하는 것을 권장합니다.
-
-## 라이선스와 제3자 구성요소
-
-AudioScoreTool 자체 코드는 [Apache License 2.0](LICENSE)으로 배포됩니다.
-
-제3자 code/model/component에는 각자의 라이선스가 적용됩니다. 특히 MuScriptor weights의 비상업 제한, Verovio/fpdf2의 LGPL 의무, Audiveris의 AGPL 경계, FFmpeg 실제 build flags, AMT checkpoint provenance를 **실제 배포 artifact 기준으로** 확인해야 합니다.
-
-상세 목록: [THIRD_PARTY_LICENSES.ko.md](docs/THIRD_PARTY_LICENSES.ko.md)
-
----
-
-**v0.8 목표:** 자동 생성 결과를 파일 묶음으로 흩어 놓는 도구가 아니라, 한 곡을 생성 → 검증 → 수정 → Revision → 조판 → 최종 export까지 일관되게 관리하는 local-first 독립 데스크탑 악보 제작 환경.
