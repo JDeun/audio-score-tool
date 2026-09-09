@@ -1,8 +1,10 @@
 import sqlite3
 from pathlib import Path
 
+import pytest
+
 from audio_score_tool.song_store_v2 import SongStoreV2
-from audio_score_tool.sqlite_runtime import configure_sqlite, connect_sqlite
+from audio_score_tool.sqlite_runtime import configure_sqlite, connect_sqlite, verify_sqlite_integrity
 
 
 def test_configure_sqlite_enables_wal(tmp_path: Path):
@@ -44,3 +46,17 @@ def test_song_store_uses_shared_connection_policy(tmp_path: Path):
         assert conn.execute("PRAGMA synchronous").fetchone()[0] == 1
         assert conn.execute("PRAGMA journal_mode").fetchone()[0].lower() == "wal"
         assert conn.row_factory is sqlite3.Row
+
+
+def test_corrupt_sqlite_is_never_deleted_or_reinitialized(tmp_path: Path):
+    database = tmp_path / "corrupt.sqlite3"
+    original = b"not a sqlite database\x00\xff" * 64
+    database.write_bytes(original)
+
+    with pytest.raises(sqlite3.DatabaseError):
+        verify_sqlite_integrity(database)
+    assert database.read_bytes() == original
+
+    with pytest.raises(sqlite3.DatabaseError):
+        configure_sqlite(database)
+    assert database.read_bytes() == original
