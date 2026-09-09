@@ -1,15 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
   <title id="title">AudioScoreTool</title>
-  <desc id="desc">Abstract audio waveform crossing a musical staff on an olive field.</desc>
-  <defs>
-    <linearGradient id="field" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#64755f"/>
-      <stop offset="1" stop-color="#3f4f3b"/>
-    </linearGradient>
-  </defs>
-  <rect x="64" y="64" width="896" height="896" rx="210" fill="url(#field)"/>
+  <desc id="desc">Geometric audio waveform crossing a musical staff on a muted olive field.</desc>
+  <rect x="64" y="64" width="896" height="896" rx="210" fill="#40503c"/>
   <g fill="none" stroke="#fffef9" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M260 374H764M260 444H764M260 514H764M260 584H764M260 654H764" stroke-width="24" opacity=".34"/>
+    <path d="M260 374H764M260 444H764M260 514H764M260 584H764M260 654H764" stroke-width="24" opacity=".32"/>
     <path d="M286 590C338 590 344 430 396 430S454 662 510 662 568 330 626 330s64 224 112 224" stroke-width="48"/>
     <path d="M306 698V326" stroke-width="32" opacity=".9"/>
   </g>
