@@ -68,7 +68,9 @@ jobs:
         run: |
           uv run --frozen pytest -q \
             tests/test_adversarial_boundaries.py \
-            tests/test_adversarial_state_recovery.py
+            tests/test_adversarial_state_recovery.py \
+            tests/test_direct_score_import.py::test_malformed_midi_failure_is_contained_to_job \
+            tests/test_youtube.py::test_validate_youtube_url_rejects_credential_and_ssrf_like_inputs
 
       - name: Python tests
         run: uv run --frozen pytest -q
