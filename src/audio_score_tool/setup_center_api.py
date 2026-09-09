@@ -209,7 +209,13 @@ def get_setup_center() -> dict:
 def install_setup_component(payload: InstallRequest) -> dict:
     component = payload.component.strip()
     if component not in _MANAGED_COMPONENTS:
-        raise HTTPException(409, f"{component}: 앱 관리 설치 대상이 아닙니다.")
+        raise HTTPException(
+            409,
+            (
+                f"{component}: 앱 관리 설치 대상이 아닙니다. 시스템 package manager를 통한 "
+                "설치는 지원하지 않습니다."
+            ),
+        )
     try:
         artifact = artifact_for(component)
         result = install_component_artifact(artifact)
