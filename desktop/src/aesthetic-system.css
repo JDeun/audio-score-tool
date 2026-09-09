@@ -1,7 +1,13 @@
 /*
- * AudioScoreTool final visual language
- * Editorial Minimalism + Instrument-panel Functionalism.
- * Neumorphic depth is intentionally limited to pressed micro-controls; score paper stays flat.
+ * AudioScoreTool visual system
+ * Precision Editorial + Pro Audio Workstation + restrained Geometric Modernism.
+ *
+ * - Editorial rules govern hierarchy, typography, spacing, and management surfaces.
+ * - Pro-audio / notation-workstation rules govern dense Studio controls and panel boundaries.
+ * - Geometric modernism is reserved for brand geometry and small state accents.
+ * - Brand/action color (olive) and editing-selection color (cobalt) are intentionally distinct.
+ * - Glass, neumorphic, retro-skeuomorphic, and brutalist effects are not global themes;
+ *   they are allowed only when a local interaction benefits from that physical cue.
  */
 :root {
   --ast-paper: #fffef9;
@@ -15,16 +21,24 @@
   --ast-ink: #20241f;
   --ast-ink-secondary: #62685f;
   --ast-ink-tertiary: #81867e;
+
+  /* Brand/action semantics. */
   --ast-accent: #52634d;
   --ast-accent-strong: #40503c;
   --ast-accent-soft: #e5ebe2;
-  --ast-focus: #72886b;
+
+  /* Editing/selection semantics: deliberately not the brand color. */
+  --ast-selection: #356fa8;
+  --ast-selection-strong: #285a8b;
+  --ast-selection-soft: #e2edf8;
+  --ast-focus: #356fa8;
+
   --ast-radius-panel: 9px;
   --ast-radius-control: 6px;
   --ast-shadow-paper: 0 18px 46px rgba(0, 0, 0, .25), 0 0 0 1px rgba(0, 0, 0, .14);
 }
 
-/* Editorial surfaces: borders and spacing carry hierarchy instead of decorative depth. */
+/* Editorial surfaces: grid, border, and spacing carry hierarchy rather than decoration. */
 .work-card,
 .source-card,
 .transcription-options,
@@ -51,22 +65,36 @@ textarea {
 .primary-button:not(:disabled):hover,
 .secondary-button:not(:disabled):hover,
 .model-primary:not(:disabled):hover,
-.model-secondary:not(:disabled):hover {
-  transform: none;
-}
-
+.model-secondary:not(:disabled):hover,
 button:active:not(:disabled) {
   transform: none;
 }
 
-/* Tactile depth is reserved for pressed/selected micro controls, not whole cards. */
+/* Brand mark is geometric and flat; avoid decorative gradients that compete with the score. */
+.brand-mark {
+  background: var(--ast-accent-strong) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+/* Selected editing state uses cobalt. Tiny inset depth is a local tactile cue, not a theme. */
 .segmented-control button.active,
 .inspector-tabs button.active,
 .studio-view-controls button.active {
   box-shadow: inset 0 1px 2px rgba(25, 29, 24, .18), inset 0 -1px rgba(255,255,255,.09);
 }
+.segmented-control button.active,
+.product-stage .inspector-tabs button.active {
+  border-color: #a9bfd5;
+  background: var(--ast-selection-soft);
+  color: #244f78;
+}
+.studio-view-controls button.active {
+  background: #3e5f7f;
+  color: #fff;
+}
 
-/* Studio chrome is visually quiet and industrial; the paper remains the focal object. */
+/* Studio chrome follows notation/DAW workstation logic: quiet shell, explicit boundaries, bright paper. */
 .product-stage .song-layout {
   border-radius: 8px;
   border-color: #bfc1b9;
@@ -92,15 +120,18 @@ button:active:not(:disabled) {
 }
 .product-stage .song-item,
 .product-stage .inspector-tabs button { border-radius: 5px; }
-.product-stage .song-item.active { background: var(--ast-accent-soft); }
+.product-stage .song-item.active {
+  border-color: #9fb9d2;
+  background: var(--ast-selection-soft);
+}
 
-/* Strong focus visibility is part of the aesthetic, not an accessibility afterthought. */
+/* Focus visibility is a first-class visual state. */
 :where(button, a, input, select, textarea, [tabindex]):focus-visible {
   outline: 2px solid var(--ast-focus) !important;
   outline-offset: 2px;
 }
 
-/* Type hierarchy: avoid dashboard-microtext inside a professional desktop tool. */
+/* Type hierarchy: professional density without dashboard microtext. */
 .product-nav button span,
 .sidebar-setup span,
 .product-stage .score-actions button,
@@ -115,7 +146,7 @@ button:active:not(:disabled) {
 .runtime-summary small,
 .product-version { font-size: 10.5px; }
 
-/* Motion should explain state, never decorate a workstation. */
+/* Motion explains state; it does not decorate the workstation. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     scroll-behavior: auto !important;
@@ -125,12 +156,12 @@ button:active:not(:disabled) {
   }
 }
 
-/* Respect users who explicitly request stronger UI separation. */
 @media (prefers-contrast: more) {
   :root {
     --ast-line: #a6aaa0;
     --ast-line-strong: #7e8478;
     --ast-ink-secondary: #464c43;
+    --ast-selection: #155f9d;
   }
   .work-card,
   .product-stage .song-layout,
@@ -154,7 +185,7 @@ button:active:not(:disabled) {
 }
 
 @media (prefers-color-scheme: dark) {
-  /* Management chrome can darken, but score paper is deliberately invariant for WYSIWYG. */
+  /* Management chrome can darken; print paper remains invariant for WYSIWYG. */
   :root {
     --ast-surface: #272a27;
     --ast-surface-subtle: #303330;
@@ -163,6 +194,7 @@ button:active:not(:disabled) {
     --ast-ink: #eef0ec;
     --ast-ink-secondary: #bbc0b8;
     --ast-ink-tertiary: #999f96;
+    --ast-selection-soft: #273d52;
   }
   .work-card,
   .source-card,
@@ -171,5 +203,11 @@ button:active:not(:disabled) {
   .history-card { background: var(--ast-surface); border-color: var(--ast-line); }
   .product-stage .song-library,
   .product-stage .score-inspector { background: #292d29; }
+  .product-stage .song-item.active,
+  .product-stage .inspector-tabs button.active {
+    border-color: #547da3;
+    background: var(--ast-selection-soft);
+    color: #e7f2fc;
+  }
   .product-stage .score-canvas svg { background: var(--ast-paper); }
 }
