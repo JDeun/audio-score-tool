@@ -41,7 +41,19 @@ def _xml_safety_check(text: str) -> None:
     # parser. MusicXML does not require DTD/entity declarations for this application.
     probe = text.upper()
     if "<!DOCTYPE" in probe or "<!ENTITY" in probe:
-        raise OMRImportError("DOCTYPE/ENTITY가 포함된 MusicXML은 안전을 위해 처리하지 않습니다.")
+        raise OMRImportError("DOCTYPE/ENTITY가 포함된 XML은 안전을 위해 처리하지 않습니다.")
+
+
+def _parse_bounded_xml(payload: bytes, *, context: str) -> ET.Element:
+    try:
+        text = payload.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise OMRImportError(f"{context} XML 인코딩을 읽을 수 없습니다.") from exc
+    _xml_safety_check(text)
+    try:
+        return ET.fromstring(text)
+    except ET.ParseError as exc:
+        raise OMRImportError(f"{context} XML을 파싱할 수 없습니다: {exc}") from exc
 
 
 def _is_musicxml(text: str) -> bool:
@@ -80,19 +92,18 @@ def _musicxml_from_mxl(path: Path) -> str:
 
             candidates: list[str] = []
             try:
-                container = ET.fromstring(
-                    _read_zip_member(
-                        archive,
-                        "META-INF/container.xml",
-                        max_bytes=_MAX_CONTAINER_BYTES,
-                    )
+                container_payload = _read_zip_member(
+                    archive,
+                    "META-INF/container.xml",
+                    max_bytes=_MAX_CONTAINER_BYTES,
                 )
+                container = _parse_bounded_xml(container_payload, context="MXL container")
                 for node in container.iter():
                     if node.tag.rsplit("}", 1)[-1] == "rootfile":
                         full_path = node.attrib.get("full-path")
                         if full_path:
                             candidates.append(full_path)
-            except (KeyError, ET.ParseError, OMRImportError):
+            except (KeyError, OMRImportError):
                 pass
             candidates.extend(
                 name
