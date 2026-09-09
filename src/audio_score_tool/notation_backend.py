@@ -40,12 +40,20 @@ def music21_available() -> bool:
     return True
 
 
-def verovio_available() -> bool:
+def _verovio_resource_path() -> Path | None:
     try:
-        import verovio  # noqa: F401
+        import verovio
     except ImportError:
-        return False
-    return True
+        return None
+    module_file = getattr(verovio, "__file__", None)
+    if not module_file:
+        return None
+    path = Path(module_file).resolve().parent / "data"
+    return path if path.is_dir() else None
+
+
+def verovio_available() -> bool:
+    return _verovio_resource_path() is not None
 
 
 def fpdf2_available() -> bool:
@@ -142,24 +150,11 @@ def _svg_dimensions_mm(svg_text: str) -> tuple[float, float]:
 
 
 def _verovio_toolkit():
-    """Create Verovio with the wheel-bundled font resources explicitly loaded.
-
-    Verovio normally discovers its data directory itself, but PyInstaller and some
-    isolated CI/runtime layouts do not preserve the install-time default resource path.
-    Resolve resources relative to the imported module so the same code works in wheels
-    and one-file packaged sidecars.
-    """
-
     import verovio
 
-    module_file = getattr(verovio, "__file__", None)
-    if not module_file:
-        raise NotationBackendUnavailable("Verovio resource 위치를 확인할 수 없습니다.")
-    resource_path = Path(module_file).resolve().parent / "data"
-    if not resource_path.is_dir():
-        raise NotationBackendUnavailable(
-            f"Verovio font resource가 앱에 포함되지 않았습니다: {resource_path}"
-        )
+    resource_path = _verovio_resource_path()
+    if resource_path is None:
+        raise NotationBackendUnavailable("Verovio font resource가 앱에 포함되지 않았습니다.")
 
     toolkit = verovio.toolkit(False)
     if toolkit.setResourcePath(str(resource_path)) is False:
