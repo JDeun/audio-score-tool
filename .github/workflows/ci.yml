@@ -91,7 +91,7 @@ jobs:
 
       - name: Generate Tauri icons
         working-directory: desktop
-        run: npx --no-install tauri icon src-tauri/icons/icon.png
+        run: npx --no-install tauri icon src-tauri/app-icon.svg
 
       - name: Create CI sidecar placeholder
         run: |
