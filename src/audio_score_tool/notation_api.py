@@ -14,8 +14,6 @@ _store = SettingsStore()
 
 class NotationSettingsPayload(BaseModel):
     audiveris_cmd: str | None = None
-    lilypond_cmd: str | None = None
-    musicxml2ly_cmd: str | None = None
 
 
 def _snapshot() -> dict:
@@ -23,16 +21,16 @@ def _snapshot() -> dict:
     return {
         "paths": {
             "audiveris_cmd": settings.audiveris_cmd,
-            "lilypond_cmd": settings.lilypond_cmd,
-            "musicxml2ly_cmd": settings.musicxml2ly_cmd,
         },
         "backends": backend_status(settings),
         "omr": audiveris_status(settings.audiveris_cmd),
         "policy": {
             "preview": "osmd",
             "midi_musicxml": "music21",
-            "pdf_renderer": "lilypond",
+            "pdf_renderer": "embedded-verovio-fpdf2",
             "musescore_required": False,
+            "lilypond_required": False,
+            "external_pdf_renderer_required": False,
         },
     }
 
