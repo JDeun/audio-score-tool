@@ -10,6 +10,7 @@ import NotationSettingsController from "./NotationSettingsController";
 import OMRImportController from "./OMRImportController";
 import ProductRoot from "./ProductRoot";
 import SetupCenter from "./SetupCenter";
+import StudioViewControls from "./StudioViewControls";
 import ValidationController from "./ValidationController";
 import { installModalFocusLifecycle } from "./modalFocusLifecycle";
 import "./styles.css";
@@ -116,6 +117,7 @@ function render() {
     <StrictMode>
       <AppErrorBoundary>
         <ProductRoot />
+        <StudioViewControls />
         <EngineSettingsDock />
         <ExportController />
         <ValidationController />

@@ -5,6 +5,10 @@ test.beforeEach(async ({ page }) => {
   await page.evaluate(() => {
     localStorage.removeItem("ast-onboarding-v1");
     localStorage.removeItem("ast-section");
+    localStorage.removeItem("ast-studio-library");
+    localStorage.removeItem("ast-studio-inspector");
+    localStorage.removeItem("ast-studio-focus");
+    localStorage.removeItem("ast-studio-view");
   });
   await page.reload();
 });
@@ -71,4 +75,44 @@ test("generic modal restores opener focus and Escape activates its safe dismiss 
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
   await expect(page.locator("#e2e-modal-opener")).toBeFocused();
+});
+
+test("studio view controls expose persistent panel, page, and focus states", async ({ page }) => {
+  await page.getByRole("button", { name: "건너뛰기" }).click();
+
+  await page.evaluate(() => {
+    const layout = document.createElement("section");
+    layout.className = "song-layout";
+    document.getElementById("root")?.appendChild(layout);
+  });
+
+  const toolbar = page.getByRole("toolbar", { name: "Studio 보기 설정" });
+  await expect(toolbar).toBeVisible();
+
+  const library = toolbar.getByRole("button", { name: "Library" });
+  const inspector = toolbar.getByRole("button", { name: "Inspector" });
+  const pageMode = toolbar.getByRole("button", { name: "Page" });
+  const continuous = toolbar.getByRole("button", { name: "Continuous" });
+  const focus = toolbar.getByRole("button", { name: "Focus" });
+
+  await expect(library).toHaveAttribute("aria-pressed", "true");
+  await expect(inspector).toHaveAttribute("aria-pressed", "true");
+  await expect(pageMode).toHaveAttribute("aria-pressed", "true");
+
+  await library.click();
+  await expect(page.locator("html")).toHaveClass(/ast-library-hidden/);
+  await expect(library).toHaveAttribute("aria-pressed", "false");
+
+  await inspector.click();
+  await expect(page.locator("html")).toHaveClass(/ast-inspector-hidden/);
+  await expect(inspector).toHaveAttribute("aria-pressed", "false");
+
+  await continuous.click();
+  await expect(page.locator("html")).toHaveClass(/ast-score-continuous/);
+  await expect(continuous).toHaveAttribute("aria-pressed", "true");
+  await expect(pageMode).toHaveAttribute("aria-pressed", "false");
+
+  await focus.click();
+  await expect(page.locator("html")).toHaveClass(/ast-studio-focus/);
+  await expect(focus).toHaveAttribute("aria-pressed", "true");
 });
