@@ -17,6 +17,7 @@ from .upload_storage import UploadStorageError, persist_stream_atomic
 router = APIRouter(tags=["omr"])
 _store = JobStore()
 _ALLOWED = {".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp"}
+_MAX_OMR_SOURCE_BYTES = 256 * 1024 * 1024
 
 
 def _worker(job_id: str, source: Path, settings: Settings) -> None:
@@ -69,7 +70,7 @@ async def import_score(file: UploadFile = File(...)) -> dict:
     if not audiveris_status(settings.audiveris_cmd)["ready"]:
         raise HTTPException(
             503,
-            "Audiveris가 설치되어 있지 않습니다. 설정에서 Audiveris 실행 경로를 지정하세요.",
+            "OMR 구성요소가 준비되어 있지 않습니다. Setup Center에서 OMR 구성요소 상태를 확인하세요.",
         )
 
     job_id = uuid.uuid4().hex
@@ -77,7 +78,7 @@ async def import_score(file: UploadFile = File(...)) -> dict:
     job_dir.mkdir(parents=True, exist_ok=False)
     source = job_dir / f"source-score{suffix}"
     try:
-        persist_stream_atomic(file.file, source)
+        persist_stream_atomic(file.file, source, max_bytes=_MAX_OMR_SOURCE_BYTES)
     except UploadStorageError as exc:
         shutil.rmtree(job_dir, ignore_errors=True)
         raise HTTPException(exc.status_code, str(exc)) from exc
@@ -96,5 +97,9 @@ async def import_score(file: UploadFile = File(...)) -> dict:
     except Exception:
         shutil.rmtree(job_dir, ignore_errors=True)
         raise
-    Thread(target=_worker, args=(job_id, source, settings), daemon=True).start()
+    try:
+        Thread(target=_worker, args=(job_id, source, settings), daemon=True).start()
+    except RuntimeError as exc:
+        _store.update(job_id, status="failed", stage="failed", error=str(exc))
+        raise HTTPException(503, "백그라운드 OMR 작업을 시작하지 못했습니다.") from exc
     return {"job_id": job_id, "status": "queued", "kind": "omr"}
