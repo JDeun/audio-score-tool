@@ -65,6 +65,17 @@ def _validated_download_url(url: str) -> urllib.parse.SplitResult:
     return parsed
 
 
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        while True:
+            chunk = handle.read(1024 * 1024)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 @dataclass(frozen=True, slots=True)
 class ComponentArtifact:
     component: str
@@ -81,7 +92,11 @@ class ComponentArtifact:
     def __post_init__(self) -> None:
         if not _safe_identifier(self.component) or not _safe_identifier(self.version):
             raise ComponentIntegrityError("Managed component name/version is unsafe.")
-        if len(self.sha256) != 64 or any(ch not in "0123456789abcdef" for ch in self.sha256.lower()):
+        if (
+            len(self.sha256) != 64
+            or self.sha256 != self.sha256.lower()
+            or any(ch not in "0123456789abcdef" for ch in self.sha256)
+        ):
             raise ComponentIntegrityError("Managed component manifest has an invalid SHA-256 digest.")
         if self.archive not in {"zip", "tar", "raw"}:
             raise ComponentUnavailable(f"Unsupported managed component archive type: {self.archive}")
@@ -227,13 +242,11 @@ def _download(artifact: ComponentArtifact, target: Path) -> str:
     )
     try:
         with urllib.request.urlopen(request, timeout=60) as response:
-            # urllib follows redirects. Re-validate the final URL so a trusted HTTPS
-            # catalog endpoint cannot redirect installation to file/http/credential URLs.
             _validated_download_url(str(response.geturl()))
             return _copy_stream(response, target, max_bytes=artifact.max_download_bytes)
     except ComponentError:
         raise
-    except Exception as exc:  # urllib raises several transport-specific exception types
+    except Exception as exc:
         raise ComponentUnavailable("Managed component download failed.") from exc
 
 
@@ -359,8 +372,9 @@ def _extract(artifact: ComponentArtifact, archive_path: Path, destination: Path)
         raise ComponentIntegrityError("Managed component archive is malformed or unreadable.") from exc
 
 
-def _verify_tools(artifact: ComponentArtifact, staged: Path) -> dict[str, str]:
+def _verify_tools(artifact: ComponentArtifact, staged: Path) -> tuple[dict[str, str], dict[str, str]]:
     resolved: dict[str, str] = {}
+    digests: dict[str, str] = {}
     stage_root = staged.resolve()
     for name, relative in artifact.tools.items():
         candidate = staged.joinpath(*PurePosixPath(relative).parts)
@@ -374,7 +388,8 @@ def _verify_tools(artifact: ComponentArtifact, staged: Path) -> dict[str, str]:
         if os.name != "nt":
             candidate.chmod(candidate.stat().st_mode | stat.S_IXUSR)
         resolved[name] = relative
-    return resolved
+        digests[name] = _file_sha256(candidate)
+    return resolved, digests
 
 
 def install_component_artifact(
@@ -383,7 +398,6 @@ def install_component_artifact(
     root: Path | None = None,
     local_archive: Path | None = None,
 ) -> dict:
-    # __post_init__ protects direct dataclass callers in addition to catalog callers.
     if not _safe_identifier(artifact.component) or not _safe_identifier(artifact.version):
         raise ComponentIntegrityError("Managed component name/version is unsafe.")
     root = (root or _root()).resolve()
@@ -411,7 +425,7 @@ def install_component_artifact(
             if actual != artifact.sha256:
                 raise ComponentIntegrityError("Managed component checksum mismatch.")
             _extract(artifact, download, staged)
-            tools = _verify_tools(artifact, staged)
+            tools, tool_sha256 = _verify_tools(artifact, staged)
             install_root.mkdir(parents=True, exist_ok=True)
             if final.exists():
                 if final.is_symlink() or not final.is_dir():
@@ -435,7 +449,8 @@ def install_component_artifact(
                 "version": artifact.version,
                 "root": str(final.relative_to(root).as_posix()),
                 "tools": tools,
-                "sha256": artifact.sha256,
+                "tool_sha256": tool_sha256,
+                "archive_sha256": artifact.sha256,
                 "license": artifact.license,
                 "provenance": artifact.provenance,
             }
@@ -480,10 +495,12 @@ def component_status(component: str, *, root: Path | None = None) -> dict:
         return {"component": component, "ready": False, "integrity": "not-installed"}
     relative_root = entry.get("root")
     tools = entry.get("tools")
+    tool_sha256 = entry.get("tool_sha256")
     if (
         not isinstance(relative_root, str)
         or not _safe_relative_path(relative_root)
         or not isinstance(tools, dict)
+        or not isinstance(tool_sha256, dict)
     ):
         return {"component": component, "ready": False, "integrity": "state-invalid"}
     installed = root.joinpath(*PurePosixPath(relative_root).parts)
@@ -506,6 +523,17 @@ def component_status(component: str, *, root: Path | None = None) -> dict:
                 "ready": False,
                 "integrity": "tool-path-invalid",
             }
+        expected_digest = tool_sha256.get(name)
+        if (
+            not isinstance(expected_digest, str)
+            or len(expected_digest) != 64
+            or any(ch not in "0123456789abcdef" for ch in expected_digest)
+        ):
+            return {
+                "component": component,
+                "ready": False,
+                "integrity": "tool-digest-missing",
+            }
         tool = installed.joinpath(*PurePosixPath(relative).parts)
         if tool.is_symlink() or not tool.is_file():
             return {"component": component, "ready": False, "integrity": "tool-missing"}
@@ -513,6 +541,16 @@ def component_status(component: str, *, root: Path | None = None) -> dict:
             tool.resolve().relative_to(installed_real)
         except (OSError, ValueError):
             return {"component": component, "ready": False, "integrity": "tool-escape"}
+        try:
+            actual_digest = _file_sha256(tool)
+        except OSError:
+            return {"component": component, "ready": False, "integrity": "tool-unreadable"}
+        if actual_digest != expected_digest:
+            return {
+                "component": component,
+                "ready": False,
+                "integrity": "tool-digest-mismatch",
+            }
         resolved_tools[str(name)] = str(tool)
     return {
         "component": component,
