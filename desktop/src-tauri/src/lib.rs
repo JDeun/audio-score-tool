@@ -1,4 +1,4 @@
-use std::{net::TcpListener, sync::Mutex, time::Duration};
+use std::{fs, net::TcpListener, sync::Mutex, time::Duration};
 
 use tauri::{AppHandle, Manager, RunEvent, State};
 use tauri_plugin_shell::{process::CommandChild, ShellExt};
@@ -119,9 +119,6 @@ pub fn run() {
     let sidecar_port = api_port.to_string();
 
     let app = tauri::Builder::default()
-        // Must be registered before plugins that can create side effects. A duplicate
-        // desktop launch should focus the existing window instead of spawning another
-        // backend process.
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.unminimize();
@@ -161,13 +158,19 @@ pub fn run() {
             // Packaged builds launch the bundled PyInstaller orchestration sidecar.
             let mut child = None;
             if !cfg!(debug_assertions) {
+                let component_dir = app.path().app_data_dir()?.join("components");
+                fs::create_dir_all(&component_dir)?;
+                let component_dir_text = component_dir.to_string_lossy().into_owned();
+
                 // Release the reserved socket only when the sidecar is ready to bind it.
                 drop(reserved_listener.take());
                 let sidecar = app
                     .shell()
                     .sidecar("audio-score-backend")?
                     .env("AST_API_TOKEN", &sidecar_token)
-                    .env("AST_API_PORT", &sidecar_port);
+                    .env("AST_API_PORT", &sidecar_port)
+                    .env("AST_PACKAGED", "1")
+                    .env("AST_COMPONENT_DIR", &component_dir_text);
                 let (mut rx, spawned) = sidecar.spawn()?;
                 child = Some(spawned);
 
@@ -191,7 +194,7 @@ pub fn run() {
                 if let Some(child) = guard.take() {
                     let _ = child.kill();
                 }
-            };
+            }
         }
     });
 }
