@@ -173,26 +173,48 @@ npm run desktop:dev
 
 ## 품질과 검증
 
+AudioScoreTool은 happy-path unit test 통과를 “완료”로 간주하지 않습니다. v1 후보는 **입력·파일·API 인증·archive/parser·SQLite 상태·동시성·crash recovery·desktop shell·시각 계약을 의도적으로 깨뜨리는 adversarial gate**를 통과해야 합니다.
+
 CI는 다음 계약을 자동 검증합니다.
 
-- Python lockfile / Ruff / pytest
+- Python lockfile / Ruff
+- **adversarial boundary & recovery gate** — stream upload cap, unsafe XML/MXL, compression bomb, artifact path/symlink escape, ambiguous local API credentials, corrupt historical state, concurrent SQLite writes, crash-recovery state
+- 전체 Python pytest 회귀 suite와 malformed-input failure containment
 - embedded Verovio/fpdf2 PDF integration
 - packaged mode가 시스템 PATH의 executable을 사용하지 않는지 검증
 - React/TypeScript typecheck + production build
-- Chromium keyboard-only accessibility E2E
-- Tauri/Rust compile check
-- 별도 Desktop Packages workflow의 Windows/macOS/Linux sidecar smoke와 installer build
+- Chromium keyboard accessibility E2E
+- **visual-contract E2E** — 지원 viewport overflow, dark-mode score paper, semantic selection/focus color, tactile micro-state, reduced motion
+- Tauri/Rust `cargo check` + warnings-as-errors clippy
+- 별도 Desktop Packages workflow의 Windows/macOS/Linux packaged sidecar smoke와 installer/bundle build
+
+안정화 범위와 공격 표면은 [적대적 검증 문서](docs/ADVERSARIAL_VALIDATION.ko.md), UI의 미학 후보 비교·최종 디자인 시스템·시각 완료 기준은 [UI/UX 디자인 시스템](docs/UI_DESIGN.ko.md)을 참조하십시오.
 
 제품 성능은 note F1만으로 판단하지 않습니다. instrument assignment, chord/lyrics, OMR error rate, real-time factor, peak VRAM과 함께 **사람이 수정한 양과 최종 편집 시간**을 핵심 KPI로 봅니다.
 
 악보 검증은 결정론적 검사와 선택적 LLM critic을 분리합니다. LLM 판정은 `LLM 가설`이며 원음을 직접 측정하는 acoustic verifier로 간주하지 않고, 자동 수정 권한도 주지 않습니다.
+
+## UI/UX 방향
+
+AudioScoreTool의 UI는 특정 유행 스타일 하나를 그대로 적용하지 않습니다. Swiss/Editorial, contemporary pro-audio/notation workstation, industrial/instrument UI, Bauhaus/geometric modernism, HIG/Fluent, neumorphism, glassmorphism, skeuomorphism 등 여러 후보를 **가독성·장시간 피로도·고밀도 편집·브랜드 기억성·플랫폼 중립성** 기준으로 비교합니다.
+
+현재 디자인 시스템은 다음 역할을 조합합니다.
+
+- **Precision Editorial** — Management 화면의 grid, typography, spacing, 정보 위계
+- **Pro Audio / Notation Workstation** — Studio의 graphite chrome, panel boundary, compact command surface, score-first workspace
+- **Restrained Geometric Modernism** — app icon과 staff/waveform 브랜드 geometry
+- **Print-first Paper** — 실제 악보 page는 장식보다 조판 fidelity를 우선
+
+색상 의미도 분리합니다. muted olive는 브랜드/primary action, cobalt는 현재 편집 selection/focus를 나타냅니다. Neumorphic/glass/acrylic/skeuomorphic 표현은 global theme가 아니라 **상태 전달에 실제 도움이 되는 micro-interaction에만** 제한적으로 허용합니다.
 
 ## 릴리스 신뢰 모델
 
 ```text
 source / PR
    ↓
-CI + 3-OS packaged smoke
+adversarial gate + full CI + visual contract
+   ↓
+3-OS packaged smoke / desktop bundle
    ↓
 self-contained clean-machine acceptance
    ↓
@@ -222,6 +244,8 @@ stable acceptance에는 서명뿐 아니라 **system Python/Node/Rust/uv/pip가 
 - [악보 편집기](docs/EDITOR.ko.md)
 - [PDF/이미지 OMR](docs/OMR.ko.md)
 - [악보 검증](docs/VALIDATION.ko.md)
+- [적대적 검증/안정화](docs/ADVERSARIAL_VALIDATION.ko.md)
+- [UI/UX 디자인 시스템](docs/UI_DESIGN.ko.md)
 - [엔진 성능/선택](docs/ENGINE_PERFORMANCE.ko.md)
 - [릴리스](docs/RELEASE.ko.md)
 - [제3자 모델·라이선스](docs/THIRD_PARTY_LICENSES.ko.md)
