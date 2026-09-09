@@ -1,11 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
   <title id="title">AudioScoreTool</title>
-  <desc id="desc">Geometric audio waveform crossing a musical staff on a muted olive field.</desc>
-  <rect x="64" y="64" width="896" height="896" rx="210" fill="#40503c"/>
-  <g fill="none" stroke="#fffef9" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M260 374H764M260 444H764M260 514H764M260 584H764M260 654H764" stroke-width="24" opacity=".32"/>
-    <path d="M286 590C338 590 344 430 396 430S454 662 510 662 568 330 626 330s64 224 112 224" stroke-width="48"/>
-    <path d="M306 698V326" stroke-width="32" opacity=".9"/>
+  <desc id="desc">Audio waveform flowing into score lines.</desc>
+  <rect x="64" y="64" width="896" height="896" rx="220" fill="#F7F5EF"/>
+  <rect x="64" y="64" width="896" height="896" rx="220" fill="none" stroke="#D9DCD5" stroke-width="18"/>
+  <g transform="translate(118 252) scale(2.45)">
+    <g fill="#1673F9">
+      <rect x="18" y="74" width="24" height="28" rx="12"/>
+      <rect x="52" y="50" width="28" height="76" rx="14"/>
+      <rect x="90" y="24" width="30" height="128" rx="15"/>
+      <rect x="130" y="44" width="28" height="88" rx="14"/>
+    </g>
+    <path d="M152 62 C186 62 191 80 218 87 C238 92 258 92 304 92" fill="none" stroke="#1673F9" stroke-width="18" stroke-linecap="round"/>
+    <path d="M162 92 C190 92 195 108 219 114 C239 119 260 119 304 119" fill="none" stroke="#4F5964" stroke-width="16" stroke-linecap="round"/>
+    <path d="M198 145 H304" fill="none" stroke="#4F5964" stroke-width="16" stroke-linecap="round"/>
   </g>
-  <circle cx="738" cy="554" r="42" fill="#fffef9"/>
 </svg>
