@@ -64,13 +64,17 @@ jobs:
       - name: Python lint
         run: uv run --frozen ruff check src tests training scripts
 
-      - name: Adversarial boundary and recovery tests
+      - name: Adversarial boundary and recovery stress gate
         run: |
-          uv run --frozen pytest -q \
-            tests/test_adversarial_boundaries.py \
-            tests/test_adversarial_state_recovery.py \
-            tests/test_direct_score_import.py::test_malformed_midi_failure_is_contained_to_job \
-            tests/test_youtube.py::test_validate_youtube_url_rejects_credential_and_ssrf_like_inputs
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            echo "Adversarial stress pass ${attempt}/3"
+            uv run --frozen pytest -q \
+              tests/test_adversarial_boundaries.py \
+              tests/test_adversarial_state_recovery.py \
+              tests/test_direct_score_import.py::test_malformed_midi_failure_is_contained_to_job \
+              tests/test_youtube.py::test_validate_youtube_url_rejects_credential_and_ssrf_like_inputs
+          done
 
       - name: Python tests
         run: uv run --frozen pytest -q
