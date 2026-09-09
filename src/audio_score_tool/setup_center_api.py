@@ -162,6 +162,7 @@ def setup_center_status() -> dict:
             "pdf_renderer": "embedded-verovio-fpdf2",
             "musescore_required": False,
             "lilypond_required": False,
+            "llm_required": False,
             "system_package_manager_required": False,
             "developer_toolchain_required": False,
             "optional_features_do_not_block_core": True,
