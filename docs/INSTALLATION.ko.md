@@ -1,12 +1,10 @@
 # 설치 및 첫 실행 설계
 
-AudioScoreTool의 설치 목표는 다음입니다.
+AudioScoreTool의 일반 사용자 설치 계약은 다음입니다.
 
-> **새 PC에서 설치 파일 하나를 실행한 뒤, CLI 지식 없이 첫 악보를 만들 수 있어야 합니다.**
+> **새 PC에서 설치 파일 하나를 실행한 뒤, Python/Node/Rust나 별도 악보 프로그램을 설치하지 않고 핵심 악보 workflow를 사용할 수 있어야 합니다.**
 
 ## 현재 배포 상태
-
-설치 방법은 세 등급을 구분합니다.
 
 | 등급 | 용도 | 상태 |
 |---|---|---|
@@ -14,160 +12,115 @@ AudioScoreTool의 설치 목표는 다음입니다.
 | unsigned Desktop Packages | Windows/macOS/Linux QA | CI에서 생성 가능 |
 | signed stable installer | 일반 사용자 공식 배포 | signing/acceptance 전 (#22) |
 
-GitHub Actions가 만드는 Windows `.exe`와 macOS `.dmg`를 사용할 수는 있지만, signing/notarization이 완료되기 전에는 **공식 release verified 설치본으로 안내하지 않습니다.** 실제 stable distribution activation은 [Issue #22](https://github.com/JDeun/audio-score-tool/issues/22)에서 추적합니다.
+unsigned CI artifact는 QA용입니다. Windows Authenticode signing, macOS Developer ID notarization, updater acceptance가 끝나기 전에는 공식 stable 배포본으로 안내하지 않습니다. 운영 gate는 [Issue #22](https://github.com/JDeun/audio-score-tool/issues/22)입니다.
 
-## 사용자에게 요구하지 않는 것
+## 일반 사용자에게 요구하지 않는 것
 
-일반 사용자는 다음을 알 필요가 없어야 합니다.
-
-- `pip`, `uv`, `npm`, `cargo` 사용법
-- Python/Node/Rust 개발환경 구성
+- Python / Node.js / Rust 설치
+- `pip`, `uv`, `uvx`, `npm`, `cargo` 사용
+- Homebrew / winget으로 후설치
 - PATH 수동 편집
-- 개별 Python package의 가상환경 관리
+- MuseScore 설치
+- LilyPond / `musicxml2ly` 설치
+- 개발용 가상환경 구성
 
-Desktop package는 Tauri app과 Python orchestration sidecar를 함께 배포합니다. repository 개발 명령은 일반 사용자 설치 절차가 아닙니다.
+Desktop package는 Tauri UI와 Python backend sidecar를 함께 제공합니다. 큰 모델이나 선택 기능의 runtime은 installer에 직접 포함하거나 앱이 자체 관리하는 component로 제공하는 것이 원칙입니다.
 
-## 입력별 최소 요구사항
+자세한 분류는 [`DEPENDENCIES.ko.md`](DEPENDENCIES.ko.md)를 참조하십시오.
 
-| 입력/기능 | 추가 요구사항 |
+## 핵심 내장 workflow
+
+| 입력/기능 | 배포 계약 |
 |---|---|
-| MusicXML/XML/MXL 직접 import | 기본 앱 |
-| MIDI 직접 import | 기본 dependency의 music21 |
-| 음원/YouTube 자동 채보 | 선택한 transcription engine/model |
-| PDF/이미지 OMR | Audiveris |
-| MusicXML/MIDI 편집·export | 기본 앱 |
-| PDF/파트 PDF export | LilyPond + `musicxml2ly` |
-| 가사 인식/정렬 | WhisperX |
+| MusicXML/XML/MXL import | 기본 앱 |
+| MIDI import/export | sidecar 내장 music21 |
+| 악보 미리보기/편집 | frontend bundle의 OSMD + 앱 editor |
+| PDF/파트 PDF export | sidecar 내장 Verovio + fpdf2 |
+| SQLite 곡/Revision 관리 | 기본 앱 |
 
-즉 Audiveris나 LilyPond가 없다는 이유로 MusicXML/MIDI 기반 핵심 workflow까지 `준비 안 됨`으로 처리하지 않습니다.
-
-## Setup Center
-
-첫 실행 온보딩이 끝난 뒤 기본 채보 환경이 준비되지 않았다면 Setup Center가 순차적으로 열립니다. 이후 앱의 설치 도우미에서 다시 열 수 있습니다.
-
-구성요소를 기능 영향도에 따라 구분합니다.
-
-### 필수 — 자동 채보를 사용할 때
+PDF 생성 경로는 다음과 같습니다.
 
 ```text
-음원 → 자동 채보 → 편집 가능한 MusicXML
+Canonical MusicXML
+        ↓
+     Verovio
+        ↓
+ page별 vector SVG
+        ↓
+      fpdf2
+        ↓
+ multi-page vector PDF
 ```
 
-- 선택된 transcription engine
-- 필요 시 관리형 `uv/uvx` runtime
-- MuScriptor 사용 시 Hugging Face 인증과 모델 준비
+MuseScore, LilyPond, `musicxml2ly`는 PDF fallback으로도 호출하지 않습니다.
 
-MusicXML/MXL/MIDI 직접 import만 사용하는 경우 transcription model은 필수가 아닙니다.
+## 모델/기능별 managed component
 
-### 권장
+다음 기능은 크기·라이선스·업데이트 주기가 핵심 앱과 달라 별도 component가 될 수 있습니다. **별도 component라는 의미는 사용자가 시스템 package를 직접 설치한다는 뜻이 아닙니다.**
+
+- AMT transcription engine + weights
+- Demucs
+- WhisperX/alignment model
+- YouTube ingest stack (`yt-dlp`, 필요한 media/JS runtime)
+- Audiveris + 필요한 Java runtime 또는 향후 대체 OMR backend
+- FFmpeg/ffprobe
+- FluidSynth
+- Chromaprint/fpcalc
+
+현재 packaged build에서 실제 관리형 delivery가 완성되지 않은 component는 `ready`로 과장하지 않습니다. stable release에서 해당 기능을 공식 지원하려면 앱이 설치·검증·업데이트·삭제 lifecycle을 소유해야 합니다.
+
+## Setup Center 정책
+
+Setup Center는 더 이상 Homebrew/winget 설치 도우미가 아닙니다. 역할은 다음과 같습니다.
+
+1. 앱에 반드시 내장되어야 할 핵심 runtime 검증
+2. app-managed model/component 준비 상태 표시
+3. 라이선스상 별도 동의/인증이 필요한 모델의 상태 표시
+4. 선택적 외부 서비스 상태 표시
+
+핵심 component가 installer에서 누락되었다면 사용자의 PC 환경 문제가 아니라 **패키징 결함**으로 취급합니다.
+
+## 기능별 readiness
+
+### 핵심
 
 ```text
-기본 악보 workflow + 가사 + PDF 출판
+MusicXML/MIDI ingest → edit → validation → publication → MusicXML/MIDI/PDF export
 ```
 
-- WhisperX: 가사 인식/정렬
-- LilyPond + `musicxml2ly`: PDF 생성
+이 경로는 별도 시스템 프로그램 없이 동작해야 합니다.
 
-### 선택
+### 자동 채보
 
-- Audiveris: PDF/이미지 OMR
-- FFmpeg + FluidSynth + SoundFont: audio evidence 검증
-- LLM/Vision API: 보조 검증
-- Chromaprint/fpcalc: 사용자가 요청한 원음 fingerprint 기반 곡 식별
+AMT engine/model이 필요합니다. 정식 데스크탑 UX에서는 `uvx`나 `pip install`을 사용자에게 요구하지 않고, 앱에 포함하거나 앱 데이터 영역에서 관리합니다.
 
-이 기능들의 부재가 무관한 입력/편집 workflow를 차단해서는 안 됩니다.
+MuScriptor 공개 weights는 CC BY-NC 4.0이므로 personal/non-commercial mode에서만 허용합니다. commercial mode에서는 비상업 weights가 자동 선택되지 않아야 합니다.
 
-## MuseScore 비의존 정책
+### YouTube
 
-AudioScoreTool은 MuseScore 실행 파일이나 MuseScore CLI를 핵심 runtime/fallback으로 호출하지 않습니다.
+YouTube import는 선택 기능입니다. 현재 upstream 생태계는 `yt-dlp` 외에도 FFmpeg/ffprobe와 YouTube challenge 대응용 JS runtime/ejs가 필요할 수 있으므로, stable 지원 시 이 전체 stack을 하나의 app-managed component로 취급합니다.
 
-```text
-앱 내 미리보기        OSMD
-MIDI ↔ MusicXML       music21
-MusicXML → PDF         LilyPond + musicxml2ly
-PDF/이미지 → MusicXML  Audiveris
-파트 분리              AudioScoreTool 자체 MusicXML 처리
-```
+### PDF/이미지 OMR
 
-따라서 MuseScore 설치 여부는 readiness에 영향을 주지 않습니다.
+Audiveris 기반 OMR은 선택 기능입니다. 사용자가 Java/Audiveris를 시스템에 직접 설치해야 하는 상태를 최종 사용자 경험으로 간주하지 않습니다. stable 지원 시 필요한 runtime을 앱이 관리하거나 embedded OMR backend로 대체합니다.
 
-## 자동 설치 정책
+### 가사/오디오 검증
 
-앱이 사용자 입력을 섞은 임의 shell command를 조합해 실행하지 않습니다. 운영체제별로 검토된 고정 package-manager recipe만 사용합니다.
+WhisperX, Demucs, FFmpeg, FluidSynth, SoundFont 등은 관련 기능에만 영향을 줍니다. 이들의 부재가 MusicXML/MIDI/PDF 편집·출판 workflow를 차단해서는 안 됩니다.
 
-### macOS
+## 계정/네트워크가 필요한 경우
 
-Homebrew가 이미 설치되어 있을 때 검토된 구성요소를 Setup Center에서 준비할 수 있습니다.
+설치 dependency와 계정/서비스 dependency를 구분합니다.
 
-```bash
-brew install uv
-brew install ffmpeg
-brew install fluid-synth
-brew install lilypond
-```
+- gated Hugging Face model: 공식 라이선스 수락/인증이 필요할 수 있음
+- LLM/Vision validator: 사용자가 명시적으로 켜는 선택적 API
+- MusicBrainz/AcoustID: 선택적 source-identification 서비스
 
-Finder에서 실행한 GUI app은 terminal PATH와 다를 수 있으므로 `/opt/homebrew/bin`, `/usr/local/bin` 같은 일반 설치 위치도 탐색합니다.
-
-### Windows
-
-`winget`을 사용할 수 있을 때 검증된 package ID만 자동 설치 대상으로 둡니다. package ID와 공급망을 고정하지 못한 구성요소를 임의 검색·설치하지 않습니다.
-
-### Linux
-
-배포판 차이가 크므로 단일 package manager recipe를 강제하지 않습니다. 공식 다운로드 또는 사용 중인 배포판 package manager를 사용합니다.
-
-## AI 모델 관리자
-
-앱의 AI 모델 관리 UI는 모델 크기, 예상/실제 cache, 선택 상태, 디스크 공간, 라이선스와 상용 모드 허용 여부를 보여주는 것을 목표로 합니다.
-
-기본 정책:
-
-```text
-자동 다운로드 = OFF
-명시적 사용자 동의 후 다운로드
-상용 모드에서 비상업 weights 차단
-```
-
-MuScriptor 공개 weights는 CC BY-NC 4.0이므로 personal/non-commercial mode에서만 허용합니다. 모델 license 수락이나 authentication이 필요한 경우 공식 provider flow를 사용하고 AudioScoreTool DB에 token 값을 직접 저장하지 않습니다.
-
-## Hugging Face 인증
-
-gated weights가 필요한 경우 사용자가 공식 browser/device authentication을 수행하게 합니다.
-
-```text
-1. 모델 라이선스 확인/수락
-2. 공식 인증 시작
-3. browser/device flow 완료
-4. 앱에서 readiness 재검사
-5. 사용자가 선택한 모델 준비
-```
-
-token 저장은 Hugging Face tooling의 책임으로 유지합니다.
-
-## 외부 도구 fallback
-
-자동 설치를 지원하지 않는 항목은 공식 배포 페이지로 연결하고 설치 후 `다시 검사`로 readiness를 평가합니다.
-
-- uv: `https://docs.astral.sh/uv/getting-started/installation/`
-- LilyPond: `https://lilypond.org/download.html`
-- Audiveris: `https://audiveris.github.io/audiveris/`
-- FFmpeg: `https://ffmpeg.org/download.html`
-- FluidSynth: `https://www.fluidsynth.org/download/`
-- Hugging Face: `https://huggingface.co/`
-
-## LLM은 필수 설치 항목이 아님
-
-LLM/Vision validator는 기본 OFF인 선택 기능입니다.
-
-```text
-Local OpenAI-compatible endpoint
-또는
-HTTPS hosted OpenAI-compatible API
-```
-
-LLM을 사용하지 않아도 ingest → edit → deterministic validation → export 핵심 workflow가 동작해야 합니다.
+이 경우에도 별도 개발도구 설치는 요구하지 않습니다. token/API key 값 자체를 AudioScoreTool DB에 평문 저장하지 않는 기존 보안 원칙을 유지합니다.
 
 ## 개발자 설치
+
+개발자만 다음 toolchain을 사용합니다.
 
 ```bash
 git clone https://github.com/JDeun/audio-score-tool.git
@@ -179,19 +132,21 @@ npm ci
 npm run desktop:dev
 ```
 
-CI와 동일한 검증 명령은 [`../CONTRIBUTING.md`](../CONTRIBUTING.md)를 참조하십시오.
+`.env.example`의 `AST_*_CMD` 값은 source/integration 개발용 override이며 일반 사용자 설치 절차가 아닙니다.
 
-## stable installer 활성화 전 남은 운영 작업
+## stable installer acceptance
 
-코드 구현과 package build 외에 실제 배포 계정/credential이 필요한 단계입니다.
+signing뿐 아니라 **독립 실행성**을 실제로 검증해야 합니다.
 
-1. Windows Authenticode certificate provisioning
-2. macOS Developer ID signing/notarization credential provisioning
-3. Tauri updater private signing key/public key 설정
-4. clean Windows/macOS install → launch → update → relaunch acceptance
-5. invalid updater signature/manifest rejection 확인
-6. stable Release artifact/checksum/manifest 검증
+1. clean Windows/macOS 환경 사용
+2. system Python/Node/Rust/uv/pip 없음
+3. MuseScore/LilyPond 없음
+4. Homebrew/winget 후설치 없음
+5. install → launch 성공
+6. MusicXML/MXL/MIDI import → edit → PDF/MIDI/MusicXML export 성공
+7. part PDF export 성공
+8. packaged sidecar에서 music21/Verovio/fpdf2 실제 실행 성공
+9. 공식 지원하는 managed component 기능은 앱 안에서 준비 가능
+10. update → relaunch 및 invalid updater signature rejection 성공
 
-이 작업은 [#22](https://github.com/JDeun/audio-score-tool/issues/22)에서만 완료로 판정합니다.
-
-외부 GPL/AGPL binary를 installer에 직접 bundle하기 전에는 해당 배포 의무를 별도로 검토합니다.
+코드 signing/notarization과 updater credential 작업은 [#22](https://github.com/JDeun/audio-score-tool/issues/22)에서 추적합니다. dependency별 배포 방식과 라이선스는 [`DEPENDENCIES.ko.md`](DEPENDENCIES.ko.md), [`THIRD_PARTY_LICENSES.ko.md`](THIRD_PARTY_LICENSES.ko.md)를 함께 확인합니다.

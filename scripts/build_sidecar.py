@@ -43,6 +43,8 @@ def main() -> None:
         "--onefile",
         "--name",
         "audio-score-backend",
+        "--collect-data",
+        "verovio",
         "--distpath",
         str(DIST),
         "--workpath",

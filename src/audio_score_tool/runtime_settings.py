@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .config import Settings
+from .config import Settings, packaged_runtime
 from .settings_store import SettingsStore
 
 
@@ -16,6 +16,8 @@ def runtime_settings(
 
     Unknown/retired keys in the persisted JSON are deliberately ignored so older
     installations remain forward-compatible when an integration is removed.
+    In packaged mode, persisted executable paths are also ignored: release builds
+    may execute only AudioScoreTool-owned managed components.
     """
 
     saved = (store or SettingsStore()).read()
@@ -37,23 +39,32 @@ def runtime_settings(
     if usage_mode == "commercial" and engine == "muscriptor":
         engine = "mt3_infer"
 
+    def command_value(key: str, default: str, *legacy_keys: str) -> str:
+        if packaged_runtime():
+            return default
+        for candidate in (key, *legacy_keys):
+            value = saved.get(candidate)
+            if value:
+                return str(value)
+        return default
+
     return Settings(
         usage_mode=usage_mode,
         transcription_engine=engine,
-        mt3_infer_cmd=(saved.get("mt3_infer_cmd") or saved.get("yourmt3_cmd") or defaults.mt3_infer_cmd),
+        mt3_infer_cmd=command_value(
+            "mt3_infer_cmd", defaults.mt3_infer_cmd, "yourmt3_cmd"
+        ),
         mt3_model=(saved.get("mt3_model") or defaults.mt3_model),
-        muscriptor_cmd=saved.get("muscriptor_cmd") or defaults.muscriptor_cmd,
+        muscriptor_cmd=command_value("muscriptor_cmd", defaults.muscriptor_cmd),
         muscriptor_model=(muscriptor_model or saved.get("muscriptor_model") or defaults.muscriptor_model),
-        native_engine_cmd=saved.get("native_engine_cmd") or defaults.native_engine_cmd,
+        native_engine_cmd=command_value("native_engine_cmd", defaults.native_engine_cmd),
         native_checkpoint=Path(checkpoint).expanduser() if checkpoint else defaults.native_checkpoint,
-        demucs_cmd=saved.get("demucs_cmd") or defaults.demucs_cmd,
-        whisperx_cmd=saved.get("whisperx_cmd") or defaults.whisperx_cmd,
-        yt_dlp_cmd=saved.get("yt_dlp_cmd") or defaults.yt_dlp_cmd,
-        audiveris_cmd=saved.get("audiveris_cmd") or defaults.audiveris_cmd,
-        lilypond_cmd=saved.get("lilypond_cmd") or defaults.lilypond_cmd,
-        musicxml2ly_cmd=saved.get("musicxml2ly_cmd") or defaults.musicxml2ly_cmd,
-        ffmpeg_cmd=saved.get("ffmpeg_cmd") or defaults.ffmpeg_cmd,
-        fluidsynth_cmd=saved.get("fluidsynth_cmd") or defaults.fluidsynth_cmd,
+        demucs_cmd=command_value("demucs_cmd", defaults.demucs_cmd),
+        whisperx_cmd=command_value("whisperx_cmd", defaults.whisperx_cmd),
+        yt_dlp_cmd=command_value("yt_dlp_cmd", defaults.yt_dlp_cmd),
+        audiveris_cmd=command_value("audiveris_cmd", defaults.audiveris_cmd),
+        ffmpeg_cmd=command_value("ffmpeg_cmd", defaults.ffmpeg_cmd),
+        fluidsynth_cmd=command_value("fluidsynth_cmd", defaults.fluidsynth_cmd),
         validation_soundfont=Path(soundfont).expanduser() if soundfont else defaults.validation_soundfont,
         whisperx_model=whisperx_model,
     )

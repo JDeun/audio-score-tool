@@ -75,15 +75,9 @@ def build_exports_v3(song_id: str, payload: ExportRequest | None = None) -> dict
     status = backend_status(settings)
 
     if "midi" in requested and not status["music21"]:
-        raise HTTPException(409, "MIDI export에는 music21이 필요합니다.")
-    if requested & {"pdf", "parts"} and not (
-        status["lilypond"] and status["musicxml2ly"]
-    ):
-        raise HTTPException(
-            409,
-            "PDF export에는 LilyPond와 musicxml2ly가 필요합니다. "
-            "MusicXML/MIDI export는 PDF renderer 없이도 사용할 수 있습니다.",
-        )
+        raise HTTPException(500, "앱 내장 music21 runtime이 누락되었습니다.")
+    if requested & {"pdf", "parts"} and not (status["verovio"] and status["fpdf2"]):
+        raise HTTPException(500, "앱 내장 PDF renderer(verovio/fpdf2)가 누락되었습니다.")
 
     _song_store.export_root.mkdir(parents=True, exist_ok=True)
     cache_root = cache_dir() / "export"

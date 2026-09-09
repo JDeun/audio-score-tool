@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import os
 import shutil
 from pathlib import Path
 
+from .hf_session import authenticated
 from .paths import app_data_dir, jobs_dir
 
 
@@ -21,14 +21,9 @@ def _dir_size(root: Path) -> int:
 
 
 def huggingface_authenticated() -> bool:
-    if os.getenv("HF_TOKEN") or os.getenv("HUGGING_FACE_HUB_TOKEN"):
-        return True
-    hf_home = Path(os.getenv("HF_HOME", Path.home() / ".cache" / "huggingface"))
-    token = hf_home / "token"
-    try:
-        return token.is_file() and token.stat().st_size > 0
-    except OSError:
-        return False
+    """Return session/environment auth state without reading arbitrary user caches."""
+
+    return authenticated()
 
 
 def storage_status() -> dict:

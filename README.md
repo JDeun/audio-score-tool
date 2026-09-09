@@ -15,6 +15,9 @@
 > [!IMPORTANT]
 > **현재 배포 상태:** 소스와 CI 기반 unsigned QA 패키지는 사용할 수 있지만, Windows Authenticode 서명과 macOS Developer ID notarization을 거친 **공식 signed public release는 아직 활성화 전**입니다. 실제 서명 배포 acceptance는 [#22](https://github.com/JDeun/audio-score-tool/issues/22)에서 추적합니다. unsigned CI artifact를 공식 검증 배포본으로 간주하지 마십시오.
 
+> [!NOTE]
+> **Desktop runtime 원칙:** 일반 사용자는 Python, Node.js, Rust, `pip`/`uv`, Homebrew/winget, MuseScore, LilyPond 같은 별도 개발도구나 악보 프로그램을 설치하지 않습니다. 핵심 runtime은 앱에 포함하고, 큰 AI/model·YouTube·OMR·검증 도구는 앱이 관리하는 component로 제공하는 방향입니다. 현재 어떤 component가 실제로 내장/관리되는지는 [의존성 정책](docs/DEPENDENCIES.ko.md)에 구분되어 있습니다.
+
 AudioScoreTool은 처음부터 음표를 하나씩 입력하는 notation editor가 아닙니다. **AI/OMR 또는 기존 악보가 가능한 한 완성된 초안을 먼저 만들고, 사용자는 잘못된 부분과 출판 디테일을 수정하는 것**을 제품 원칙으로 합니다.
 
 ## 한눈에 보기
@@ -22,10 +25,10 @@ AudioScoreTool은 처음부터 음표를 하나씩 입력하는 notation editor�
 | 입력 | 처리 | Canonical 결과 |
 |---|---|---|
 | WAV/MP3 등 음원 | AMT + 선택적 코드/가사 분석 | MusicXML |
-| YouTube URL | 로컬 ingest → AMT | MusicXML |
-| PDF/PNG/JPG/TIFF/BMP 악보 | Audiveris OMR | MusicXML |
+| YouTube URL | app-managed ingest stack → AMT | MusicXML |
+| PDF/PNG/JPG/TIFF/BMP 악보 | optional OMR component | MusicXML |
 | MusicXML/XML/MXL | 구조 검증·정규화 | MusicXML |
-| MIDI | music21 변환 | MusicXML |
+| MIDI | sidecar 내장 music21 | MusicXML |
 
 생성된 악보는 **SQLite를 canonical state로 사용해 곡 단위로 관리**합니다. 미리보기·검증·편집·Revision·출판 조판을 거친 뒤 사용자가 `최종 파일 생성`을 실행할 때만 MusicXML/PDF/MIDI/파트보를 export합니다.
 
@@ -56,7 +59,7 @@ flowchart LR
 - **출판 조판:** 용지, 방향, 마디/시스템 수, 간격, 여백, 제목·크레딧 영역
 - **최종 export:** Full Score MusicXML/PDF/MIDI 및 감지 파트별 MusicXML/PDF
 - **로컬 우선:** 곡·Revision·분석·출판 설정은 로컬 SQLite에서 관리
-- **MuseScore 비의존:** 핵심 workflow가 MuseScore 설치에 의존하지 않음
+- **독립 notation runtime:** MuseScore/LilyPond 없이 preview·MIDI·PDF export 수행
 
 ## 저장 모델
 
@@ -73,27 +76,28 @@ SQLite: audio-score-tool.sqlite3
 Application Data/
 ├─ cache/          # 재생성 가능한 materialization
 ├─ assets/         # MIDI, OMR 원본 등 managed assets
+├─ components/     # 앱이 소유하는 model/runtime/component
 ├─ jobs/           # 실행 workspace / history
 └─ exports/        # 사용자가 명시적으로 만든 최종 결과
 ```
 
-원본/현재 MusicXML, Revision, 분석 결과와 출판 설정은 DB에 두고, 외부 도구가 요구하는 임시 MusicXML은 관리형 cache로 materialize합니다. 대용량 audio, stem, model checkpoint는 SQLite BLOB으로 저장하지 않습니다.
+원본/현재 MusicXML, Revision, 분석 결과와 출판 설정은 DB에 두고, renderer/component가 요구하는 임시 MusicXML은 관리형 cache로 materialize합니다. 대용량 audio, stem, model checkpoint는 SQLite BLOB으로 저장하지 않습니다.
 
 자세한 내용은 [저장 구조 문서](docs/STORAGE_V2.ko.md)를 참조하십시오.
 
 ## Notation backend
 
-AudioScoreTool의 핵심 workflow는 MuseScore CLI를 runtime fallback으로 사용하지 않습니다.
+AudioScoreTool은 외부 notation application을 runtime fallback으로 호출하지 않습니다.
 
-| 작업 | 기본 경로 |
-|---|---|
-| MusicXML 미리보기 | OpenSheetMusicDisplay |
-| MIDI ↔ MusicXML | music21 |
-| 파트 분리 | 자체 MusicXML 처리 |
-| MusicXML → PDF | LilyPond + `musicxml2ly` |
-| PDF/이미지 → MusicXML | Audiveris |
+| 작업 | 기본 경로 | 전달 방식 |
+|---|---|---|
+| MusicXML 미리보기 | OpenSheetMusicDisplay | frontend bundle |
+| MIDI ↔ MusicXML | music21 | Python sidecar |
+| 파트 분리 | 자체 MusicXML 처리 | Python sidecar |
+| MusicXML → vector PDF | Verovio → SVG → fpdf2 | Python sidecar |
+| PDF/이미지 → MusicXML | OMR backend | app-managed optional component |
 
-LilyPond가 없어도 채보·편집·MusicXML/MIDI 작업은 사용할 수 있습니다. PDF와 파트 PDF가 필요한 경우에만 LilyPond 계열 도구가 필요합니다.
+PDF와 파트 PDF는 **MusicXML → Verovio SVG → fpdf2 multi-page PDF**로 앱 내부에서 생성합니다. MuseScore, LilyPond, `musicxml2ly`를 설치하거나 fallback으로 사용할 필요가 없습니다.
 
 ## 채보 엔진 정책
 
@@ -101,32 +105,54 @@ LilyPond가 없어도 채보·편집·MusicXML/MIDI 작업은 사용할 수 있�
 
 ### 개인 / 비상업
 
-1. MuScriptor large — 품질 우선 기본값
+1. MuScriptor large — 품질 우선 후보
 2. YourMT3+ — fallback
-3. MR-MT3 — 빠른 fallback
+3. MR-MT3 — fallback 후보
 
-MuScriptor 공개 weights는 **CC BY-NC 4.0**이므로 개인/비상업 모드에서만 허용합니다.
+MuScriptor 공개 weights는 **CC BY-NC 4.0**이므로 개인/비상업 모드에서만 허용합니다. 모델 파일은 Hugging Face 라이선스 수락 후 AudioScoreTool의 Python sidecar가 `huggingface_hub` API로 앱 관리 cache에 직접 다운로드합니다. 별도 `hf`/`uvx` CLI는 필요하지 않습니다. Hugging Face access token은 현재 앱 세션 메모리에만 유지하고 DB/설정 파일에 저장하지 않습니다.
 
 ### 상용
 
-1. YourMT3+ via MT3-Infer — 정확도 우선 후보
-2. MR-MT3 — provenance가 더 단순한 fallback
+MuScriptor 공개 weights는 차단합니다. 실제 stable commercial provider는 고정 checkpoint/runtime의 상업 사용 및 재배포 provenance가 확인된 경우에만 공식 지원해야 합니다. YourMT3+/MR-MT3 후보의 정확한 revision/license는 release 단위로 고정·검토합니다.
 
-YourMT3+ checkpoint/implementation의 배포 provenance는 상용 배포 전에 고정 revision 기준으로 재검토해야 합니다. 자세한 근거와 benchmark 정책은 [엔진 성능 문서](docs/ENGINE_PERFORMANCE.ko.md)를 참조하십시오.
+자세한 근거와 benchmark 정책은 [엔진 성능 문서](docs/ENGINE_PERFORMANCE.ko.md), 배포 경계는 [의존성 정책](docs/DEPENDENCIES.ko.md)을 참조하십시오.
+
+## Self-contained runtime 정책
+
+### 설치본에 포함
+
+- Tauri desktop shell
+- React/TypeScript frontend + OSMD
+- PyInstaller FastAPI sidecar
+- SQLite
+- music21
+- Verovio
+- fpdf2
+- Hugging Face Hub download client
+
+### 앱이 관리해야 하는 큰/선택 component
+
+- AMT inference runtime + model weights
+- Demucs / WhisperX
+- YouTube ingest stack (`yt-dlp`, 필요한 FFmpeg/JS challenge runtime 포함)
+- OMR backend(Audiveris를 유지한다면 필요한 JRE 포함)
+- FFmpeg/ffprobe, FluidSynth, Chromaprint 등 선택 검증 도구
+
+`managed component`는 **사용자가 brew/winget/pip로 직접 설치한다는 뜻이 아닙니다.** stable에서 해당 기능을 공식 지원하려면 앱이 version/checksum/license provenance와 install/update/remove lifecycle을 소유해야 합니다. 아직 delivery가 완성되지 않은 component는 준비됨으로 과장하지 않습니다.
 
 ## 시작하기
 
 ### 일반 사용자
 
-목표 배포 형태는 별도의 Python/Node/Rust 설정 없이 실행되는 데스크탑 앱입니다.
+목표이자 stable acceptance 기준은 **설치 파일 하나로 핵심 workflow가 동작하는 데스크탑 앱**입니다.
 
-현재 GitHub Actions의 `Desktop Packages` workflow는 Windows `.exe`, macOS `.dmg`, Linux bundle을 **QA용 unsigned artifact**로 생성합니다. 공식 배포본으로 사용할 signed/notarized installer는 [release activation #22](https://github.com/JDeun/audio-score-tool/issues/22) 완료 후 제공하는 것이 원칙입니다.
+현재 GitHub Actions의 `Desktop Packages` workflow는 Windows `.exe`, macOS `.dmg`, Linux bundle을 QA용 artifact로 생성합니다. signed/notarized public installer는 [release activation #22](https://github.com/JDeun/audio-score-tool/issues/22) 완료 후 제공하는 것이 원칙입니다.
 
-설치 계층과 외부 도구 정책은 [설치 가이드](docs/INSTALLATION.ko.md)를 참조하십시오.
+일반 사용자는 Python/Node/Rust/uv/pip, MuseScore/LilyPond, Homebrew/winget을 설치 절차로 사용하지 않습니다. 자세한 설치·component 계약은 [설치 가이드](docs/INSTALLATION.ko.md)와 [의존성 정책](docs/DEPENDENCIES.ko.md)을 참조하십시오.
 
 ### 개발자
 
-필수 도구:
+source checkout 개발에만 다음 toolchain을 사용합니다.
 
 - Python 3.12+
 - `uv`
@@ -143,24 +169,15 @@ npm ci
 npm run desktop:dev
 ```
 
-선택 기능:
-
-```bash
-# PDF export
-export AST_LILYPOND_CMD=lilypond
-export AST_MUSICXML2LY_CMD=musicxml2ly
-
-# PDF/image OMR
-export AST_AUDIVERIS_CMD=audiveris
-```
-
-개발 환경과 모델 설정은 [설치 가이드](docs/INSTALLATION.ko.md), 기여 절차는 [CONTRIBUTING.md](CONTRIBUTING.md)를 참조하십시오.
+`.env.example`의 command override는 source/integration 개발용입니다. 일반 사용자 설치 계약이 아닙니다.
 
 ## 품질과 검증
 
 CI는 다음 계약을 자동 검증합니다.
 
 - Python lockfile / Ruff / pytest
+- embedded Verovio/fpdf2 PDF integration
+- packaged mode가 시스템 PATH의 executable을 사용하지 않는지 검증
 - React/TypeScript typecheck + production build
 - Chromium keyboard-only accessibility E2E
 - Tauri/Rust compile check
@@ -177,6 +194,8 @@ source / PR
    ↓
 CI + 3-OS packaged smoke
    ↓
+self-contained clean-machine acceptance
+   ↓
 unsigned QA artifacts
    ↓
 Windows signing / macOS signing+notarization
@@ -188,9 +207,7 @@ clean-install / update acceptance
 public stable release
 ```
 
-Tauri updater 구현과 release pipeline scaffolding은 들어가 있지만, stable update channel을 신뢰 가능한 공식 배포로 활성화하려면 실제 signing credentials와 clean-install acceptance가 필요합니다. 현재 운영 gate는 [#22](https://github.com/JDeun/audio-score-tool/issues/22)입니다.
-
-자세한 정책은 [릴리스 가이드](docs/RELEASE.ko.md)를 참조하십시오.
+stable acceptance에는 서명뿐 아니라 **system Python/Node/Rust/uv/pip가 없고, MuseScore/LilyPond가 없으며, Homebrew/winget 후설치가 없는 깨끗한 환경에서 핵심 import/edit/export가 동작하는지**도 포함합니다. 현재 운영 gate는 [#22](https://github.com/JDeun/audio-score-tool/issues/22)입니다.
 
 ## 문서
 
@@ -199,6 +216,7 @@ Tauri updater 구현과 release pipeline scaffolding은 들어가 있지만, sta
 주요 문서:
 
 - [설치](docs/INSTALLATION.ko.md)
+- [의존성/독립 실행 정책](docs/DEPENDENCIES.ko.md)
 - [아키텍처](docs/ARCHITECTURE.ko.md)
 - [저장 구조](docs/STORAGE_V2.ko.md)
 - [악보 편집기](docs/EDITOR.ko.md)
@@ -220,10 +238,10 @@ Tauri updater 구현과 release pipeline scaffolding은 들어가 있지만, sta
 
 AudioScoreTool 자체 코드는 [Apache License 2.0](LICENSE)으로 배포됩니다.
 
-모델·외부 도구에는 별도 라이선스가 적용될 수 있습니다. 특히 MuScriptor 공개 weights의 비상업 제한, YourMT3+ provenance, LilyPond/Audiveris의 라이선스 경계를 실제 배포 artifact 기준으로 재검토해야 합니다.
+제3자 code/model/component에는 각자의 라이선스가 적용됩니다. 특히 MuScriptor weights의 비상업 제한, Verovio/fpdf2의 LGPL 의무, Audiveris의 AGPL 경계, FFmpeg 실제 build flags, AMT checkpoint provenance를 **실제 배포 artifact 기준으로** 확인해야 합니다.
 
 상세 목록: [THIRD_PARTY_LICENSES.ko.md](docs/THIRD_PARTY_LICENSES.ko.md)
 
 ---
 
-**v0.8 목표:** 자동 생성 결과를 파일 묶음으로 흩어 놓는 도구가 아니라, 한 곡을 생성 → 검증 → 수정 → Revision → 조판 → 최종 export까지 일관되게 관리하는 로컬 데스크탑 악보 제작 환경.
+**v0.8 목표:** 자동 생성 결과를 파일 묶음으로 흩어 놓는 도구가 아니라, 한 곡을 생성 → 검증 → 수정 → Revision → 조판 → 최종 export까지 일관되게 관리하는 local-first 독립 데스크탑 악보 제작 환경.

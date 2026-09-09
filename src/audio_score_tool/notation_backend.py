@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import shutil
 import tempfile
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Event
 
 from .config import Settings
-from .runner import CommandCancelled, CommandError, command_exists, run_command
 
 
 class NotationBackendError(RuntimeError):
@@ -21,14 +21,14 @@ class NotationBackendUnavailable(NotationBackendError):
 @dataclass(slots=True)
 class NotationBackendStatus:
     music21: bool
-    lilypond: bool
-    musicxml2ly: bool
+    verovio: bool
+    fpdf2: bool
 
     def as_dict(self) -> dict[str, bool]:
         return {
             "music21": self.music21,
-            "lilypond": self.lilypond,
-            "musicxml2ly": self.musicxml2ly,
+            "verovio": self.verovio,
+            "fpdf2": self.fpdf2,
         }
 
 
@@ -40,11 +40,35 @@ def music21_available() -> bool:
     return True
 
 
-def backend_status(settings: Settings) -> dict[str, bool]:
+def _verovio_resource_path() -> Path | None:
+    try:
+        import verovio
+    except ImportError:
+        return None
+    module_file = getattr(verovio, "__file__", None)
+    if not module_file:
+        return None
+    path = Path(module_file).resolve().parent / "data"
+    return path if path.is_dir() else None
+
+
+def verovio_available() -> bool:
+    return _verovio_resource_path() is not None
+
+
+def fpdf2_available() -> bool:
+    try:
+        from fpdf import FPDF  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
+def backend_status(_settings: Settings | None = None) -> dict[str, bool]:
     return NotationBackendStatus(
         music21=music21_available(),
-        lilypond=command_exists(settings.lilypond_cmd),
-        musicxml2ly=command_exists(settings.musicxml2ly_cmd),
+        verovio=verovio_available(),
+        fpdf2=fpdf2_available(),
     ).as_dict()
 
 
@@ -86,46 +110,120 @@ def musicxml_to_midi(source: Path, target: Path) -> Path:
     return target
 
 
-def musicxml_to_pdf_lilypond(
+def _svg_dimensions_mm(svg_text: str) -> tuple[float, float]:
+    try:
+        root = ET.fromstring(svg_text)
+    except ET.ParseError as exc:
+        raise NotationBackendError(f"Verovio SVG 파싱 실패: {exc}") from exc
+
+    view_box = (root.get("viewBox") or "").replace(",", " ").split()
+    if len(view_box) == 4:
+        try:
+            width = float(view_box[2])
+            height = float(view_box[3])
+        except ValueError:
+            width = height = 0.0
+        if width > 0 and height > 0:
+            page_width_mm = 210.0
+            return page_width_mm, page_width_mm * height / width
+
+    def _number(value: str | None) -> float | None:
+        if not value:
+            return None
+        cleaned = value.strip().lower()
+        for suffix in ("px", "pt", "mm", "cm", "in"):
+            if cleaned.endswith(suffix):
+                cleaned = cleaned[: -len(suffix)]
+                break
+        try:
+            result = float(cleaned)
+        except ValueError:
+            return None
+        return result if result > 0 else None
+
+    width = _number(root.get("width"))
+    height = _number(root.get("height"))
+    if width and height:
+        page_width_mm = 210.0
+        return page_width_mm, page_width_mm * height / width
+    return 210.0, 297.0
+
+
+def _verovio_toolkit():
+    import verovio
+
+    resource_path = _verovio_resource_path()
+    if resource_path is None:
+        raise NotationBackendUnavailable("Verovio font resource가 앱에 포함되지 않았습니다.")
+
+    toolkit = verovio.toolkit(False)
+    if toolkit.setResourcePath(str(resource_path)) is False:
+        raise NotationBackendUnavailable(
+            f"Verovio font resource를 초기화하지 못했습니다: {resource_path}"
+        )
+    return toolkit
+
+
+def musicxml_to_pdf_embedded(
     source: Path,
     target: Path,
     *,
-    settings: Settings,
     cancel_event: Event | None = None,
 ) -> Path:
-    if not command_exists(settings.musicxml2ly_cmd) or not command_exists(settings.lilypond_cmd):
+    if cancel_event is not None and cancel_event.is_set():
+        raise NotationBackendError("PDF 생성이 취소되었습니다.")
+    if not verovio_available() or not fpdf2_available():
         raise NotationBackendUnavailable(
-            "PDF 생성에는 musicxml2ly와 LilyPond 실행 파일이 필요합니다."
+            "내장 PDF renderer를 사용할 수 없습니다. verovio와 fpdf2가 앱에 포함되어야 합니다."
         )
-    target.parent.mkdir(parents=True, exist_ok=True)
-    # Renderer intermediates stay outside the user-facing export tree. A unique
-    # temporary workspace also prevents concurrent exports from clobbering each other.
-    with tempfile.TemporaryDirectory(prefix="audioscore-lilypond-") as raw_work:
-        work = Path(raw_work)
-        ly_path = work / "score.ly"
-        output_base = work / "score"
-        try:
-            run_command(
-                settings.musicxml2ly_cmd,
-                ["-o", ly_path, source],
-                cwd=work,
-                cancel_event=cancel_event,
-            )
-            run_command(
-                settings.lilypond_cmd,
-                ["--pdf", "-o", output_base, ly_path],
-                cwd=work,
-                cancel_event=cancel_event,
-            )
-        except CommandCancelled:
-            raise
-        except CommandError as exc:
-            raise NotationBackendError(f"LilyPond PDF 생성 실패:\n{exc}") from exc
 
-        generated = output_base.with_suffix(".pdf")
-        if not generated.is_file():
-            raise NotationBackendError("LilyPond가 PDF를 생성하지 않았습니다.")
-        shutil.copy2(generated, target)
+    try:
+        from fpdf import FPDF
+
+        toolkit = _verovio_toolkit()
+        toolkit.setOptions(
+            {
+                "inputFrom": "musicxml",
+                "breaks": "encoded",
+                "svgViewBox": True,
+                "svgFormatRaw": True,
+            }
+        )
+        loaded = toolkit.loadFile(str(source))
+        if loaded is False:
+            raise NotationBackendError("Verovio가 MusicXML을 읽지 못했습니다.")
+        page_count = int(toolkit.getPageCount())
+        if page_count < 1:
+            raise NotationBackendError("Verovio가 렌더링할 페이지를 만들지 못했습니다.")
+
+        target.parent.mkdir(parents=True, exist_ok=True)
+        pdf = FPDF(unit="mm")
+        pdf.set_auto_page_break(False)
+        with tempfile.TemporaryDirectory(prefix="audioscore-verovio-") as raw_work:
+            work = Path(raw_work)
+            for page_number in range(1, page_count + 1):
+                if cancel_event is not None and cancel_event.is_set():
+                    raise NotationBackendError("PDF 생성이 취소되었습니다.")
+                svg_text = toolkit.renderToSVG(page_number)
+                if not svg_text.strip():
+                    raise NotationBackendError(
+                        f"Verovio가 {page_number}페이지 SVG를 생성하지 않았습니다."
+                    )
+                width_mm, height_mm = _svg_dimensions_mm(svg_text)
+                svg_path = work / f"page-{page_number}.svg"
+                svg_path.write_text(svg_text, encoding="utf-8")
+                pdf.add_page(format=(width_mm, height_mm))
+                pdf.image(str(svg_path), x=0, y=0, w=width_mm, h=height_mm)
+        pdf.output(str(target))
+    except (NotationBackendError, NotationBackendUnavailable):
+        raise
+    except Exception as exc:
+        raise NotationBackendError(f"내장 PDF 생성 실패: {exc}") from exc
+
+    if not target.is_file() or target.stat().st_size < 5:
+        raise NotationBackendError("내장 renderer가 PDF를 생성하지 않았습니다.")
+    if not target.read_bytes()[:5] == b"%PDF-":
+        raise NotationBackendError("생성된 파일이 유효한 PDF가 아닙니다.")
     return target
 
 
@@ -133,22 +231,13 @@ def render_pdf(
     source: Path,
     target: Path,
     *,
-    settings: Settings,
+    settings: Settings | None = None,
     cancel_event: Event | None = None,
 ) -> tuple[Path, str]:
-    """Render a PDF using the MuseScore-free production backend."""
+    """Render a PDF entirely inside the packaged application runtime."""
 
-    if command_exists(settings.musicxml2ly_cmd) and command_exists(settings.lilypond_cmd):
-        return (
-            musicxml_to_pdf_lilypond(
-                source,
-                target,
-                settings=settings,
-                cancel_event=cancel_event,
-            ),
-            "lilypond",
-        )
-    raise NotationBackendUnavailable(
-        "PDF 생성 backend가 없습니다. LilyPond와 musicxml2ly를 설치하세요. "
-        "MusicXML/MIDI 편집과 내보내기는 PDF renderer 없이도 사용할 수 있습니다."
+    del settings
+    return (
+        musicxml_to_pdf_embedded(source, target, cancel_event=cancel_event),
+        "verovio-fpdf2",
     )

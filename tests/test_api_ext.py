@@ -79,22 +79,26 @@ def test_setup_center_route_separates_core_and_optional_features():
     assert body["platform"] in {"macos", "windows", "linux"}
     assert body["policy"]["llm_required"] is False
     assert body["policy"]["musescore_required"] is False
+    assert body["policy"]["lilypond_required"] is False
+    assert body["policy"]["system_package_manager_required"] is False
     assert body["policy"]["developer_toolchain_required"] is False
     assert body["policy"]["optional_features_do_not_block_core"] is True
     components = {item["key"]: item for item in body["components"]}
-    assert "uv_runtime" in components
+    assert "desktop_runtime" in components
+    assert components["desktop_runtime"]["delivery"] == "embedded"
     assert components["transcription_engine"]["tier"] == "core"
-    assert components["llm"]["tier"] == "optional"
+    assert components["transcription_engine"]["delivery"] == "managed-model-runtime"
+    assert components["youtube_runtime"]["tier"] == "optional"
     assert components["audiveris"]["tier"] == "optional"
-    assert components["ffmpeg"]["tier"] == "optional"
-    assert components["chromaprint"]["tier"] == "optional"
-    assert "source_identification" in components["chromaprint"]["required_for"]
+    assert components["audio_validation"]["tier"] == "optional"
+    assert components["llm"]["delivery"] == "external-service"
 
 
-def test_setup_center_rejects_untrusted_install_recipe():
+def test_setup_center_rejects_system_package_install():
     client = TestClient(app)
     response = client.post("/api/setup/install", json={"component": "arbitrary-shell-command"})
-    assert response.status_code == 422
+    assert response.status_code == 409
+    assert "package manager" in response.json()["detail"]
 
 
 def test_model_manager_route_exposes_explicit_download_policy():
@@ -105,8 +109,11 @@ def test_model_manager_route_exposes_explicit_download_policy():
     assert body["policy"]["automatic_download"] is False
     assert body["policy"]["explicit_user_action_required"] is True
     assert body["policy"]["auth_token_stored_by_app"] is False
+    assert body["policy"]["auth_token_scope"] == "process-memory-only"
+    assert body["policy"]["download_transport"] == "huggingface_hub-python-api"
     assert body["policy"]["selected_or_active_model_removal_blocked"] is True
     assert body["policy"]["background_jobs_cancellable"] is True
+    assert body["policy"]["cancellation_mode"] == "best-effort-after-current-transfer"
     assert body["policy"]["background_job_history_limit"] == 64
     assert body["selected_muscriptor_model"] in {"small", "medium", "large"}
     models = {item["variant"]: item for item in body["models"]}
@@ -125,10 +132,9 @@ def test_model_manager_rejects_unknown_model():
     assert response.status_code == 404
 
 
-def test_model_manager_cancel_routes_reject_unknown_jobs():
+def test_model_manager_cancel_route_rejects_unknown_job():
     client = TestClient(app)
     assert client.post("/api/models/jobs/not-real/cancel").status_code == 404
-    assert client.post("/api/models/hf-auth/not-real/cancel").status_code == 404
 
 
 def test_source_identification_route_is_mounted():
@@ -150,7 +156,10 @@ def test_omr_and_notation_routes_are_mounted():
     assert notation.status_code == 200
     body = notation.json()
     assert body["policy"]["musescore_required"] is False
-    assert "music21" in body["backends"]
+    assert body["policy"]["lilypond_required"] is False
+    assert body["policy"]["external_pdf_renderer_required"] is False
+    assert body["policy"]["pdf_renderer"] == "embedded-verovio-fpdf2"
+    assert set(body["backends"]) == {"music21", "verovio", "fpdf2"}
 
     missing = client.post("/api/songs/not-a-real-song/export", json={"formats": ["musicxml"]})
     assert missing.status_code == 404
@@ -207,7 +216,7 @@ def test_local_mutation_guard_allows_tauri_origin():
         headers={"Origin": "tauri://localhost"},
         json={"component": "arbitrary-shell-command"},
     )
-    assert response.status_code == 422
+    assert response.status_code == 409
 
 
 def test_packaged_api_token_blocks_unsafe_requests(monkeypatch):
@@ -224,7 +233,7 @@ def test_packaged_api_token_blocks_unsafe_requests(monkeypatch):
         headers={"Origin": "tauri://localhost", "X-AudioScore-Token": "test-token"},
         json={"component": "arbitrary-shell-command"},
     )
-    assert allowed.status_code == 422
+    assert allowed.status_code == 409
 
 
 def test_packaged_api_token_requires_authentication_for_reads(monkeypatch):
