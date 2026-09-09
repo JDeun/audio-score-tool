@@ -3,11 +3,20 @@ from __future__ import annotations
 import json
 import os
 import platform
+import re
 from pathlib import Path
 
-from .managed_components import ComponentArtifact, ComponentUnavailable
+from .managed_components import ComponentArtifact, ComponentIntegrityError, ComponentUnavailable
 
 _CATALOG_FILENAME = "managed-component-catalog.json"
+_SAFE_IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+
+
+def _validated_identifier(value: object, *, label: str) -> str:
+    text = str(value or "").strip()
+    if not _SAFE_IDENTIFIER.fullmatch(text) or text in {".", ".."}:
+        raise ComponentIntegrityError(f"Managed component {label} is unsafe.")
+    return text
 
 
 def platform_key() -> str:
@@ -48,15 +57,19 @@ def load_catalog() -> dict:
     components = payload.get("components")
     if not isinstance(components, dict):
         raise ComponentUnavailable("Managed component catalog is invalid.")
+    for component in components:
+        _validated_identifier(component, label="name")
     return payload
 
 
 def catalog_entry(component: str) -> dict | None:
+    component = _validated_identifier(component, label="name")
     entry = load_catalog()["components"].get(component)
     return entry if isinstance(entry, dict) else None
 
 
 def artifact_for(component: str, *, target: str | None = None) -> ComponentArtifact:
+    component = _validated_identifier(component, label="name")
     entry = catalog_entry(component)
     if entry is None:
         raise ComponentUnavailable(f"No managed component catalog entry: {component}")
@@ -70,22 +83,36 @@ def artifact_for(component: str, *, target: str | None = None) -> ComponentArtif
     merged = dict(payload)
     merged.setdefault("component", component)
     merged.setdefault("version", entry.get("version"))
+    merged["component"] = _validated_identifier(merged.get("component"), label="name")
+    merged["version"] = _validated_identifier(merged.get("version"), label="version")
     merged.setdefault("license", entry.get("license"))
     merged.setdefault("provenance", entry.get("provenance"))
     return ComponentArtifact.from_dict(merged)
 
 
 def catalog_summary(component: str) -> dict:
-    entry = catalog_entry(component)
+    try:
+        component = _validated_identifier(component, label="name")
+        entry = catalog_entry(component)
+    except ComponentIntegrityError:
+        return {"component": str(component), "published": False, "target": platform_key(), "integrity": "invalid-name"}
     target = platform_key()
     if entry is None:
         return {"component": component, "published": False, "target": target}
     artifacts = entry.get("artifacts") if isinstance(entry.get("artifacts"), dict) else {}
+    version = entry.get("version")
+    version_safe = False
+    try:
+        _validated_identifier(version, label="version")
+        version_safe = True
+    except ComponentIntegrityError:
+        pass
     return {
         "component": component,
-        "published": isinstance(artifacts.get(target), dict),
+        "published": version_safe and isinstance(artifacts.get(target), dict),
         "target": target,
-        "version": entry.get("version"),
+        "version": version,
         "license": entry.get("license"),
         "provenance": entry.get("provenance"),
+        "integrity": "valid" if version_safe else "invalid-version",
     }
