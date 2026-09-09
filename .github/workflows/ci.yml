@@ -18,7 +18,7 @@ jobs:
   verify:
     name: verify
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -42,6 +42,7 @@ jobs:
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
         with:
           toolchain: 1.98.1
+          components: clippy
 
       - name: Verify Python lockfile
         run: uv lock --check
@@ -63,6 +64,12 @@ jobs:
       - name: Python lint
         run: uv run --frozen ruff check src tests training scripts
 
+      - name: Adversarial boundary and recovery tests
+        run: |
+          uv run --frozen pytest -q \
+            tests/test_adversarial_boundaries.py \
+            tests/test_adversarial_state_recovery.py
+
       - name: Python tests
         run: uv run --frozen pytest -q
 
@@ -78,7 +85,7 @@ jobs:
         working-directory: desktop
         run: npx --no-install playwright install --with-deps chromium
 
-      - name: Keyboard accessibility E2E
+      - name: Accessibility and visual-contract E2E
         working-directory: desktop
         run: npm run test:e2e
 
@@ -94,3 +101,6 @@ jobs:
 
       - name: Check Tauri shell
         run: cargo check --locked --manifest-path desktop/src-tauri/Cargo.toml
+
+      - name: Clippy Tauri shell
+        run: cargo clippy --locked --manifest-path desktop/src-tauri/Cargo.toml -- -D warnings
