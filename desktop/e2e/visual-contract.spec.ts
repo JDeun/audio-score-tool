@@ -60,7 +60,39 @@ test("studio aesthetic keeps print paper invariant in dark mode", async ({ page 
   expect(styles.boxShadow).not.toBe("none");
 });
 
-test("pressed micro-controls use restrained tactile depth rather than global neumorphism", async ({ page }) => {
+test("brand action and editing selection use distinct semantic colors", async ({ page }) => {
+  await page.goto("/");
+  await dismissOnboarding(page);
+  await page.evaluate(() => {
+    const fixture = document.createElement("div");
+    fixture.className = "product-stage";
+    fixture.innerHTML = `
+      <button class="primary-button" type="button">Create</button>
+      <div class="song-layout">
+        <aside class="song-library">
+          <button class="song-item active" type="button">Selected song</button>
+        </aside>
+        <main class="score-workbench"></main>
+        <aside class="score-inspector"></aside>
+      </div>`;
+    document.body.appendChild(fixture);
+  });
+
+  const semantics = await page.evaluate(() => {
+    const root = getComputedStyle(document.documentElement);
+    return {
+      brand: root.getPropertyValue("--ast-accent").trim(),
+      selection: root.getPropertyValue("--ast-selection").trim(),
+      focus: root.getPropertyValue("--ast-focus").trim(),
+      selectedBackground: getComputedStyle(document.querySelector(".song-item.active")!).backgroundColor,
+    };
+  });
+  expect(semantics.brand).not.toBe(semantics.selection);
+  expect(semantics.selection).toBe(semantics.focus);
+  expect(semantics.selectedBackground).toBe("rgb(226, 237, 248)");
+});
+
+test("pressed micro-controls expose tactile state without changing global surface depth", async ({ page }) => {
   await page.goto("/");
   await dismissOnboarding(page);
   await page.evaluate(() => {
