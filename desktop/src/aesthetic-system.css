@@ -26,6 +26,8 @@
   --ast-accent: #52634d;
   --ast-accent-strong: #40503c;
   --ast-accent-soft: #e5ebe2;
+  --ast-brand-cobalt: #1673f9;
+  --ast-brand-graphite: #4f5964;
 
   /* Editing/selection semantics: deliberately not the brand color. */
   --ast-selection: #356fa8;
@@ -70,11 +72,22 @@ button:active:not(:disabled) {
   transform: none;
 }
 
-/* Brand mark is geometric and flat; avoid decorative gradients that compete with the score. */
+/*
+ * Brand mark: waveform -> score-line conversion. The cobalt used here is a
+ * dedicated identity color; editing selection remains the quieter --ast-selection.
+ */
 .brand-mark {
-  background: var(--ast-accent-strong) !important;
-  border-radius: 8px !important;
+  width: 48px !important;
+  height: 34px !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  background-image: url("/brand-mark.svg") !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: contain !important;
   box-shadow: none !important;
+  color: transparent !important;
+  font-size: 0 !important;
 }
 
 /* Selected editing state uses cobalt. Tiny inset depth is a local tactile cue, not a theme. */
@@ -174,7 +187,11 @@ button:active:not(:disabled) {
 }
 
 @media (forced-colors: active) {
-  .brand-mark,
+  .brand-mark {
+    background-image: none !important;
+    background: CanvasText !important;
+    border-radius: 4px !important;
+  }
   .product-stage .score-canvas,
   .product-stage .score-toolbar,
   .product-stage .export-links,
