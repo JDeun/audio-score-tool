@@ -32,6 +32,20 @@ def test_validate_youtube_url_rejects_plain_http():
         validate_youtube_url("http://www.youtube.com/watch?v=abc123")
 
 
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://user:password@www.youtube.com/watch?v=abc123",
+        "https://www.youtube.com:444/watch?v=abc123",
+        "https://127.0.0.1/watch?v=abc123",
+        "file:///etc/passwd",
+    ],
+)
+def test_validate_youtube_url_rejects_credential_and_ssrf_like_inputs(url: str):
+    with pytest.raises(YouTubeSourceError):
+        validate_youtube_url(url)
+
+
 def test_youtube_job_requires_authorization_confirmation():
     client = TestClient(app)
     response = client.post(
