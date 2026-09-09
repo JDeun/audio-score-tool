@@ -35,6 +35,7 @@ def main() -> None:
     work = ROOT / "build-sidecar"
     shutil.rmtree(work, ignore_errors=True)
 
+    component_catalog = ROOT / "src" / "audio_score_tool" / "managed-component-catalog.json"
     cmd = [
         sys.executable,
         "-m",
@@ -45,6 +46,8 @@ def main() -> None:
         "audio-score-backend",
         "--collect-data",
         "verovio",
+        "--add-data",
+        f"{component_catalog}{os.pathsep}audio_score_tool",
         "--distpath",
         str(DIST),
         "--workpath",
