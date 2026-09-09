@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 176" role="img" aria-labelledby="title desc">
+  <title id="title">AudioScoreTool brand mark</title>
+  <desc id="desc">A cobalt audio waveform flowing into three score lines.</desc>
+  <g fill="#1673F9">
+    <rect x="18" y="74" width="24" height="28" rx="12"/>
+    <rect x="52" y="50" width="28" height="76" rx="14"/>
+    <rect x="90" y="24" width="30" height="128" rx="15"/>
+    <rect x="130" y="44" width="28" height="88" rx="14"/>
+  </g>
+  <path d="M152 62 C186 62 191 80 218 87 C238 92 258 92 304 92" fill="none" stroke="#1673F9" stroke-width="18" stroke-linecap="round"/>
+  <path d="M162 92 C190 92 195 108 219 114 C239 119 260 119 304 119" fill="none" stroke="#4F5964" stroke-width="16" stroke-linecap="round"/>
+  <path d="M198 145 H304" fill="none" stroke="#4F5964" stroke-width="16" stroke-linecap="round"/>
+</svg>
