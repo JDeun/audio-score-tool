@@ -18,7 +18,7 @@ jobs:
   verify:
     name: verify
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 50
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -72,9 +72,14 @@ jobs:
             uv run --frozen pytest -q \
               tests/test_adversarial_boundaries.py \
               tests/test_adversarial_state_recovery.py \
+              tests/test_managed_components.py \
+              tests/test_runner_adversarial.py \
               tests/test_direct_score_import.py::test_malformed_midi_failure_is_contained_to_job \
               tests/test_youtube.py::test_validate_youtube_url_rejects_credential_and_ssrf_like_inputs
           done
+
+      - name: Concurrency and recovery soak gate
+        run: uv run --frozen pytest -q tests/test_concurrency_soak.py
 
       - name: Python tests
         run: uv run --frozen pytest -q
