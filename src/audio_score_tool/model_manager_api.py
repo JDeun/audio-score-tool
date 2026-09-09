@@ -12,7 +12,7 @@ from huggingface_hub import HfApi, snapshot_download
 from pydantic import BaseModel, Field
 
 from .config import component_dir, packaged_runtime
-from .hf_session import active_token, authenticated, identity, set_session_token
+from .hf_session import active_token, authenticated, clear_session, identity, set_session
 from .runtime_settings import runtime_settings
 
 router = APIRouter(tags=["model-manager"])
@@ -251,13 +251,13 @@ def set_hf_session(payload: HfTokenRequest) -> dict:
     except Exception as exc:
         raise HTTPException(422, f"Hugging Face token을 검증하지 못했습니다: {exc}") from exc
     name = str(who.get("name") or who.get("fullname") or "authenticated-user")
-    set_session_token(token, name)
+    set_session(token, name)
     return {"authenticated": True, "identity": name, "status": model_manager_status()}
 
 
 @router.delete("/api/models/hf-auth/session")
-def clear_hf_session() -> dict:
-    set_session_token(None, None)
+def clear_hf_session_route() -> dict:
+    clear_session()
     return {"authenticated": False, "status": model_manager_status()}
 
 
