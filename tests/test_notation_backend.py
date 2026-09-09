@@ -1,7 +1,9 @@
 from pathlib import Path
 
-from audio_score_tool.notation_backend import backend_status, render_pdf
-
+from audio_score_tool.notation_backend import (
+    backend_status,
+    render_pdf,
+)
 
 SIMPLE_SCORE = """<?xml version='1.0' encoding='UTF-8'?>
 <score-partwise version='4.0'>
