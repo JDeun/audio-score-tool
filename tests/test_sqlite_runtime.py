@@ -4,7 +4,11 @@ from pathlib import Path
 import pytest
 
 from audio_score_tool.song_store_v2 import SongStoreV2
-from audio_score_tool.sqlite_runtime import configure_sqlite, connect_sqlite, verify_sqlite_integrity
+from audio_score_tool.sqlite_runtime import (
+    configure_sqlite,
+    connect_sqlite,
+    verify_sqlite_integrity,
+)
 
 
 def test_configure_sqlite_enables_wal(tmp_path: Path):
