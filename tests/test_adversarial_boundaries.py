@@ -65,6 +65,24 @@ def test_musicxml_rejects_declaration_hidden_after_large_prefix(tmp_path: Path):
         normalize_musicxml(source, tmp_path / "normalized.musicxml")
 
 
+def test_mxl_rejects_unsafe_container_metadata(tmp_path: Path):
+    source = tmp_path / "unsafe-container.mxl"
+    with zipfile.ZipFile(source, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr(
+            "META-INF/container.xml",
+            '<!DOCTYPE container [<!ENTITY p "score.musicxml">]><container><rootfiles>'
+            '<rootfile full-path="&p;"/></rootfiles></container>',
+        )
+        archive.writestr("score.musicxml", VALID_XML)
+
+    # The unsafe container must not be parsed or expanded. A valid score member may still
+    # be discovered by the bounded fallback scan, so normalize safely succeeds without
+    # trusting the hostile metadata.
+    target = tmp_path / "normalized.musicxml"
+    normalize_musicxml(source, target)
+    assert "<score-partwise" in target.read_text(encoding="utf-8")
+
+
 def test_mxl_rejects_extreme_compression_ratio(tmp_path: Path):
     source = tmp_path / "bomb.mxl"
     with zipfile.ZipFile(source, "w", compression=zipfile.ZIP_DEFLATED) as archive:
