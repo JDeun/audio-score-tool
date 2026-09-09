@@ -35,10 +35,45 @@ def _request(url: str, token: str | None = None) -> tuple[int, bytes]:
     headers = {"X-AudioScore-Token": token} if token else {}
     request = urllib.request.Request(url, headers=headers)
     try:
-        with urllib.request.urlopen(request, timeout=2) as response:
+        with urllib.request.urlopen(request, timeout=3) as response:
             return int(response.status), response.read()
     except urllib.error.HTTPError as exc:
         return int(exc.code), exc.read()
+
+
+def _json_object(payload: bytes, *, label: str) -> dict:
+    value = json.loads(payload.decode("utf-8"))
+    if not isinstance(value, dict) or not value:
+        raise RuntimeError(f"{label} response was not a JSON object")
+    return value
+
+
+def _verify_embedded_runtime(base_url: str, token: str) -> None:
+    status, payload = _request(f"{base_url}/api/setup/center", token)
+    if status != 200:
+        raise RuntimeError(f"Packaged setup-center request returned {status}")
+    state = _json_object(payload, label="setup-center")
+    components = state.get("components")
+    if not isinstance(components, list):
+        raise RuntimeError("Packaged setup-center response did not contain components")
+    desktop_runtime = next(
+        (
+            item
+            for item in components
+            if isinstance(item, dict) and item.get("key") == "desktop_runtime"
+        ),
+        None,
+    )
+    if not desktop_runtime or desktop_runtime.get("ready") is not True:
+        raise RuntimeError(
+            "Packaged embedded notation runtime is not ready; "
+            "music21/verovio/fpdf2 may be missing from the sidecar"
+        )
+    policy = state.get("policy")
+    if not isinstance(policy, dict) or policy.get("pdf_renderer") != "embedded-verovio-fpdf2":
+        raise RuntimeError("Packaged runtime does not report the embedded PDF renderer policy")
+    if policy.get("system_package_manager_required") is not False:
+        raise RuntimeError("Packaged runtime unexpectedly requires a system package manager")
 
 
 def main() -> None:
@@ -48,6 +83,7 @@ def main() -> None:
     env = os.environ.copy()
     env["AST_API_PORT"] = str(port)
     env["AST_API_TOKEN"] = token
+    env["AST_PACKAGED"] = "1"
     process = subprocess.Popen(
         [str(binary)],
         cwd=ROOT,
@@ -56,7 +92,8 @@ def main() -> None:
         stderr=subprocess.DEVNULL,
     )
     try:
-        health_url = f"http://127.0.0.1:{port}/api/health"
+        base_url = f"http://127.0.0.1:{port}"
+        health_url = f"{base_url}/api/health"
         deadline = time.monotonic() + 30
         authenticated: tuple[int, bytes] | None = None
         while time.monotonic() < deadline:
@@ -76,9 +113,8 @@ def main() -> None:
         if status != 401:
             raise RuntimeError(f"Unauthenticated packaged API request returned {status}, expected 401")
 
-        payload = json.loads(authenticated[1].decode("utf-8"))
-        if not isinstance(payload, dict) or not payload:
-            raise RuntimeError("Authenticated health response was not a JSON object")
+        _json_object(authenticated[1], label="authenticated health")
+        _verify_embedded_runtime(base_url, token)
         print(f"Packaged sidecar smoke passed on 127.0.0.1:{port}")
     finally:
         if process.poll() is None:
