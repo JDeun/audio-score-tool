@@ -22,8 +22,6 @@ _ALLOWED = {
     "whisperx_cmd",
     "yt_dlp_cmd",
     "audiveris_cmd",
-    "lilypond_cmd",
-    "musicxml2ly_cmd",
     "ffmpeg_cmd",
     "fluidsynth_cmd",
     "validation_soundfont",
