@@ -4,6 +4,7 @@ import json
 import os
 import socket
 import subprocess
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -56,74 +57,89 @@ def _verify_embedded_runtime(base_url: str, token: str) -> None:
     components = state.get("components")
     if not isinstance(components, list):
         raise RuntimeError("Packaged setup-center response did not contain components")
-    desktop_runtime = next(
-        (
-            item
-            for item in components
-            if isinstance(item, dict) and item.get("key") == "desktop_runtime"
-        ),
-        None,
-    )
+    by_key = {
+        item.get("key"): item
+        for item in components
+        if isinstance(item, dict) and isinstance(item.get("key"), str)
+    }
+    desktop_runtime = by_key.get("desktop_runtime")
     if not desktop_runtime or desktop_runtime.get("ready") is not True:
         raise RuntimeError(
             "Packaged embedded notation runtime is not ready; "
             "music21/verovio/fpdf2 may be missing from the sidecar"
         )
+    for key in ("transcription_engine", "youtube_runtime", "audiveris", "audio_validation"):
+        component = by_key.get(key)
+        if not component:
+            raise RuntimeError(f"Packaged setup-center is missing managed component {key}")
+        catalog = component.get("catalog")
+        managed_status = component.get("managed_status")
+        if not isinstance(catalog, dict) or not catalog.get("target"):
+            raise RuntimeError(f"Packaged managed catalog metadata is missing for {key}")
+        if not isinstance(managed_status, dict) or not managed_status.get("integrity"):
+            raise RuntimeError(f"Packaged managed runtime integrity state is missing for {key}")
+
     policy = state.get("policy")
     if not isinstance(policy, dict) or policy.get("pdf_renderer") != "embedded-verovio-fpdf2":
         raise RuntimeError("Packaged runtime does not report the embedded PDF renderer policy")
     if policy.get("system_package_manager_required") is not False:
         raise RuntimeError("Packaged runtime unexpectedly requires a system package manager")
+    if policy.get("managed_component_system_path_fallback") is not False:
+        raise RuntimeError("Packaged managed runtime unexpectedly allows system PATH fallback")
+    if policy.get("managed_component_integrity") != "sha256+atomic-state+root-containment":
+        raise RuntimeError("Packaged managed runtime integrity policy is incomplete")
 
 
 def main() -> None:
     binary = _sidecar()
     port = _free_port()
     token = "ci-sidecar-smoke-token"
-    env = os.environ.copy()
-    env["AST_API_PORT"] = str(port)
-    env["AST_API_TOKEN"] = token
-    env["AST_PACKAGED"] = "1"
-    process = subprocess.Popen(
-        [str(binary)],
-        cwd=ROOT,
-        env=env,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-    try:
-        base_url = f"http://127.0.0.1:{port}"
-        health_url = f"{base_url}/api/health"
-        deadline = time.monotonic() + 30
-        authenticated: tuple[int, bytes] | None = None
-        while time.monotonic() < deadline:
-            if process.poll() is not None:
-                raise RuntimeError(f"Packaged sidecar exited early with code {process.returncode}")
-            try:
-                authenticated = _request(health_url, token)
-                if authenticated[0] == 200:
-                    break
-            except (OSError, urllib.error.URLError):
-                pass
-            time.sleep(0.25)
-        if authenticated is None or authenticated[0] != 200:
-            raise RuntimeError(f"Packaged sidecar did not become healthy: {authenticated}")
+    with tempfile.TemporaryDirectory(prefix="ast-component-smoke-") as component_root:
+        env = os.environ.copy()
+        env["AST_API_PORT"] = str(port)
+        env["AST_API_TOKEN"] = token
+        env["AST_PACKAGED"] = "1"
+        env["AST_COMPONENT_DIR"] = component_root
+        process = subprocess.Popen(
+            [str(binary)],
+            cwd=ROOT,
+            env=env,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        try:
+            base_url = f"http://127.0.0.1:{port}"
+            health_url = f"{base_url}/api/health"
+            deadline = time.monotonic() + 30
+            authenticated: tuple[int, bytes] | None = None
+            while time.monotonic() < deadline:
+                if process.poll() is not None:
+                    raise RuntimeError(f"Packaged sidecar exited early with code {process.returncode}")
+                try:
+                    authenticated = _request(health_url, token)
+                    if authenticated[0] == 200:
+                        break
+                except (OSError, urllib.error.URLError):
+                    pass
+                time.sleep(0.25)
+            if authenticated is None or authenticated[0] != 200:
+                raise RuntimeError(f"Packaged sidecar did not become healthy: {authenticated}")
 
-        status, _ = _request(health_url)
-        if status != 401:
-            raise RuntimeError(f"Unauthenticated packaged API request returned {status}, expected 401")
+            status, _ = _request(health_url)
+            if status != 401:
+                raise RuntimeError(f"Unauthenticated packaged API request returned {status}, expected 401")
 
-        _json_object(authenticated[1], label="authenticated health")
-        _verify_embedded_runtime(base_url, token)
-        print(f"Packaged sidecar smoke passed on 127.0.0.1:{port}")
-    finally:
-        if process.poll() is None:
-            process.terminate()
-            try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait(timeout=5)
+            _json_object(authenticated[1], label="authenticated health")
+            _verify_embedded_runtime(base_url, token)
+            print(f"Packaged sidecar smoke passed on 127.0.0.1:{port}")
+        finally:
+            if process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=5)
 
 
 if __name__ == "__main__":

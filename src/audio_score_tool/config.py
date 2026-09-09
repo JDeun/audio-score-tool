@@ -7,6 +7,7 @@ import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .managed_tool_resolver import registered_managed_tool
 from .paths import app_data_dir
 
 MT3_INFER_VERSION = "0.2.0"
@@ -24,6 +25,9 @@ def component_dir() -> Path:
 
 
 def managed_executable_path(name: str) -> Path:
+    registered = registered_managed_tool(name)
+    if registered is not None:
+        return registered
     suffix = ".exe" if platform.system() == "Windows" else ""
     return component_dir() / "bin" / f"{name}{suffix}"
 

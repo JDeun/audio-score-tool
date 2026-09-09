@@ -5,12 +5,27 @@ import platform
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from .managed_component_catalog import artifact_for, catalog_summary
+from .managed_components import (
+    ComponentError,
+    component_status,
+    install_component_artifact,
+    recover_component_staging,
+)
 from .preflight_v2 import preflight
 from .runner import command_exists
 from .runtime_settings import runtime_settings
 from .system_status import huggingface_authenticated
 
 router = APIRouter(tags=["setup-center"])
+
+_MANAGED_COMPONENTS = {
+    "transcription_engine",
+    "whisperx",
+    "youtube_runtime",
+    "audiveris",
+    "audio_validation",
+}
 
 
 class InstallRequest(BaseModel):
@@ -26,6 +41,12 @@ def _platform_key() -> str:
     return "linux"
 
 
+def _managed_detail(key: str) -> tuple[dict, dict]:
+    status = component_status(key)
+    catalog = catalog_summary(key)
+    return status, catalog
+
+
 def _component(
     key: str,
     label: str,
@@ -37,6 +58,15 @@ def _component(
     required_for: list[str],
     note: str | None = None,
 ) -> dict:
+    managed_status = None
+    catalog = None
+    auto_install = False
+    if delivery in {"managed-component", "managed-model-runtime"}:
+        managed_status, catalog = _managed_detail(key)
+        # Component installation is not equivalent to feature readiness. The actual
+        # command/tool probes above remain authoritative so an incomplete component
+        # can never make Setup Center report a usable feature.
+        auto_install = bool(catalog.get("published"))
     return {
         "key": key,
         "label": label,
@@ -47,8 +77,10 @@ def _component(
         "required_for": required_for,
         "download_url": None,
         "note": note,
-        "auto_install": False,
+        "auto_install": auto_install,
         "install_command": None,
+        "managed_status": managed_status,
+        "catalog": catalog,
     }
 
 
@@ -80,8 +112,8 @@ def setup_center_status() -> dict:
             role="음원에서 MusicXML 초안을 생성합니다.",
             required_for=["audio_transcription"],
             note=(
-                "최종 배포에서는 시스템 pip/uvx 설치를 요구하지 않습니다. "
-                "엔진과 모델은 앱 번들 또는 앱 데이터 영역의 관리형 component로 제공해야 합니다."
+                "시스템 pip/uvx를 사용하지 않습니다. 게시된 runtime artifact는 SHA-256 검증 후 "
+                "앱 데이터 영역에 atomic install되며 실패 시 기존 runtime을 유지합니다."
             ),
         ),
         _component(
@@ -102,20 +134,17 @@ def setup_center_status() -> dict:
             delivery="managed-component",
             role="가사를 인식하고 보컬 음표에 정렬합니다.",
             required_for=["lyrics"],
-            note="최종 데스크탑 배포에서는 시스템 설치가 아니라 앱 관리 component로 제공해야 합니다.",
+            note="설치된 component는 앱 관리 root 밖의 executable을 참조할 수 없습니다.",
         ),
         _component(
             "youtube_runtime",
             "YouTube 가져오기 런타임",
-            command_exists(settings.yt_dlp_cmd),
+            command_exists(settings.yt_dlp_cmd) and command_exists(settings.ffmpeg_cmd),
             tier="optional",
             delivery="managed-component",
-            role="YouTube URL에서 오디오를 가져옵니다.",
+            role="YouTube URL에서 오디오를 가져오고 미디어를 변환합니다.",
             required_for=["youtube_import"],
-            note=(
-                "yt-dlp뿐 아니라 필요한 JS runtime/미디어 도구까지 앱이 함께 관리해야 하며, "
-                "사용자에게 별도 설치를 요구하지 않는 것을 배포 기준으로 합니다."
-            ),
+            note="yt-dlp와 필요한 media runtime을 하나의 검증된 managed component로 취급합니다.",
         ),
         _component(
             "audiveris",
@@ -125,7 +154,7 @@ def setup_center_status() -> dict:
             delivery="managed-component",
             role="PDF/이미지 악보를 MusicXML로 가져옵니다.",
             required_for=["omr"],
-            note="Java/Audiveris의 시스템 설치를 정식 배포 전제조건으로 두지 않습니다.",
+            note="JVM/runtime을 포함한 배포 artifact가 게시된 경우에만 앱 내부 설치를 허용합니다.",
         ),
         _component(
             "audio_validation",
@@ -167,6 +196,8 @@ def setup_center_status() -> dict:
             "developer_toolchain_required": False,
             "optional_features_do_not_block_core": True,
             "desktop_release_must_not_require_manual_runtime_install": True,
+            "managed_component_integrity": "sha256+atomic-state+root-containment",
+            "managed_component_system_path_fallback": False,
         },
     }
 
@@ -178,10 +209,23 @@ def get_setup_center() -> dict:
 
 @router.post("/api/setup/install")
 def install_setup_component(payload: InstallRequest) -> dict:
-    raise HTTPException(
-        409,
-        (
-            f"{payload.component}: 시스템 package manager를 통한 자동 설치는 비활성화되었습니다. "
-            "정식 데스크탑 배포에서는 필요한 component를 앱이 자체적으로 번들하거나 관리해야 합니다."
-        ),
-    )
+    component = payload.component.strip()
+    if component not in _MANAGED_COMPONENTS:
+        raise HTTPException(
+            409,
+            (
+                f"{component}: 앱 관리 설치 대상이 아닙니다. 시스템 package manager를 통한 "
+                "설치는 지원하지 않습니다."
+            ),
+        )
+    try:
+        artifact = artifact_for(component)
+        result = install_component_artifact(artifact)
+    except ComponentError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return {"installed": result, "setup": setup_center_status()}
+
+
+@router.post("/api/setup/recover")
+def recover_setup_components() -> dict:
+    return {"recovery": recover_component_staging(), "setup": setup_center_status()}
