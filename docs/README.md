@@ -4,10 +4,11 @@
 
 ## 사용자와 설치
 
-- [`INSTALLATION.ko.md`](INSTALLATION.ko.md) — 설치 계층, Setup Center, 선택 외부 도구, 개발 환경
+- [`INSTALLATION.ko.md`](INSTALLATION.ko.md) — 설치 계층, self-contained desktop 계약, managed component 정책
+- [`DEPENDENCIES.ko.md`](DEPENDENCIES.ko.md) — 내장/앱 관리/계정/외부 서비스 의존성 inventory와 배포 기준
 - [`EDITOR.ko.md`](EDITOR.ko.md) — MusicXML 편집기 기능과 편집 계약
 - [`UI_DESIGN.ko.md`](UI_DESIGN.ko.md) — 데스크탑 UI/UX 설계
-- [`OMR.ko.md`](OMR.ko.md) — PDF/이미지 악보 가져오기와 Audiveris OMR
+- [`OMR.ko.md`](OMR.ko.md) — PDF/이미지 악보 가져오기와 optional OMR component
 - [`ENRICHMENT.ko.md`](ENRICHMENT.ko.md) — 코드·가사 등 악보 보강
 
 ## 아키텍처와 데이터
@@ -25,16 +26,16 @@
 
 ## 릴리스와 라이선스
 
-- [`RELEASE.ko.md`](RELEASE.ko.md) — CI artifacts, signing/notarization, updater, stable release gate
-- [`THIRD_PARTY_LICENSES.ko.md`](THIRD_PARTY_LICENSES.ko.md) — 모델·외부 도구 provenance와 배포 경계
+- [`RELEASE.ko.md`](RELEASE.ko.md) — CI artifacts, self-contained acceptance, signing/notarization, updater, stable release gate
+- [`THIRD_PARTY_LICENSES.ko.md`](THIRD_PARTY_LICENSES.ko.md) — 모델·binary·library provenance와 배포 경계
 
 ## 유지보수자 문서
 
 - [`STABILIZATION.ko.md`](STABILIZATION.ko.md) — v0.8 안정화 과정과 회귀 방지 맥락
 - 루트 [`PROJECT_CONTEXT.md`](../PROJECT_CONTEXT.md) — 프로젝트의 장기 제품/기술 맥락
 
-> 유지보수자 문서는 현재 제품 사용법의 authoritative source가 아닐 수 있습니다. 사용자 동작과 릴리스 상태는 README, 설치/아키텍처/릴리스 문서를 우선합니다.
+> 유지보수자 문서는 현재 제품 사용법의 authoritative source가 아닐 수 있습니다. 사용자 동작과 릴리스 상태는 README, 설치/의존성/아키텍처/릴리스 문서를 우선합니다.
 
 ## 문서 변경 원칙
 
-코드 변경으로 입력 형식, canonical storage, 외부 도구 요구사항, 보안 경계, 릴리스 상태가 달라지면 같은 PR에서 관련 문서를 함께 수정합니다. 아직 실제로 검증하지 않은 기능이나 signed release를 완료된 것처럼 문서화하지 않습니다.
+코드 변경으로 입력 형식, canonical storage, runtime/component 요구사항, 보안 경계, 릴리스 상태가 달라지면 같은 PR에서 관련 문서를 함께 수정합니다. 일반 사용자가 별도 시스템 프로그램을 설치해야 하는 상태를 self-contained라고 표현하지 않으며, 아직 실제로 검증하지 않은 managed component나 signed release를 완료된 것처럼 문서화하지 않습니다.
