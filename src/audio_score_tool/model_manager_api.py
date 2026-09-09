@@ -12,6 +12,7 @@ from huggingface_hub import HfApi, snapshot_download
 from pydantic import BaseModel, Field
 
 from .config import component_dir, packaged_runtime
+from .hf_session import active_token, authenticated, clear_session, identity, set_session
 from .runtime_settings import runtime_settings
 
 router = APIRouter(tags=["model-manager"])
@@ -44,8 +45,6 @@ _MAX_JOB_HISTORY = 64
 _TERMINAL = {"done", "failed", "cancelled"}
 _jobs_lock = threading.Lock()
 _jobs: dict[str, dict] = {}
-_session_hf_token: str | None = None
-_session_hf_identity: str | None = None
 
 
 class DownloadRequest(BaseModel):
@@ -133,18 +132,6 @@ def _model_cached(repo_id: str) -> tuple[bool, int]:
     return has_weights, size
 
 
-def _environment_hf_token() -> str | None:
-    return os.getenv("HF_TOKEN") or os.getenv("HUGGING_FACE_HUB_TOKEN")
-
-
-def _active_hf_token() -> str | None:
-    return _session_hf_token or _environment_hf_token()
-
-
-def _hf_authenticated() -> bool:
-    return bool(_active_hf_token())
-
-
 def _model_payload(variant: str, settings) -> dict:
     spec = MUSCRIPTOR_MODELS[variant]
     ready, cached_bytes = _model_cached(str(spec["repo_id"]))
@@ -178,8 +165,8 @@ def model_manager_status() -> dict:
         "usage_mode": settings.usage_mode,
         "selected_engine": settings.transcription_engine,
         "selected_muscriptor_model": settings.muscriptor_model,
-        "hf_authenticated": _hf_authenticated(),
-        "hf_identity": _session_hf_identity,
+        "hf_authenticated": authenticated(),
+        "hf_identity": identity(),
         "hf_home": str(home),
         "hf_cli_ready": False,
         "disk_free_bytes": disk.free,
@@ -193,7 +180,7 @@ def model_manager_status() -> dict:
             "auth_token_scope": "process-memory-only",
             "download_transport": "huggingface_hub-python-api",
             "selected_or_active_model_removal_blocked": True,
-            "background_jobs_cancellable": "best-effort-between-transfers",
+            "background_jobs_cancellable": "best-effort-after-current-transfer",
             "background_job_history_limit": _MAX_JOB_HISTORY,
         },
     }
@@ -202,7 +189,7 @@ def model_manager_status() -> dict:
 def _run_download(job_id: str, variant: str) -> None:
     spec = MUSCRIPTOR_MODELS[variant]
     repo_id = str(spec["repo_id"])
-    token = _active_hf_token()
+    token = active_token()
     if not token:
         with _jobs_lock:
             _update_job(_jobs, job_id, status="failed", error="Hugging Face 인증이 필요합니다.")
@@ -270,17 +257,14 @@ def get_models() -> dict:
 
 @router.post("/api/models/hf-auth/token")
 def set_hf_auth_token(payload: HfTokenRequest) -> dict:
-    global _session_hf_identity, _session_hf_token
-
     token = payload.token.strip()
     try:
-        identity = HfApi(token=token).whoami(token=token)
+        account = HfApi(token=token).whoami(token=token)
     except Exception as exc:
         raise HTTPException(422, "Hugging Face token을 검증하지 못했습니다.") from exc
 
-    name = str(identity.get("name") or identity.get("fullname") or "authenticated-user")
-    _session_hf_token = token
-    _session_hf_identity = name
+    name = str(account.get("name") or account.get("fullname") or "authenticated-user")
+    set_session(token, name)
     return {
         "authenticated": True,
         "identity": name,
@@ -291,15 +275,13 @@ def set_hf_auth_token(payload: HfTokenRequest) -> dict:
 
 @router.delete("/api/models/hf-auth/token")
 def clear_hf_auth_token() -> dict:
-    global _session_hf_identity, _session_hf_token
-    _session_hf_token = None
-    _session_hf_identity = None
-    return {"authenticated": bool(_environment_hf_token()), "cleared": True}
+    clear_session()
+    return {"authenticated": authenticated(), "cleared": True}
 
 
 @router.post("/api/models/hf-auth/start")
 def legacy_hf_auth_start() -> dict:
-    if _hf_authenticated():
+    if authenticated():
         return {"already_authenticated": True}
     raise HTTPException(
         410,
@@ -317,7 +299,7 @@ def download_model(payload: DownloadRequest) -> dict:
     settings = runtime_settings()
     if settings.usage_mode == "commercial":
         raise HTTPException(422, "MuScriptor 공개 weights는 CC BY-NC이므로 상용 모드에서 다운로드할 수 없습니다.")
-    if not _hf_authenticated():
+    if not authenticated():
         raise HTTPException(422, "Hugging Face 인증과 모델 라이선스 수락이 먼저 필요합니다.")
 
     spec = MUSCRIPTOR_MODELS[payload.variant]
