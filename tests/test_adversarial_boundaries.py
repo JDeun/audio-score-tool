@@ -10,6 +10,10 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 from starlette.testclient import TestClient
 
+# The production runtime composes the canonical API first; importing a route module before
+# that composition intentionally triggers its circular registration edge. Mirror the real
+# import order so these tests probe runtime boundaries rather than an unsupported module order.
+from audio_score_tool import api as _canonical_api  # noqa: F401
 from audio_score_tool.api_token import ApiTokenMiddleware
 from audio_score_tool.job_artifact_api_v2 import _managed_job_file
 from audio_score_tool.omr import OMRImportError, normalize_musicxml
