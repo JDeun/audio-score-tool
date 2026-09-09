@@ -52,3 +52,27 @@ def test_runtime_settings_ignores_retired_external_notation_keys(tmp_path: Path)
     assert not hasattr(settings, "musescore_cmd")
     assert not hasattr(settings, "lilypond_cmd")
     assert not hasattr(settings, "musicxml2ly_cmd")
+
+
+def test_packaged_runtime_ignores_persisted_system_command_paths(monkeypatch, tmp_path: Path):
+    component_dir = tmp_path / "components"
+    store = SettingsStore(tmp_path / "settings.json")
+    store.update(
+        {
+            "mt3_infer_cmd": "/usr/local/bin/mt3-infer",
+            "muscriptor_cmd": "/usr/local/bin/muscriptor",
+            "yt_dlp_cmd": "/usr/local/bin/yt-dlp",
+            "audiveris_cmd": "/Applications/Audiveris/bin/audiveris",
+            "ffmpeg_cmd": "/usr/local/bin/ffmpeg",
+        }
+    )
+    monkeypatch.setenv("AST_PACKAGED", "1")
+    monkeypatch.setenv("AST_COMPONENT_DIR", str(component_dir))
+
+    settings = runtime_settings(store=store)
+
+    assert Path(settings.mt3_infer_cmd).is_relative_to(component_dir)
+    assert Path(settings.muscriptor_cmd).is_relative_to(component_dir)
+    assert Path(settings.yt_dlp_cmd).is_relative_to(component_dir)
+    assert Path(settings.audiveris_cmd).is_relative_to(component_dir)
+    assert Path(settings.ffmpeg_cmd).is_relative_to(component_dir)
