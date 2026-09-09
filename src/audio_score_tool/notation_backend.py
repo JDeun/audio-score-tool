@@ -141,6 +141,34 @@ def _svg_dimensions_mm(svg_text: str) -> tuple[float, float]:
     return 210.0, 297.0
 
 
+def _verovio_toolkit():
+    """Create Verovio with the wheel-bundled font resources explicitly loaded.
+
+    Verovio normally discovers its data directory itself, but PyInstaller and some
+    isolated CI/runtime layouts do not preserve the install-time default resource path.
+    Resolve resources relative to the imported module so the same code works in wheels
+    and one-file packaged sidecars.
+    """
+
+    import verovio
+
+    module_file = getattr(verovio, "__file__", None)
+    if not module_file:
+        raise NotationBackendUnavailable("Verovio resource 위치를 확인할 수 없습니다.")
+    resource_path = Path(module_file).resolve().parent / "data"
+    if not resource_path.is_dir():
+        raise NotationBackendUnavailable(
+            f"Verovio font resource가 앱에 포함되지 않았습니다: {resource_path}"
+        )
+
+    toolkit = verovio.toolkit(False)
+    if toolkit.setResourcePath(str(resource_path)) is False:
+        raise NotationBackendUnavailable(
+            f"Verovio font resource를 초기화하지 못했습니다: {resource_path}"
+        )
+    return toolkit
+
+
 def musicxml_to_pdf_embedded(
     source: Path,
     target: Path,
@@ -155,10 +183,9 @@ def musicxml_to_pdf_embedded(
         )
 
     try:
-        import verovio
         from fpdf import FPDF
 
-        toolkit = verovio.toolkit()
+        toolkit = _verovio_toolkit()
         toolkit.setOptions(
             {
                 "inputFrom": "musicxml",
