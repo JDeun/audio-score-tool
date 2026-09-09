@@ -63,7 +63,9 @@ def _component(
     auto_install = False
     if delivery in {"managed-component", "managed-model-runtime"}:
         managed_status, catalog = _managed_detail(key)
-        ready = ready or bool(managed_status.get("ready"))
+        # Component installation is not equivalent to feature readiness. The actual
+        # command/tool probes above remain authoritative so an incomplete component
+        # can never make Setup Center report a usable feature.
         auto_install = bool(catalog.get("published"))
     return {
         "key": key,
