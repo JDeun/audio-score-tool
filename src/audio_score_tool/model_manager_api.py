@@ -12,7 +12,7 @@ from huggingface_hub import HfApi, snapshot_download
 from pydantic import BaseModel, Field
 
 from .config import component_dir, packaged_runtime
-from .hf_session import active_token, authenticated, clear_session, identity, set_session
+from .hf_session import active_token, authenticated, identity, set_session_token
 from .runtime_settings import runtime_settings
 
 router = APIRouter(tags=["model-manager"])
@@ -180,7 +180,8 @@ def model_manager_status() -> dict:
             "auth_token_scope": "process-memory-only",
             "download_transport": "huggingface_hub-python-api",
             "selected_or_active_model_removal_blocked": True,
-            "background_jobs_cancellable": "best-effort-after-current-transfer",
+            "background_jobs_cancellable": True,
+            "cancellation_mode": "best-effort-after-current-transfer",
             "background_job_history_limit": _MAX_JOB_HISTORY,
         },
     }
@@ -218,35 +219,22 @@ def _run_download(job_id: str, variant: str) -> None:
                     status="cancelled",
                     cached_bytes=size,
                     progress=100 if ready else 0,
-                    error=None,
                 )
             elif ready:
-                _update_job(
-                    _jobs,
-                    job_id,
-                    status="done",
-                    progress=100,
-                    cached_bytes=size,
-                    error=None,
-                )
+                _update_job(_jobs, job_id, status="done", progress=100, cached_bytes=size)
             else:
                 _update_job(
                     _jobs,
                     job_id,
                     status="failed",
                     cached_bytes=size,
-                    error="다운로드는 끝났지만 model weights를 확인하지 못했습니다.",
+                    error="다운로드는 완료되었지만 model weights를 확인하지 못했습니다.",
                 )
             _prune_locked(_jobs)
     except Exception as exc:
         with _jobs_lock:
             status = "cancelled" if _jobs.get(job_id, {}).get("cancel_requested") else "failed"
-            _update_job(
-                _jobs,
-                job_id,
-                status=status,
-                error=None if status == "cancelled" else str(exc),
-            )
+            _update_job(_jobs, job_id, status=status, error=None if status == "cancelled" else str(exc))
             _prune_locked(_jobs)
 
 
@@ -255,41 +243,22 @@ def get_models() -> dict:
     return model_manager_status()
 
 
-@router.post("/api/models/hf-auth/token")
-def set_hf_auth_token(payload: HfTokenRequest) -> dict:
+@router.post("/api/models/hf-auth/session")
+def set_hf_session(payload: HfTokenRequest) -> dict:
     token = payload.token.strip()
     try:
-        account = HfApi(token=token).whoami(token=token)
+        who = HfApi(token=token).whoami()
     except Exception as exc:
-        raise HTTPException(422, "Hugging Face token을 검증하지 못했습니다.") from exc
-
-    name = str(account.get("name") or account.get("fullname") or "authenticated-user")
-    set_session(token, name)
-    return {
-        "authenticated": True,
-        "identity": name,
-        "persisted": False,
-        "storage": "process-memory-only",
-    }
+        raise HTTPException(422, f"Hugging Face token을 검증하지 못했습니다: {exc}") from exc
+    name = str(who.get("name") or who.get("fullname") or "authenticated-user")
+    set_session_token(token, name)
+    return {"authenticated": True, "identity": name, "status": model_manager_status()}
 
 
-@router.delete("/api/models/hf-auth/token")
-def clear_hf_auth_token() -> dict:
-    clear_session()
-    return {"authenticated": authenticated(), "cleared": True}
-
-
-@router.post("/api/models/hf-auth/start")
-def legacy_hf_auth_start() -> dict:
-    if authenticated():
-        return {"already_authenticated": True}
-    raise HTTPException(
-        410,
-        (
-            "외부 hf/uvx CLI 기반 로그인은 제거되었습니다. 모델 페이지에서 라이선스를 수락한 뒤 "
-            "read 권한 Hugging Face token을 세션 인증에 입력하세요. token은 DB나 설정 파일에 저장되지 않습니다."
-        ),
-    )
+@router.delete("/api/models/hf-auth/session")
+def clear_hf_session() -> dict:
+    set_session_token(None, None)
+    return {"authenticated": False, "status": model_manager_status()}
 
 
 @router.post("/api/models/download")
@@ -301,12 +270,10 @@ def download_model(payload: DownloadRequest) -> dict:
         raise HTTPException(422, "MuScriptor 공개 weights는 CC BY-NC이므로 상용 모드에서 다운로드할 수 없습니다.")
     if not authenticated():
         raise HTTPException(422, "Hugging Face 인증과 모델 라이선스 수락이 먼저 필요합니다.")
-
     spec = MUSCRIPTOR_MODELS[payload.variant]
     home = _hf_home()
     home.mkdir(parents=True, exist_ok=True)
-    disk_anchor = home.parent if home.parent.exists() else Path.home()
-    if shutil.disk_usage(disk_anchor).free < int(spec["weight_bytes"]) * 1.15:
+    if shutil.disk_usage(home).free < int(spec["weight_bytes"]) * 1.15:
         raise HTTPException(422, "모델을 안전하게 다운로드하기 위한 디스크 여유 공간이 부족합니다.")
 
     ready, size = _model_cached(str(spec["repo_id"]))
@@ -352,20 +319,7 @@ def model_job(job_id: str) -> dict:
         job = _jobs.get(job_id)
         if job is None:
             raise HTTPException(404, "모델 다운로드 작업을 찾을 수 없습니다.")
-        result = dict(job)
-    if result.get("status") == "running":
-        repo_id = str(MUSCRIPTOR_MODELS[result["variant"]]["repo_id"])
-        size = _directory_size(_repo_cache_dir(repo_id))
-        target = max(int(result.get("target_bytes") or 1), 1)
-        result["cached_bytes"] = size
-        result["progress"] = min(99, int(size / target * 100))
-        with _jobs_lock:
-            _jobs[job_id].update(
-                cached_bytes=result["cached_bytes"],
-                progress=result["progress"],
-                updated_at=_now_ts(),
-            )
-    return result
+        return dict(job)
 
 
 @router.post("/api/models/jobs/{job_id}/cancel")
@@ -377,11 +331,7 @@ def cancel_model_job(job_id: str) -> dict:
         if job.get("status") in _TERMINAL:
             return dict(job)
         _update_job(_jobs, job_id, cancel_requested=True, status="cancelling")
-    return {
-        "job_id": job_id,
-        "status": "cancelling",
-        "note": "현재 HTTP transfer가 끝난 뒤 취소 상태가 적용됩니다.",
-    }
+    return {"job_id": job_id, "status": "cancelling"}
 
 
 @router.post("/api/models/remove")
