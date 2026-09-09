@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import "./studio-view-controls.css";
 
 type ViewMode = "page" | "continuous";
 
