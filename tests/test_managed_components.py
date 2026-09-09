@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from audio_score_tool import managed_components as components
 from audio_score_tool.managed_components import (
     ComponentArtifact,
     ComponentIntegrityError,
@@ -64,6 +65,29 @@ def test_managed_component_install_registers_verified_tool(tmp_path: Path, monke
     assert registered_managed_tool("fixture-tool") == tool
 
 
+def test_component_artifact_rejects_path_shaped_identifiers(tmp_path: Path):
+    archive = tmp_path / "component.zip"
+    _zip_component(archive)
+    with pytest.raises(ComponentIntegrityError):
+        ComponentArtifact(
+            component="../escape",
+            version="1",
+            url="https://example.invalid/component.zip",
+            sha256=_sha256(archive),
+            archive="zip",
+            tools={"fixture-tool": "bin/tool"},
+        )
+    with pytest.raises(ComponentIntegrityError):
+        ComponentArtifact(
+            component="fixture",
+            version="../../escape",
+            url="https://example.invalid/component.zip",
+            sha256=_sha256(archive),
+            archive="zip",
+            tools={"fixture-tool": "bin/tool"},
+        )
+
+
 def test_checksum_mismatch_never_replaces_previous_component(tmp_path: Path):
     root = tmp_path / "components"
     first = tmp_path / "v1.zip"
@@ -78,6 +102,28 @@ def test_checksum_mismatch_never_replaces_previous_component(tmp_path: Path):
             root=root,
             local_archive=second,
         )
+
+    status = component_status("fixture", root=root)
+    assert status["ready"] is True
+    assert status["version"] == "1"
+    assert Path(status["tools"]["fixture-tool"]).read_bytes() == b"version-1"
+    assert not (root / "installed" / "fixture" / "2").exists()
+
+
+def test_state_commit_failure_rolls_back_new_activation(tmp_path: Path, monkeypatch):
+    root = tmp_path / "components"
+    first = tmp_path / "v1.zip"
+    second = tmp_path / "v2.zip"
+    _zip_component(first, payload=b"version-1")
+    _zip_component(second, payload=b"version-2")
+    install_component_artifact(_artifact(first, version="1"), root=root, local_archive=first)
+
+    def fail_state_write(_path: Path, _payload: dict) -> None:
+        raise OSError("simulated state fsync failure")
+
+    monkeypatch.setattr(components, "_atomic_write_json", fail_state_write)
+    with pytest.raises(OSError, match="simulated state"):
+        install_component_artifact(_artifact(second, version="2"), root=root, local_archive=second)
 
     status = component_status("fixture", root=root)
     assert status["ready"] is True
@@ -113,6 +159,44 @@ def test_archive_symlink_is_rejected(tmp_path: Path):
         install_component_artifact(_artifact(archive), root=root, local_archive=archive)
 
 
+def test_malformed_archive_becomes_domain_integrity_error(tmp_path: Path):
+    archive = tmp_path / "broken.zip"
+    archive.write_bytes(b"this is not a zip archive")
+    with pytest.raises(ComponentIntegrityError, match="malformed or unreadable"):
+        install_component_artifact(_artifact(archive), root=tmp_path / "components", local_archive=archive)
+
+
+def test_extreme_zip_compression_ratio_is_rejected(tmp_path: Path):
+    archive = tmp_path / "ratio.zip"
+    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as writer:
+        writer.writestr("bin/tool", b"x" * 900_000)
+    with pytest.raises(ComponentIntegrityError, match="compression ratio"):
+        install_component_artifact(_artifact(archive), root=tmp_path / "components", local_archive=archive)
+
+
+def test_redirect_to_non_https_is_rejected_before_body_read(tmp_path: Path, monkeypatch):
+    archive = tmp_path / "placeholder.zip"
+    _zip_component(archive)
+    artifact = _artifact(archive)
+
+    class RedirectedResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def geturl(self):
+            return "http://127.0.0.1/component.zip"
+
+        def read(self, _size=-1):
+            raise AssertionError("redirected body must not be read")
+
+    monkeypatch.setattr(components.urllib.request, "urlopen", lambda *_a, **_k: RedirectedResponse())
+    with pytest.raises(ComponentIntegrityError, match="credential-free HTTPS"):
+        install_component_artifact(artifact, root=tmp_path / "components")
+
+
 def test_component_state_corruption_fails_closed(tmp_path: Path):
     root = tmp_path / "components"
     root.mkdir()
@@ -121,6 +205,21 @@ def test_component_state_corruption_fails_closed(tmp_path: Path):
     assert status["ready"] is False
     assert status["integrity"] == "state-corrupt"
     assert resolve_managed_tool("fixture-tool", root=root) is None
+
+
+def test_state_symlink_is_rejected(tmp_path: Path):
+    root = tmp_path / "components"
+    root.mkdir()
+    outside = tmp_path / "outside-state.json"
+    outside.write_text(json.dumps({"schema": 1, "components": {}}), encoding="utf-8")
+    state = root / "state.json"
+    try:
+        state.symlink_to(outside)
+    except OSError:
+        pytest.skip("symlink unavailable")
+    status = component_status("fixture", root=root)
+    assert status["ready"] is False
+    assert status["integrity"] == "state-corrupt"
 
 
 def test_staging_recovery_removes_partial_install_and_download(tmp_path: Path):
