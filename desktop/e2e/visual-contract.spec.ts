@@ -5,6 +5,13 @@ async function dismissOnboarding(page: import("@playwright/test").Page) {
   if (await skip.isVisible().catch(() => false)) await skip.click();
 }
 
+function durationToMilliseconds(value: string) {
+  const normalized = value.trim().toLowerCase();
+  if (normalized.endsWith("ms")) return Number.parseFloat(normalized.slice(0, -2));
+  if (normalized.endsWith("s")) return Number.parseFloat(normalized.slice(0, -1)) * 1000;
+  return Number.NaN;
+}
+
 test("management shell does not overflow supported desktop viewports", async ({ page }) => {
   for (const viewport of [
     { width: 1366, height: 768 },
@@ -76,5 +83,7 @@ test("reduced-motion preference removes decorative workstation motion", async ({
     const value = getComputedStyle(element).transitionDuration.split(",")[0] ?? "0s";
     return value.trim();
   });
-  expect(["0s", "0.001ms"]).toContain(duration);
+  const milliseconds = durationToMilliseconds(duration);
+  expect(Number.isFinite(milliseconds)).toBe(true);
+  expect(milliseconds).toBeLessThanOrEqual(0.001);
 });
