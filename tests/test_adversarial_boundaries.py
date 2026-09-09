@@ -5,6 +5,7 @@ import zipfile
 from pathlib import Path
 
 import pytest
+from fastapi import HTTPException
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.routing import Route
@@ -14,6 +15,7 @@ from starlette.testclient import TestClient
 # that composition intentionally triggers its circular registration edge. Mirror the real
 # import order so these tests probe runtime boundaries rather than an unsupported module order.
 from audio_score_tool import api as _canonical_api  # noqa: F401
+from audio_score_tool import model_manager_api as models
 from audio_score_tool.api_token import ApiTokenMiddleware
 from audio_score_tool.job_artifact_api_v2 import _managed_job_file
 from audio_score_tool.omr import OMRImportError, normalize_musicxml
@@ -130,3 +132,59 @@ def test_api_token_rejects_duplicate_credentials(monkeypatch):
         ],
     )
     assert response.status_code == 401
+
+
+def test_hf_auth_failure_never_reflects_token(monkeypatch):
+    secret = "hf_super_secret_token_value"
+
+    class LeakyApi:
+        def __init__(self, *, token: str):
+            self.token = token
+
+        def whoami(self):
+            raise RuntimeError(f"upstream request failed with credential {self.token}")
+
+    monkeypatch.setattr(models, "HfApi", LeakyApi)
+    with pytest.raises(HTTPException) as exc:
+        models.set_hf_session(models.HfTokenRequest(token=secret))
+
+    assert exc.value.status_code == 422
+    assert secret not in str(exc.value.detail)
+    assert "upstream request" not in str(exc.value.detail)
+
+
+def test_hf_download_failure_never_persists_token(monkeypatch, tmp_path: Path):
+    secret = "hf_super_secret_download_token"
+    job_id = "adversarial-hf-download"
+
+    monkeypatch.setattr(models, "active_token", lambda: secret)
+    monkeypatch.setattr(models, "_hub_root", lambda: tmp_path / "hub")
+
+    def leaky_download(**_kwargs):
+        raise RuntimeError(f"failed Authorization: Bearer {secret}")
+
+    monkeypatch.setattr(models, "snapshot_download", leaky_download)
+    with models._jobs_lock:
+        models._jobs.clear()
+        models._jobs[job_id] = {
+            "job_id": job_id,
+            "family": "muscriptor",
+            "variant": "small",
+            "status": "queued",
+            "progress": 0,
+            "cancel_requested": False,
+            "created_at": 0.0,
+            "updated_at": 0.0,
+        }
+
+    try:
+        models._run_download(job_id, "small")
+        with models._jobs_lock:
+            result = dict(models._jobs[job_id])
+        assert result["status"] == "failed"
+        assert secret not in str(result.get("error"))
+        assert "Authorization" not in str(result.get("error"))
+        assert "RuntimeError" in str(result.get("error"))
+    finally:
+        with models._jobs_lock:
+            models._jobs.clear()
