@@ -82,6 +82,11 @@ jobs:
       - name: Concurrency and recovery soak gate
         run: uv run --frozen pytest -q tests/test_concurrency_soak.py
 
+      - name: Music adversarial benchmark gate
+        run: |
+          uv run --frozen python scripts/run_music_adversarial_benchmark.py \
+            --output /tmp/music-adversarial-benchmark.json
+
       - name: Python tests
         run: uv run --frozen pytest -q
 
