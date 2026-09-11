@@ -326,6 +326,7 @@ def summarize_tier2_results(results: list[Tier2CaseResult]) -> dict[str, Any]:
         "evaluated_satb_cases": len(satb_parts),
         "satb_part_count_accuracy": _boolean_accuracy(satb_parts),
         "satb_voice_order_accuracy": _boolean_accuracy(satb_order),
+        "evaluated_publish_cases": len(publish_times),
         "mean_total_edit_actions": _average([float(value) for value in edit_actions]),
         "mean_time_to_publish_seconds": _average(publish_times),
         "successful_export_rate": _average([1.0 if value else 0.0 for value in exports]),
