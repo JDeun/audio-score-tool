@@ -44,7 +44,37 @@ predictions/<case-id>.product.json  # 사람 수정량 / publish time / export �
 
 `total_edit_actions`는 위 edit count의 합으로 자동 계산됩니다. 직접 넣는 경우 계산값과 다르면 runner가 실패합니다.
 
-## 실행
+## 사람 수정량 자동 계측
+
+실제 앱에서 수정량을 재려면 먼저 해당 case의 telemetry 파일을 시작합니다.
+
+```bash
+uv run --frozen python scripts/start_tier2_edit_session.py case-001 \
+  --output /secure/audio-score-tier2/runs/mr-mt3/case-001.product.json
+```
+
+그 다음 같은 환경에서 AudioScoreTool을 실행합니다.
+
+```bash
+export AST_TIER2_TELEMETRY_FILE=/secure/audio-score-tier2/runs/mr-mt3/case-001.product.json
+```
+
+Windows PowerShell에서는 `$env:AST_TIER2_TELEMETRY_FILE=...`을 사용합니다.
+
+Telemetry는 명시적으로 이 환경변수가 있을 때만 활성화됩니다. 첫 번째 성공 mutation의 `song_id`에 session이 bind되며 이후 다른 곡의 수정은 무시합니다. 필요하면 `start_tier2_edit_session.py --song-id ...`로 미리 고정할 수 있습니다.
+
+자동 분류:
+
+- note insert/delete/pitch/duration/structure → `manual_note_edits`
+- lyric-only PATCH → `manual_lyric_edits`
+- chord PATCH → `manual_chord_edits`
+- measure/signature mutation → `manual_measure_edits`
+- publication layout PATCH → `manual_layout_edits`
+- 성공한 최종 export → `successful_export=true`, `time_to_publish_seconds` 확정
+
+HTTP 4xx/5xx 실패 요청은 수정량에 포함하지 않습니다. `manual_part_edits`처럼 현재 별도 mutation endpoint가 없는 항목은 필요한 경우 검수자가 보완할 수 있습니다.
+
+## 엔진별 평가 실행
 
 ```bash
 uv run --frozen python scripts/run_tier2_benchmark.py \
@@ -59,6 +89,26 @@ uv run --frozen python scripts/run_tier2_benchmark.py \
 ```
 
 동일한 manifest/reference를 사용해 MR-MT3, YourMT3 등 후보별 prediction root만 바꿔 실행합니다.
+
+## 후보 비교
+
+두 개 이상의 report가 있으면 동일 corpus인지 검증한 뒤 baseline 후보 순위를 계산합니다.
+
+```bash
+uv run --frozen python scripts/compare_tier2_reports.py \
+  /secure/audio-score-tier2/reports/mr-mt3.json \
+  /secure/audio-score-tier2/reports/yourmt3.json \
+  --output /secure/audio-score-tier2/reports/comparison.json
+```
+
+순위는 다음 순서를 사용합니다.
+
+1. 모든 case 최종 export 성공
+2. 평균 `time_to_publish_seconds`
+3. 평균 `total_edit_actions`
+4. 평균 note F1
+
+비교기가 `recommended_engine`을 출력하더라도 `release_approved`는 항상 false입니다. #34의 provenance/license 검토와 사람이 결과를 승인해야 commercial baseline이 됩니다.
 
 ## 출력
 
