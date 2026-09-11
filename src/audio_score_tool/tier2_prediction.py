@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import json
 import shutil
 import tempfile
-from dataclasses import replace
+from dataclasses import asdict, replace
 from pathlib import Path
 
 from .runtime_settings import runtime_settings
-from .tier2_benchmark import load_manifest, resolve_locator
+from .tier2_benchmark import Tier2EngineIdentity, load_manifest, resolve_locator
 from .transcription_engine import resolve_transcription_engine
+
+_PROVENANCE_FILE = "tier2-prediction-provenance.json"
 
 
 def generate_tier2_predictions(
@@ -16,18 +19,28 @@ def generate_tier2_predictions(
     corpus_root: Path,
     predictions_root: Path,
     engine_id: str,
+    model_revision: str,
+    runtime_revision: str,
+    artifact_sha256: str,
     model: str | None = None,
     device: str = "cpu",
 ) -> list[dict[str, str]]:
-    """Run the selected AMT engine over every Tier 2 case with an audio locator."""
+    """Run one exactly identified AMT engine over every Tier 2 case."""
 
-    _, cases = load_manifest(manifest_path)
+    corpus_version, cases = load_manifest(manifest_path)
     predictions_root.mkdir(parents=True, exist_ok=True)
 
     base = runtime_settings()
     normalized_engine = engine_id.strip().lower()
     if normalized_engine == "yourmt3":
         normalized_engine = "mt3_infer"
+    identity = Tier2EngineIdentity(
+        id=normalized_engine,
+        model_revision=model_revision,
+        runtime_revision=runtime_revision,
+        artifact_sha256=artifact_sha256,
+    )
+
     settings = replace(base, transcription_engine=normalized_engine)
     if normalized_engine == "mt3_infer" and model:
         settings = replace(settings, mt3_model=model.strip().lower())
@@ -68,4 +81,16 @@ def generate_tier2_predictions(
                 "musicxml": str(xml_target),
             }
         )
+
+    provenance = {
+        "schema_version": "1",
+        "corpus_version": corpus_version,
+        "engine": asdict(identity),
+        "device": device,
+        "case_ids": [item["case_id"] for item in generated],
+    }
+    (predictions_root / _PROVENANCE_FILE).write_text(
+        json.dumps(provenance, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
     return generated
