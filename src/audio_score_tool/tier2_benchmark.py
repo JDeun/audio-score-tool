@@ -18,12 +18,28 @@ _EDIT_KEYS = (
 )
 
 
+def _nonempty(value: str, *, label: str) -> str:
+    text = value.strip()
+    if not text:
+        raise ValueError(f"{label} must be a non-empty string")
+    return text
+
+
 @dataclass(frozen=True, slots=True)
 class Tier2EngineIdentity:
     id: str
     model_revision: str
     runtime_revision: str
     artifact_sha256: str
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "id", _nonempty(self.id, label="engine id"))
+        object.__setattr__(self, "model_revision", _nonempty(self.model_revision, label="model revision"))
+        object.__setattr__(self, "runtime_revision", _nonempty(self.runtime_revision, label="runtime revision"))
+        digest = self.artifact_sha256.strip().lower()
+        if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
+            raise ValueError("artifact_sha256 must be a 64-character hexadecimal digest")
+        object.__setattr__(self, "artifact_sha256", digest)
 
 
 @dataclass(frozen=True, slots=True)
@@ -113,26 +129,21 @@ def load_manifest(path: Path) -> tuple[str, tuple[Tier2Case, ...]]:
 
 
 def resolve_locator(locator: str, *, corpus_root: Path) -> Path:
+    root = corpus_root.expanduser().resolve()
     if locator.startswith("private://"):
-        relative = locator.removeprefix("private://")
-        candidate = corpus_root / relative
-    elif locator.startswith("file://"):
-        candidate = Path(locator.removeprefix("file://"))
-    else:
-        raw = Path(locator)
-        candidate = raw if raw.is_absolute() else corpus_root / raw
-    return candidate.resolve()
+        candidate = (root / locator.removeprefix("private://")).resolve()
+        if candidate != root and root not in candidate.parents:
+            raise ValueError("private:// locator escapes corpus_root")
+        return candidate
+    if locator.startswith("file://"):
+        return Path(locator.removeprefix("file://")).expanduser().resolve()
+    raw = Path(locator).expanduser()
+    return (raw if raw.is_absolute() else root / raw).resolve()
 
 
 def load_product_metrics(path: Path) -> dict[str, Any]:
     defaults: dict[str, Any] = {key: 0 for key in _EDIT_KEYS}
-    defaults.update(
-        {
-            "total_edit_actions": 0,
-            "time_to_publish_seconds": None,
-            "successful_export": False,
-        }
-    )
+    defaults.update({"total_edit_actions": 0, "time_to_publish_seconds": None, "successful_export": False})
     if not path.exists():
         return defaults
     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -148,9 +159,7 @@ def load_product_metrics(path: Path) -> dict[str, Any]:
     if declared in (None, 0):
         result["total_edit_actions"] = calculated
     elif declared != calculated:
-        raise ValueError(
-            f"total_edit_actions mismatch in {path}: declared={declared}, calculated={calculated}"
-        )
+        raise ValueError(f"total_edit_actions mismatch in {path}: declared={declared}, calculated={calculated}")
     duration = result.get("time_to_publish_seconds")
     if duration is not None and (not isinstance(duration, (int, float)) or duration < 0):
         raise ValueError("time_to_publish_seconds must be null or a non-negative number")
@@ -168,19 +177,9 @@ def _load_optional_metrics(path: Path) -> dict[str, Any]:
     return payload
 
 
-def evaluate_tier2_case(
-    case: Tier2Case,
-    *,
-    engine: Tier2EngineIdentity,
-    corpus_root: Path,
-    predictions_root: Path,
-) -> Tier2CaseResult:
+def evaluate_tier2_case(case: Tier2Case, *, engine: Tier2EngineIdentity, corpus_root: Path, predictions_root: Path) -> Tier2CaseResult:
     prediction_midi = predictions_root / f"{case.id}.mid"
-    reference_midi = (
-        resolve_locator(case.reference_midi, corpus_root=corpus_root)
-        if case.reference_midi is not None
-        else None
-    )
+    reference_midi = resolve_locator(case.reference_midi, corpus_root=corpus_root) if case.reference_midi is not None else None
     music_metrics = _load_optional_metrics(predictions_root / f"{case.id}.music.json")
     if prediction_midi.exists() and reference_midi is not None and reference_midi.exists():
         music_metrics = {**music_metrics, **evaluate_midi_files(prediction_midi, reference_midi).as_dict()}
@@ -201,17 +200,9 @@ def _average(values: list[float]) -> float | None:
 
 def summarize_tier2_results(results: list[Tier2CaseResult]) -> dict[str, Any]:
     note_f1 = [float(r.music_metrics["note_f1"]) for r in results if r.music_metrics.get("note_f1") is not None]
-    instrument_f1 = [
-        float(r.music_metrics["instrument_f1"])
-        for r in results
-        if r.music_metrics.get("instrument_f1") is not None
-    ]
+    instrument_f1 = [float(r.music_metrics["instrument_f1"]) for r in results if r.music_metrics.get("instrument_f1") is not None]
     edit_actions = [int(r.product_metrics["total_edit_actions"]) for r in results]
-    publish_times = [
-        float(r.product_metrics["time_to_publish_seconds"])
-        for r in results
-        if r.product_metrics.get("time_to_publish_seconds") is not None
-    ]
+    publish_times = [float(r.product_metrics["time_to_publish_seconds"]) for r in results if r.product_metrics.get("time_to_publish_seconds") is not None]
     exports = [bool(r.product_metrics.get("successful_export")) for r in results]
     return {
         "case_count": len(results),
@@ -225,29 +216,10 @@ def summarize_tier2_results(results: list[Tier2CaseResult]) -> dict[str, Any]:
     }
 
 
-def run_tier2_benchmark(
-    manifest_path: Path,
-    *,
-    corpus_root: Path,
-    predictions_root: Path,
-    engine: Tier2EngineIdentity,
-) -> Tier2Report:
+def run_tier2_benchmark(manifest_path: Path, *, corpus_root: Path, predictions_root: Path, engine: Tier2EngineIdentity) -> Tier2Report:
     corpus_version, cases = load_manifest(manifest_path)
-    results = [
-        evaluate_tier2_case(
-            case,
-            engine=engine,
-            corpus_root=corpus_root,
-            predictions_root=predictions_root,
-        )
-        for case in cases
-    ]
-    return Tier2Report(
-        corpus_version=corpus_version,
-        engine=engine,
-        cases=tuple(results),
-        summary=summarize_tier2_results(results),
-    )
+    results = [evaluate_tier2_case(case, engine=engine, corpus_root=corpus_root, predictions_root=predictions_root) for case in cases]
+    return Tier2Report(corpus_version=corpus_version, engine=engine, cases=tuple(results), summary=summarize_tier2_results(results))
 
 
 def write_tier2_report(path: Path, report: Tier2Report) -> None:
