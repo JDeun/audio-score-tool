@@ -237,6 +237,29 @@ def _phase_proximity(distance: float, radius: float) -> float:
     return (1.0 - ratio) ** 2
 
 
+def _opening_meter(
+    signatures: list[tuple[int, int, int]],
+    first_note_tick: int,
+) -> tuple[int, int]:
+    """Return the time signature active when the musical material begins.
+
+    Later meter changes must not rewrite the phase grid used to infer the opening
+    anacrusis. If a malformed MIDI has no signature before the first note, use the
+    earliest declared signature; otherwise fall back to 4/4.
+    """
+
+    active: tuple[int, int] | None = None
+    for tick, numerator, denominator in signatures:
+        if tick > first_note_tick:
+            break
+        active = (numerator, denominator)
+    if active is not None:
+        return active
+    if signatures:
+        return signatures[0][1], signatures[0][2]
+    return 4, 4
+
+
 def analyze_midi_meter_and_pickup(
     midi_path: Path,
     analysis: MusicStructureAnalysis,
@@ -247,18 +270,22 @@ def analyze_midi_meter_and_pickup(
         analysis.warnings.append(f"Pickup analysis was skipped: {exc}")
         return analysis
 
-    numerator, denominator = 4, 4
     absolute = 0
     note_events: list[tuple[int, int]] = []
+    signature_events: list[tuple[int, int, int]] = []
     for message in mido.merge_tracks(mid.tracks):
         absolute += int(message.time)
         if message.type == "time_signature":
-            numerator, denominator = int(message.numerator), int(message.denominator)
+            signature_events.append(
+                (absolute, int(message.numerator), int(message.denominator))
+            )
         elif message.type == "note_on" and int(message.velocity) > 0:
             note_events.append((absolute, int(message.velocity)))
     if len(note_events) < 4:
         return analysis
 
+    first_tick = note_events[0][0]
+    numerator, denominator = _opening_meter(signature_events, first_tick)
     ticks_per_quarter = max(1, int(mid.ticks_per_beat))
     beat_ticks = ticks_per_quarter * 4.0 / max(1, denominator)
     bar_ticks = beat_ticks * max(1, numerator)
@@ -288,7 +315,6 @@ def analyze_midi_meter_and_pickup(
         elif score > second_score:
             second_score = score
 
-    first_tick = note_events[0][0]
     downbeat_tick = best_phase
     while downbeat_tick <= first_tick + step:
         downbeat_tick += bar_ticks
