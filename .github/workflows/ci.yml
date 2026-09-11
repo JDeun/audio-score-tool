@@ -70,7 +70,11 @@ jobs:
 
       - name: Python dependency vulnerability audit
         run: |
-          uv export --frozen --no-dev --no-hashes --output-file /tmp/runtime-requirements.txt
+          set -euo pipefail
+          uv export --frozen --no-dev --no-hashes --output-file /tmp/runtime-requirements.raw.txt
+          # pip-audit cannot resolve this repository's local editable package on PyPI.
+          # Exclude only the project itself; every third-party runtime dependency remains audited.
+          grep -vE '^-e[[:space:]]+\.$' /tmp/runtime-requirements.raw.txt > /tmp/runtime-requirements.txt
           uvx --from pip-audit==2.9.0 pip-audit --strict --requirement /tmp/runtime-requirements.txt
 
       - name: Rust dependency vulnerability audit
