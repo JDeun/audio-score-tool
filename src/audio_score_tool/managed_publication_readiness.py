@@ -6,8 +6,8 @@ from typing import Any
 from .managed_component_catalog import load_catalog
 from .managed_components import ComponentArtifact, ComponentError
 
-CORE_COMPONENTS = ("transcription_engine", "youtube_runtime")
-OPTIONAL_COMPONENTS = ("audiveris", "whisperx", "audio_validation")
+CORE_COMPONENTS = ("transcription_engine", "youtube_runtime", "audiveris")
+OPTIONAL_COMPONENTS = ("whisperx", "audio_validation")
 STABLE_TARGETS = ("windows-x86_64", "macos-aarch64")
 
 
