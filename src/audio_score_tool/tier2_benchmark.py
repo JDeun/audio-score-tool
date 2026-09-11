@@ -7,6 +7,7 @@ from statistics import mean
 from typing import Any
 
 from .metrics import evaluate_midi_files
+from .tier2_structure_metrics import evaluate_musicxml_structure
 
 _EDIT_KEYS = (
     "manual_note_edits",
@@ -51,6 +52,8 @@ class Tier2Case:
     tags: tuple[str, ...]
     audio_locator: str | None
     reference_midi: str | None
+    reference_musicxml: str | None
+    expected_structure: dict[str, Any]
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,7 +63,9 @@ class Tier2CaseResult:
     music_metrics: dict[str, Any]
     product_metrics: dict[str, Any]
     prediction_midi: str | None
+    prediction_musicxml: str | None
     reference_midi: str | None
+    reference_musicxml: str | None
 
     def as_dict(self) -> dict[str, Any]:
         payload = asdict(self)
@@ -119,6 +124,9 @@ def load_manifest(path: Path) -> tuple[str, tuple[Tier2Case, ...]]:
         tags = raw.get("tags") or []
         if not isinstance(tags, list) or not all(isinstance(item, str) for item in tags):
             raise ValueError(f"manifest.cases[{index}].tags must be an array of strings")
+        expected_structure = raw.get("expected_structure") or {}
+        if not isinstance(expected_structure, dict):
+            raise ValueError(f"manifest.cases[{index}].expected_structure must be an object")
         audio_locator = audio.get("locator")
         cases.append(
             Tier2Case(
@@ -129,6 +137,10 @@ def load_manifest(path: Path) -> tuple[str, tuple[Tier2Case, ...]]:
                 tags=tuple(tags),
                 audio_locator=audio_locator if isinstance(audio_locator, str) else None,
                 reference_midi=reference.get("midi") if isinstance(reference.get("midi"), str) else None,
+                reference_musicxml=(
+                    reference.get("musicxml") if isinstance(reference.get("musicxml"), str) else None
+                ),
+                expected_structure=dict(expected_structure),
             )
         )
     return corpus_version, tuple(cases)
@@ -183,10 +195,37 @@ def _load_optional_metrics(path: Path) -> dict[str, Any]:
     return payload
 
 
-def evaluate_tier2_case(case: Tier2Case, *, engine: Tier2EngineIdentity, corpus_root: Path, predictions_root: Path) -> Tier2CaseResult:
+def evaluate_tier2_case(
+    case: Tier2Case,
+    *,
+    engine: Tier2EngineIdentity,
+    corpus_root: Path,
+    predictions_root: Path,
+) -> Tier2CaseResult:
     prediction_midi = predictions_root / f"{case.id}.mid"
-    reference_midi = resolve_locator(case.reference_midi, corpus_root=corpus_root) if case.reference_midi is not None else None
+    prediction_musicxml = predictions_root / f"{case.id}.musicxml"
+    reference_midi = (
+        resolve_locator(case.reference_midi, corpus_root=corpus_root)
+        if case.reference_midi is not None
+        else None
+    )
+    reference_musicxml = (
+        resolve_locator(case.reference_musicxml, corpus_root=corpus_root)
+        if case.reference_musicxml is not None
+        else None
+    )
     music_metrics = _load_optional_metrics(predictions_root / f"{case.id}.music.json")
+    if prediction_musicxml.exists():
+        music_metrics = {
+            **music_metrics,
+            **evaluate_musicxml_structure(
+                prediction_musicxml,
+                reference_path=reference_musicxml,
+                expected_structure=case.expected_structure,
+                tags=case.tags,
+                category=case.category,
+            ),
+        }
     if prediction_midi.exists() and reference_midi is not None and reference_midi.exists():
         music_metrics = {**music_metrics, **evaluate_midi_files(prediction_midi, reference_midi).as_dict()}
     product_metrics = load_product_metrics(predictions_root / f"{case.id}.product.json")
@@ -196,7 +235,9 @@ def evaluate_tier2_case(case: Tier2Case, *, engine: Tier2EngineIdentity, corpus_
         music_metrics=music_metrics,
         product_metrics=product_metrics,
         prediction_midi=str(prediction_midi) if prediction_midi.exists() else None,
+        prediction_musicxml=str(prediction_musicxml) if prediction_musicxml.exists() else None,
         reference_midi=str(reference_midi) if reference_midi is not None else None,
+        reference_musicxml=str(reference_musicxml) if reference_musicxml is not None else None,
     )
 
 
@@ -204,17 +245,66 @@ def _average(values: list[float]) -> float | None:
     return round(mean(values), 6) if values else None
 
 
+def _numbers(results: list[Tier2CaseResult], key: str) -> list[float]:
+    values: list[float] = []
+    for result in results:
+        value = result.music_metrics.get(key)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            values.append(float(value))
+    return values
+
+
+def _booleans(results: list[Tier2CaseResult], key: str) -> list[bool]:
+    return [
+        value
+        for result in results
+        if isinstance((value := result.music_metrics.get(key)), bool)
+    ]
+
+
+def _boolean_accuracy(values: list[bool]) -> float | None:
+    return _average([1.0 if value else 0.0 for value in values])
+
+
 def summarize_tier2_results(results: list[Tier2CaseResult]) -> dict[str, Any]:
-    note_f1 = [float(r.music_metrics["note_f1"]) for r in results if r.music_metrics.get("note_f1") is not None]
-    instrument_f1 = [float(r.music_metrics["instrument_f1"]) for r in results if r.music_metrics.get("instrument_f1") is not None]
+    note_f1 = _numbers(results, "note_f1")
+    instrument_f1 = _numbers(results, "instrument_f1")
     edit_actions = [int(r.product_metrics["total_edit_actions"]) for r in results]
-    publish_times = [float(r.product_metrics["time_to_publish_seconds"]) for r in results if r.product_metrics.get("time_to_publish_seconds") is not None]
+    publish_times = [
+        float(r.product_metrics["time_to_publish_seconds"])
+        for r in results
+        if r.product_metrics.get("time_to_publish_seconds") is not None
+    ]
     exports = [bool(r.product_metrics.get("successful_export")) for r in results]
+    meter_values = _booleans(results, "meter_correct")
+    part_values = _booleans(results, "part_count_correct")
+    satb_parts = _booleans(results, "satb_part_count_correct")
+    satb_order = _booleans(results, "satb_voice_order_correct")
+    pickup_values = _numbers(results, "pickup_mae_quarter_length")
+    chord_values = _numbers(results, "chord_accuracy")
+    lyrics_values = _numbers(results, "lyrics_alignment_coverage")
     return {
         "case_count": len(results),
         "evaluated_note_cases": len(note_f1),
         "mean_note_f1": _average(note_f1),
         "mean_instrument_f1": _average(instrument_f1),
+        "mean_onset_mae_ms": _average(_numbers(results, "onset_mae_ms")),
+        "mean_offset_mae_ms": _average(_numbers(results, "offset_mae_ms")),
+        "mean_music_start_error_seconds": _average(_numbers(results, "music_start_error_seconds")),
+        "mean_first_downbeat_error_seconds": _average(_numbers(results, "first_downbeat_error_seconds")),
+        "evaluated_meter_cases": len(meter_values),
+        "meter_accuracy": _boolean_accuracy(meter_values),
+        "evaluated_pickup_cases": len(pickup_values),
+        "mean_pickup_mae_quarter_length": _average(pickup_values),
+        "evaluated_part_count_cases": len(part_values),
+        "part_count_accuracy": _boolean_accuracy(part_values),
+        "evaluated_chord_cases": len(chord_values),
+        "mean_chord_accuracy": _average(chord_values),
+        "evaluated_lyrics_cases": len(lyrics_values),
+        "mean_lyrics_alignment_coverage": _average(lyrics_values),
+        "evaluated_satb_cases": len(satb_parts),
+        "satb_part_count_accuracy": _boolean_accuracy(satb_parts),
+        "satb_voice_order_accuracy": _boolean_accuracy(satb_order),
         "mean_total_edit_actions": _average([float(value) for value in edit_actions]),
         "mean_time_to_publish_seconds": _average(publish_times),
         "successful_export_rate": _average([1.0 if value else 0.0 for value in exports]),
@@ -222,10 +312,29 @@ def summarize_tier2_results(results: list[Tier2CaseResult]) -> dict[str, Any]:
     }
 
 
-def run_tier2_benchmark(manifest_path: Path, *, corpus_root: Path, predictions_root: Path, engine: Tier2EngineIdentity) -> Tier2Report:
+def run_tier2_benchmark(
+    manifest_path: Path,
+    *,
+    corpus_root: Path,
+    predictions_root: Path,
+    engine: Tier2EngineIdentity,
+) -> Tier2Report:
     corpus_version, cases = load_manifest(manifest_path)
-    results = [evaluate_tier2_case(case, engine=engine, corpus_root=corpus_root, predictions_root=predictions_root) for case in cases]
-    return Tier2Report(corpus_version=corpus_version, engine=engine, cases=tuple(results), summary=summarize_tier2_results(results))
+    results = [
+        evaluate_tier2_case(
+            case,
+            engine=engine,
+            corpus_root=corpus_root,
+            predictions_root=predictions_root,
+        )
+        for case in cases
+    ]
+    return Tier2Report(
+        corpus_version=corpus_version,
+        engine=engine,
+        cases=tuple(results),
+        summary=summarize_tier2_results(results),
+    )
 
 
 def write_tier2_report(path: Path, report: Tier2Report) -> None:
