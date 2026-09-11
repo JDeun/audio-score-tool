@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .engine_release_policy import EnginePromotionError, assert_default_promotion
-from .tier2_compare import Tier2ComparisonError, load_tier2_report
+from .tier2_compare import Tier2ComparisonError, compare_tier2_reports, load_tier2_report
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -44,6 +44,15 @@ def _validate_reviewed_at(value: str) -> str:
     if parsed.tzinfo is None or parsed.utcoffset() is None:
         raise ReleaseQualityApprovalError("reviewed_at must include a timezone")
     return value
+
+
+def _repository_path(repository_root: Path, relative: str, *, label: str) -> Path:
+    path = (repository_root / relative).resolve()
+    try:
+        path.relative_to(repository_root)
+    except ValueError as exc:
+        raise ReleaseQualityApprovalError(f"{label} must stay inside the repository") from exc
+    return path
 
 
 def load_quality_approval(path: Path, *, repository_root: Path) -> dict[str, Any]:
@@ -85,35 +94,49 @@ def load_quality_approval(path: Path, *, repository_root: Path) -> dict[str, Any
         raise ReleaseQualityApprovalError(str(exc)) from exc
 
     repository_root = repository_root.resolve()
-    comparison_path = (repository_root / comparison_path_text).resolve()
-    try:
-        comparison_path.relative_to(repository_root)
-    except ValueError as exc:
-        raise ReleaseQualityApprovalError("comparison_report must stay inside the repository") from exc
+    source_reports = payload.get("source_reports")
+    if not isinstance(source_reports, list) or len(source_reports) < 2:
+        raise ReleaseQualityApprovalError("at least two source_reports are required")
+
+    source_paths: list[Path] = []
+    for source in source_reports:
+        if not isinstance(source, dict):
+            raise ReleaseQualityApprovalError("source_reports entries must be objects")
+        rel = _required_text(source, "path")
+        expected_sha = _required_text(source, "sha256").lower()
+        if not _SHA256.fullmatch(expected_sha):
+            raise ReleaseQualityApprovalError("source report sha256 must be a 64-hex SHA-256")
+        source_path = _repository_path(repository_root, rel, label="source report")
+        if _sha256_file(source_path) != expected_sha:
+            raise ReleaseQualityApprovalError(f"source report SHA-256 mismatch: {rel}")
+        try:
+            source_payload = load_tier2_report(source_path)
+        except (OSError, json.JSONDecodeError, Tier2ComparisonError) as exc:
+            raise ReleaseQualityApprovalError(f"invalid Tier 2 source report: {rel}") from exc
+        if str(source_payload.get("corpus_version") or "") != corpus_version:
+            raise ReleaseQualityApprovalError(f"source report corpus_version mismatch: {rel}")
+        source_paths.append(source_path)
+
+    comparison_path = _repository_path(repository_root, comparison_path_text, label="comparison_report")
     if not comparison_path.is_file():
         raise ReleaseQualityApprovalError(f"comparison report is missing: {comparison_path_text}")
-    actual_comparison_sha256 = _sha256_file(comparison_path)
-    if actual_comparison_sha256 != comparison_sha256:
+    if _sha256_file(comparison_path) != comparison_sha256:
         raise ReleaseQualityApprovalError("comparison report SHA-256 does not match approval receipt")
-
     try:
         comparison = json.loads(comparison_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ReleaseQualityApprovalError("comparison report cannot be read") from exc
-    if not isinstance(comparison, dict) or comparison.get("schema_version") != "1":
-        raise ReleaseQualityApprovalError("comparison report schema is unsupported")
-    if str(comparison.get("corpus_version") or "") != corpus_version:
-        raise ReleaseQualityApprovalError("comparison corpus_version does not match approval receipt")
+        recomputed = compare_tier2_reports(source_paths)
+    except (OSError, json.JSONDecodeError, Tier2ComparisonError) as exc:
+        raise ReleaseQualityApprovalError("Tier 2 comparison evidence is invalid") from exc
+    if comparison != recomputed:
+        raise ReleaseQualityApprovalError("comparison report does not match recomputed source reports")
     if comparison.get("recommended_engine") != policy.engine_key:
         raise ReleaseQualityApprovalError("approved engine is not the benchmark recommended_engine")
 
     ranking = comparison.get("ranking")
-    if not isinstance(ranking, list):
-        raise ReleaseQualityApprovalError("comparison ranking is required")
     selected = next(
         (item for item in ranking if isinstance(item, dict) and item.get("engine_id") == policy.engine_key),
         None,
-    )
+    ) if isinstance(ranking, list) else None
     if selected is None or selected.get("qualified") is not True:
         raise ReleaseQualityApprovalError("approved engine is not a qualified Tier 2 candidate")
     expected = {
@@ -124,30 +147,6 @@ def load_quality_approval(path: Path, *, repository_root: Path) -> dict[str, Any
     for key, value in expected.items():
         if str(selected.get(key) or "") != value:
             raise ReleaseQualityApprovalError(f"approved engine {key} does not match comparison report")
-
-    source_reports = payload.get("source_reports", [])
-    if not isinstance(source_reports, list):
-        raise ReleaseQualityApprovalError("source_reports must be an array")
-    for source in source_reports:
-        if not isinstance(source, dict):
-            raise ReleaseQualityApprovalError("source_reports entries must be objects")
-        rel = _required_text(source, "path")
-        expected_sha = _required_text(source, "sha256").lower()
-        if not _SHA256.fullmatch(expected_sha):
-            raise ReleaseQualityApprovalError("source report sha256 must be a 64-hex SHA-256")
-        source_path = (repository_root / rel).resolve()
-        try:
-            source_path.relative_to(repository_root)
-        except ValueError as exc:
-            raise ReleaseQualityApprovalError("source report must stay inside the repository") from exc
-        if _sha256_file(source_path) != expected_sha:
-            raise ReleaseQualityApprovalError(f"source report SHA-256 mismatch: {rel}")
-        try:
-            source_payload = load_tier2_report(source_path)
-        except (OSError, json.JSONDecodeError, Tier2ComparisonError) as exc:
-            raise ReleaseQualityApprovalError(f"invalid Tier 2 source report: {rel}") from exc
-        if str(source_payload.get("corpus_version") or "") != corpus_version:
-            raise ReleaseQualityApprovalError(f"source report corpus_version mismatch: {rel}")
 
     return {
         "schema_version": "1",
