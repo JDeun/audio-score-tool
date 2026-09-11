@@ -59,6 +59,37 @@ def test_dev_catalog_override_accepts_pinned_platform_artifact(tmp_path: Path, m
     assert artifact.license == "MIT"
 
 
+def test_published_artifact_requires_license_and_provenance(tmp_path: Path, monkeypatch):
+    digest = hashlib.sha256(b"fixture").hexdigest()
+    catalog = tmp_path / "catalog.json"
+    catalog.write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "components": {
+                    "fixture": {
+                        "version": "1.2.3",
+                        "artifacts": {
+                            "linux-x86_64": {
+                                "url": "https://example.invalid/fixture.zip",
+                                "sha256": digest,
+                                "archive": "zip",
+                                "tools": {"fixture-tool": "bin/tool"},
+                            }
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("AST_PACKAGED", raising=False)
+    monkeypatch.setenv("AST_COMPONENT_CATALOG", str(catalog))
+
+    with pytest.raises(ComponentUnavailable, match="license is required"):
+        artifact_for("fixture", target="linux-x86_64")
+
+
 def test_catalog_rejects_path_shaped_component_name(tmp_path: Path, monkeypatch):
     catalog = tmp_path / "catalog.json"
     catalog.write_text(
@@ -81,6 +112,8 @@ def test_catalog_rejects_path_shaped_version(tmp_path: Path, monkeypatch):
                 "components": {
                     "fixture": {
                         "version": "../../escape",
+                        "license": "MIT",
+                        "provenance": "fixture",
                         "artifacts": {
                             "linux-x86_64": {
                                 "url": "https://example.invalid/fixture.zip",
