@@ -43,6 +43,12 @@ def test_pinned_cross_platform_catalog_is_publication_ready(tmp_path: Path, monk
                         "provenance": "pinned upstream builds",
                         "artifacts": artifacts,
                     },
+                    "audiveris": {
+                        "version": "1.0.0",
+                        "license": "AGPL-3.0-or-later",
+                        "provenance": "pinned Audiveris/JRE build",
+                        "artifacts": artifacts,
+                    },
                 },
             }
         ),
@@ -53,6 +59,11 @@ def test_pinned_cross_platform_catalog_is_publication_ready(tmp_path: Path, monk
 
     report = publication_readiness()
     assert report["ready"] is True
+    assert {check["component"] for check in report["checks"]} == {
+        "transcription_engine",
+        "youtube_runtime",
+        "audiveris",
+    }
     assert all(check["ready"] for check in report["checks"])
 
 
