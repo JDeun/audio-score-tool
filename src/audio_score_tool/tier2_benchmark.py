@@ -7,7 +7,7 @@ from pathlib import Path
 from statistics import mean
 from typing import Any
 
-from .metrics import evaluate_midi_files
+from .metrics import evaluate_midi_files, midi_notes
 from .tier2_structure_metrics import evaluate_musicxml_structure
 
 _EDIT_KEYS = (
@@ -77,6 +77,7 @@ class Tier2Case:
 class Tier2CaseResult:
     case_id: str
     engine: Tier2EngineIdentity
+    applicable_metrics: tuple[str, ...]
     music_metrics: dict[str, Any]
     product_metrics: dict[str, Any]
     prediction_midi: str | None
@@ -216,6 +217,33 @@ def _load_optional_metrics(path: Path) -> dict[str, Any]:
     return payload
 
 
+def _applicable_metrics(case: Tier2Case) -> tuple[str, ...]:
+    metrics = {"note_f1", "instrument_f1", "music_start_error_seconds"}
+    expected = case.expected_structure
+    if isinstance(expected.get("meter"), str) and expected["meter"].strip():
+        metrics.add("meter_correct")
+    if isinstance(expected.get("pickup_quarter_length"), (int, float)) and not isinstance(
+        expected.get("pickup_quarter_length"), bool
+    ):
+        metrics.add("pickup_mae_quarter_length")
+    if isinstance(expected.get("part_count"), int) and not isinstance(expected.get("part_count"), bool):
+        metrics.add("part_count_correct")
+    if expected.get("has_chords") is True:
+        metrics.add("chord_accuracy")
+    if expected.get("has_lyrics") is True:
+        metrics.add("lyrics_alignment_coverage")
+    tags = {tag.lower() for tag in case.tags}
+    if "satb" in tags or case.category.strip().lower() in {"choir", "satb"}:
+        metrics.update({"satb_part_count_correct", "satb_voice_order_correct"})
+    if isinstance(expected.get("first_downbeat_seconds"), (int, float)) and not isinstance(
+        expected.get("first_downbeat_seconds"), bool
+    ):
+        # This metric must come from a beat/downbeat estimator sidecar. We deliberately
+        # do not substitute first-note onset for the musical downbeat.
+        metrics.add("first_downbeat_error_seconds")
+    return tuple(sorted(metrics))
+
+
 def evaluate_tier2_case(
     case: Tier2Case,
     *,
@@ -248,11 +276,18 @@ def evaluate_tier2_case(
             ),
         }
     if prediction_midi.exists() and reference_midi is not None and reference_midi.exists():
+        pred_notes = midi_notes(prediction_midi)
+        ref_notes = midi_notes(reference_midi)
+        if pred_notes and ref_notes:
+            music_metrics["music_start_error_seconds"] = round(
+                abs(pred_notes[0].onset - ref_notes[0].onset), 6
+            )
         music_metrics = {**music_metrics, **evaluate_midi_files(prediction_midi, reference_midi).as_dict()}
     product_metrics = load_product_metrics(predictions_root / f"{case.id}.product.json")
     return Tier2CaseResult(
         case_id=case.id,
         engine=engine,
+        applicable_metrics=_applicable_metrics(case),
         music_metrics=music_metrics,
         product_metrics=product_metrics,
         prediction_midi=str(prediction_midi) if prediction_midi.exists() else None,
@@ -287,6 +322,18 @@ def _boolean_accuracy(values: list[bool]) -> float | None:
     return _average([1.0 if value else 0.0 for value in values])
 
 
+def _metric_coverage(results: list[Tier2CaseResult]) -> tuple[dict[str, int], dict[str, int]]:
+    required: dict[str, int] = {}
+    evaluated: dict[str, int] = {}
+    for result in results:
+        for key in result.applicable_metrics:
+            required[key] = required.get(key, 0) + 1
+            value = result.music_metrics.get(key)
+            if value is not None:
+                evaluated[key] = evaluated.get(key, 0) + 1
+    return required, evaluated
+
+
 def summarize_tier2_results(results: list[Tier2CaseResult]) -> dict[str, Any]:
     note_f1 = _numbers(results, "note_f1")
     instrument_f1 = _numbers(results, "instrument_f1")
@@ -304,9 +351,11 @@ def summarize_tier2_results(results: list[Tier2CaseResult]) -> dict[str, Any]:
     pickup_values = _numbers(results, "pickup_mae_quarter_length")
     chord_values = _numbers(results, "chord_accuracy")
     lyrics_values = _numbers(results, "lyrics_alignment_coverage")
+    required_metrics, evaluated_metrics = _metric_coverage(results)
     return {
         "case_count": len(results),
         "evaluated_note_cases": len(note_f1),
+        "evaluated_instrument_cases": len(instrument_f1),
         "mean_note_f1": _average(note_f1),
         "mean_instrument_f1": _average(instrument_f1),
         "mean_onset_mae_ms": _average(_numbers(results, "onset_mae_ms")),
@@ -326,6 +375,8 @@ def summarize_tier2_results(results: list[Tier2CaseResult]) -> dict[str, Any]:
         "evaluated_satb_cases": len(satb_parts),
         "satb_part_count_accuracy": _boolean_accuracy(satb_parts),
         "satb_voice_order_accuracy": _boolean_accuracy(satb_order),
+        "required_metric_cases": required_metrics,
+        "evaluated_metric_cases": evaluated_metrics,
         "evaluated_publish_cases": len(publish_times),
         "mean_total_edit_actions": _average([float(value) for value in edit_actions]),
         "mean_time_to_publish_seconds": _average(publish_times),
