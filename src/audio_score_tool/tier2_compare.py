@@ -90,11 +90,7 @@ def _candidate(payload: dict[str, Any]) -> dict[str, Any]:
         disqualifiers.append("not_all_exports_successful")
     if publish_time is None:
         disqualifiers.append("missing_publish_time")
-    if (
-        isinstance(case_count, int)
-        and case_count > 0
-        and evaluated_publish_cases != case_count
-    ):
+    if isinstance(case_count, int) and case_count > 0 and evaluated_publish_cases != case_count:
         disqualifiers.append("incomplete_publish_time_coverage")
     if edit_actions is None:
         disqualifiers.append("missing_edit_actions")
@@ -102,6 +98,21 @@ def _candidate(payload: dict[str, Any]) -> dict[str, Any]:
         disqualifiers.append("missing_note_evaluation")
     elif isinstance(case_count, int) and case_count > 0 and evaluated_note_cases != case_count:
         disqualifiers.append("incomplete_note_evaluation_coverage")
+
+    required_metrics = summary.get("required_metric_cases")
+    evaluated_metrics = summary.get("evaluated_metric_cases")
+    if not isinstance(required_metrics, dict) or not required_metrics:
+        disqualifiers.append("missing_metric_coverage_contract")
+    elif not isinstance(evaluated_metrics, dict):
+        disqualifiers.append("missing_metric_coverage_contract")
+    else:
+        for key, required in sorted(required_metrics.items()):
+            if not isinstance(key, str) or not isinstance(required, int) or required <= 0:
+                disqualifiers.append("invalid_metric_coverage_contract")
+                break
+            evaluated = evaluated_metrics.get(key, 0)
+            if evaluated != required:
+                disqualifiers.append(f"incomplete_metric_coverage:{key}")
 
     return {
         "engine_id": engine_id,
@@ -160,6 +171,7 @@ def compare_tier2_reports(paths: list[Path]) -> dict[str, Any]:
         "case_fingerprint": next(iter(case_fingerprints)),
         "selection_priority": [
             "all_exports_successful",
+            "complete_applicable_metric_coverage",
             "mean_time_to_publish_seconds",
             "mean_total_edit_actions",
             "mean_note_f1",
