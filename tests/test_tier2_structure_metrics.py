@@ -24,6 +24,18 @@ def _write_satb_score(path: Path) -> None:
     score.write("musicxml", fp=str(path))
 
 
+def _write_full_measure_score(path: Path) -> None:
+    score = stream.Score()
+    part = stream.Part()
+    measure = stream.Measure(number=1)
+    measure.append(meter.TimeSignature("4/4"))
+    for pitch in (60, 62, 64, 65):
+        measure.append(note.Note(pitch, quarterLength=1.0))
+    part.append(measure)
+    score.append(part)
+    score.write("musicxml", fp=str(path))
+
+
 def test_musicxml_structure_metrics_cover_release_dimensions(tmp_path: Path):
     prediction = tmp_path / "prediction.musicxml"
     reference = tmp_path / "reference.musicxml"
@@ -51,3 +63,20 @@ def test_musicxml_structure_metrics_cover_release_dimensions(tmp_path: Path):
     assert metrics["chord_accuracy"] == 1.0
     assert metrics["satb_part_count_correct"] is True
     assert metrics["satb_voice_order_correct"] is True
+
+
+def test_musicxml_structure_metrics_do_not_invent_pickup_for_full_measure(tmp_path: Path):
+    prediction = tmp_path / "full.musicxml"
+    _write_full_measure_score(prediction)
+
+    metrics = evaluate_musicxml_structure(
+        prediction,
+        reference_path=None,
+        expected_structure={"meter": "4/4", "pickup_quarter_length": 0.0, "part_count": 1},
+        tags=(),
+        category="piano",
+    )
+
+    assert metrics["meter_correct"] is True
+    assert metrics["pickup_mae_quarter_length"] == 0.0
+    assert metrics["part_count_correct"] is True
