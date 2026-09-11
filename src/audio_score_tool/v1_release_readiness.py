@@ -24,6 +24,11 @@ def v1_release_readiness(*, repository_root: Path) -> dict[str, Any]:
 def assert_v1_release_ready(*, repository_root: Path) -> dict[str, Any]:
     report = v1_release_readiness(repository_root=repository_root)
     if not report["managed_runtime"]["ready"]:
-        missing = ", ".join(report["managed_runtime"].get("missing", [])) or "unknown"
-        raise RuntimeError(f"v1 managed runtime publication is incomplete: {missing}")
+        failures = [
+            f"{check['component']}@{check['target']}:{check['reason']}"
+            for check in report["managed_runtime"]["checks"]
+            if not check["ready"]
+        ]
+        detail = ", ".join(failures) or "unknown"
+        raise RuntimeError(f"v1 managed runtime publication is incomplete: {detail}")
     return report
