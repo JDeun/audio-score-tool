@@ -41,10 +41,12 @@ jobs:
             uv run --frozen python scripts/verify_release_versions.py
           fi
 
-      - name: Verify release and managed-runtime contracts
+      - name: Verify release contracts
         run: |
           uv run --frozen pytest -q \
             tests/test_release_version_contract.py \
+            tests/test_release_sidecar_guard.py \
+            tests/test_release_quality_approval.py \
             tests/test_managed_component_catalog.py \
             tests/test_managed_component_tamper.py \
             tests/test_managed_publication_readiness.py \
@@ -61,12 +63,12 @@ jobs:
             --output /tmp/managed-publication-readiness.json
           cat /tmp/managed-publication-readiness.json
 
-      - name: Enforce P1 managed artifacts for stable tag
+      - name: Enforce P0 and P1 v1 release readiness
         if: github.ref_type == 'tag'
-        run: uv run --frozen python scripts/check_managed_publication.py --require-ready
+        run: uv run --frozen python scripts/check_v1_release_readiness.py --tag "$GITHUB_REF_NAME"
 
-      - name: Explain credential-dependent gates
+      - name: Explain credential-dependent gate
         run: |
-          echo "Code-level v1 release contracts passed."
-          echo "Stable v1 tags additionally require P1 managed artifacts."
+          echo "Repository-controlled v1 release contracts passed."
+          echo "v1 tags require a reviewed Tier 2 quality approval receipt and published managed artifacts."
           echo "Public release still requires P2 signing/notarization credentials and clean-machine acceptance."
