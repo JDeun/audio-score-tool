@@ -49,6 +49,7 @@ class Tier2Case:
     category: str
     genre: str
     tags: tuple[str, ...]
+    audio_locator: str | None
     reference_midi: str | None
 
 
@@ -109,12 +110,16 @@ def load_manifest(path: Path) -> tuple[str, tuple[Tier2Case, ...]]:
         if case_id in seen:
             raise ValueError(f"duplicate Tier 2 case id: {case_id}")
         seen.add(case_id)
+        audio = raw.get("audio") or {}
+        if not isinstance(audio, dict):
+            raise ValueError(f"manifest.cases[{index}].audio must be an object")
         reference = raw.get("reference") or {}
         if not isinstance(reference, dict):
             raise ValueError(f"manifest.cases[{index}].reference must be an object")
         tags = raw.get("tags") or []
         if not isinstance(tags, list) or not all(isinstance(item, str) for item in tags):
             raise ValueError(f"manifest.cases[{index}].tags must be an array of strings")
+        audio_locator = audio.get("locator")
         cases.append(
             Tier2Case(
                 id=case_id,
@@ -122,6 +127,7 @@ def load_manifest(path: Path) -> tuple[str, tuple[Tier2Case, ...]]:
                 category=_require_string(raw, "category", context=f"manifest.cases[{index}]"),
                 genre=_require_string(raw, "genre", context=f"manifest.cases[{index}]"),
                 tags=tuple(tags),
+                audio_locator=audio_locator if isinstance(audio_locator, str) else None,
                 reference_midi=reference.get("midi") if isinstance(reference.get("midi"), str) else None,
             )
         )
