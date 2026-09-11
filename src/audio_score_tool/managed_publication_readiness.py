@@ -10,6 +10,18 @@ CORE_COMPONENTS = ("transcription_engine", "youtube_runtime", "audiveris")
 OPTIONAL_COMPONENTS = ("whisperx", "audio_validation")
 STABLE_TARGETS = ("windows-x86_64", "macos-aarch64")
 
+_REQUIRED_TOOLS: dict[str, frozenset[str]] = {
+    # v1 commercial baseline is the MT3-Infer provider contract. If the default
+    # provider changes, #34 must update this release contract in the same change.
+    "transcription_engine": frozenset({"mt3-infer"}),
+    # Packaged YouTube ingest may not rely on PATH discovery. yt-dlp is bound to
+    # the managed Deno runtime and the media stack is shipped together.
+    "youtube_runtime": frozenset({"yt-dlp", "deno", "ffmpeg", "ffprobe"}),
+    # Audiveris distributions may carry their JVM internally; only the stable
+    # application launcher is part of AudioScoreTool's executable contract.
+    "audiveris": frozenset({"audiveris"}),
+}
+
 
 @dataclass(frozen=True, slots=True)
 class PublicationCheck:
@@ -64,6 +76,16 @@ def check_publication(component: str, target: str) -> PublicationCheck:
         return PublicationCheck(component, target, False, "upstream-revision-missing")
     if str(payload.get("redistribution_status") or "").strip().lower() != "approved":
         return PublicationCheck(component, target, False, "redistribution-not-approved")
+
+    required_tools = _REQUIRED_TOOLS.get(component, frozenset())
+    missing_tools = sorted(required_tools - set(artifact.tools))
+    if missing_tools:
+        return PublicationCheck(
+            component,
+            target,
+            False,
+            "required-tools-missing:" + ",".join(missing_tools),
+        )
     return PublicationCheck(component, target, True)
 
 
@@ -77,6 +99,9 @@ def publication_readiness(
         "schema_version": "1",
         "components": list(components),
         "targets": list(targets),
+        "required_tools": {
+            component: sorted(_REQUIRED_TOOLS.get(component, frozenset())) for component in components
+        },
         "ready": bool(checks) and all(check.ready for check in checks),
         "checks": [check.as_dict() for check in checks],
     }
