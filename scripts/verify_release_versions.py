@@ -15,11 +15,16 @@ def release_versions(root: Path = ROOT) -> dict[str, str]:
     cargo = tomllib.loads((root / "desktop/src-tauri/Cargo.toml").read_text(encoding="utf-8"))
     package = json.loads((root / "desktop/package.json").read_text(encoding="utf-8"))
     tauri = json.loads((root / "desktop/src-tauri/tauri.conf.json").read_text(encoding="utf-8"))
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    badge = re.search(r'alt="Version"[^>]+badge/version-([^"/]+)-informational\.svg', readme)
+    if badge is None:
+        raise ValueError("README version badge is missing or unsupported")
     return {
         "python": str(pyproject["project"]["version"]),
         "npm": str(package["version"]),
         "cargo": str(cargo["package"]["version"]),
         "tauri": str(tauri["version"]),
+        "readme": badge.group(1),
     }
 
 
