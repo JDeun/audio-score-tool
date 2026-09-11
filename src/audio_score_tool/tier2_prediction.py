@@ -5,12 +5,41 @@ import shutil
 import tempfile
 from dataclasses import asdict, replace
 from pathlib import Path
+from typing import Any
 
 from .runtime_settings import runtime_settings
 from .tier2_benchmark import Tier2EngineIdentity, load_manifest, resolve_locator
 from .transcription_engine import resolve_transcription_engine
 
 _PROVENANCE_FILE = "tier2-prediction-provenance.json"
+
+
+def load_tier2_prediction_provenance(
+    predictions_root: Path,
+) -> tuple[str, Tier2EngineIdentity, tuple[str, ...], dict[str, Any]]:
+    path = predictions_root / _PROVENANCE_FILE
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise ValueError(f"Tier 2 prediction provenance is missing: {path}") from exc
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"Tier 2 prediction provenance cannot be read: {path}") from exc
+    if not isinstance(payload, dict) or payload.get("schema_version") != "1":
+        raise ValueError("Unsupported Tier 2 prediction provenance schema")
+    corpus_version = str(payload.get("corpus_version") or "").strip()
+    engine = payload.get("engine")
+    case_ids = payload.get("case_ids")
+    if not corpus_version or not isinstance(engine, dict):
+        raise ValueError("Tier 2 prediction provenance is incomplete")
+    if not isinstance(case_ids, list) or not case_ids or not all(isinstance(item, str) for item in case_ids):
+        raise ValueError("Tier 2 prediction provenance case_ids are invalid")
+    identity = Tier2EngineIdentity(
+        id=str(engine.get("id") or ""),
+        model_revision=str(engine.get("model_revision") or ""),
+        runtime_revision=str(engine.get("runtime_revision") or ""),
+        artifact_sha256=str(engine.get("artifact_sha256") or ""),
+    )
+    return corpus_version, identity, tuple(case_ids), payload
 
 
 def generate_tier2_predictions(
