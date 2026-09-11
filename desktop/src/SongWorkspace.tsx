@@ -333,20 +333,6 @@ export default function SongWorkspace() {
     }
   };
 
-  const saveMetadata = async () => {
-    if (!song) return;
-    await withBusy(async () => {
-      const response = await fetch(`${API}/api/songs/${song.song_id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, artist }),
-      });
-      if (!response.ok) throw new Error(await response.text());
-      await reload();
-      setMessage("곡 제목과 라이브러리 정보를 저장했습니다.");
-    });
-  };
-
   const saveNote = async () => {
     if (!song || !selectedNote) return;
     await withBusy(async () => {
