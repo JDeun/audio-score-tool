@@ -32,6 +32,8 @@ TEXT_SUFFIXES = {
 }
 MARKER_RE = re.compile(r"^(?:<{7}|={7}|>{7})(?:\s|$)", re.MULTILINE)
 DEBT_RE = re.compile(r"\b(?:TODO|FIXME|HACK|XXX)\b", re.IGNORECASE)
+ACTION_RE = re.compile(r"^\s*-?\s*uses:\s*([^\s#]+)", re.MULTILINE)
+PINNED_ACTION_RE = re.compile(r"^[^@]+@[0-9a-fA-F]{40}$")
 SECRET_PATTERNS = {
     "private-key": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
     "github-token": re.compile(r"\bgh[opusr]_[A-Za-z0-9]{30,}\b"),
@@ -40,7 +42,6 @@ SECRET_PATTERNS = {
     "google-api-key": re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b"),
 }
 
-# Explicitly documented examples are allowed; real secret-shaped values are not.
 CONTENT_SCAN_EXCLUDES = {
     "uv.lock",
     "desktop/package-lock.json",
@@ -75,8 +76,7 @@ def audit_repository() -> list[str]:
         if p.name in FORBIDDEN_SECRET_FILENAMES and p.name != ".env.example":
             failures.append(f"secret-bearing filename is tracked: {path}")
 
-    modes = _git("ls-files", "-s").splitlines()
-    for row in modes:
+    for row in _git("ls-files", "-s").splitlines():
         fields = row.split(maxsplit=3)
         if len(fields) == 4 and fields[0] == "120000":
             failures.append(f"symlink is tracked (forbidden for release reproducibility): {fields[3]}")
@@ -96,10 +96,21 @@ def audit_repository() -> list[str]:
         for label, pattern in SECRET_PATTERNS.items():
             if pattern.search(text):
                 failures.append(f"secret-shaped content ({label}): {path}")
+        if path.startswith(".github/workflows/"):
+            for action in ACTION_RE.findall(text):
+                if action.startswith("./"):
+                    continue
+                if not PINNED_ACTION_RE.fullmatch(action):
+                    failures.append(f"GitHub Action is not pinned to a full commit SHA: {path}: {action}")
 
-    # Scan patch history for high-confidence credential formats. This catches a secret that was
-    # deleted from HEAD but would still remain recoverable from repository history.
-    history = _git("log", "--all", "-p", "--no-ext-diff", "--", ".", ":(exclude)uv.lock", ":(exclude)desktop/package-lock.json", ":(exclude)desktop/src-tauri/Cargo.lock")
+    # High-confidence history scan: a deleted credential is still compromised because it remains
+    # recoverable from Git. Lockfiles are excluded because their integrity hashes are not secrets.
+    history = _git(
+        "log", "--all", "-p", "--no-ext-diff", "--", ".",
+        ":(exclude)uv.lock",
+        ":(exclude)desktop/package-lock.json",
+        ":(exclude)desktop/src-tauri/Cargo.lock",
+    )
     for label, pattern in SECRET_PATTERNS.items():
         if pattern.search(history):
             failures.append(f"secret-shaped content ({label}) exists in git history")
