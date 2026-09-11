@@ -79,7 +79,9 @@ jobs:
 
       - name: Rust dependency vulnerability audit
         run: |
-          cargo install cargo-audit --locked --version 0.21.2
+          # cargo-audit 0.22 is the first release line that can parse CVSS 4.0
+          # advisories now present in the live RustSec database.
+          cargo install cargo-audit --locked --version 0.22.0
           cargo audit --file desktop/src-tauri/Cargo.lock
 
       - name: Adversarial boundary and recovery stress gate
