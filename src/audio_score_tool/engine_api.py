@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, field_validator
 
 from .engine_release_policy import release_policy_summary
+from .optional_feature_policy import optional_feature_summary
 from .preflight_v2 import preflight
 from .runtime_settings import runtime_settings
 from .settings_store import SettingsStore
@@ -99,6 +100,7 @@ def get_engines() -> dict:
         "native_engine_cmd": settings.native_engine_cmd,
         "engines": available_engines(settings),
         "release_policy": release_policy_summary(),
+        "optional_feature_policy": optional_feature_summary(),
         "recommendation": _recommendation(settings),
         "preflight": preflight(settings),
     }
