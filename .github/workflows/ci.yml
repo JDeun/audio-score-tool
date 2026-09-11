@@ -24,6 +24,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Setup uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
@@ -44,6 +45,9 @@ jobs:
           toolchain: 1.98.1
           components: clippy
 
+      - name: Repository forensic hygiene
+        run: python scripts/forensic_hygiene.py
+
       - name: Verify Python lockfile
         run: uv lock --check
 
@@ -63,6 +67,11 @@ jobs:
 
       - name: Python lint
         run: uv run --frozen ruff check src tests training scripts
+
+      - name: Python dependency vulnerability audit
+        run: |
+          uv export --frozen --no-dev --no-hashes --output-file /tmp/runtime-requirements.txt
+          uvx --from pip-audit==2.9.0 pip-audit --strict --requirement /tmp/runtime-requirements.txt
 
       - name: Adversarial boundary and recovery stress gate
         run: |
@@ -87,12 +96,16 @@ jobs:
           uv run --frozen python scripts/run_music_adversarial_benchmark.py \
             --output /tmp/music-adversarial-benchmark.json
 
-      - name: Python tests
+      - name: Python tests (warnings are errors)
         run: uv run --frozen pytest -q
 
       - name: Install frontend
         working-directory: desktop
-        run: npm ci
+        run: npm ci --loglevel=error
+
+      - name: Frontend dependency vulnerability audit
+        working-directory: desktop
+        run: npm audit --audit-level=high
 
       - name: Typecheck and build frontend
         working-directory: desktop
