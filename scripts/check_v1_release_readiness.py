@@ -4,8 +4,9 @@ import argparse
 import json
 from pathlib import Path
 
-from audio_score_tool.v1_release_readiness import assert_v1_release_ready
 from verify_release_versions import verify_versions
+
+from audio_score_tool.v1_release_readiness import assert_v1_release_ready
 
 ROOT = Path(__file__).resolve().parents[1]
 
