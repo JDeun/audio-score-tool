@@ -20,6 +20,7 @@ def _write_json(path: Path, payload: dict) -> str:
 
 
 def _report(engine_id: str, *, seconds: float, artifact: str) -> dict:
+    case_count = 8
     return {
         "schema_version": "1",
         "corpus_version": "tier2-v1",
@@ -32,12 +33,14 @@ def _report(engine_id: str, *, seconds: float, artifact: str) -> dict:
             "artifact_sha256": artifact,
         },
         "summary": {
+            "case_count": case_count,
             "successful_export_rate": 1.0,
             "all_exports_successful": True,
+            "evaluated_publish_cases": case_count,
             "mean_time_to_publish_seconds": seconds,
             "mean_total_edit_actions": 8.0 if engine_id == "mt3_infer" else 12.0,
             "mean_note_f1": 0.93 if engine_id == "mt3_infer" else 0.88,
-            "evaluated_note_cases": 8,
+            "evaluated_note_cases": case_count,
         },
     }
 
