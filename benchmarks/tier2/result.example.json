@@ -1,0 +1,43 @@
+{
+  "schema_version": "1",
+  "case_id": "pop-band-001",
+  "engine": {
+    "id": "candidate-engine",
+    "model_revision": "replace-with-pinned-revision",
+    "runtime_revision": "replace-with-pinned-revision",
+    "artifact_sha256": "replace-with-sha256"
+  },
+  "environment": {
+    "platform": "macos-arm64",
+    "device": "replace-with-device",
+    "peak_memory_mb": null,
+    "wall_clock_seconds": null
+  },
+  "music_metrics": {
+    "note_precision": null,
+    "note_recall": null,
+    "note_f1": null,
+    "onset_mae_ms": null,
+    "offset_mae_ms": null,
+    "instrument_f1": null,
+    "music_start_error_seconds": null,
+    "first_downbeat_error_seconds": null,
+    "meter_correct": null,
+    "pickup_mae_quarter_length": null,
+    "chord_accuracy": null,
+    "lyrics_alignment_coverage": null,
+    "satb_part_count_correct": null,
+    "satb_voice_order_correct": null
+  },
+  "product_metrics": {
+    "manual_note_edits": 0,
+    "manual_chord_edits": 0,
+    "manual_measure_edits": 0,
+    "manual_part_edits": 0,
+    "manual_lyric_edits": 0,
+    "manual_layout_edits": 0,
+    "total_edit_actions": 0,
+    "time_to_publish_seconds": null,
+    "successful_export": false
+  }
+}
