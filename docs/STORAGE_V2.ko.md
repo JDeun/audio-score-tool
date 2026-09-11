@@ -2,7 +2,7 @@
 
 ## 목표
 
-v0.8부터 **SQLite가 악보 프로젝트의 단일 기준 상태(source of truth)** 입니다. MusicXML 파일은 더 이상 앱 내부의 영구 편집 상태가 아니라, OSMD/MuseScore 같은 파일 기반 도구를 호출할 때만 생성되는 관리형 캐시 또는 사용자가 요청한 최종 Export입니다.
+v0.8부터 **SQLite가 악보 프로젝트의 단일 기준 상태(source of truth)** 입니다. MusicXML 파일은 더 이상 앱 내부의 영구 편집 상태가 아니라, renderer/component가 파일 경로를 요구할 때만 생성되는 관리형 캐시 또는 사용자가 요청한 최종 Export입니다.
 
 ```text
 Audio / YouTube
@@ -40,7 +40,7 @@ MusicXML / PDF / MIDI / Parts
 
 ### Managed cache
 
-외부 라이브러리/CLI가 파일 경로를 요구할 때만 DB의 MusicXML을 임시 materialize합니다.
+renderer/library/component가 파일 경로를 요구할 때만 DB의 MusicXML을 임시 materialize합니다.
 
 - `cache/scores/<song_id>/score.musicxml`
 - `cache/export/<temporary-id>/...`
@@ -80,4 +80,11 @@ MIDI처럼 다시 분석하거나 기준 자료로 사용할 수 있는 작은 b
 }
 ```
 
-`musicxml`만 요청하는 경우 MuseScore가 없어도 됩니다. PDF/MIDI/파트 PDF 생성에는 MuseScore 4가 필요합니다.
+현재 notation/export 경로는 외부 MuseScore/LilyPond 설치를 요구하지 않습니다.
+
+- MusicXML preview: OpenSheetMusicDisplay
+- MIDI ↔ MusicXML: embedded `music21`
+- PDF/파트 PDF: MusicXML → embedded Verovio SVG → `fpdf2` vector PDF
+- 파트 분리: 자체 MusicXML 처리
+
+따라서 MusicXML/MIDI/PDF/part export는 packaged sidecar와 앱에 포함된 notation stack으로 처리합니다. 선택적 AMT/YouTube/OMR component의 실제 배포 상태는 `DEPENDENCIES.ko.md`와 release gate를 따릅니다.
