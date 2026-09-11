@@ -22,6 +22,7 @@
 
 - [`ENGINE_PERFORMANCE.ko.md`](ENGINE_PERFORMANCE.ko.md) — transcription 엔진 선택과 성능 기준
 - [`BENCHMARK.ko.md`](BENCHMARK.ko.md) — Golden Set 및 제품 benchmark 설계
+- [`MUSIC_ADVERSARIAL_BENCHMARK.ko.md`](MUSIC_ADVERSARIAL_BENCHMARK.ko.md) — 비음악 intro, meter/pickup, SATB를 공격적으로 검증하는 deterministic CI 품질 gate와 실제 음원 corpus protocol
 - [`VALIDATION.ko.md`](VALIDATION.ko.md) — 결정론적 validator와 선택적 LLM critic
 - [`ADVERSARIAL_VALIDATION.ko.md`](ADVERSARIAL_VALIDATION.ko.md) — 입력·DB·프로세스·API·UI 실패 주입 및 release hardening gate
 - [`NATIVE_MODEL.ko.md`](NATIVE_MODEL.ko.md) — AudioScore Native 장기 모델 방향
@@ -42,4 +43,4 @@
 
 코드 변경으로 입력 형식, canonical storage, runtime/component 요구사항, 보안 경계, 릴리스 상태가 달라지면 같은 PR에서 관련 문서를 함께 수정합니다. 일반 사용자가 별도 시스템 프로그램을 설치해야 하는 상태를 self-contained라고 표현하지 않으며, 아직 실제로 검증하지 않은 managed component나 signed release를 완료된 것처럼 문서화하지 않습니다.
 
-`기능 완료`, `회귀 테스트 통과`, `적대적 안정화`, `3-OS packaged acceptance`, `signed stable release`는 서로 다른 상태로 기록합니다.
+`기능 완료`, `회귀 테스트 통과`, `적대적 안정화`, `음악적 adversarial benchmark 통과`, `3-OS packaged acceptance`, `signed stable release`는 서로 다른 상태로 기록합니다.

@@ -120,14 +120,7 @@ def _robust_scale(values: np.ndarray) -> np.ndarray:
 
 
 def estimate_music_start(samples: np.ndarray, sample_rate: int) -> tuple[float, float]:
-    """Conservatively find a sustained music-like region.
-
-    This intentionally avoids trimming ambiguous intros. It combines sustained energy
-    with repeated spectral-change activity; speech-only intros often have activity but
-    are less continuously periodic than the later music bed. A candidate is accepted
-    only when it remains stable for several seconds and is materially stronger than the
-    preceding region.
-    """
+    """Conservatively find a sustained music-like region."""
 
     rms, flux, hop_seconds = _frame_features(samples, sample_rate)
     if rms.size < 32:
@@ -141,7 +134,6 @@ def estimate_music_start(samples: np.ndarray, sample_rate: int) -> tuple[float, 
     sustained = np.convolve(score, kernel, mode="same")
     threshold = max(0.52, float(np.percentile(sustained, 58)))
 
-    candidate = 0
     for index in range(window_frames, len(sustained) - window_frames):
         future = sustained[index : index + window_frames]
         if float(np.mean(future)) < threshold or float(np.min(future)) < threshold * 0.62:
@@ -151,9 +143,8 @@ def estimate_music_start(samples: np.ndarray, sample_rate: int) -> tuple[float, 
         if index * hop_seconds < 1.5:
             return 0.0, min(1.0, float(np.mean(future)))
         if contrast >= 0.10 or float(np.mean(before)) < threshold * 0.68:
-            candidate = index
             confidence = min(1.0, 0.55 + contrast + float(np.mean(future)) * 0.3)
-            return candidate * hop_seconds, confidence
+            return index * hop_seconds, confidence
     return 0.0, 0.0
 
 
@@ -237,25 +228,82 @@ def _tempo_seconds_per_beat(mid: mido.MidiFile) -> tuple[float, float | None]:
     return tempo / 1_000_000.0, bpm
 
 
-def analyze_midi_meter_and_pickup(midi_path: Path, analysis: MusicStructureAnalysis) -> MusicStructureAnalysis:
+def _phase_proximity(distance: float, radius: float) -> float:
+    """Smoothly prefer exact metrical alignment over neighboring phase bins."""
+
+    if radius <= 0 or distance >= radius:
+        return 0.0
+    ratio = distance / radius
+    return (1.0 - ratio) ** 2
+
+
+def _opening_meter(
+    signatures: list[tuple[int, int, int]],
+    first_note_tick: int,
+) -> tuple[int, int]:
+    """Return the time signature active when the musical material begins."""
+
+    active: tuple[int, int] | None = None
+    for tick, numerator, denominator in signatures:
+        if tick > first_note_tick:
+            break
+        active = (numerator, denominator)
+    if active is not None:
+        return active
+    if signatures:
+        return signatures[0][1], signatures[0][2]
+    return 4, 4
+
+
+def _opening_segment_notes(
+    note_events: list[tuple[int, int]],
+    signature_events: list[tuple[int, int, int]],
+    first_note_tick: int,
+) -> list[tuple[int, int]]:
+    """Keep phase inference inside the opening meter segment.
+
+    Notes after a later time-signature change belong to a different metrical grid and
+    can otherwise bias the opening downbeat phase. Very short opening segments fall
+    back to the first few notes rather than producing an unstable estimate.
+    """
+
+    next_change_tick = next(
+        (tick for tick, _numerator, _denominator in signature_events if tick > first_note_tick),
+        None,
+    )
+    if next_change_tick is None:
+        return note_events
+    opening = [event for event in note_events if event[0] < next_change_tick]
+    return opening if len(opening) >= 4 else note_events[: min(32, len(note_events))]
+
+
+def analyze_midi_meter_and_pickup(
+    midi_path: Path,
+    analysis: MusicStructureAnalysis,
+) -> MusicStructureAnalysis:
     try:
         mid = mido.MidiFile(midi_path)
     except (OSError, EOFError, ValueError) as exc:
         analysis.warnings.append(f"Pickup analysis was skipped: {exc}")
         return analysis
 
-    numerator, denominator = 4, 4
     absolute = 0
     note_events: list[tuple[int, int]] = []
+    signature_events: list[tuple[int, int, int]] = []
     for message in mido.merge_tracks(mid.tracks):
         absolute += int(message.time)
         if message.type == "time_signature":
-            numerator, denominator = int(message.numerator), int(message.denominator)
+            signature_events.append(
+                (absolute, int(message.numerator), int(message.denominator))
+            )
         elif message.type == "note_on" and int(message.velocity) > 0:
             note_events.append((absolute, int(message.velocity)))
     if len(note_events) < 4:
         return analysis
 
+    first_tick = note_events[0][0]
+    numerator, denominator = _opening_meter(signature_events, first_tick)
+    phase_events = _opening_segment_notes(note_events, signature_events, first_tick)
     ticks_per_quarter = max(1, int(mid.ticks_per_beat))
     beat_ticks = ticks_per_quarter * 4.0 / max(1, denominator)
     bar_ticks = beat_ticks * max(1, numerator)
@@ -265,17 +313,19 @@ def analyze_midi_meter_and_pickup(midi_path: Path, analysis: MusicStructureAnaly
     best_phase = 0
     best_score = -math.inf
     second_score = -math.inf
+    downbeat_radius = max(float(step) * 1.75, 1.0)
+    beat_radius = max(float(step) * 1.5, 1.0)
     for phase in phases:
         score = 0.0
-        for tick, velocity in note_events[:256]:
+        for tick, velocity in phase_events[:256]:
             rel = (tick - phase) % bar_ticks
             distance = min(rel, bar_ticks - rel)
-            beat_distance = min(rel % beat_ticks, beat_ticks - (rel % beat_ticks))
+            beat_mod = rel % beat_ticks
+            beat_distance = min(beat_mod, beat_ticks - beat_mod)
             weight = 0.5 + velocity / 127.0
-            if distance <= step:
-                score += 2.2 * weight
-            elif beat_distance <= step:
-                score += 0.65 * weight
+            downbeat_fit = _phase_proximity(distance, downbeat_radius)
+            beat_fit = _phase_proximity(beat_distance, beat_radius)
+            score += weight * (2.35 * downbeat_fit + 0.55 * beat_fit)
         if score > best_score:
             second_score = best_score
             best_score = score
@@ -283,7 +333,6 @@ def analyze_midi_meter_and_pickup(midi_path: Path, analysis: MusicStructureAnaly
         elif score > second_score:
             second_score = score
 
-    first_tick = note_events[0][0]
     downbeat_tick = best_phase
     while downbeat_tick <= first_tick + step:
         downbeat_tick += bar_ticks
@@ -295,7 +344,10 @@ def analyze_midi_meter_and_pickup(midi_path: Path, analysis: MusicStructureAnaly
     pickup_quarters = pickup_ticks / ticks_per_quarter
     confidence = 0.0
     if best_score > 0:
-        confidence = max(0.0, min(1.0, (best_score - max(0.0, second_score)) / best_score * 2.5))
+        confidence = max(
+            0.0,
+            min(1.0, (best_score - max(0.0, second_score)) / best_score * 2.5),
+        )
     if pickup_quarters < 0.20:
         pickup_quarters = 0.0
 
@@ -314,7 +366,11 @@ def analyze_midi_meter_and_pickup(midi_path: Path, analysis: MusicStructureAnaly
     return analysis
 
 
-def write_structure_report(path: Path, analysis: MusicStructureAnalysis, **extra: object) -> Path:
+def write_structure_report(
+    path: Path,
+    analysis: MusicStructureAnalysis,
+    **extra: object,
+) -> Path:
     payload = {**analysis.as_dict(), **extra}
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
