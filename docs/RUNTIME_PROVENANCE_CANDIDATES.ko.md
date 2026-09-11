@@ -58,12 +58,24 @@ MT3-Infer upstream 자체가 vendored MT3-PyTorch 코드에 대해 upstream lice
 
 ## YouTube ingestion
 
+v1의 packaged YouTube 기능은 **하나의 self-contained managed component**로 취급합니다. release readiness가 요구하는 tool map은 다음과 같습니다.
+
+```text
+yt-dlp
+deno
+ffmpeg
+ffprobe
+```
+
+packaged build에서는 사용자의 PATH에 있는 도구로 fallback하지 않습니다. AudioScoreTool은 managed Deno의 절대 경로를 yt-dlp의 `--js-runtimes deno:<path>`에 명시적으로 전달합니다.
+
 ### yt-dlp
 
 상태: `conditional`
 
 - yt-dlp source repository/PyPI source distribution/wheel은 Unlicense
 - 공식 README에 따르면 PyInstaller standalone executable은 포함 dependency 때문에 GPLv3+ combined work로 배포됨
+- 현재 YouTube extractor는 JS challenge 처리를 위해 외부 JS runtime 사용을 전제로 하므로 runtime provenance도 함께 고정해야 함
 
 따라서 v1에서 **공식 standalone PyInstaller binary를 무비판적으로 managed component로 복사하지 않습니다.**
 
@@ -75,7 +87,22 @@ MT3-Infer upstream 자체가 vendored MT3-PyTorch 코드에 대해 upstream lice
 
 YouTube 지원 여부와 콘텐츠 사용 권한/서비스 약관은 별개의 문제입니다.
 
-## FFmpeg / ffprobe
+### Deno JS runtime
+
+상태: `candidate`, redistribution 확인 필요
+
+현재 yt-dlp 공식 문서에서 Deno는 권장 JS runtime이며 `--js-runtimes deno:/absolute/path` 형태로 명시적 실행 경로를 지정할 수 있습니다. AudioScoreTool packaged runtime은 PATH 자동탐색 대신 이 방식을 사용합니다.
+
+v1 publication 전에 다음을 고정합니다.
+
+- Deno exact release/revision
+- Windows x86_64 / macOS arm64 artifact URL
+- SHA-256
+- license/source notice
+- redistribution decision
+- yt-dlp와 실제 smoke-tested version pair
+
+### FFmpeg / ffprobe
 
 상태: `conditional`
 
@@ -87,6 +114,7 @@ v1 권장 조건:
 - exact FFmpeg version 고정
 - `ffmpeg -buildconf` 또는 동등한 configure flag evidence를 release provenance에 보존
 - `--enable-nonfree` artifact 사용 금지
+- `ffmpeg`와 `ffprobe`를 동일 provenance bundle에서 제공
 - platform별 binary SHA-256 고정
 
 ## OMR — Audiveris
@@ -104,6 +132,8 @@ v1 선택지는 두 가지입니다.
 1. Audiveris를 독립 managed component로 제공하면서 필요한 license/source 제공 의무를 충족
 2. 재배포 계약이 더 단순하고 품질이 충분한 OMR backend로 교체
 
+현재 core release contract에서는 `audiveris` launcher가 Windows x86_64/macOS arm64 artifact에 존재해야 합니다. JRE를 Audiveris distribution 내부에 포함하는 경우에도 JRE provenance/license는 artifact evidence에 함께 기록합니다.
+
 결정 전에는 catalog의 `audiveris.artifacts`를 비워 둡니다.
 
 ## Publication rule
@@ -118,14 +148,16 @@ platform + architecture
 download/source URL
 SHA-256
 archive type/layout
-entrypoint/tool map
+required entrypoint/tool map
 license identifier
 third-party notice/source obligations
-redistribution decision
+redistribution_status=approved
 clean-machine smoke result
 ```
 
-하나라도 확인되지 않으면 Setup Center에서 `published=false`를 유지합니다.
+또한 release readiness checker는 component별 required tool set이 실제 artifact manifest에 존재하는지 검사합니다.
+
+하나라도 확인되지 않으면 Setup Center에서 `published=false`를 유지하고 v1 release gate는 fail-closed 됩니다.
 
 ## 관련 이슈
 
