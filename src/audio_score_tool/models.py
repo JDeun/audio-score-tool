@@ -41,6 +41,7 @@ class PipelineResult:
     transcript_json_path: Path | None
     vocals_path: Path | None
     chord_report_path: Path | None = None
+    structure_report_path: Path | None = None
     part_pdfs: list[Path] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
@@ -58,6 +59,7 @@ class PipelineResult:
             "transcript_json": p(self.transcript_json_path),
             "vocals": p(self.vocals_path),
             "chord_report": p(self.chord_report_path),
+            "structure_report": p(self.structure_report_path),
             "part_pdfs": [str(path) for path in self.part_pdfs],
             "warnings": self.warnings,
         }
