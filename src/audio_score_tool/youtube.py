@@ -8,7 +8,7 @@ from pathlib import Path
 from threading import Event
 from urllib.parse import parse_qs, urlparse
 
-from .config import Settings
+from .config import Settings, managed_executable_path, packaged_runtime
 from .runner import CommandCancelled, CommandError, command_exists, run_command
 
 
@@ -37,6 +37,20 @@ def _max_duration_seconds() -> int:
         return max(60, min(int(raw), 24 * 60 * 60))
     except ValueError:
         return _DEFAULT_MAX_DURATION_SECONDS
+
+
+def _youtube_js_runtime_args() -> list[str]:
+    """Use the app-managed Deno explicitly in packaged builds.
+
+    yt-dlp enables Deno by default when it can discover it on PATH, but a packaged
+    AudioScoreTool release deliberately does not rely on the user's PATH. Supplying
+    the deterministic managed path keeps YouTube extraction self-contained.
+    """
+
+    if not packaged_runtime():
+        return []
+    deno = managed_executable_path("deno")
+    return ["--js-runtimes", f"deno:{deno}"]
 
 
 @dataclass(slots=True)
@@ -89,7 +103,10 @@ def validate_youtube_url(value: str) -> str:
             raise YouTubeSourceError("The YouTube watch URL does not contain a video id.")
         return value
 
-    if any(parsed.path.startswith(prefix) and parsed.path[len(prefix):].strip("/") for prefix in _VIDEO_PATH_PREFIXES):
+    if any(
+        parsed.path.startswith(prefix) and parsed.path[len(prefix) :].strip("/")
+        for prefix in _VIDEO_PATH_PREFIXES
+    ):
         return value
 
     raise YouTubeSourceError("Use a YouTube watch, Shorts, live, embed, or youtu.be video URL.")
@@ -97,14 +114,18 @@ def validate_youtube_url(value: str) -> str:
 
 def youtube_tool_status(settings: Settings | None = None) -> dict:
     settings = settings or Settings()
+    deno_path = managed_executable_path("deno") if packaged_runtime() else None
+    deno_ready = deno_path.is_file() if deno_path is not None else True
     return {
-        "ready": command_exists(settings.yt_dlp_cmd),
+        "ready": command_exists(settings.yt_dlp_cmd) and deno_ready,
         "command": settings.yt_dlp_cmd,
+        "js_runtime": str(deno_path) if deno_path is not None else "auto",
+        "js_runtime_ready": deno_ready,
         "max_duration_seconds": _max_duration_seconds(),
         "live_broadcasts_allowed": False,
         "fallback_note": (
-            "Installed yt-dlp is preferred; uvx yt-dlp is used automatically "
-            "when uvx is available."
+            "Development mode may use yt-dlp/Deno from the developer environment. "
+            "Packaged mode requires app-managed yt-dlp and Deno."
         ),
     }
 
@@ -121,6 +142,7 @@ def inspect_youtube(
         completed = run_command(
             settings.yt_dlp_cmd,
             [
+                *_youtube_js_runtime_args(),
                 "--dump-single-json",
                 "--skip-download",
                 "--no-playlist",
@@ -142,7 +164,9 @@ def inspect_youtube(
         raise YouTubeSourceError("yt-dlp returned invalid metadata.") from exc
 
     if bool(payload.get("is_live")):
-        raise YouTubeSourceError("현재 진행 중인 YouTube 생방송은 가져올 수 없습니다. 방송 종료 후 다시 시도하세요.")
+        raise YouTubeSourceError(
+            "현재 진행 중인 YouTube 생방송은 가져올 수 없습니다. 방송 종료 후 다시 시도하세요."
+        )
 
     title = str(payload.get("title") or "YouTube audio").strip()[:300] or "YouTube audio"
     uploader_raw = payload.get("uploader") or payload.get("channel")
@@ -189,6 +213,7 @@ def download_youtube_audio(
         run_command(
             settings.yt_dlp_cmd,
             [
+                *_youtube_js_runtime_args(),
                 "--no-playlist",
                 "--no-warnings",
                 "--no-progress",
