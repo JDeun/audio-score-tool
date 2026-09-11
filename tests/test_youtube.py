@@ -91,13 +91,16 @@ def test_inspect_youtube_parses_metadata(monkeypatch):
     assert metadata.duration == 123.4
 
 
-def test_packaged_youtube_binds_yt_dlp_to_managed_deno(monkeypatch, tmp_path: Path):
+def test_packaged_youtube_binds_yt_dlp_to_managed_runtime(monkeypatch, tmp_path: Path):
     component_dir = tmp_path / "components"
-    deno = component_dir / "bin" / "deno"
-    deno.parent.mkdir(parents=True)
-    deno.write_bytes(b"deno")
-    yt_dlp = component_dir / "bin" / "yt-dlp"
-    yt_dlp.write_bytes(b"yt-dlp")
+    bin_dir = component_dir / "bin"
+    bin_dir.mkdir(parents=True)
+    deno = bin_dir / "deno"
+    ffmpeg = bin_dir / "ffmpeg"
+    ffprobe = bin_dir / "ffprobe"
+    yt_dlp = bin_dir / "yt-dlp"
+    for path in (deno, ffmpeg, ffprobe, yt_dlp):
+        path.write_bytes(path.name.encode("utf-8"))
 
     monkeypatch.setenv("AST_PACKAGED", "1")
     monkeypatch.setenv("AST_COMPONENT_DIR", str(component_dir))
@@ -124,24 +127,43 @@ def test_packaged_youtube_binds_yt_dlp_to_managed_deno(monkeypatch, tmp_path: Pa
     assert metadata.title == "Example"
     assert captured
     args = [str(value) for value in captured[0]]
-    index = args.index("--js-runtimes")
-    assert args[index + 1] == f"deno:{deno}"
+    js_index = args.index("--js-runtimes")
+    assert args[js_index + 1] == f"deno:{deno}"
+    ffmpeg_index = args.index("--ffmpeg-location")
+    assert args[ffmpeg_index + 1] == str(bin_dir)
+
     status = youtube_tool_status(settings)
     assert status["ready"] is True
     assert status["js_runtime"] == str(deno)
+    assert status["ffmpeg"] == str(ffmpeg)
+    assert status["ffprobe"] == str(ffprobe)
+    assert status["ffmpeg_ready"] is True
+    assert status["ffprobe_ready"] is True
 
 
-def test_packaged_youtube_is_not_ready_without_managed_deno(monkeypatch, tmp_path: Path):
+@pytest.mark.parametrize("missing_tool", ["deno", "ffmpeg", "ffprobe"])
+def test_packaged_youtube_is_not_ready_without_required_managed_tool(
+    monkeypatch,
+    tmp_path: Path,
+    missing_tool: str,
+):
     component_dir = tmp_path / "components"
-    yt_dlp = component_dir / "bin" / "yt-dlp"
-    yt_dlp.parent.mkdir(parents=True)
-    yt_dlp.write_bytes(b"yt-dlp")
+    bin_dir = component_dir / "bin"
+    bin_dir.mkdir(parents=True)
+    for name in ("yt-dlp", "deno", "ffmpeg", "ffprobe"):
+        if name != missing_tool:
+            (bin_dir / name).write_bytes(name.encode("utf-8"))
     monkeypatch.setenv("AST_PACKAGED", "1")
     monkeypatch.setenv("AST_COMPONENT_DIR", str(component_dir))
 
     status = youtube_tool_status(Settings())
     assert status["ready"] is False
-    assert status["js_runtime_ready"] is False
+    readiness_key = {
+        "deno": "js_runtime_ready",
+        "ffmpeg": "ffmpeg_ready",
+        "ffprobe": "ffprobe_ready",
+    }[missing_tool]
+    assert status[readiness_key] is False
 
 
 def test_inspect_youtube_rejects_active_live(monkeypatch):
