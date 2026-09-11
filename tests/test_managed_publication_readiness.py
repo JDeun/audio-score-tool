@@ -31,24 +31,19 @@ def test_pinned_cross_platform_catalog_is_publication_ready(tmp_path: Path, monk
             {
                 "schema": 1,
                 "components": {
-                    "transcription_engine": {
+                    name: {
                         "version": "1.0.0",
-                        "license": "Apache-2.0",
-                        "provenance": "pinned upstream revision",
+                        "license": license_name,
+                        "provenance": "pinned upstream build",
+                        "upstream_revision": "upstream-commit-or-release",
+                        "redistribution_status": "approved",
                         "artifacts": artifacts,
-                    },
-                    "youtube_runtime": {
-                        "version": "1.0.0",
-                        "license": "MIT/LGPL-2.1-or-later",
-                        "provenance": "pinned upstream builds",
-                        "artifacts": artifacts,
-                    },
-                    "audiveris": {
-                        "version": "1.0.0",
-                        "license": "AGPL-3.0-or-later",
-                        "provenance": "pinned Audiveris/JRE build",
-                        "artifacts": artifacts,
-                    },
+                    }
+                    for name, license_name in {
+                        "transcription_engine": "Apache-2.0",
+                        "youtube_runtime": "MIT/LGPL-2.1-or-later",
+                        "audiveris": "AGPL-3.0-or-later",
+                    }.items()
                 },
             }
         ),
@@ -67,6 +62,42 @@ def test_pinned_cross_platform_catalog_is_publication_ready(tmp_path: Path, monk
     assert all(check["ready"] for check in report["checks"])
 
 
+def test_redistribution_must_be_explicitly_approved(tmp_path: Path, monkeypatch):
+    digest = hashlib.sha256(b"fixture").hexdigest()
+    catalog = tmp_path / "catalog.json"
+    catalog.write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "components": {
+                    "fixture": {
+                        "version": "1.0.0",
+                        "license": "MIT",
+                        "provenance": "upstream",
+                        "upstream_revision": "abc123",
+                        "redistribution_status": "pending",
+                        "artifacts": {
+                            "windows-x86_64": {
+                                "url": "https://example.invalid/windows.zip",
+                                "sha256": digest,
+                                "archive": "zip",
+                                "tools": {"tool": "bin/tool"},
+                            }
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("AST_PACKAGED", raising=False)
+    monkeypatch.setenv("AST_COMPONENT_CATALOG", str(catalog))
+
+    report = publication_readiness(components=("fixture",), targets=("windows-x86_64",))
+    assert report["ready"] is False
+    assert report["checks"][0]["reason"] == "redistribution-not-approved"
+
+
 def test_missing_platform_keeps_release_not_ready(tmp_path: Path, monkeypatch):
     digest = hashlib.sha256(b"fixture").hexdigest()
     catalog = tmp_path / "catalog.json"
@@ -79,6 +110,8 @@ def test_missing_platform_keeps_release_not_ready(tmp_path: Path, monkeypatch):
                         "version": "1.0.0",
                         "license": "Apache-2.0",
                         "provenance": "pinned upstream revision",
+                        "upstream_revision": "abc123",
+                        "redistribution_status": "approved",
                         "artifacts": {
                             "windows-x86_64": {
                                 "url": "https://example.invalid/windows.zip",
