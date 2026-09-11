@@ -5,6 +5,7 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+MAX_TRACKED_FILE_BYTES = 5 * 1024 * 1024
 
 FORBIDDEN_TRACKED_PARTS = {
     ".DS_Store",
@@ -13,12 +14,20 @@ FORBIDDEN_TRACKED_PARTS = {
     ".pytest_cache",
     ".ruff_cache",
     ".mypy_cache",
+    ".venv",
     "node_modules",
     "dist",
+    "build",
+    "work",
+    "outputs",
     "target",
     ".coverage",
 }
-FORBIDDEN_TRACKED_SUFFIXES = {".pyc", ".pyo", ".log", ".sqlite", ".sqlite3", ".db"}
+FORBIDDEN_TRACKED_SUFFIXES = {
+    ".pyc", ".pyo", ".log", ".sqlite", ".sqlite3", ".db",
+    ".pem", ".key", ".p12", ".pfx",
+    ".wav", ".mp3", ".flac", ".m4a",
+}
 FORBIDDEN_SECRET_FILENAMES = {
     ".env",
     "id_rsa",
@@ -72,9 +81,15 @@ def audit_repository() -> list[str]:
         p = Path(path)
         parts = set(p.parts)
         if parts & FORBIDDEN_TRACKED_PARTS or p.suffix.lower() in FORBIDDEN_TRACKED_SUFFIXES:
-            failures.append(f"generated/runtime artifact is tracked: {path}")
+            failures.append(f"generated/runtime/credential artifact is tracked: {path}")
         if p.name in FORBIDDEN_SECRET_FILENAMES and p.name != ".env.example":
             failures.append(f"secret-bearing filename is tracked: {path}")
+        try:
+            size = (ROOT / path).stat().st_size
+        except OSError:
+            continue
+        if size > MAX_TRACKED_FILE_BYTES:
+            failures.append(f"oversized tracked file ({size} bytes > {MAX_TRACKED_FILE_BYTES}): {path}")
 
     for row in _git("ls-files", "-s").splitlines():
         fields = row.split(maxsplit=3)
@@ -103,8 +118,6 @@ def audit_repository() -> list[str]:
                 if not PINNED_ACTION_RE.fullmatch(action):
                     failures.append(f"GitHub Action is not pinned to a full commit SHA: {path}: {action}")
 
-    # High-confidence history scan: a deleted credential is still compromised because it remains
-    # recoverable from Git. Lockfiles are excluded because their integrity hashes are not secrets.
     history = _git(
         "log", "--all", "-p", "--no-ext-diff", "--", ".",
         ":(exclude)uv.lock",
