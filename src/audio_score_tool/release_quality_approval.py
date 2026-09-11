@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -25,10 +26,24 @@ def _required_text(payload: dict[str, Any], key: str) -> str:
 
 def _sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
+    try:
+        with path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+    except OSError as exc:
+        raise ReleaseQualityApprovalError(f"release evidence file cannot be read: {path}") from exc
     return digest.hexdigest()
+
+
+def _validate_reviewed_at(value: str) -> str:
+    normalized = value.replace("Z", "+00:00")
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError as exc:
+        raise ReleaseQualityApprovalError("reviewed_at must be an ISO-8601 timestamp") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ReleaseQualityApprovalError("reviewed_at must include a timezone")
+    return value
 
 
 def load_quality_approval(path: Path, *, repository_root: Path) -> dict[str, Any]:
@@ -48,7 +63,7 @@ def load_quality_approval(path: Path, *, repository_root: Path) -> dict[str, Any
 
     corpus_version = _required_text(payload, "corpus_version")
     reviewer = _required_text(payload, "reviewer")
-    reviewed_at = _required_text(payload, "reviewed_at")
+    reviewed_at = _validate_reviewed_at(_required_text(payload, "reviewed_at"))
     comparison_path_text = _required_text(payload, "comparison_report")
     comparison_sha256 = _required_text(payload, "comparison_sha256").lower()
     if not _SHA256.fullmatch(comparison_sha256):
@@ -110,8 +125,6 @@ def load_quality_approval(path: Path, *, repository_root: Path) -> dict[str, Any
         if str(selected.get(key) or "") != value:
             raise ReleaseQualityApprovalError(f"approved engine {key} does not match comparison report")
 
-    # Validate every source report referenced by the approval when supplied. These reports
-    # contain only benchmark metadata/metrics; copyrighted audio remains outside the repo.
     source_reports = payload.get("source_reports", [])
     if not isinstance(source_reports, list):
         raise ReleaseQualityApprovalError("source_reports must be an array")
