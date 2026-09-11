@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
 
 from audio_score_tool.managed_publication_readiness import (
     CORE_COMPONENTS,
@@ -30,8 +31,6 @@ def main() -> int:
     report = publication_readiness(components=components, targets=STABLE_TARGETS)
     rendered = json.dumps(report, ensure_ascii=False, indent=2)
     if args.output:
-        from pathlib import Path
-
         path = Path(args.output)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(rendered, encoding="utf-8")
