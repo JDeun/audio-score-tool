@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -13,6 +14,7 @@ from audio_score_tool.youtube import (
     download_youtube_audio,
     inspect_youtube,
     validate_youtube_url,
+    youtube_tool_status,
 )
 
 
@@ -87,6 +89,81 @@ def test_inspect_youtube_parses_metadata(monkeypatch):
     assert metadata.title == "Example Song"
     assert metadata.uploader == "Example Artist"
     assert metadata.duration == 123.4
+
+
+def test_packaged_youtube_binds_yt_dlp_to_managed_runtime(monkeypatch, tmp_path: Path):
+    component_dir = tmp_path / "components"
+    bin_dir = component_dir / "bin"
+    bin_dir.mkdir(parents=True)
+    deno = bin_dir / "deno"
+    ffmpeg = bin_dir / "ffmpeg"
+    ffprobe = bin_dir / "ffprobe"
+    yt_dlp = bin_dir / "yt-dlp"
+    for path in (deno, ffmpeg, ffprobe, yt_dlp):
+        path.write_bytes(path.name.encode("utf-8"))
+
+    monkeypatch.setenv("AST_PACKAGED", "1")
+    monkeypatch.setenv("AST_COMPONENT_DIR", str(component_dir))
+    captured: list[list[object]] = []
+
+    def fake_run_command(command, args, **kwargs):
+        captured.append(list(args))
+        return subprocess.CompletedProcess(
+            [],
+            0,
+            json.dumps(
+                {
+                    "title": "Example",
+                    "duration": 60,
+                    "webpage_url": "https://youtu.be/abc123",
+                }
+            ),
+        )
+
+    monkeypatch.setattr("audio_score_tool.youtube.run_command", fake_run_command)
+    settings = Settings()
+    metadata = inspect_youtube("https://youtu.be/abc123", settings=settings)
+
+    assert metadata.title == "Example"
+    assert captured
+    args = [str(value) for value in captured[0]]
+    js_index = args.index("--js-runtimes")
+    assert args[js_index + 1] == f"deno:{deno}"
+    ffmpeg_index = args.index("--ffmpeg-location")
+    assert args[ffmpeg_index + 1] == str(bin_dir)
+
+    status = youtube_tool_status(settings)
+    assert status["ready"] is True
+    assert status["js_runtime"] == str(deno)
+    assert status["ffmpeg"] == str(ffmpeg)
+    assert status["ffprobe"] == str(ffprobe)
+    assert status["ffmpeg_ready"] is True
+    assert status["ffprobe_ready"] is True
+
+
+@pytest.mark.parametrize("missing_tool", ["deno", "ffmpeg", "ffprobe"])
+def test_packaged_youtube_is_not_ready_without_required_managed_tool(
+    monkeypatch,
+    tmp_path: Path,
+    missing_tool: str,
+):
+    component_dir = tmp_path / "components"
+    bin_dir = component_dir / "bin"
+    bin_dir.mkdir(parents=True)
+    for name in ("yt-dlp", "deno", "ffmpeg", "ffprobe"):
+        if name != missing_tool:
+            (bin_dir / name).write_bytes(name.encode("utf-8"))
+    monkeypatch.setenv("AST_PACKAGED", "1")
+    monkeypatch.setenv("AST_COMPONENT_DIR", str(component_dir))
+
+    status = youtube_tool_status(Settings())
+    assert status["ready"] is False
+    readiness_key = {
+        "deno": "js_runtime_ready",
+        "ffmpeg": "ffmpeg_ready",
+        "ffprobe": "ffprobe_ready",
+    }[missing_tool]
+    assert status[readiness_key] is False
 
 
 def test_inspect_youtube_rejects_active_live(monkeypatch):

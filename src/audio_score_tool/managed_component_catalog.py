@@ -19,6 +19,13 @@ def _validated_identifier(value: object, *, label: str) -> str:
     return text
 
 
+def _required_metadata(value: object, *, label: str) -> str:
+    text = str(value or "").strip()
+    if not text:
+        raise ComponentUnavailable(f"Managed component {label} is required for published artifacts.")
+    return text
+
+
 def platform_key() -> str:
     system = platform.system().lower()
     machine = platform.machine().lower()
@@ -87,6 +94,8 @@ def artifact_for(component: str, *, target: str | None = None) -> ComponentArtif
     merged["version"] = _validated_identifier(merged.get("version"), label="version")
     merged.setdefault("license", entry.get("license"))
     merged.setdefault("provenance", entry.get("provenance"))
+    merged["license"] = _required_metadata(merged.get("license"), label="license")
+    merged["provenance"] = _required_metadata(merged.get("provenance"), label="provenance")
     return ComponentArtifact.from_dict(merged)
 
 

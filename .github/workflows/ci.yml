@@ -24,6 +24,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Setup uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
@@ -44,6 +45,9 @@ jobs:
           toolchain: 1.98.1
           components: clippy
 
+      - name: Repository forensic hygiene
+        run: python scripts/forensic_hygiene.py
+
       - name: Verify Python lockfile
         run: uv lock --check
 
@@ -63,6 +67,22 @@ jobs:
 
       - name: Python lint
         run: uv run --frozen ruff check src tests training scripts
+
+      - name: Python dependency vulnerability audit
+        run: |
+          set -euo pipefail
+          uv export --frozen --no-dev --no-hashes --output-file /tmp/runtime-requirements.raw.txt
+          # pip-audit cannot resolve this repository's local editable package on PyPI.
+          # Exclude only the project itself; every third-party runtime dependency remains audited.
+          grep -vE '^-e[[:space:]]+\.$' /tmp/runtime-requirements.raw.txt > /tmp/runtime-requirements.txt
+          uvx --from pip-audit==2.9.0 pip-audit --strict --requirement /tmp/runtime-requirements.txt
+
+      - name: Rust dependency vulnerability audit
+        run: |
+          # cargo-audit 0.22 is the first release line that can parse CVSS 4.0
+          # advisories now present in the live RustSec database.
+          cargo install cargo-audit --locked --version 0.22.0
+          cargo audit --file desktop/src-tauri/Cargo.lock
 
       - name: Adversarial boundary and recovery stress gate
         run: |
@@ -87,12 +107,16 @@ jobs:
           uv run --frozen python scripts/run_music_adversarial_benchmark.py \
             --output /tmp/music-adversarial-benchmark.json
 
-      - name: Python tests
+      - name: Python tests (warnings are errors)
         run: uv run --frozen pytest -q
 
       - name: Install frontend
         working-directory: desktop
-        run: npm ci
+        run: npm ci --loglevel=error
+
+      - name: Frontend dependency vulnerability audit
+        working-directory: desktop
+        run: npm audit --audit-level=high
 
       - name: Typecheck and build frontend
         working-directory: desktop

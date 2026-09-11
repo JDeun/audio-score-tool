@@ -29,7 +29,27 @@ def target_triple() -> str:
         return f"{'aarch64' if machine in {'arm64', 'aarch64'} else 'x86_64'}-unknown-linux-gnu"
 
 
+def _verify_tag_version_contract() -> None:
+    if os.getenv("GITHUB_REF_TYPE") != "tag":
+        return
+    tag = os.getenv("GITHUB_REF_NAME", "").strip()
+    if not tag:
+        raise RuntimeError("Tagged release build is missing GITHUB_REF_NAME")
+    checker = "check_v1_release_readiness.py" if tag.startswith("v1") else "verify_release_versions.py"
+    subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "scripts" / checker),
+            "--tag",
+            tag,
+        ],
+        cwd=ROOT,
+        check=True,
+    )
+
+
 def main() -> None:
+    _verify_tag_version_contract()
     BIN.mkdir(parents=True, exist_ok=True)
     shutil.rmtree(DIST, ignore_errors=True)
     work = ROOT / "build-sidecar"

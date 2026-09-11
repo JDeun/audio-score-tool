@@ -1,0 +1,107 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any
+
+from .managed_component_catalog import load_catalog
+from .managed_components import ComponentArtifact, ComponentError
+
+CORE_COMPONENTS = ("transcription_engine", "youtube_runtime", "audiveris")
+OPTIONAL_COMPONENTS = ("whisperx", "audio_validation")
+STABLE_TARGETS = ("windows-x86_64", "macos-aarch64")
+
+_REQUIRED_TOOLS: dict[str, frozenset[str]] = {
+    # v1 commercial baseline is the MT3-Infer provider contract. If the default
+    # provider changes, #34 must update this release contract in the same change.
+    "transcription_engine": frozenset({"mt3-infer"}),
+    # Packaged YouTube ingest may not rely on PATH discovery. yt-dlp is bound to
+    # the managed Deno runtime and the media stack is shipped together.
+    "youtube_runtime": frozenset({"yt-dlp", "deno", "ffmpeg", "ffprobe"}),
+    # Audiveris distributions may carry their JVM internally; only the stable
+    # application launcher is part of AudioScoreTool's executable contract.
+    "audiveris": frozenset({"audiveris"}),
+}
+
+
+@dataclass(frozen=True, slots=True)
+class PublicationCheck:
+    component: str
+    target: str
+    ready: bool
+    reason: str | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "component": self.component,
+            "target": self.target,
+            "ready": self.ready,
+            "reason": self.reason,
+        }
+
+
+def _artifact_payload(component: str, target: str) -> dict[str, Any] | None:
+    catalog = load_catalog()
+    entry = catalog.get("components", {}).get(component)
+    if not isinstance(entry, dict):
+        return None
+    artifacts = entry.get("artifacts")
+    if not isinstance(artifacts, dict):
+        return None
+    payload = artifacts.get(target)
+    if not isinstance(payload, dict):
+        return None
+    merged = dict(payload)
+    merged.setdefault("component", component)
+    merged.setdefault("version", entry.get("version"))
+    merged.setdefault("license", entry.get("license"))
+    merged.setdefault("provenance", entry.get("provenance"))
+    merged.setdefault("upstream_revision", entry.get("upstream_revision"))
+    merged.setdefault("redistribution_status", entry.get("redistribution_status"))
+    return merged
+
+
+def check_publication(component: str, target: str) -> PublicationCheck:
+    payload = _artifact_payload(component, target)
+    if payload is None:
+        return PublicationCheck(component, target, False, "artifact-not-published")
+    try:
+        artifact = ComponentArtifact.from_dict(payload)
+    except ComponentError as exc:
+        return PublicationCheck(component, target, False, str(exc))
+    if not (artifact.license or "").strip():
+        return PublicationCheck(component, target, False, "license-missing")
+    if not (artifact.provenance or "").strip():
+        return PublicationCheck(component, target, False, "provenance-missing")
+    if not str(payload.get("upstream_revision") or "").strip():
+        return PublicationCheck(component, target, False, "upstream-revision-missing")
+    if str(payload.get("redistribution_status") or "").strip().lower() != "approved":
+        return PublicationCheck(component, target, False, "redistribution-not-approved")
+
+    required_tools = _REQUIRED_TOOLS.get(component, frozenset())
+    missing_tools = sorted(required_tools - set(artifact.tools))
+    if missing_tools:
+        return PublicationCheck(
+            component,
+            target,
+            False,
+            "required-tools-missing:" + ",".join(missing_tools),
+        )
+    return PublicationCheck(component, target, True)
+
+
+def publication_readiness(
+    *,
+    components: tuple[str, ...] = CORE_COMPONENTS,
+    targets: tuple[str, ...] = STABLE_TARGETS,
+) -> dict[str, Any]:
+    checks = [check_publication(component, target) for component in components for target in targets]
+    return {
+        "schema_version": "1",
+        "components": list(components),
+        "targets": list(targets),
+        "required_tools": {
+            component: sorted(_REQUIRED_TOOLS.get(component, frozenset())) for component in components
+        },
+        "ready": bool(checks) and all(check.ready for check in checks),
+        "checks": [check.as_dict() for check in checks],
+    }

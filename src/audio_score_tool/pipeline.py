@@ -192,7 +192,7 @@ def transcribe(
         if not _render_pdf(musicxml_path, final_pdf, settings, cancel_event):
             final_pdf = initial_full_pdf
             warnings.append(
-                "Could not render the chord-enriched full score with LilyPond. "
+                "Could not render the chord-enriched full score with the built-in notation backend. "
                 "MusicXML still contains the inferred chord symbols."
             )
         try:
@@ -330,7 +330,7 @@ def transcribe(
     if not rendered:
         lyric_pdf = initial_full_pdf
         warnings.append(
-            "Could not render score_with_lyrics.pdf with LilyPond. "
+            "Could not render score_with_lyrics.pdf with the built-in notation backend. "
             "The lyric/chord-enriched MusicXML was generated correctly."
         )
 

@@ -1,0 +1,77 @@
+name: V1 Release Preflight
+
+permissions:
+  contents: read
+
+on:
+  push:
+    tags:
+      - "v1*"
+  workflow_dispatch:
+
+jobs:
+  release-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: 0.12.10
+          enable-cache: true
+
+      - name: Verify lockfile
+        run: uv lock --check
+
+      - name: Install release-contract dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Verify cross-package version contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            uv run --frozen python scripts/verify_release_versions.py --tag "$GITHUB_REF_NAME"
+          else
+            uv run --frozen python scripts/verify_release_versions.py
+          fi
+
+      - name: Verify release contracts
+        run: |
+          uv run --frozen pytest -q \
+            tests/test_release_version_contract.py \
+            tests/test_release_sidecar_guard.py \
+            tests/test_release_quality_approval.py \
+            tests/test_managed_component_catalog.py \
+            tests/test_managed_component_tamper.py \
+            tests/test_managed_publication_readiness.py \
+            tests/test_packaged_runtime_dependencies.py \
+            tests/test_youtube.py \
+            tests/test_engine_release_policy.py \
+            tests/test_optional_feature_policy.py \
+            tests/test_tier2_benchmark.py \
+            tests/test_tier2_structure_metrics.py \
+            tests/test_tier2_compare.py \
+            tests/test_benchmark_edit_telemetry.py \
+            tests/test_tier2_prediction.py
+
+      - name: Report managed publication readiness
+        run: |
+          uv run --frozen python scripts/check_managed_publication.py \
+            --output /tmp/managed-publication-readiness.json
+          cat /tmp/managed-publication-readiness.json
+
+      - name: Enforce P0 and P1 v1 release readiness
+        if: github.ref_type == 'tag'
+        run: uv run --frozen python scripts/check_v1_release_readiness.py --tag "$GITHUB_REF_NAME"
+
+      - name: Explain credential-dependent gate
+        run: |
+          echo "Repository-controlled v1 release contracts passed."
+          echo "v1 tags require a reviewed Tier 2 quality approval receipt and published managed artifacts."
+          echo "Public release still requires P2 signing/notarization credentials and clean-machine acceptance."
