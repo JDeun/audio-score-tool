@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -32,6 +33,8 @@ def main() -> int:
         predictions_root=args.predictions_root,
         engine=engine,
     )
+    report.summary["corpus_manifest_sha256"] = hashlib.sha256(args.manifest.read_bytes()).hexdigest()
+    report.summary["case_ids"] = list(expected_case_ids)
     write_tier2_report(args.output, report)
     print(json.dumps(report.summary, ensure_ascii=False, indent=2))
     return 0
