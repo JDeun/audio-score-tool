@@ -80,16 +80,28 @@ def _candidate(payload: dict[str, Any]) -> dict[str, Any]:
     publish_time = _number(summary.get("mean_time_to_publish_seconds"))
     edit_actions = _number(summary.get("mean_total_edit_actions"))
     note_f1 = _number(summary.get("mean_note_f1"))
+    case_count = summary.get("case_count")
     evaluated_note_cases = summary.get("evaluated_note_cases")
+    evaluated_publish_cases = summary.get("evaluated_publish_cases")
 
+    if not isinstance(case_count, int) or case_count <= 0:
+        disqualifiers.append("invalid_case_count")
     if export_rate is None or export_rate < 1.0 or summary.get("all_exports_successful") is not True:
         disqualifiers.append("not_all_exports_successful")
     if publish_time is None:
         disqualifiers.append("missing_publish_time")
+    if (
+        isinstance(case_count, int)
+        and case_count > 0
+        and evaluated_publish_cases != case_count
+    ):
+        disqualifiers.append("incomplete_publish_time_coverage")
     if edit_actions is None:
         disqualifiers.append("missing_edit_actions")
-    if not isinstance(evaluated_note_cases, int) or evaluated_note_cases <= 0 or note_f1 is None:
+    if note_f1 is None or not isinstance(evaluated_note_cases, int) or evaluated_note_cases <= 0:
         disqualifiers.append("missing_note_evaluation")
+    elif isinstance(case_count, int) and case_count > 0 and evaluated_note_cases != case_count:
+        disqualifiers.append("incomplete_note_evaluation_coverage")
 
     return {
         "engine_id": engine_id,
