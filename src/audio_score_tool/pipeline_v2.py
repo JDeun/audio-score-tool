@@ -8,11 +8,18 @@ from pathlib import Path
 from threading import Event
 
 from .auto_chords import apply_inferred_chords
+from .choir_postprocess import reconstruct_satb
 from .config import Settings
 from .devices import detect_device_plan
 from .lyrics import attach_lyrics_to_musicxml, expand_korean_syllables, load_whisperx_words
 from .models import PipelineResult
+from .music_structure import (
+    analyze_midi_meter_and_pickup,
+    prepare_music_audio,
+    write_structure_report,
+)
 from .paths import song_assets_dir
+from .pickup_normalization import normalize_pickup_measure
 from .pipeline import PipelineCancelled, PipelineError, _find_one, _find_whisper_json
 from .runner import CommandCancelled, CommandError, command_exists, run_command
 from .transcription_engine import (
@@ -30,13 +37,7 @@ def _remove_eager_render_artifacts(score_dir: Path, initial_pdf: Path | None) ->
 
 
 def _preserve_source_audio(audio_path: Path, output_root: Path) -> Path | None:
-    """Persist original input independently of the disposable Job workspace.
-
-    Normal job output is ``jobs/<job-id>/outputs``. The song id is the job id, so
-    preserving here covers local uploads and downloaded YouTube audio without coupling
-    the ingestion code to either source route. Callers whose output hierarchy is not a
-    canonical Song Job (for example benchmark matrices) must disable preservation.
-    """
+    """Persist original input independently of the disposable Job workspace."""
     try:
         job_id = output_root.parent.name
         if not job_id:
@@ -48,7 +49,6 @@ def _preserve_source_audio(audio_path: Path, output_root: Path) -> Path | None:
             shutil.copy2(audio_path, target)
         return target
     except OSError:
-        # Source preservation is validation support and must not make transcription fail.
         return None
 
 
@@ -58,6 +58,7 @@ def transcribe(
     *,
     language: str | None = None,
     skip_lyrics: bool = False,
+    choir_mode: str = "auto",
     settings: Settings | None = None,
     progress: Callable[[str, int], None] | None = None,
     cancel_event: Event | None = None,
@@ -66,6 +67,9 @@ def transcribe(
     """Transcribe to editable canonical score data without creating final exports."""
 
     settings = settings or Settings()
+    choir_mode = choir_mode.strip().lower()
+    if choir_mode not in {"auto", "choir", "off"}:
+        raise PipelineError("choir_mode must be auto, choir, or off")
 
     def emit(stage: str, percent: int) -> None:
         if progress is not None:
@@ -94,10 +98,27 @@ def transcribe(
     device = detect_device_plan()
     engine = resolve_transcription_engine(settings)
 
-    emit("transcription", 5)
+    emit("music_structure", 3)
+    try:
+        transcription_audio, structure = prepare_music_audio(
+            audio_path,
+            work_dir,
+            settings=settings,
+            cancel_event=cancel_event,
+        )
+    except CommandCancelled as exc:
+        raise PipelineCancelled("Music-start analysis cancelled.") from exc
+    warnings.extend(structure.warnings)
+    if structure.trimmed:
+        warnings.append(
+            f"Detected a non-musical intro and started transcription at approximately "
+            f"{structure.music_start_seconds:.2f}s (confidence {structure.start_confidence:.2f})."
+        )
+
+    emit("transcription", 8)
     try:
         artifacts = engine.transcribe(
-            audio_path,
+            transcription_audio,
             score_dir,
             device=device.muscriptor_device,
             cancel_event=cancel_event,
@@ -110,9 +131,50 @@ def transcribe(
     midi_path = artifacts.midi_path
     musicxml_path = artifacts.musicxml_path
     _remove_eager_render_artifacts(score_dir, artifacts.initial_pdf_path)
-    emit("transcription", 50)
+    emit("music_structure", 48)
 
-    emit("chord_analysis", 53)
+    structure = analyze_midi_meter_and_pickup(midi_path, structure)
+    pickup_result = normalize_pickup_measure(
+        musicxml_path,
+        work_dir / "score_with_pickup.musicxml",
+        pickup_quarters=structure.pickup_quarters,
+        numerator=structure.meter_numerator,
+        denominator=structure.meter_denominator,
+        confidence=structure.pickup_confidence,
+    )
+    if pickup_result.applied:
+        musicxml_path = work_dir / "score_with_pickup.musicxml"
+        warnings.append(
+            f"Normalized an anacrusis/pickup of {structure.pickup_quarters:.2f} quarter notes."
+        )
+    elif structure.pickup_quarters > 0:
+        warnings.append(
+            "A possible pickup was detected but the generated score timing was not rewritten "
+            f"({pickup_result.reason}); the structure report keeps the estimate for manual review."
+        )
+
+    choir_output = work_dir / "score_satb.musicxml"
+    choir_result = reconstruct_satb(musicxml_path, choir_output, mode=choir_mode)
+    if choir_result.applied:
+        musicxml_path = choir_output
+        warnings.append(
+            f"Reconstructed SATB voices ({choir_result.reason}, confidence {choir_result.confidence:.2f})."
+        )
+    elif choir_mode == "choir":
+        warnings.append(
+            f"Choir mode was requested but SATB reconstruction was not safe: {choir_result.reason}."
+        )
+
+    structure_report = write_structure_report(
+        work_dir / "music_structure.json",
+        structure,
+        pickup_normalization=pickup_result.as_dict(),
+        choir=choir_result.as_dict(),
+        transcription_audio=str(transcription_audio),
+    )
+    emit("transcription", 52)
+
+    emit("chord_analysis", 55)
     chord_report = work_dir / "chords.json"
     try:
         inferred_chords = apply_inferred_chords(musicxml_path, report_path=chord_report)
@@ -124,7 +186,7 @@ def transcribe(
     except (OSError, ValueError, ET.ParseError) as exc:
         inferred_chords = []
         warnings.append(f"Automatic chord analysis was skipped: {exc}")
-    emit("chord_analysis", 60)
+    emit("chord_analysis", 62)
 
     if skip_lyrics:
         emit("complete", 100)
@@ -138,19 +200,28 @@ def transcribe(
             transcript_json_path=None,
             vocals_path=None,
             chord_report_path=chord_report if chord_report.exists() else None,
+            structure_report_path=structure_report,
             part_pdfs=[],
             warnings=warnings,
         )
 
-    emit("vocal_separation", 63)
+    emit("vocal_separation", 65)
     stems_dir.mkdir()
     vocals_path: Path | None = None
-    lyrics_audio = audio_path
+    lyrics_audio = transcription_audio
     if command_exists(settings.demucs_cmd):
         try:
             run_command(
                 settings.demucs_cmd,
-                ["--two-stems", "vocals", "-d", device.demucs_device, "-o", stems_dir, audio_path],
+                [
+                    "--two-stems",
+                    "vocals",
+                    "-d",
+                    device.demucs_device,
+                    "-o",
+                    stems_dir,
+                    transcription_audio,
+                ],
                 cancel_event=cancel_event,
             )
             vocals_path = _find_one(stems_dir, "vocals.wav")
@@ -159,17 +230,17 @@ def transcribe(
             raise PipelineCancelled("Vocal separation cancelled.") from exc
         except (CommandError, PipelineError) as exc:
             warnings.append(
-                "Demucs vocal separation failed; lyrics ASR is using the original mix instead. "
+                "Demucs vocal separation failed; lyrics ASR is using the music-region mix instead. "
                 f"Details: {exc}"
             )
     else:
         warnings.append(
-            "Demucs is not available; lyrics ASR is using the original mix. "
+            "Demucs is not available; lyrics ASR is using the music-region mix. "
             "Install Demucs only if isolated vocals improve lyric accuracy."
         )
 
-    emit("vocal_separation", 72)
-    emit("lyrics_asr", 75)
+    emit("vocal_separation", 74)
+    emit("lyrics_asr", 77)
     lyrics_dir.mkdir()
     whisper_args: list[str | Path] = [
         lyrics_audio,
@@ -198,10 +269,10 @@ def transcribe(
     words = load_whisperx_words(transcript_json)
     if not words:
         raise PipelineError("WhisperX completed but produced no word-level timings.")
-    emit("lyrics_asr", 88)
+    emit("lyrics_asr", 89)
 
     aligned_tokens = expand_korean_syllables(words) if language == "ko" else words
-    emit("lyric_alignment", 91)
+    emit("lyric_alignment", 92)
     lyric_musicxml = work_dir / "score_with_lyrics.musicxml"
     part_id, attached = attach_lyrics_to_musicxml(musicxml_path, lyric_musicxml, aligned_tokens)
     metadata = {
@@ -215,8 +286,13 @@ def transcribe(
         "vocal_separation": "demucs" if vocals_path else "full_mix_fallback",
         "device_plan": device.as_dict(),
         "export_policy": "deferred_until_user_export",
+        "music_structure": structure.as_dict(),
+        "pickup_normalization": pickup_result.as_dict(),
+        "choir": choir_result.as_dict(),
     }
-    (work_dir / "alignment.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
+    (work_dir / "alignment.json").write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
     emit("complete", 100)
     return PipelineResult(
@@ -229,6 +305,7 @@ def transcribe(
         transcript_json_path=transcript_json,
         vocals_path=vocals_path,
         chord_report_path=chord_report if chord_report.exists() else None,
+        structure_report_path=structure_report,
         part_pdfs=[],
         warnings=warnings,
     )
