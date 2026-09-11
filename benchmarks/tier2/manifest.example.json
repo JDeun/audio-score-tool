@@ -1,0 +1,28 @@
+{
+  "corpus_version": "1",
+  "cases": [
+    {
+      "id": "pop-band-001",
+      "title": "Private benchmark example",
+      "category": "full_band",
+      "genre": "pop",
+      "tags": ["polyphonic", "multi_instrument", "4_4"],
+      "audio": {
+        "locator": "private://audio/pop-band-001.wav",
+        "ownership": "owned_or_explicitly_licensed",
+        "redistributable": false
+      },
+      "reference": {
+        "musicxml": "private://reference/pop-band-001.musicxml",
+        "midi": "private://reference/pop-band-001.mid"
+      },
+      "expected_structure": {
+        "meter": "4/4",
+        "pickup_quarter_length": 0.0,
+        "part_count": 5,
+        "has_lyrics": true,
+        "has_chords": true
+      }
+    }
+  ]
+}
