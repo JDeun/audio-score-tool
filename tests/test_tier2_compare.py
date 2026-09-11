@@ -18,12 +18,16 @@ def _write_report(
     export_rate: float,
     all_exports: bool,
     corpus_version: str = "1",
+    manifest_sha256: str = "b" * 64,
+    case_fingerprint: str = "c" * 64,
 ) -> None:
     path.write_text(
         json.dumps(
             {
                 "schema_version": "1",
                 "corpus_version": corpus_version,
+                "manifest_sha256": manifest_sha256,
+                "case_fingerprint": case_fingerprint,
                 "engine": {
                     "id": engine_id,
                     "model_revision": f"{engine_id}-model",
@@ -69,6 +73,8 @@ def test_comparison_prioritizes_publish_time_before_note_f1(tmp_path: Path):
     result = compare_tier2_reports([fast, accurate])
     assert result["recommended_engine"] == "fast"
     assert result["release_approved"] is False
+    assert result["manifest_sha256"] == "b" * 64
+    assert result["case_fingerprint"] == "c" * 64
     assert result["ranking"][0]["mean_note_f1"] == 0.88
 
 
@@ -103,25 +109,25 @@ def test_failed_export_disqualifies_candidate_even_if_faster(tmp_path: Path):
 def test_comparison_rejects_different_corpus_versions(tmp_path: Path):
     left = tmp_path / "left.json"
     right = tmp_path / "right.json"
-    _write_report(
-        left,
-        engine_id="left",
-        publish_time=100,
-        edits=10,
-        note_f1=0.9,
-        export_rate=1.0,
-        all_exports=True,
-        corpus_version="1",
-    )
-    _write_report(
-        right,
-        engine_id="right",
-        publish_time=100,
-        edits=10,
-        note_f1=0.9,
-        export_rate=1.0,
-        all_exports=True,
-        corpus_version="2",
-    )
+    _write_report(left, engine_id="left", publish_time=100, edits=10, note_f1=0.9, export_rate=1.0, all_exports=True, corpus_version="1")
+    _write_report(right, engine_id="right", publish_time=100, edits=10, note_f1=0.9, export_rate=1.0, all_exports=True, corpus_version="2")
     with pytest.raises(Tier2ComparisonError, match="same corpus_version"):
+        compare_tier2_reports([left, right])
+
+
+def test_comparison_rejects_different_manifests(tmp_path: Path):
+    left = tmp_path / "left.json"
+    right = tmp_path / "right.json"
+    _write_report(left, engine_id="left", publish_time=100, edits=10, note_f1=0.9, export_rate=1.0, all_exports=True, manifest_sha256="1" * 64)
+    _write_report(right, engine_id="right", publish_time=100, edits=10, note_f1=0.9, export_rate=1.0, all_exports=True, manifest_sha256="2" * 64)
+    with pytest.raises(Tier2ComparisonError, match="exact same manifest"):
+        compare_tier2_reports([left, right])
+
+
+def test_comparison_rejects_different_case_fingerprints(tmp_path: Path):
+    left = tmp_path / "left.json"
+    right = tmp_path / "right.json"
+    _write_report(left, engine_id="left", publish_time=100, edits=10, note_f1=0.9, export_rate=1.0, all_exports=True, case_fingerprint="1" * 64)
+    _write_report(right, engine_id="right", publish_time=100, edits=10, note_f1=0.9, export_rate=1.0, all_exports=True, case_fingerprint="2" * 64)
+    with pytest.raises(Tier2ComparisonError, match="exact same case set"):
         compare_tier2_reports([left, right])
