@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import math
 import tempfile
-import wave
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -12,7 +11,11 @@ import numpy as np
 from music21 import chord, meter, note, stream
 
 from .choir_postprocess import reconstruct_satb
-from .music_structure import MusicStructureAnalysis, analyze_midi_meter_and_pickup, estimate_music_start
+from .music_structure import (
+    MusicStructureAnalysis,
+    analyze_midi_meter_and_pickup,
+    estimate_music_start,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,7 +55,12 @@ _DEFAULT_THRESHOLDS = {
 }
 
 
-def _tone(sample_rate: int, seconds: float, frequencies: tuple[float, ...], amplitude: float = 0.35) -> np.ndarray:
+def _tone(
+    sample_rate: int,
+    seconds: float,
+    frequencies: tuple[float, ...],
+    amplitude: float = 0.35,
+) -> np.ndarray:
     count = max(1, int(round(sample_rate * seconds)))
     time = np.arange(count, dtype=np.float64) / sample_rate
     value = np.zeros(count, dtype=np.float64)
@@ -62,7 +70,10 @@ def _tone(sample_rate: int, seconds: float, frequencies: tuple[float, ...], ampl
     # Repeated amplitude envelope creates spectral/energy activity closer to music
     # than a single stationary sine while remaining fully deterministic.
     pulse = 0.62 + 0.38 * (np.sin(2.0 * math.pi * 2.0 * time) ** 2)
-    fade = np.minimum(1.0, np.arange(count, dtype=np.float64) / max(1.0, sample_rate * 0.08))
+    fade = np.minimum(
+        1.0,
+        np.arange(count, dtype=np.float64) / max(1.0, sample_rate * 0.08),
+    )
     return (value * pulse * fade * amplitude).astype(np.float32)
 
 
@@ -95,7 +106,11 @@ def _music_start_cases() -> list[AdversarialCaseResult]:
             category="music_start",
             passed=immediate <= 1.5,
             score=score,
-            details={"expected_seconds": 0.0, "actual_seconds": round(immediate, 3), "confidence": round(confidence, 3)},
+            details={
+                "expected_seconds": 0.0,
+                "actual_seconds": round(immediate, 3),
+                "confidence": round(confidence, 3),
+            },
         )
     )
 
@@ -108,14 +123,18 @@ def _music_start_cases() -> list[AdversarialCaseResult]:
             category="music_start",
             passed=abs(detected - 5.0) <= 2.0 and confidence >= 0.55,
             score=score,
-            details={"expected_seconds": 5.0, "actual_seconds": round(detected, 3), "confidence": round(confidence, 3)},
+            details={
+                "expected_seconds": 5.0,
+                "actual_seconds": round(detected, 3),
+                "confidence": round(confidence, 3),
+            },
         )
     )
 
     ambiguous = np.concatenate([_speech_like(rate, 4.0), music])
     detected, confidence = estimate_music_start(ambiguous, rate)
-    # For a speech-like intro, either correctly locating the music transition or
-    # refusing to trim is acceptable. A confident trim inside the speech segment is not.
+    # Either locating the transition or refusing to trim is acceptable. A confident
+    # trim inside the speech-like region is unsafe and must fail the benchmark.
     safe = detected == 0.0 or detected >= 2.8
     transition_score = 1.0 if detected == 0.0 else _score_timing(4.0, detected, 2.0)
     cases.append(
@@ -124,56 +143,36 @@ def _music_start_cases() -> list[AdversarialCaseResult]:
             category="music_start",
             passed=safe,
             score=transition_score if safe else 0.0,
-            details={"expected_transition_seconds": 4.0, "actual_seconds": round(detected, 3), "confidence": round(confidence, 3)},
+            details={
+                "expected_transition_seconds": 4.0,
+                "actual_seconds": round(detected, 3),
+                "confidence": round(confidence, 3),
+            },
         )
     )
     return cases
 
 
-def _write_midi(path: Path, *, numerator: int, denominator: int, pickup_quarters: float) -> None:
-    mid = mido.MidiFile(ticks_per_beat=480)
-    track = mido.MidiTrack()
-    mid.tracks.append(track)
-    track.append(mido.MetaMessage("time_signature", numerator=numerator, denominator=denominator, time=0))
-    track.append(mido.MetaMessage("set_tempo", tempo=mido.bpm2tempo(120), time=0))
-
-    pickup_ticks = int(round(pickup_quarters * mid.ticks_per_beat))
-    if pickup_ticks > 0:
-        track.append(mido.Message("note_on", note=67, velocity=48, time=0))
-        first_downbeat_delta = pickup_ticks
-    else:
-        first_downbeat_delta = 0
-
-    bar_quarters = numerator * 4.0 / denominator
-    bar_ticks = int(round(bar_quarters * mid.ticks_per_beat))
-    for index in range(6):
-        delta = first_downbeat_delta if index == 0 else bar_ticks
-        track.append(mido.Message("note_on", note=60 + (index % 3) * 2, velocity=118, time=delta))
-        # Beat-level notes help distinguish meter while downbeat velocity remains dominant.
-        beat_ticks = int(round(mid.ticks_per_beat * 4.0 / denominator))
-        for beat in range(1, numerator):
-            track.append(mido.Message("note_on", note=64 + beat, velocity=62, time=beat_ticks if beat == 1 else beat_ticks))
-        # The next iteration's delta is adjusted because beat notes consumed time.
-        consumed = beat_ticks * max(0, numerator - 1)
-        if index < 5 and consumed:
-            track.append(mido.MetaMessage("marker", text="bar-gap", time=max(0, bar_ticks - consumed)))
-            # The next downbeat follows immediately after this marker.
-            first_downbeat_delta = 0
-    mid.save(path)
-
-
-def _simple_midi(path: Path, *, numerator: int, denominator: int, pickup_quarters: float) -> None:
-    """Create accent-heavy MIDI with predictable metrical phase.
-
-    Delta times are expressed from event to event. Each bar has a high-velocity
-    downbeat plus lower-velocity beats so the production phase estimator is tested
-    rather than bypassed by reference metadata.
-    """
+def _simple_midi(
+    path: Path,
+    *,
+    numerator: int,
+    denominator: int,
+    pickup_quarters: float,
+) -> None:
+    """Create accent-heavy MIDI with a predictable metrical phase."""
 
     mid = mido.MidiFile(ticks_per_beat=480)
     track = mido.MidiTrack()
     mid.tracks.append(track)
-    track.append(mido.MetaMessage("time_signature", numerator=numerator, denominator=denominator, time=0))
+    track.append(
+        mido.MetaMessage(
+            "time_signature",
+            numerator=numerator,
+            denominator=denominator,
+            time=0,
+        )
+    )
     track.append(mido.MetaMessage("set_tempo", tempo=mido.bpm2tempo(120), time=0))
     beat_ticks = int(round(mid.ticks_per_beat * 4.0 / denominator))
     pickup_ticks = int(round(pickup_quarters * mid.ticks_per_beat))
@@ -182,10 +181,25 @@ def _simple_midi(path: Path, *, numerator: int, denominator: int, pickup_quarter
         elapsed_to_downbeat = pickup_ticks
     else:
         elapsed_to_downbeat = 0
-    for bar in range(8):
-        track.append(mido.Message("note_on", note=60, velocity=124, time=elapsed_to_downbeat))
+
+    for _bar in range(8):
+        track.append(
+            mido.Message(
+                "note_on",
+                note=60,
+                velocity=124,
+                time=elapsed_to_downbeat,
+            )
+        )
         for beat in range(1, numerator):
-            track.append(mido.Message("note_on", note=64 + beat, velocity=54, time=beat_ticks))
+            track.append(
+                mido.Message(
+                    "note_on",
+                    note=64 + beat,
+                    velocity=54,
+                    time=beat_ticks,
+                )
+            )
         elapsed_to_downbeat = beat_ticks
     mid.save(path)
 
@@ -200,10 +214,25 @@ def _meter_pickup_cases(root: Path) -> list[AdversarialCaseResult]:
     results: list[AdversarialCaseResult] = []
     for name, numerator, denominator, pickup, tolerance in definitions:
         midi_path = root / f"{name}.mid"
-        _simple_midi(midi_path, numerator=numerator, denominator=denominator, pickup_quarters=pickup)
-        analysis = analyze_midi_meter_and_pickup(midi_path, MusicStructureAnalysis())
-        pickup_score = _score_timing(pickup, analysis.pickup_quarters, tolerance)
-        meter_ok = analysis.meter_numerator == numerator and analysis.meter_denominator == denominator
+        _simple_midi(
+            midi_path,
+            numerator=numerator,
+            denominator=denominator,
+            pickup_quarters=pickup,
+        )
+        analysis = analyze_midi_meter_and_pickup(
+            midi_path,
+            MusicStructureAnalysis(),
+        )
+        pickup_score = _score_timing(
+            pickup,
+            analysis.pickup_quarters,
+            tolerance,
+        )
+        meter_ok = (
+            analysis.meter_numerator == numerator
+            and analysis.meter_denominator == denominator
+        )
         passed = meter_ok and abs(analysis.pickup_quarters - pickup) <= tolerance
         results.append(
             AdversarialCaseResult(
@@ -213,7 +242,9 @@ def _meter_pickup_cases(root: Path) -> list[AdversarialCaseResult]:
                 score=(pickup_score * 0.75 + (0.25 if meter_ok else 0.0)),
                 details={
                     "expected_meter": f"{numerator}/{denominator}",
-                    "actual_meter": f"{analysis.meter_numerator}/{analysis.meter_denominator}",
+                    "actual_meter": (
+                        f"{analysis.meter_numerator}/{analysis.meter_denominator}"
+                    ),
                     "expected_pickup_quarters": pickup,
                     "actual_pickup_quarters": analysis.pickup_quarters,
                     "confidence": analysis.pickup_confidence,
@@ -263,7 +294,12 @@ def _choir_cases(root: Path) -> list[AdversarialCaseResult]:
     output = root / "four-parts-satb.musicxml"
     _write_four_part_score(source)
     result = reconstruct_satb(source, output, mode="auto")
-    passed = result.applied and result.source_parts == 4 and result.confidence >= 0.80 and output.exists()
+    passed = (
+        result.applied
+        and result.source_parts == 4
+        and result.confidence >= 0.80
+        and output.exists()
+    )
     results.append(
         AdversarialCaseResult(
             name="four-part-range-ordering",
@@ -278,7 +314,12 @@ def _choir_cases(root: Path) -> list[AdversarialCaseResult]:
     output = root / "chordal-satb.musicxml"
     _write_chordal_score(source)
     result = reconstruct_satb(source, output, mode="auto")
-    passed = result.applied and result.target_parts == 4 and result.confidence >= 0.72 and output.exists()
+    passed = (
+        result.applied
+        and result.target_parts == 4
+        and result.confidence >= 0.72
+        and output.exists()
+    )
     results.append(
         AdversarialCaseResult(
             name="single-part-dense-polyphony",
@@ -306,11 +347,18 @@ def _choir_cases(root: Path) -> list[AdversarialCaseResult]:
     return results
 
 
-def run_music_adversarial_benchmark(*, thresholds: dict[str, float] | None = None) -> AdversarialBenchmarkReport:
+def run_music_adversarial_benchmark(
+    *,
+    thresholds: dict[str, float] | None = None,
+) -> AdversarialBenchmarkReport:
     limits = {**_DEFAULT_THRESHOLDS, **(thresholds or {})}
     with tempfile.TemporaryDirectory(prefix="ast-music-adversarial-") as temp:
         root = Path(temp)
-        cases = [*_music_start_cases(), *_meter_pickup_cases(root), *_choir_cases(root)]
+        cases = [
+            *_music_start_cases(),
+            *_meter_pickup_cases(root),
+            *_choir_cases(root),
+        ]
 
     category_scores: dict[str, float] = {}
     for category in ("music_start", "meter_pickup", "choir"):
@@ -318,7 +366,9 @@ def run_music_adversarial_benchmark(*, thresholds: dict[str, float] | None = Non
         category_scores[category] = round(sum(selected) / max(1, len(selected)), 4)
     overall = round(sum(case.score for case in cases) / max(1, len(cases)), 4)
     passed = all(case.passed for case in cases)
-    passed = passed and all(category_scores[name] >= limits[name] for name in category_scores)
+    passed = passed and all(
+        category_scores[name] >= limits[name] for name in category_scores
+    )
     passed = passed and overall >= limits["overall"]
     return AdversarialBenchmarkReport(
         schema_version=1,
@@ -330,6 +380,12 @@ def run_music_adversarial_benchmark(*, thresholds: dict[str, float] | None = Non
     )
 
 
-def write_music_adversarial_report(path: Path, report: AdversarialBenchmarkReport) -> None:
+def write_music_adversarial_report(
+    path: Path,
+    report: AdversarialBenchmarkReport,
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(report.as_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
+    path.write_text(
+        json.dumps(report.as_dict(), ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
