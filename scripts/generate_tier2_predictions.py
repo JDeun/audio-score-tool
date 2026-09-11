@@ -14,6 +14,9 @@ def main() -> int:
     parser.add_argument("--predictions-root", type=Path, required=True)
     parser.add_argument("--engine", required=True, choices=["mt3_infer", "yourmt3", "muscriptor", "native"])
     parser.add_argument("--model")
+    parser.add_argument("--model-revision", required=True)
+    parser.add_argument("--runtime-revision", required=True)
+    parser.add_argument("--artifact-sha256", required=True)
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
@@ -24,6 +27,9 @@ def main() -> int:
         predictions_root=args.predictions_root,
         engine_id=args.engine,
         model=args.model,
+        model_revision=args.model_revision,
+        runtime_revision=args.runtime_revision,
+        artifact_sha256=args.artifact_sha256,
         device=args.device,
     )
     payload = {"generated": generated, "case_count": len(generated)}
