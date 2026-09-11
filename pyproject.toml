@@ -62,6 +62,9 @@ filterwarnings = [
   # Starlette 1.6.0 calls asyncio.iscoroutinefunction on Python 3.12; AnyIO emits this
   # upstream deprecation. Keep the exception narrow so every other warning remains fatal.
   "ignore:'asyncio.iscoroutinefunction' is deprecated.*:DeprecationWarning:starlette\\.testclient",
+  # Starlette 1.6.0 still imports AnyIO's deprecated BlockingPortal compatibility alias.
+  # Ignore only that exact upstream alias warning; all other deprecations stay fatal.
+  "ignore:The anyio\\.abc\\.BlockingPortal alias is deprecated.*:DeprecationWarning",
 ]
 
 [tool.ruff]
