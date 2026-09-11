@@ -5,7 +5,7 @@
     "id": "candidate-engine",
     "model_revision": "replace-with-pinned-revision",
     "runtime_revision": "replace-with-pinned-revision",
-    "artifact_sha256": "replace-with-sha256"
+    "artifact_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
   },
   "environment": {
     "platform": "macos-arm64",
