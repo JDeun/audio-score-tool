@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -13,6 +14,7 @@ from audio_score_tool.youtube import (
     download_youtube_audio,
     inspect_youtube,
     validate_youtube_url,
+    youtube_tool_status,
 )
 
 
@@ -87,6 +89,59 @@ def test_inspect_youtube_parses_metadata(monkeypatch):
     assert metadata.title == "Example Song"
     assert metadata.uploader == "Example Artist"
     assert metadata.duration == 123.4
+
+
+def test_packaged_youtube_binds_yt_dlp_to_managed_deno(monkeypatch, tmp_path: Path):
+    component_dir = tmp_path / "components"
+    deno = component_dir / "bin" / "deno"
+    deno.parent.mkdir(parents=True)
+    deno.write_bytes(b"deno")
+    yt_dlp = component_dir / "bin" / "yt-dlp"
+    yt_dlp.write_bytes(b"yt-dlp")
+
+    monkeypatch.setenv("AST_PACKAGED", "1")
+    monkeypatch.setenv("AST_COMPONENT_DIR", str(component_dir))
+    captured: list[list[object]] = []
+
+    def fake_run_command(command, args, **kwargs):
+        captured.append(list(args))
+        return subprocess.CompletedProcess(
+            [],
+            0,
+            json.dumps(
+                {
+                    "title": "Example",
+                    "duration": 60,
+                    "webpage_url": "https://youtu.be/abc123",
+                }
+            ),
+        )
+
+    monkeypatch.setattr("audio_score_tool.youtube.run_command", fake_run_command)
+    settings = Settings()
+    metadata = inspect_youtube("https://youtu.be/abc123", settings=settings)
+
+    assert metadata.title == "Example"
+    assert captured
+    args = [str(value) for value in captured[0]]
+    index = args.index("--js-runtimes")
+    assert args[index + 1] == f"deno:{deno}"
+    status = youtube_tool_status(settings)
+    assert status["ready"] is True
+    assert status["js_runtime"] == str(deno)
+
+
+def test_packaged_youtube_is_not_ready_without_managed_deno(monkeypatch, tmp_path: Path):
+    component_dir = tmp_path / "components"
+    yt_dlp = component_dir / "bin" / "yt-dlp"
+    yt_dlp.parent.mkdir(parents=True)
+    yt_dlp.write_bytes(b"yt-dlp")
+    monkeypatch.setenv("AST_PACKAGED", "1")
+    monkeypatch.setenv("AST_COMPONENT_DIR", str(component_dir))
+
+    status = youtube_tool_status(Settings())
+    assert status["ready"] is False
+    assert status["js_runtime_ready"] is False
 
 
 def test_inspect_youtube_rejects_active_live(monkeypatch):
