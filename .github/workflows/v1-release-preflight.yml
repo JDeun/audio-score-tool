@@ -1,0 +1,60 @@
+name: V1 Release Preflight
+
+permissions:
+  contents: read
+
+on:
+  push:
+    tags:
+      - "v1*"
+  workflow_dispatch:
+
+jobs:
+  release-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: 0.12.10
+          enable-cache: true
+
+      - name: Verify lockfile
+        run: uv lock --check
+
+      - name: Install release-contract dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Verify cross-package version contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            uv run --frozen python scripts/verify_release_versions.py --tag "$GITHUB_REF_NAME"
+          else
+            uv run --frozen python scripts/verify_release_versions.py
+          fi
+
+      - name: Verify release and managed-runtime contracts
+        run: |
+          uv run --frozen pytest -q \
+            tests/test_release_version_contract.py \
+            tests/test_managed_component_catalog.py \
+            tests/test_managed_component_tamper.py \
+            tests/test_packaged_runtime_dependencies.py \
+            tests/test_engine_release_policy.py \
+            tests/test_tier2_benchmark.py \
+            tests/test_tier2_compare.py \
+            tests/test_benchmark_edit_telemetry.py \
+            tests/test_tier2_prediction.py
+
+      - name: Explain credential-dependent gates
+        run: |
+          echo "Code-level v1 release contracts passed."
+          echo "Public release still requires P1 managed artifacts and P2 signing/notarization credentials."
