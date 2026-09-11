@@ -51,7 +51,9 @@ jobs:
             tests/test_managed_component_tamper.py \
             tests/test_managed_publication_readiness.py \
             tests/test_packaged_runtime_dependencies.py \
+            tests/test_youtube.py \
             tests/test_engine_release_policy.py \
+            tests/test_optional_feature_policy.py \
             tests/test_tier2_benchmark.py \
             tests/test_tier2_structure_metrics.py \
             tests/test_tier2_compare.py \
