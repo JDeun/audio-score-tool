@@ -10,6 +10,7 @@ from audio_score_tool.tier2_benchmark import (
     Tier2EngineIdentity,
     load_manifest,
     load_product_metrics,
+    resolve_locator,
     run_tier2_benchmark,
 )
 
@@ -20,7 +21,9 @@ def _write_midi(path: Path, pitches: list[int]) -> None:
     midi.tracks.append(track)
     track.append(mido.MetaMessage("set_tempo", tempo=500000, time=0))
     for index, pitch in enumerate(pitches):
-        track.append(mido.Message("note_on", note=pitch, velocity=90, time=0 if index == 0 else 360))
+        track.append(
+            mido.Message("note_on", note=pitch, velocity=90, time=0 if index == 0 else 360)
+        )
         track.append(mido.Message("note_off", note=pitch, velocity=0, time=120))
     midi.save(path)
 
@@ -62,6 +65,21 @@ def test_manifest_rejects_duplicate_case_ids(tmp_path: Path):
     )
     with pytest.raises(ValueError, match="duplicate Tier 2 case id"):
         load_manifest(manifest)
+
+
+def test_engine_identity_requires_real_sha256():
+    with pytest.raises(ValueError, match="64-character"):
+        Tier2EngineIdentity(
+            id="engine",
+            model_revision="model",
+            runtime_revision="runtime",
+            artifact_sha256="not-a-digest",
+        )
+
+
+def test_private_locator_cannot_escape_corpus_root(tmp_path: Path):
+    with pytest.raises(ValueError, match="escapes corpus_root"):
+        resolve_locator("private://../outside.mid", corpus_root=tmp_path / "corpus")
 
 
 def test_product_metrics_calculate_edit_total(tmp_path: Path):
@@ -124,7 +142,7 @@ def test_tier2_runner_merges_midi_and_product_metrics(tmp_path: Path):
             id="test-engine",
             model_revision="model-sha",
             runtime_revision="runtime-sha",
-            artifact_sha256="abc123",
+            artifact_sha256="a" * 64,
         ),
     )
 
