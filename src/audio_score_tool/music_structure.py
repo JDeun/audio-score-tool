@@ -241,12 +241,7 @@ def _opening_meter(
     signatures: list[tuple[int, int, int]],
     first_note_tick: int,
 ) -> tuple[int, int]:
-    """Return the time signature active when the musical material begins.
-
-    Later meter changes must not rewrite the phase grid used to infer the opening
-    anacrusis. If a malformed MIDI has no signature before the first note, use the
-    earliest declared signature; otherwise fall back to 4/4.
-    """
+    """Return the time signature active when the musical material begins."""
 
     active: tuple[int, int] | None = None
     for tick, numerator, denominator in signatures:
@@ -258,6 +253,28 @@ def _opening_meter(
     if signatures:
         return signatures[0][1], signatures[0][2]
     return 4, 4
+
+
+def _opening_segment_notes(
+    note_events: list[tuple[int, int]],
+    signature_events: list[tuple[int, int, int]],
+    first_note_tick: int,
+) -> list[tuple[int, int]]:
+    """Keep phase inference inside the opening meter segment.
+
+    Notes after a later time-signature change belong to a different metrical grid and
+    can otherwise bias the opening downbeat phase. Very short opening segments fall
+    back to the first few notes rather than producing an unstable estimate.
+    """
+
+    next_change_tick = next(
+        (tick for tick, _numerator, _denominator in signature_events if tick > first_note_tick),
+        None,
+    )
+    if next_change_tick is None:
+        return note_events
+    opening = [event for event in note_events if event[0] < next_change_tick]
+    return opening if len(opening) >= 4 else note_events[: min(32, len(note_events))]
 
 
 def analyze_midi_meter_and_pickup(
@@ -286,6 +303,7 @@ def analyze_midi_meter_and_pickup(
 
     first_tick = note_events[0][0]
     numerator, denominator = _opening_meter(signature_events, first_tick)
+    phase_events = _opening_segment_notes(note_events, signature_events, first_tick)
     ticks_per_quarter = max(1, int(mid.ticks_per_beat))
     beat_ticks = ticks_per_quarter * 4.0 / max(1, denominator)
     bar_ticks = beat_ticks * max(1, numerator)
@@ -299,7 +317,7 @@ def analyze_midi_meter_and_pickup(
     beat_radius = max(float(step) * 1.5, 1.0)
     for phase in phases:
         score = 0.0
-        for tick, velocity in note_events[:256]:
+        for tick, velocity in phase_events[:256]:
             rel = (tick - phase) % bar_ticks
             distance = min(rel, bar_ticks - rel)
             beat_mod = rel % beat_ticks
