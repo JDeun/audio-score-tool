@@ -48,6 +48,13 @@ def _number(value: object) -> float | None:
     return float(value)
 
 
+def _required_digest(payload: dict[str, Any], key: str, *, path: Path) -> str:
+    value = str(payload.get(key) or "").strip().lower()
+    if len(value) != 64 or any(ch not in "0123456789abcdef" for ch in value):
+        raise Tier2ComparisonError(f"Tier 2 report {key} must be a 64-hex digest: {path}")
+    return value
+
+
 def load_tier2_report(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
@@ -56,6 +63,8 @@ def load_tier2_report(path: Path) -> dict[str, Any]:
         raise Tier2ComparisonError(f"Unsupported Tier 2 report schema: {path}")
     if not isinstance(payload.get("engine"), dict) or not isinstance(payload.get("summary"), dict):
         raise Tier2ComparisonError(f"Incomplete Tier 2 report: {path}")
+    _required_digest(payload, "manifest_sha256", path=path)
+    _required_digest(payload, "case_fingerprint", path=path)
     return payload
 
 
@@ -103,6 +112,12 @@ def compare_tier2_reports(paths: list[Path]) -> dict[str, Any]:
     corpus_versions = {str(report.get("corpus_version")) for report in reports}
     if len(corpus_versions) != 1:
         raise Tier2ComparisonError("Tier 2 reports must use the same corpus_version")
+    manifest_digests = {str(report.get("manifest_sha256")) for report in reports}
+    if len(manifest_digests) != 1:
+        raise Tier2ComparisonError("Tier 2 reports must use the exact same manifest")
+    case_fingerprints = {str(report.get("case_fingerprint")) for report in reports}
+    if len(case_fingerprints) != 1:
+        raise Tier2ComparisonError("Tier 2 reports must use the exact same case set and order")
 
     candidates = [_candidate(report) for report in reports]
     engine_ids = [candidate["engine_id"] for candidate in candidates]
@@ -129,6 +144,8 @@ def compare_tier2_reports(paths: list[Path]) -> dict[str, Any]:
     return {
         "schema_version": "1",
         "corpus_version": next(iter(corpus_versions)),
+        "manifest_sha256": next(iter(manifest_digests)),
+        "case_fingerprint": next(iter(case_fingerprints)),
         "selection_priority": [
             "all_exports_successful",
             "mean_time_to_publish_seconds",
