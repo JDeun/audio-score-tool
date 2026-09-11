@@ -18,6 +18,7 @@ _EDIT_KEYS = (
     "manual_lyric_edits",
     "manual_layout_edits",
 )
+_REQUIRED_FINAL_EXPORTS = {"musicxml", "pdf", "midi", "parts"}
 
 
 def _now() -> datetime:
@@ -112,6 +113,32 @@ def _category(method: str, path: str, body: bytes) -> str | None:
     return None
 
 
+def _is_complete_final_export(body: bytes) -> bool:
+    """Return true only when the request asks for the complete publication bundle.
+
+    The export endpoint defaults to all final formats when the body is empty or null.
+    Explicit subset exports are useful during editing, but must not stop a Tier 2
+    time-to-publish clock or count as a successful final publication.
+    """
+
+    if not body.strip():
+        return True
+    try:
+        payload = json.loads(body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return False
+    if payload is None:
+        return True
+    if not isinstance(payload, dict):
+        return False
+    formats = payload.get("formats")
+    if formats is None:
+        return True
+    if not isinstance(formats, list) or not all(isinstance(item, str) for item in formats):
+        return False
+    return _REQUIRED_FINAL_EXPORTS <= {item.strip().lower() for item in formats}
+
+
 def record_successful_song_mutation(
     *,
     song_id: str,
@@ -138,6 +165,8 @@ def record_successful_song_mutation(
             return
 
         if method.upper() == "POST" and path.endswith("/export"):
+            if not _is_complete_final_export(request_body):
+                return
             end = finished_at or _now()
             started = _parse_time(payload.get("started_at"))
             payload["finished_at"] = _iso(end)
