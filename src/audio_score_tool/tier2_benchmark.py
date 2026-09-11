@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -24,6 +25,22 @@ def _nonempty(value: str, *, label: str) -> str:
     if not text:
         raise ValueError(f"{label} must be a non-empty string")
     return text
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def case_fingerprint(case_ids: tuple[str, ...]) -> str:
+    digest = hashlib.sha256()
+    for case_id in case_ids:
+        digest.update(case_id.encode("utf-8"))
+        digest.update(b"\0")
+    return digest.hexdigest()
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,6 +93,8 @@ class Tier2CaseResult:
 @dataclass(frozen=True, slots=True)
 class Tier2Report:
     corpus_version: str
+    manifest_sha256: str
+    case_fingerprint: str
     engine: Tier2EngineIdentity
     cases: tuple[Tier2CaseResult, ...]
     summary: dict[str, Any]
@@ -84,6 +103,8 @@ class Tier2Report:
         return {
             "schema_version": "1",
             "corpus_version": self.corpus_version,
+            "manifest_sha256": self.manifest_sha256,
+            "case_fingerprint": self.case_fingerprint,
             "engine": asdict(self.engine),
             "cases": [case.as_dict() for case in self.cases],
             "summary": self.summary,
@@ -329,8 +350,11 @@ def run_tier2_benchmark(
         )
         for case in cases
     ]
+    case_ids = tuple(case.id for case in cases)
     return Tier2Report(
         corpus_version=corpus_version,
+        manifest_sha256=_sha256_file(manifest_path),
+        case_fingerprint=case_fingerprint(case_ids),
         engine=engine,
         cases=tuple(results),
         summary=summarize_tier2_results(results),
