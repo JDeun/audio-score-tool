@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, field_validator
 
+from .engine_release_policy import release_policy_summary
 from .preflight_v2 import preflight
 from .runtime_settings import runtime_settings
 from .settings_store import SettingsStore
@@ -70,12 +71,17 @@ def _recommendation(settings) -> dict:
         return {
             "engine": "muscriptor",
             "model": "large",
+            "release_approved_default": True,
             "reason": "정확도 우선 개인/비상업 기본값",
         }
     return {
         "engine": "mt3_infer",
         "model": "yourmt3",
-        "reason": "상용 모드에서 MuScriptor를 제외한 정확도 우선 후보; 배포 전 라이선스 provenance 검토 필요",
+        "release_approved_default": False,
+        "reason": (
+            "상용 모드 Tier 2 비교 우선 후보. 정확한 checkpoint provenance와 #34 품질 gate를 "
+            "통과하기 전에는 release-approved default가 아닙니다."
+        ),
     }
 
 
@@ -92,6 +98,7 @@ def get_engines() -> dict:
         "native_checkpoint": str(settings.native_checkpoint) if settings.native_checkpoint else None,
         "native_engine_cmd": settings.native_engine_cmd,
         "engines": available_engines(settings),
+        "release_policy": release_policy_summary(),
         "recommendation": _recommendation(settings),
         "preflight": preflight(settings),
     }
