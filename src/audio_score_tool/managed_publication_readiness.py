@@ -43,6 +43,8 @@ def _artifact_payload(component: str, target: str) -> dict[str, Any] | None:
     merged.setdefault("version", entry.get("version"))
     merged.setdefault("license", entry.get("license"))
     merged.setdefault("provenance", entry.get("provenance"))
+    merged.setdefault("upstream_revision", entry.get("upstream_revision"))
+    merged.setdefault("redistribution_status", entry.get("redistribution_status"))
     return merged
 
 
@@ -58,6 +60,10 @@ def check_publication(component: str, target: str) -> PublicationCheck:
         return PublicationCheck(component, target, False, "license-missing")
     if not (artifact.provenance or "").strip():
         return PublicationCheck(component, target, False, "provenance-missing")
+    if not str(payload.get("upstream_revision") or "").strip():
+        return PublicationCheck(component, target, False, "upstream-revision-missing")
+    if str(payload.get("redistribution_status") or "").strip().lower() != "approved":
+        return PublicationCheck(component, target, False, "redistribution-not-approved")
     return PublicationCheck(component, target, True)
 
 
