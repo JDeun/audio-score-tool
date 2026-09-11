@@ -53,6 +53,19 @@ def _youtube_js_runtime_args() -> list[str]:
     return ["--js-runtimes", f"deno:{deno}"]
 
 
+def _youtube_ffmpeg_args() -> list[str]:
+    """Bind yt-dlp to the app-managed FFmpeg/ffprobe directory in packaged builds."""
+
+    if not packaged_runtime():
+        return []
+    ffmpeg = managed_executable_path("ffmpeg")
+    return ["--ffmpeg-location", str(ffmpeg.parent)]
+
+
+def _youtube_runtime_args() -> list[str]:
+    return [*_youtube_js_runtime_args(), *_youtube_ffmpeg_args()]
+
+
 @dataclass(slots=True)
 class YouTubeMetadata:
     title: str
@@ -114,18 +127,32 @@ def validate_youtube_url(value: str) -> str:
 
 def youtube_tool_status(settings: Settings | None = None) -> dict:
     settings = settings or Settings()
-    deno_path = managed_executable_path("deno") if packaged_runtime() else None
+    packaged = packaged_runtime()
+    deno_path = managed_executable_path("deno") if packaged else None
+    ffmpeg_path = managed_executable_path("ffmpeg") if packaged else None
+    ffprobe_path = managed_executable_path("ffprobe") if packaged else None
     deno_ready = deno_path.is_file() if deno_path is not None else True
+    ffmpeg_ready = ffmpeg_path.is_file() if ffmpeg_path is not None else True
+    ffprobe_ready = ffprobe_path.is_file() if ffprobe_path is not None else True
     return {
-        "ready": command_exists(settings.yt_dlp_cmd) and deno_ready,
+        "ready": (
+            command_exists(settings.yt_dlp_cmd)
+            and deno_ready
+            and ffmpeg_ready
+            and ffprobe_ready
+        ),
         "command": settings.yt_dlp_cmd,
         "js_runtime": str(deno_path) if deno_path is not None else "auto",
         "js_runtime_ready": deno_ready,
+        "ffmpeg": str(ffmpeg_path) if ffmpeg_path is not None else "auto",
+        "ffmpeg_ready": ffmpeg_ready,
+        "ffprobe": str(ffprobe_path) if ffprobe_path is not None else "auto",
+        "ffprobe_ready": ffprobe_ready,
         "max_duration_seconds": _max_duration_seconds(),
         "live_broadcasts_allowed": False,
         "fallback_note": (
-            "Development mode may use yt-dlp/Deno from the developer environment. "
-            "Packaged mode requires app-managed yt-dlp and Deno."
+            "Development mode may use yt-dlp/Deno/FFmpeg from the developer environment. "
+            "Packaged mode requires app-managed yt-dlp, Deno, FFmpeg, and ffprobe."
         ),
     }
 
@@ -142,7 +169,7 @@ def inspect_youtube(
         completed = run_command(
             settings.yt_dlp_cmd,
             [
-                *_youtube_js_runtime_args(),
+                *_youtube_runtime_args(),
                 "--dump-single-json",
                 "--skip-download",
                 "--no-playlist",
@@ -213,7 +240,7 @@ def download_youtube_audio(
         run_command(
             settings.yt_dlp_cmd,
             [
-                *_youtube_js_runtime_args(),
+                *_youtube_runtime_args(),
                 "--no-playlist",
                 "--no-warnings",
                 "--no-progress",
