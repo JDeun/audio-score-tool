@@ -27,10 +27,48 @@ def _pickup_quarter_length(score) -> float | None:
 
     try:
         nominal_bar_length = float(signatures[0].barDuration.quarterLength)
-        content_length = float(measure.duration.quarterLength)
     except (AttributeError, TypeError, ValueError):
         return None
-    return max(0.0, nominal_bar_length - content_length)
+
+    # music21 represents a true anacrusis with left padding when that metadata
+    # survives the MusicXML round-trip. Prefer that explicit representation.
+    try:
+        padding_left = float(measure.paddingLeft)
+    except (AttributeError, TypeError, ValueError):
+        padding_left = 0.0
+    if padding_left > 0.0:
+        return min(padding_left, nominal_bar_length)
+
+    # Some MusicXML producers preserve an incomplete first measure directly.
+    # Use its actual duration when it remains shorter than the nominal bar.
+    try:
+        content_length = float(measure.duration.quarterLength)
+    except (AttributeError, TypeError, ValueError):
+        content_length = nominal_bar_length
+    if content_length < nominal_bar_length:
+        return max(0.0, nominal_bar_length - content_length)
+
+    # Other producers/readers pad an incomplete first measure to the nominal
+    # bar duration with implicit/hidden space. In that case, derive the occupied
+    # musical span from notes/chords rather than the padded Measure.duration.
+    # This keeps pickup measurement stable across MusicXML serialization.
+    note_events = list(measure.recurse().notes)
+    if not note_events:
+        return 0.0
+
+    try:
+        occupied_start = min(float(event.getOffsetInHierarchy(measure)) for event in note_events)
+        occupied_end = max(
+            float(event.getOffsetInHierarchy(measure)) + float(event.duration.quarterLength)
+            for event in note_events
+        )
+    except (AttributeError, TypeError, ValueError):
+        return 0.0
+
+    occupied_span = max(0.0, occupied_end - occupied_start)
+    if occupied_span >= nominal_bar_length:
+        return 0.0
+    return max(0.0, nominal_bar_length - occupied_span)
 
 
 def _first_meter(score) -> str | None:
