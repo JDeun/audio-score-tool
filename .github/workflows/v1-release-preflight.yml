@@ -47,6 +47,7 @@ jobs:
             tests/test_release_version_contract.py \
             tests/test_managed_component_catalog.py \
             tests/test_managed_component_tamper.py \
+            tests/test_managed_publication_readiness.py \
             tests/test_packaged_runtime_dependencies.py \
             tests/test_engine_release_policy.py \
             tests/test_tier2_benchmark.py \
@@ -54,7 +55,18 @@ jobs:
             tests/test_benchmark_edit_telemetry.py \
             tests/test_tier2_prediction.py
 
+      - name: Report managed publication readiness
+        run: |
+          uv run --frozen python scripts/check_managed_publication.py \
+            --output /tmp/managed-publication-readiness.json
+          cat /tmp/managed-publication-readiness.json
+
+      - name: Enforce P1 managed artifacts for stable tag
+        if: github.ref_type == 'tag'
+        run: uv run --frozen python scripts/check_managed_publication.py --require-ready
+
       - name: Explain credential-dependent gates
         run: |
           echo "Code-level v1 release contracts passed."
-          echo "Public release still requires P1 managed artifacts and P2 signing/notarization credentials."
+          echo "Stable v1 tags additionally require P1 managed artifacts."
+          echo "Public release still requires P2 signing/notarization credentials and clean-machine acceptance."
