@@ -18,12 +18,19 @@ def _pickup_quarter_length(score) -> float | None:
     measure = _first_measure(score)
     if measure is None:
         return None
+
+    signatures = list(measure.recurse().getElementsByClass(meter.TimeSignature))
+    if not signatures:
+        signatures = list(score.recurse().getElementsByClass(meter.TimeSignature))
+    if not signatures:
+        return None
+
     try:
-        bar_length = float(measure.barDuration.quarterLength)
+        nominal_bar_length = float(signatures[0].barDuration.quarterLength)
         content_length = float(measure.duration.quarterLength)
     except (AttributeError, TypeError, ValueError):
         return None
-    return max(0.0, bar_length - content_length)
+    return max(0.0, nominal_bar_length - content_length)
 
 
 def _first_meter(score) -> str | None:
