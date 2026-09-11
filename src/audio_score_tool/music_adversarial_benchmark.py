@@ -67,8 +67,6 @@ def _tone(
     for frequency in frequencies:
         value += np.sin(2.0 * math.pi * frequency * time)
     value /= max(1, len(frequencies))
-    # Repeated amplitude envelope creates spectral/energy activity closer to music
-    # than a single stationary sine while remaining fully deterministic.
     pulse = 0.62 + 0.38 * (np.sin(2.0 * math.pi * 2.0 * time) ** 2)
     fade = np.minimum(
         1.0,
@@ -133,8 +131,6 @@ def _music_start_cases() -> list[AdversarialCaseResult]:
 
     ambiguous = np.concatenate([_speech_like(rate, 4.0), music])
     detected, confidence = estimate_music_start(ambiguous, rate)
-    # Either locating the transition or refusing to trim is acceptable. A confident
-    # trim inside the speech-like region is unsafe and must fail the benchmark.
     safe = detected == 0.0 or detected >= 2.8
     transition_score = 1.0 if detected == 0.0 else _score_timing(4.0, detected, 2.0)
     cases.append(
@@ -287,6 +283,14 @@ def _write_chordal_score(path: Path, *, monophonic: bool = False) -> None:
     score.write("musicxml", fp=str(path))
 
 
+def _stable_choir_details(result: object) -> dict[str, object]:
+    """Keep benchmark output deterministic by excluding ephemeral filesystem paths."""
+
+    payload = result.as_dict()  # type: ignore[attr-defined]
+    payload.pop("output_path", None)
+    return payload
+
+
 def _choir_cases(root: Path) -> list[AdversarialCaseResult]:
     results: list[AdversarialCaseResult] = []
 
@@ -306,7 +310,7 @@ def _choir_cases(root: Path) -> list[AdversarialCaseResult]:
             category="choir",
             passed=passed,
             score=min(1.0, result.confidence) if passed else 0.0,
-            details=result.as_dict(),
+            details=_stable_choir_details(result),
         )
     )
 
@@ -326,7 +330,7 @@ def _choir_cases(root: Path) -> list[AdversarialCaseResult]:
             category="choir",
             passed=passed,
             score=min(1.0, result.confidence) if passed else 0.0,
-            details=result.as_dict(),
+            details=_stable_choir_details(result),
         )
     )
 
@@ -341,7 +345,7 @@ def _choir_cases(root: Path) -> list[AdversarialCaseResult]:
             category="choir",
             passed=passed,
             score=1.0 if passed else 0.0,
-            details=result.as_dict(),
+            details=_stable_choir_details(result),
         )
     )
     return results
