@@ -17,12 +17,30 @@
 
 `private://reference/example.mid` 같은 locator는 `--corpus-root` 아래의 파일을 가리킵니다. 실제 audio/reference corpus는 Git 밖에서 관리합니다.
 
+## 엔진별 prediction 생성
+
+실제 corpus를 선택한 AMT 엔진으로 실행해 case별 prediction을 생성합니다.
+
+```bash
+uv run --frozen python scripts/generate_tier2_predictions.py \
+  benchmarks/tier2/manifest.json \
+  --corpus-root /secure/audio-score-tier2 \
+  --predictions-root /secure/audio-score-tier2/runs/yourmt3 \
+  --engine mt3_infer \
+  --model yourmt3 \
+  --device cpu \
+  --output /secure/audio-score-tier2/runs/yourmt3/generation.json
+```
+
+`--engine`은 `mt3_infer`, `yourmt3`, `muscriptor`, `native`를 지원합니다. 실제 실행 가능 여부와 commercial usage 제한은 기존 transcription engine contract를 그대로 적용합니다. 각 case는 manifest의 audio locator를 반드시 가져야 하며, prediction은 `<case-id>.mid`와 `<case-id>.musicxml`로 저장됩니다.
+
 ## 엔진별 prediction 디렉터리
 
 Tier 2 runner는 case id를 기준으로 다음 파일을 읽습니다.
 
 ```text
 predictions/<case-id>.mid           # AMT prediction, 있으면 reference MIDI와 자동 평가
+predictions/<case-id>.musicxml      # 생성된 편집 가능 악보
 predictions/<case-id>.music.json    # meter/downbeat/chord/lyrics/SATB 등 추가 자동 지표
 predictions/<case-id>.product.json  # 사람 수정량 / publish time / export 성공 여부
 ```
@@ -70,9 +88,9 @@ Telemetry는 명시적으로 이 환경변수가 있을 때만 활성화됩니�
 - chord PATCH → `manual_chord_edits`
 - measure/signature mutation → `manual_measure_edits`
 - publication layout PATCH → `manual_layout_edits`
-- 성공한 최종 export → `successful_export=true`, `time_to_publish_seconds` 확정
+- PDF/MIDI/MusicXML/파트를 모두 포함하는 성공한 최종 export → `successful_export=true`, `time_to_publish_seconds` 확정
 
-HTTP 4xx/5xx 실패 요청은 수정량에 포함하지 않습니다. `manual_part_edits`처럼 현재 별도 mutation endpoint가 없는 항목은 필요한 경우 검수자가 보완할 수 있습니다.
+HTTP 4xx/5xx 실패 요청과 MusicXML-only 같은 부분 export는 publish 완료로 계산하지 않습니다. `manual_part_edits`처럼 현재 별도 mutation endpoint가 없는 항목은 필요한 경우 검수자가 보완할 수 있습니다.
 
 ## 엔진별 평가 실행
 
@@ -88,7 +106,7 @@ uv run --frozen python scripts/run_tier2_benchmark.py \
   --output /secure/audio-score-tier2/reports/mr-mt3.json
 ```
 
-동일한 manifest/reference를 사용해 MR-MT3, YourMT3 등 후보별 prediction root만 바꿔 실행합니다.
+동일한 manifest/reference를 사용해 MR-MT3, YourMT3 등 후보별 prediction root만 바꿔 실행합니다. engine id/model revision/runtime revision은 비어 있을 수 없고 artifact SHA-256은 64자리 hexadecimal이어야 합니다.
 
 ## 후보 비교
 
