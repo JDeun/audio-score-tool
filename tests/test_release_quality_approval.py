@@ -23,6 +23,8 @@ def _report(engine_id: str, *, seconds: float, artifact: str) -> dict:
     return {
         "schema_version": "1",
         "corpus_version": "tier2-v1",
+        "manifest_sha256": "c" * 64,
+        "case_fingerprint": "d" * 64,
         "engine": {
             "id": engine_id,
             "model_revision": "model-rev" if engine_id == "mt3_infer" else "other-model",
