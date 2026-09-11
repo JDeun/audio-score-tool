@@ -63,6 +63,37 @@ def test_edit_telemetry_counts_successful_mutations_and_export(tmp_path: Path, m
     assert payload["time_to_publish_seconds"] == 125.5
 
 
+def test_edit_telemetry_does_not_finish_on_partial_export(tmp_path: Path, monkeypatch):
+    path = tmp_path / "case-001.product.json"
+    started = datetime(2026, 9, 11, 12, 0, tzinfo=timezone.utc)
+    start_edit_session(path, case_id="case-001", song_id="song-1", started_at=started)
+    monkeypatch.setenv("AST_TIER2_TELEMETRY_FILE", str(path))
+
+    record_successful_song_mutation(
+        song_id="song-1",
+        method="POST",
+        path="/api/songs/song-1/export",
+        status_code=200,
+        request_body=b'{"formats":["musicxml"]}',
+        finished_at=started + timedelta(seconds=60),
+    )
+    partial = read_edit_session(path)
+    assert partial["successful_export"] is False
+    assert partial["time_to_publish_seconds"] is None
+
+    record_successful_song_mutation(
+        song_id="song-1",
+        method="POST",
+        path="/api/songs/song-1/export",
+        status_code=200,
+        request_body=b'{"formats":["musicxml","pdf","midi","parts"]}',
+        finished_at=started + timedelta(seconds=90),
+    )
+    complete = read_edit_session(path)
+    assert complete["successful_export"] is True
+    assert complete["time_to_publish_seconds"] == 90.0
+
+
 def test_edit_telemetry_ignores_failed_and_other_song_mutations(tmp_path: Path, monkeypatch):
     path = tmp_path / "case-001.product.json"
     start_edit_session(path, case_id="case-001", song_id="song-1")
