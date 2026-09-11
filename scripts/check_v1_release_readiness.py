@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from audio_score_tool.v1_release_readiness import assert_v1_release_ready
-from scripts.verify_release_versions import verify_versions
+from verify_release_versions import verify_versions
 
 ROOT = Path(__file__).resolve().parents[1]
 
