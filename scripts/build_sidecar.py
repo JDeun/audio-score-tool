@@ -35,10 +35,11 @@ def _verify_tag_version_contract() -> None:
     tag = os.getenv("GITHUB_REF_NAME", "").strip()
     if not tag:
         raise RuntimeError("Tagged release build is missing GITHUB_REF_NAME")
+    checker = "check_v1_release_readiness.py" if tag.startswith("v1") else "verify_release_versions.py"
     subprocess.run(
         [
             sys.executable,
-            str(ROOT / "scripts" / "verify_release_versions.py"),
+            str(ROOT / "scripts" / checker),
             "--tag",
             tag,
         ],
