@@ -43,6 +43,8 @@ MARKER_RE = re.compile(r"^(?:<{7}|={7}|>{7})(?:\s|$)", re.MULTILINE)
 DEBT_RE = re.compile(r"\b(?:TODO|FIXME|HACK|XXX)\b", re.IGNORECASE)
 ACTION_RE = re.compile(r"^\s*-?\s*uses:\s*([^\s#]+)", re.MULTILINE)
 PINNED_ACTION_RE = re.compile(r"^[^@]+@[0-9a-fA-F]{40}$")
+PULL_REQUEST_TARGET_RE = re.compile(r"^\s*pull_request_target\s*:", re.MULTILINE)
+WRITE_ALL_RE = re.compile(r"^\s*permissions\s*:\s*write-all\s*$", re.MULTILINE)
 SECRET_PATTERNS = {
     "private-key": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
     "github-token": re.compile(r"\bgh[opusr]_[A-Za-z0-9]{30,}\b"),
@@ -112,6 +114,12 @@ def audit_repository() -> list[str]:
             if pattern.search(text):
                 failures.append(f"secret-shaped content ({label}): {path}")
         if path.startswith(".github/workflows/"):
+            if PULL_REQUEST_TARGET_RE.search(text):
+                failures.append(
+                    f"GitHub workflow uses pull_request_target (forbidden for untrusted PR code): {path}"
+                )
+            if WRITE_ALL_RE.search(text):
+                failures.append(f"GitHub workflow grants write-all permissions: {path}")
             for action in ACTION_RE.findall(text):
                 if action.startswith("./"):
                     continue
