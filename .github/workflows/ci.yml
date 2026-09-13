@@ -68,7 +68,7 @@ jobs:
       - name: Python lint
         run: uv run --frozen ruff check src tests training scripts
 
-      - name: Python dependency vulnerability audit
+      - name: Python runtime dependency vulnerability audit
         run: |
           set -euo pipefail
           uv export --frozen --no-dev --no-hashes --output-file /tmp/runtime-requirements.raw.txt
@@ -76,6 +76,16 @@ jobs:
           # Exclude only the project itself; every third-party runtime dependency remains audited.
           grep -vE '^-e[[:space:]]+\.$' /tmp/runtime-requirements.raw.txt > /tmp/runtime-requirements.txt
           uvx --from pip-audit==2.9.0 pip-audit --strict --requirement /tmp/runtime-requirements.txt
+
+      - name: Python CI and desktop build dependency vulnerability audit
+        run: |
+          set -euo pipefail
+          uv export --frozen --no-hashes --extra dev --extra desktop \
+            --output-file /tmp/build-requirements.raw.txt
+          # The CI/test/build toolchain executes during trusted release jobs and therefore
+          # belongs in the supply-chain audit boundary, not only the shipped runtime set.
+          grep -vE '^-e[[:space:]]+\.$' /tmp/build-requirements.raw.txt > /tmp/build-requirements.txt
+          uvx --from pip-audit==2.9.0 pip-audit --strict --requirement /tmp/build-requirements.txt
 
       - name: Rust dependency vulnerability audit
         run: |
