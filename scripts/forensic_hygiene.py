@@ -45,6 +45,8 @@ ACTION_RE = re.compile(r"^\s*-?\s*uses:\s*([^\s#]+)", re.MULTILINE)
 PINNED_ACTION_RE = re.compile(r"^[^@]+@[0-9a-fA-F]{40}$")
 PULL_REQUEST_TARGET_RE = re.compile(r"^\s*pull_request_target\s*:", re.MULTILINE)
 WRITE_ALL_RE = re.compile(r"^\s*permissions\s*:\s*write-all\s*$", re.MULTILINE)
+RELEASE_PREFLIGHT_STEP = "Enforce tagged release readiness before draft creation"
+RELEASE_DRAFT_STEP = "Create draft GitHub Release"
 SECRET_PATTERNS = {
     "private-key": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
     "github-token": re.compile(r"\bgh[opusr]_[A-Za-z0-9]{30,}\b"),
@@ -125,6 +127,17 @@ def audit_repository() -> list[str]:
                     continue
                 if not PINNED_ACTION_RE.fullmatch(action):
                     failures.append(f"GitHub Action is not pinned to a full commit SHA: {path}: {action}")
+            if path == ".github/workflows/desktop-release.yml":
+                preflight_pos = text.find(RELEASE_PREFLIGHT_STEP)
+                draft_pos = text.find(RELEASE_DRAFT_STEP)
+                if preflight_pos < 0:
+                    failures.append("Desktop Release is missing the signed-tag release preflight")
+                if draft_pos < 0:
+                    failures.append("Desktop Release is missing draft release creation")
+                if preflight_pos >= 0 and draft_pos >= 0 and preflight_pos > draft_pos:
+                    failures.append(
+                        "Desktop Release creates a draft before signed-tag readiness is enforced"
+                    )
 
     history = _git(
         "log", "--all", "-p", "--no-ext-diff", "--", ".",
