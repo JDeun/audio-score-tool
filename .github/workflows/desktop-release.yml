@@ -1,7 +1,7 @@
 name: Desktop Release
 
 permissions:
-  contents: write
+  contents: read
 
 on:
   push:
@@ -14,6 +14,8 @@ concurrency:
 
 jobs:
   prepare-release:
+    permissions:
+      contents: write
     runs-on: ubuntu-24.04
     steps:
       - name: Explain unsigned-only tag builds
@@ -21,6 +23,38 @@ jobs:
         run: |
           echo "RELEASE_SIGNING_READY is not true. Installers will be built as CI artifacts only."
           echo "No public GitHub Release will be created."
+
+      - name: Checkout release contract
+        if: vars.RELEASE_SIGNING_READY == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup uv for release preflight
+        if: vars.RELEASE_SIGNING_READY == 'true'
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: 0.12.10
+          enable-cache: true
+
+      - name: Verify release lockfile
+        if: vars.RELEASE_SIGNING_READY == 'true'
+        run: uv lock --check
+
+      - name: Install release-contract dependencies
+        if: vars.RELEASE_SIGNING_READY == 'true'
+        run: uv sync --frozen --extra dev
+
+      - name: Enforce tagged release readiness before draft creation
+        if: vars.RELEASE_SIGNING_READY == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF_NAME" == v1* ]]; then
+            uv run --frozen python scripts/check_v1_release_readiness.py --tag "$GITHUB_REF_NAME"
+          else
+            uv run --frozen python scripts/verify_release_versions.py --tag "$GITHUB_REF_NAME"
+          fi
 
       - name: Validate updater signing configuration
         if: vars.RELEASE_SIGNING_READY == 'true'
@@ -46,6 +80,8 @@ jobs:
 
   build:
     needs: prepare-release
+    permissions:
+      contents: write
     timeout-minutes: 75
     strategy:
       fail-fast: false
@@ -320,6 +356,8 @@ jobs:
   publish-release:
     needs: build
     if: vars.RELEASE_SIGNING_READY == 'true'
+    permissions:
+      contents: write
     runs-on: ubuntu-24.04
     steps:
       - name: Download updater metadata
