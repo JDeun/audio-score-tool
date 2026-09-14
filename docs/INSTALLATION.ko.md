@@ -4,6 +4,8 @@ AudioScoreTool의 일반 사용자 설치 계약은 다음입니다.
 
 > **새 PC에서 설치 파일 하나를 실행한 뒤, Python/Node/Rust나 별도 악보 프로그램을 설치하지 않고 핵심 악보 workflow를 사용할 수 있어야 합니다.**
 
+하드웨어 최소/권장 사양과 AI 기능별 추가 요구량은 [`SYSTEM_REQUIREMENTS.ko.md`](SYSTEM_REQUIREMENTS.ko.md)를 참조하십시오. AMT 관련 수치는 Tier 2 실음원 benchmark 전까지 provisional 기준이며, stable v1에서 실측값으로 확정합니다.
+
 ## 현재 배포 상태
 
 | 등급 | 용도 | 상태 |
@@ -58,7 +60,7 @@ MuseScore, LilyPond, `musicxml2ly`는 PDF fallback으로도 호출하지 않습�
 
 다음 기능은 크기·라이선스·업데이트 주기가 핵심 앱과 달라 별도 component가 될 수 있습니다. **별도 component라는 의미는 사용자가 시스템 package를 직접 설치한다는 뜻이 아닙니다.**
 
-- AMT transcription engine + weights
+- AMT inference runtime + model weights
 - Demucs
 - WhisperX/alignment model
 - YouTube ingest stack (`yt-dlp`, 필요한 media/JS runtime)
@@ -148,5 +150,6 @@ signing뿐 아니라 **독립 실행성**을 실제로 검증해야 합니다.
 8. packaged sidecar에서 music21/Verovio/fpdf2 실제 실행 성공
 9. 공식 지원하는 managed component 기능은 앱 안에서 준비 가능
 10. update → relaunch 및 invalid updater signature rejection 성공
+11. [`SYSTEM_REQUIREMENTS.ko.md`](SYSTEM_REQUIREMENTS.ko.md)의 최소/권장 등급을 대표하는 clean machine에서 기본 workflow와 공식 지원 AI 기능의 peak RAM/VRAM/RTF를 기록
 
 코드 signing/notarization과 updater credential 작업은 [#22](https://github.com/JDeun/audio-score-tool/issues/22)에서 추적합니다. dependency별 배포 방식과 라이선스는 [`DEPENDENCIES.ko.md`](DEPENDENCIES.ko.md), [`THIRD_PARTY_LICENSES.ko.md`](THIRD_PARTY_LICENSES.ko.md)를 함께 확인합니다.
