@@ -48,6 +48,9 @@ jobs:
       - name: Repository forensic hygiene
         run: python scripts/forensic_hygiene.py
 
+      - name: Validate research knowledge wiki
+        run: python scripts/check_knowledge_wiki.py
+
       - name: Verify Python lockfile
         run: uv lock --check
 
