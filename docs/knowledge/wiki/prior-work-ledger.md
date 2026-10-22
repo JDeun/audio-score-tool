@@ -7,3 +7,6 @@ Status: initial inventory; Last reviewed: 2026-10-23
 - [SheetSage2 research issue](https://github.com/JDeun/audio-score-tool/issues/43): not yet a completed integration experiment.
 
 Open gaps: backfill source revisions, failed attempts, measured hardware, and result artifact identifiers.
+
+- [Provider research inventory](../../research/AMT_PROVIDER_LANDSCAPE_2026.md): reported vs reproduced distinction and source links.
+- [Experiment/failure audit](../../research/EXPERIMENT_LEDGER_2026.md): no unverified historical failures asserted.
