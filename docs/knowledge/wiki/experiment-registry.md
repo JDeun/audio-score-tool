@@ -8,3 +8,5 @@ Status: seed; Last reviewed: 2026-10-23
 | SheetSage2 hybrid analysis | [#43](https://github.com/JDeun/audio-score-tool/issues/43) | hypothesis; pending |
 
 Open gaps: measured run records, reproducible commands, and corpus fingerprints.
+
+See [experiment audit ledger](../../research/EXPERIMENT_LEDGER_2026.md) for missing execution evidence.
