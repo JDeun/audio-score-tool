@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "id": "tinashe-me-so-bad-official-video",
+  "title": "Tinashe - Me So Bad (Official Video) ft. Ty Dolla $ign, French Montana",
+  "youtube_video_id": "VaGcPRMY5UM",
+  "youtube_url": "https://www.youtube.com/watch?v=VaGcPRMY5UM",
+  "input_kind": "commercial_music_video",
+  "evaluation": {
+    "purpose": "end-to-end YouTube URL transcription smoke test",
+    "models": ["yourmt3", "mr_mt3", "muscriptor", "sheetsage2"],
+    "hybrids": ["yourmt3+sheetsage2", "mr_mt3+sheetsage2", "muscriptor+sheetsage2"],
+    "ensembles": ["yourmt3+mr_mt3"],
+    "ground_truth_available": false,
+    "note": "Output comparison alone cannot establish transcription accuracy."
+  },
+  "media_acquisition": {
+    "status": "pending_rights_or_authorized_audio",
+    "policy": "Do not download or redistribute copyrighted video audio without authorization.",
+    "audio_asset_committed": false
+  }
+}
