@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "purpose": "evaluation_only",
+  "datasets": [
+    {"id":"casd","task":"chord","source":"https://github.com/chordify/CASD","audio_included":false,"license":"CC-BY-NC-SA-4.0","status":"annotation_import_supported"},
+    {"id":"isophonics","task":"chord_beat","source":"https://isophonics.net/datasets","audio_included":false,"license":"verify_upstream","status":"planned"},
+    {"id":"billboard","task":"chord","source":"https://music-ir.org/mirex/wiki/2025%3AAudio_Chord_Estimation","audio_included":false,"license":"verify_upstream","status":"planned"},
+    {"id":"choco","task":"chord","source":"https://github.com/smashub/choco","audio_included":false,"license":"per_source","status":"planned"},
+    {"id":"slakh2100","task":"multi_instrument_amt","source":"https://zenodo.org/records/4599666","audio_included":true,"license":"CC-BY-4.0_reported_verify","status":"planned"},
+    {"id":"maestro","task":"piano_amt","source":"https://magenta.tensorflow.org/datasets/maestro","audio_included":true,"license":"CC-BY-NC-SA-4.0","status":"planned"},
+    {"id":"guitarset","task":"guitar_amt","source":"https://github.com/marl/GuitarSet","audio_included":true,"license":"CC-BY-4.0_reported_verify","status":"planned"},
+    {"id":"urmp","task":"ensemble_amt","source":"https://huggingface.co/datasets/J1mmymm/MIMuT_Data_v2","audio_included":true,"license":"verify_upstream","status":"planned"},
+    {"id":"musicnet_em","task":"classical_amt","source":"https://zenodo.org/records/7793404","audio_included":true,"license":"verify_upstream","status":"planned"},
+    {"id":"mdb_drums_pp","task":"drum_amt","source":"https://huggingface.co/datasets/xavriley/MDBDrumsPlusPlus","audio_included":true,"license":"verify_upstream","status":"planned"},
+    {"id":"enst_drums","task":"drum_amt","source":"https://huggingface.co/datasets/J1mmymm/MIMuT_Data_v2","audio_included":true,"license":"verify_upstream","status":"planned"},
+    {"id":"idmt_smt_bass","task":"bass_amt","source":"https://huggingface.co/datasets/J1mmymm/MIMuT_Data_v2","audio_included":true,"license":"verify_upstream","status":"planned"},
+    {"id":"rwc_pop","task":"pop_amt","source":"https://huggingface.co/datasets/J1mmymm/MIMuT_Data_v2","audio_included":true,"license":"CC-BY-NC-4.0_reported_verify","status":"planned"},
+    {"id":"asap","task":"piano_amt","source":"https://github.com/fosfrancesco/asap-dataset","audio_included":true,"license":"verify_upstream","status":"planned"},
+    {"id":"gaps","task":"guitar_amt","source":"https://huggingface.co/datasets/xavriley/GAPS","audio_included":true,"license":"verify_upstream","status":"planned"}
+  ]
+}

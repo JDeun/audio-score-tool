@@ -1,0 +1,80 @@
+name: SheetSage2 Real Inference (CPU)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [research/tier2-model-experiments]
+    paths:
+      - 'scripts/sheetsage2_infer_adapter.py'
+      - '.github/workflows/sheetsage2-inference.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sheetsage2-cpu-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  infer:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    env:
+      HF_HOME: /tmp/sheetsage-hf
+      HF_HUB_DISABLE_TELEMETRY: '1'
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: System audio dependencies
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg libsndfile1
+      - name: Install pinned SheetSage2 inference runtime
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'sheetsage-infer @ git+https://github.com/openmirlab/sheetsage-infer.git@8f31ada34494ac24ee02f0d7e96edcb33a3e997b'
+      - name: Synthesize deterministic audio fixture
+        run: |
+          mkdir -p out
+          python - <<'PY'
+          import math, wave, struct
+          sample_rate = 16000
+          with wave.open("out/chords.wav", "wb") as out:
+              out.setnchannels(1)
+              out.setsampwidth(2)
+              out.setframerate(sample_rate)
+              for n in range(sample_rate * 12):
+                  t = n / sample_rate
+                  chord = ((261.63, 329.63, 392.0),
+                           (349.23, 440.0, 523.25),
+                           (392.0, 493.88, 587.33))[int(t // 4)]
+                  amp = sum(math.sin(2 * math.pi * freq * t) for freq in chord) / 3
+                  out.writeframesraw(struct.pack("<h", int(amp * 8000)))
+          PY
+      - name: Run actual SheetSage2 model inference on CPU
+        run: |
+          python scripts/sheetsage2_infer_adapter.py out/chords.wav out/sheetsage2.json --device cpu
+      - name: Verify model output schema
+        run: |
+          python - <<'PY'
+          import json
+          with open("out/sheetsage2.json") as handle:
+              data = json.load(handle)
+          assert data["schema_version"] == 1
+          assert data["model"] == "sheetsage2"
+          assert isinstance(data["chords"], list)
+          assert isinstance(data["beats"], list)
+          print({k: len(data[k]) for k in ("chords", "beats", "keys")})
+          PY
+      - name: Upload inference evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sheetsage2-cpu-inference-${{ github.run_id }}
+          path: |
+            out/sheetsage2.json
+            out/chords.wav
+          if-no-files-found: warn
+          retention-days: 7

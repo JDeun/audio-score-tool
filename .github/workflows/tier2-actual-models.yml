@@ -1,0 +1,171 @@
+name: Tier 2 Actual Model Smoke Tests
+
+on:
+  push:
+    branches: [research/tier2-model-experiments]
+    paths:
+      - '.github/workflows/tier2-actual-models.yml'
+      - 'scripts/run_tier2_model_smoke.py'
+  workflow_dispatch:
+    inputs:
+      youtube_url:
+        description: 'Permitted YouTube video URL (max 300 seconds)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}
+
+concurrency:
+  group: tier2-actual-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  amt:
+    name: ${{ matrix.model }} CPU transcription
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [yourmt3, mr_mt3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install inference runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install --upgrade pip
+          python -m pip install 'transformers>=4.41,<5' mt3-infer music21
+          python -m pip install --force-reinstall 'transformers==4.44.2' 'tokenizers>=0.19,<0.20'
+          python -c 'import transformers; assert transformers.__version__ == "4.44.2", transformers.__version__'
+      - name: Install YouTube audio downloader
+        if: inputs.youtube_url != ''
+        run: python -m pip install yt-dlp
+      - name: Download permitted real-world audio
+        if: inputs.youtube_url != ''
+        env:
+          BENCHMARK_URL: ${{ inputs.youtube_url }}
+        run: python scripts/download_youtube_benchmark.py "$BENCHMARK_URL" out/chords.wav
+      - name: Synthesize fixed AMT test audio
+        if: inputs.youtube_url == ''
+        run: |
+          mkdir -p out
+          python - <<'PY'
+          import math, struct, wave
+          rate=16000
+          with wave.open("out/chords.wav","wb") as wav:
+              wav.setnchannels(1)
+              wav.setsampwidth(2)
+              wav.setframerate(rate)
+              for n in range(rate*8):
+                  t=n/rate
+                  freqs=(261.63,329.63,392.0) if t<4 else (349.23,440.0,523.25)
+                  amp=sum(math.sin(2*math.pi*f*t) for f in freqs)/3
+                  wav.writeframesraw(struct.pack("<h",int(amp*7000)))
+          PY
+      - name: Run real AMT inference
+        run: |
+          python scripts/run_tier2_model_smoke.py out/chords.wav out/${{ matrix.model }} --model ${{ matrix.model }}
+      - name: Upload outputs and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: amt-${{ matrix.model }}-${{ github.run_id }}
+          path: |
+            out/**/*.mid
+            out/**/*.musicxml
+            out/**/*.json
+          if-no-files-found: warn
+          retention-days: 7
+
+  hybrid:
+    name: ${{ matrix.model }} + SheetSage2 fusion
+    needs: amt
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [yourmt3, mr_mt3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Download base model output
+        uses: actions/download-artifact@v4
+        with:
+          name: amt-${{ matrix.model }}-${{ github.run_id }}
+          path: out
+      - name: Install SheetSage2 and MusicXML dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          python -m pip install 'sheetsage-infer @ git+https://github.com/openmirlab/sheetsage-infer.git@8f31ada34494ac24ee02f0d7e96edcb33a3e997b' music21
+      - name: Run SheetSage2 and merge base transcription
+        run: |
+          test -s out/${{ matrix.model }}/score.musicxml
+          python scripts/sheetsage2_infer_adapter.py out/chords.wav out/sheetsage2.json --device cpu
+          python - <<'PY'
+          from pathlib import Path
+          from audio_score_tool.sheetsage_hybrid import merge_sheetsage_musicxml
+          model = "${{ matrix.model }}"
+          print(merge_sheetsage_musicxml(
+              Path(f"out/{model}/score.musicxml"),
+              Path("out/sheetsage2.json"),
+              Path(f"out/{model}+sheetsage2.musicxml"),
+          ))
+          PY
+      - name: Upload fusion evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hybrid-${{ matrix.model }}-${{ github.run_id }}
+          path: |
+            out/**/*.mid
+            out/**/*.musicxml
+            out/**/*.json
+          if-no-files-found: warn
+          retention-days: 7
+
+  muscriptor:
+    name: MuScriptor small CPU transcription
+    if: ${{ vars.ENABLE_MUSCRIPTOR == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install model and audio tools
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          python -m pip install muscriptor yt-dlp
+      - name: Download permitted YouTube audio
+        if: inputs.youtube_url != ''
+        env:
+          BENCHMARK_URL: ${{ inputs.youtube_url }}
+        run: python scripts/download_youtube_benchmark.py "$BENCHMARK_URL" out/chords.wav
+      - name: Run MuScriptor inference
+        if: inputs.youtube_url != ''
+        run: |
+          mkdir -p out/muscriptor
+          muscriptor transcribe out/chords.wav --format sheets --output out/muscriptor --device cpu --model small --detect-tempo best-effort
+          test -s out/muscriptor/score.mid
+          test -s out/muscriptor/score.musicxml
+      - name: Upload MuScriptor results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: muscriptor-${{ github.run_id }}
+          path: out/muscriptor/
+          if-no-files-found: warn

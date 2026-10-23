@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "stages": [
+    {
+      "id": "yourmt3",
+      "kind": "amt",
+      "engine": "mt3_infer",
+      "model": "yourmt3",
+      "enabled": true
+    },
+    {
+      "id": "mr-mt3",
+      "kind": "amt",
+      "engine": "mt3_infer",
+      "model": "mr_mt3",
+      "enabled": true
+    },
+    {
+      "id": "muscriptor",
+      "kind": "amt",
+      "engine": "muscriptor",
+      "model": "large",
+      "enabled": false,
+      "blocked_reason": "Non-commercial checkpoint and runner setup required"
+    },
+    {
+      "id": "sheetsage2",
+      "kind": "analysis",
+      "enabled": false,
+      "blocked_reason": "Separate lead-sheet adapter and NC license isolation required"
+    },
+    {
+      "id": "yourmt3+sheetsage2",
+      "kind": "hybrid",
+      "enabled": true,
+      "base_stage": "yourmt3"
+    },
+    {
+      "id": "mr-mt3+sheetsage2",
+      "kind": "hybrid",
+      "enabled": true,
+      "base_stage": "mr-mt3"
+    },
+    {
+      "id": "muscriptor+sheetsage2",
+      "kind": "hybrid",
+      "enabled": false,
+      "base_stage": "muscriptor",
+      "blocked_reason": "MuScriptor weights are NC and its base AMT stage is not configured"
+    }
+  ]
+}
