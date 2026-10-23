@@ -7,6 +7,11 @@ on:
       - '.github/workflows/tier2-actual-models.yml'
       - 'scripts/run_tier2_model_smoke.py'
   workflow_dispatch:
+    inputs:
+      youtube_url:
+        description: 'Permitted YouTube video URL (max 180 seconds)'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -35,7 +40,16 @@ jobs:
           sudo apt-get install -y ffmpeg
           python -m pip install --upgrade pip
           python -m pip install mt3-infer music21
+      - name: Install YouTube audio downloader
+        if: inputs.youtube_url != ''
+        run: python -m pip install yt-dlp
+      - name: Download permitted real-world audio
+        if: inputs.youtube_url != ''
+        env:
+          BENCHMARK_URL: ${{ inputs.youtube_url }}
+        run: python scripts/download_youtube_benchmark.py "$BENCHMARK_URL" out/chords.wav
       - name: Synthesize fixed AMT test audio
+        if: inputs.youtube_url == ''
         run: |
           mkdir -p out
           python - <<'PY'
@@ -108,3 +122,39 @@ jobs:
           path: out/
           if-no-files-found: warn
           retention-days: 7
+
+  muscriptor:
+    name: MuScriptor small CPU transcription
+    if: ${{ secrets.HF_TOKEN != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install model and audio tools
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg musescore3
+          python -m pip install muscriptor yt-dlp
+      - name: Download permitted YouTube audio
+        if: inputs.youtube_url != ''
+        env:
+          BENCHMARK_URL: ${{ inputs.youtube_url }}
+        run: python scripts/download_youtube_benchmark.py "$BENCHMARK_URL" out/chords.wav
+      - name: Run MuScriptor inference
+        if: inputs.youtube_url != ''
+        run: |
+          mkdir -p out/muscriptor
+          muscriptor transcribe out/chords.wav --format sheets --output out/muscriptor --device cpu --model small --detect-tempo best-effort
+          test -s out/muscriptor/score.mid
+          test -s out/muscriptor/score.musicxml
+      - name: Upload MuScriptor results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: muscriptor-${{ github.run_id }}
+          path: out/muscriptor/
+          if-no-files-found: warn
