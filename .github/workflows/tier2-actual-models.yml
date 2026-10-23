@@ -1,0 +1,64 @@
+name: Tier 2 Actual Model Smoke Tests
+
+on:
+  push:
+    branches: [research/tier2-model-experiments]
+    paths:
+      - '.github/workflows/tier2-actual-models.yml'
+      - 'scripts/run_tier2_model_smoke.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tier2-actual-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  amt:
+    name: ${{ matrix.model }} CPU transcription
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [yourmt3, mr_mt3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install inference runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install --upgrade pip
+          python -m pip install mt3-infer music21
+      - name: Synthesize fixed AMT test audio
+        run: |
+          mkdir -p out
+          python - <<'PY'
+          import math, struct, wave
+          rate=16000
+          with wave.open("out/chords.wav","wb") as wav:
+              wav.setnchannels(1)
+              wav.setsampwidth(2)
+              wav.setframerate(rate)
+              for n in range(rate*8):
+                  t=n/rate
+                  freqs=(261.63,329.63,392.0) if t<4 else (349.23,440.0,523.25)
+                  amp=sum(math.sin(2*math.pi*f*t) for f in freqs)/3
+                  wav.writeframesraw(struct.pack("<h",int(amp*7000)))
+          PY
+      - name: Run real AMT inference
+        run: |
+          python scripts/run_tier2_model_smoke.py out/chords.wav out/${{ matrix.model }} --model ${{ matrix.model }}
+      - name: Upload outputs and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: amt-${{ matrix.model }}-${{ github.run_id }}
+          path: out/
+          if-no-files-found: warn
+          retention-days: 7
