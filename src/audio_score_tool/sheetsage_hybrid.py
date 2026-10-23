@@ -4,6 +4,7 @@ import bisect
 import json
 import math
 import os
+import shlex
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -26,7 +27,10 @@ def run_sheetsage_adapter(audio: Path, output: Path, *, command: str | None = No
     if not executable:
         raise SheetSageError("Set AST_SHEETSAGE2_ADAPTER to a reviewed SheetSage2 executable")
     output.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run([executable, str(audio), str(output)], check=True)
+    argv = shlex.split(executable)
+    if not argv:
+        raise SheetSageError("empty SheetSage2 adapter command")
+    subprocess.run([*argv, str(audio), str(output)], check=True)
     return load_sheetsage_events(output)
 
 
