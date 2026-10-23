@@ -33,19 +33,22 @@
       "id": "yourmt3+sheetsage2",
       "kind": "hybrid",
       "enabled": false,
-      "blocked_reason": "Reconciliation adapter and common output evaluation not implemented"
+      "blocked_reason": "Requires pinned SheetSage2 events under tier2-results/sheetsage2/<case>.json and base AMT results",
+      "base_stage": "yourmt3"
     },
     {
       "id": "mr-mt3+sheetsage2",
       "kind": "hybrid",
       "enabled": false,
-      "blocked_reason": "MR-MT3 and reconciliation adapters not validated"
+      "blocked_reason": "Requires pinned SheetSage2 events under tier2-results/sheetsage2/<case>.json and base AMT results",
+      "base_stage": "mr-mt3"
     },
     {
       "id": "muscriptor+sheetsage2",
       "kind": "hybrid",
       "enabled": false,
-      "blocked_reason": "NC-only combination and reconciliation adapter not implemented"
+      "blocked_reason": "Requires pinned SheetSage2 events under tier2-results/sheetsage2/<case>.json and base AMT results",
+      "base_stage": "muscriptor"
     }
   ]
 }
