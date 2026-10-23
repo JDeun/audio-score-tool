@@ -38,7 +38,10 @@ def main() -> int:
     parser.add_argument("--output-root", type=Path, default=Path("tier2-results"))
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument(\n        "--fail-on-blocked", action="store_true",\n        help="Require every listed combination to be executable",\n    )
+    parser.add_argument(
+        "--fail-on-blocked", action="store_true",
+        help="Require every listed combination to be executable",
+    )
     args = parser.parse_args()
 
     stages = plan(json.loads(args.matrix.read_text(encoding="utf-8")), include_blocked=True)
@@ -51,7 +54,10 @@ def main() -> int:
         from audio_score_tool.tier2_benchmark import load_manifest, resolve_locator
         _, cases = load_manifest(args.manifest)
         for case in cases:
-            if (\n                case.audio_locator is None\n                or not resolve_locator(case.audio_locator, corpus_root=args.corpus_root).is_file()\n            ):
+            if (
+                case.audio_locator is None
+                or not resolve_locator(case.audio_locator, corpus_root=args.corpus_root).is_file()
+            ):
                 parser.error(f"missing real audio for case {case.id}")
     reports: list[Path] = []
     for stage in stages:
@@ -65,8 +71,14 @@ def main() -> int:
             revision = os.environ.get(prefix + "_MODEL_REVISION")
             runtime = os.environ.get(prefix + "_RUNTIME_REVISION")
             checksum = os.environ.get(prefix + "_ARTIFACT_SHA256")
-            if (\n                not revision or not runtime or not checksum or len(checksum) != 64\n                or any(c not in "0123456789abcdefABCDEF" for c in checksum)\n            ):
-                item.update(\n                    status="blocked",\n                    reason=f"missing pinned {prefix}_MODEL_REVISION/RUNTIME_REVISION/ARTIFACT_SHA256",\n                )
+            if (
+                not revision or not runtime or not checksum or len(checksum) != 64
+                or any(c not in "0123456789abcdefABCDEF" for c in checksum)
+            ):
+                item.update(
+                    status="blocked",
+                    reason=f"missing pinned {prefix}_MODEL_REVISION/RUNTIME_REVISION/ARTIFACT_SHA256",
+                )
             else:
                 prediction_root = args.output_root / stage["id"]
                 report = args.output_root / (stage["id"] + "-report.json")
@@ -84,7 +96,10 @@ def main() -> int:
                 except subprocess.CalledProcessError as exc:
                     item.update(status="failed", reason=f"command exited {exc.returncode}")
                 else:
-                    item.update(\n                        status="completed", report=str(report),\n                        report_sha256=hashlib.sha256(report.read_bytes()).hexdigest(),\n                    )
+                    item.update(
+                        status="completed", report=str(report),
+                        report_sha256=hashlib.sha256(report.read_bytes()).hexdigest(),
+                    )
                     reports.append(report)
                 finally:
                     item["elapsed_seconds"] = round(time.monotonic() - started, 3)
@@ -93,12 +108,23 @@ def main() -> int:
 
     if len(reports) >= 2:
         try:
-            subprocess.run(\n                [sys.executable, "scripts/compare_tier2_reports.py", *map(str, reports),\n                 "--output", str(args.output_root / "comparison.json")], check=True,\n            )
+            subprocess.run(
+                [sys.executable, "scripts/compare_tier2_reports.py", *map(str, reports),
+                 "--output", str(args.output_root / "comparison.json")], check=True,
+            )
         except subprocess.CalledProcessError:
             results.append({"id": "comparison", "status": "failed"})
-    summary = {\n        "schema_version": 1, "results": results, "completed": len(reports),\n        "blocked": sum(r["status"] == "blocked" for r in results),\n    }
-    (args.output_root / "summary.json").write_text(\n        json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8",\n    )
-    has_failure = any(r["status"] == "failed" for r in results)\n    has_blocked = any(r["status"] == "blocked" for r in results)\n    return 1 if has_failure or (args.fail_on_blocked and has_blocked) else 0
+    summary = {
+        "schema_version": 1, "results": results, "completed": len(reports),
+        "blocked": sum(r["status"] == "blocked" for r in results),
+    }
+    (args.output_root / "summary.json").write_text(
+        json.dumps(summary, ensure_ascii=False, indent=2) + "
+", encoding="utf-8",
+    )
+    has_failure = any(r["status"] == "failed" for r in results)
+    has_blocked = any(r["status"] == "blocked" for r in results)
+    return 1 if has_failure or (args.fail_on_blocked and has_blocked) else 0
 
 
 if __name__ == "__main__":
