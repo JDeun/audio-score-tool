@@ -16,6 +16,9 @@ on:
 permissions:
   contents: read
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}
+
 concurrency:
   group: tier2-actual-${{ github.ref }}
   cancel-in-progress: true
@@ -73,7 +76,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: amt-${{ matrix.model }}-${{ github.run_id }}
-          path: out/
+          path: |
+            out/**/*.mid
+            out/**/*.musicxml
+            out/**/*.json
           if-no-files-found: warn
           retention-days: 7
 
@@ -119,7 +125,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: hybrid-${{ matrix.model }}-${{ github.run_id }}
-          path: out/
+          path: |
+            out/**/*.mid
+            out/**/*.musicxml
+            out/**/*.json
           if-no-files-found: warn
           retention-days: 7
 
