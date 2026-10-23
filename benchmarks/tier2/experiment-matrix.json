@@ -13,14 +13,13 @@
       "kind": "amt",
       "engine": "mt3_infer",
       "model": "mr_mt3",
-      "enabled": false,
-      "blocked_reason": "Verify registered model ID and checkpoint before enabling"
+      "enabled": true
     },
     {
       "id": "muscriptor",
       "kind": "amt",
       "engine": "muscriptor",
-      "model": "default",
+      "model": "large",
       "enabled": false,
       "blocked_reason": "Non-commercial checkpoint and runner setup required"
     },
