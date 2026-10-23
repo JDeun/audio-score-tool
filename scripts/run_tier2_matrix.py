@@ -71,7 +71,10 @@ def main() -> int:
         elif args.dry_run:
             item["status"] = "planned"
         elif stage["kind"] == "hybrid":
-            from audio_score_tool.sheetsage_hybrid import merge_sheetsage_musicxml
+            from audio_score_tool.sheetsage_hybrid import (
+                merge_sheetsage_musicxml,
+                run_sheetsage_adapter,
+            )
 
             base = args.output_root / stage["base_stage"]
             prediction_root = args.output_root / stage["id"]
@@ -83,8 +86,13 @@ def main() -> int:
                     midi = base / f"{case.id}.mid"
                     musicxml = base / f"{case.id}.musicxml"
                     events = args.output_root / "sheetsage2" / f"{case.id}.json"
-                    if not (midi.is_file() and musicxml.is_file() and events.is_file()):
-                        raise FileNotFoundError(f"missing AMT or SheetSage2 artifact: {case.id}")
+                    if not (midi.is_file() and musicxml.is_file()):
+                        raise FileNotFoundError(f"missing AMT artifact: {case.id}")
+                    if not events.is_file():
+                        if not os.environ.get("AST_SHEETSAGE2_ADAPTER"):
+                            raise FileNotFoundError(f"missing SheetSage2 events: {case.id}")
+                        audio = resolve_locator(case.audio_locator, corpus_root=args.corpus_root)
+                        run_sheetsage_adapter(audio, events)
                     shutil.copy2(midi, prediction_root / midi.name)
                     merge_sheetsage_musicxml(
                         musicxml, events, prediction_root / musicxml.name,
