@@ -58,3 +58,14 @@ P2: cost/latency/accuracy Pareto analysis on GitHub Actions CPU and optional GPU
 
 ## Limitations
 No public official Chordify inference API or model weights were verified in this investigation. Do not automate scraping, assume Chordify results are reference annotations, or claim its algorithm can be reproduced from the high-level description. The exact commercial production model architecture and accuracy are undisclosed.
+
+## CASD feasibility and alternative corpora (verified 2026-10-23)
+- CASD **is usable for noncommercial research** under **CC BY-NC-SA 4.0**, with attribution and share-alike requirements on adaptations. Repository: https://github.com/chordify/CASD ; license: https://github.com/chordify/CASD/blob/master/LICENSE.md .
+- CASD contains 50 Billboard songs, four expert chord annotations per song, JAMS/Harte format. **It does not distribute the copyrighted source audio**. Acquire matched audio separately and verify recording/version/time alignment and rights.
+- CASD can measure chord recognition but **cannot evaluate full instrument note-level AMT**. Use independent MIDI-aligned audio corpora for AMT.
+- `scripts/import_casd_annotations.py` converts JAMS to per-annotator intervals, preserving all references; requires no network at runtime.
+- Isophonics (https://isophonics.net/datasets): annotated chord/key/beat datasets; original commercial audio not automatically licensed.
+- ChoCo (https://github.com/smashub/choco): large harmonically annotated symbolic/audio-aligned metadata collection, not a turnkey audio dataset.
+- ASAP (https://github.com/fosfrancesco/asap-dataset): classical piano MIDI/audio-alignment and beats, better for AMT than pop harmony.
+- Hugging Face hosts community datasets but presence on HF **does not imply permission to redistribute commercial recordings**. Inspect each dataset card, actual audio availability, license and alignment; prefer authoritative source when available.
+- 2026 MIREX ACE guidelines (https://music-ir.org/mirex/wiki/2026%3AAudio_Chord_Estimation) prohibit Billboard 2013 test material for training, validation or model selection in the competition; maintain split provenance if seeking MIREX-comparable results.
