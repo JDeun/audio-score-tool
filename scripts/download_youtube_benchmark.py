@@ -12,7 +12,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 
-def download(url: str, destination: Path, *, max_duration: int = 180) -> dict:
+def download(url: str, destination: Path, *, max_duration: int = 300) -> dict:
     parsed = urlparse(url)
     if parsed.scheme != "https" or parsed.hostname not in {
         "www.youtube.com", "youtube.com", "m.youtube.com", "youtu.be",
@@ -44,7 +44,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("url")
     parser.add_argument("output", type=Path)
-    parser.add_argument("--max-duration", type=int, default=180)
+    parser.add_argument("--max-duration", type=int, default=300)
     args = parser.parse_args()
     print(json.dumps(download(args.url, args.output, max_duration=args.max_duration)))
     return 0
