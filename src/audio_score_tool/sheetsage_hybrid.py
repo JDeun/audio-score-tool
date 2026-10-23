@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import bisect
 import json
+import math
 import os
 import subprocess
 from pathlib import Path
@@ -44,7 +46,9 @@ def load_sheetsage_events(path: Path) -> dict[str, Any]:
             at = event.get("time_seconds")
             if isinstance(at, bool) or not isinstance(at, (int, float)) or not 0 <= at < 1e8:
                 raise SheetSageError(f"invalid {name} time_seconds")
-            if at < last:
+            if not math.isfinite(at):
+                raise SheetSageError(f'{name} time_seconds must be finite')
+            if at <= last:
                 raise SheetSageError(f"{name} events must be chronological")
             last = float(at)
             if name in ("chords", "keys") and not isinstance(event.get("label"), str):
@@ -52,8 +56,12 @@ def load_sheetsage_events(path: Path) -> dict[str, Any]:
     return payload
 
 
-def _quarter_offset(seconds: float, *, bpm: float) -> float:
-    return seconds * bpm / 60.0
+def _quarter_offset(seconds: float, *, bpm: float, beats: list[dict[str, Any]] | None = None) -> float:
+    if not beats or len(beats) < 2:
+        return seconds * bpm / 60.0
+    anchors = [float(beat['time_seconds']) for beat in beats]
+    index = min(max(bisect.bisect_right(anchors, seconds) - 1, 0), len(anchors) - 2)
+    return index + (seconds - anchors[index]) / (anchors[index + 1] - anchors[index])
 
 
 def merge_sheetsage_musicxml(
@@ -68,7 +76,7 @@ def merge_sheetsage_musicxml(
     Mapping from seconds to score position assumes constant tempo unless an
     explicit bpm is supplied. Do not claim this is beat-aligned on rubato audio.
     """
-    if bpm <= 0:
+    if not math.isfinite(bpm) or bpm <= 0:
         raise SheetSageError("bpm must be positive")
     events = load_sheetsage_events(sheetsage_json)
     score = converter.parse(str(amt_musicxml))
@@ -77,6 +85,7 @@ def merge_sheetsage_musicxml(
         raise SheetSageError("AMT MusicXML has no parts")
     target = parts[0]
     added = {"chords": 0, "keys": 0, "meter": 0}
+    beats = events.get("beats", [])
     for event in events.get("chords", []):
         label = event["label"].strip()
         if label in {"", "N", "N.C.", "no_chord"}:
@@ -85,14 +94,14 @@ def merge_sheetsage_musicxml(
             symbol = harmony.ChordSymbol(label)
         except Exception as exc:
             raise SheetSageError(f"unsupported chord label: {label}") from exc
-        target.insert(_quarter_offset(event["time_seconds"], bpm=bpm), symbol)
+        target.insert(_quarter_offset(event["time_seconds"], bpm=bpm, beats=beats), symbol)
         added["chords"] += 1
     for event in events.get("keys", []):
         try:
             signature = key.Key(event["label"])
         except Exception as exc:
             raise SheetSageError(f"unsupported key label: {event['label']}") from exc
-        target.insert(_quarter_offset(event["time_seconds"], bpm=bpm), signature)
+        target.insert(_quarter_offset(event["time_seconds"], bpm=bpm, beats=beats), signature)
         added["keys"] += 1
     signature = events.get("meter")
     if signature is not None:
@@ -105,4 +114,5 @@ def merge_sheetsage_musicxml(
     if not destination.is_file():
         raise SheetSageError("MusicXML merge did not produce an output")
     return {"schema_version": 1, "added": added, "source": str(amt_musicxml),
-            "sheetsage": str(sheetsage_json), "tempo_assumption_bpm": bpm}
+            "sheetsage": str(sheetsage_json), "tempo_assumption_bpm": bpm,
+            "alignment": "beat_interpolated" if len(beats) >= 2 else "constant_bpm"
