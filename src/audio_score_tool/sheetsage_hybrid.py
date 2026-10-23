@@ -8,7 +8,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from music21 import converter, harmony, key, meter
+from music21 import converter, harmony, key, meter, tempo
 
 
 class SheetSageError(ValueError):
@@ -117,3 +117,52 @@ def merge_sheetsage_musicxml(
             "sheetsage": str(sheetsage_json), "tempo_assumption_bpm": bpm,
             "alignment": "beat_interpolated" if len(beats) >= 2 else "constant_bpm"
 }
+
+
+def normalize_lead_sheet_musicxml(
+    lead_sheet: Path, destination: Path, *, fallback_bpm: float = 120.0,
+) -> dict[str, Any]:
+    """Convert a model-exported lead sheet to the normalized event protocol.
+
+    This is an output adapter, not a model inference implementation. Offsets
+    follow music21 quarter lengths, and tempo changes are integrated piecewise.
+    """
+    if not math.isfinite(fallback_bpm) or fallback_bpm <= 0:
+        raise SheetSageError("fallback_bpm must be positive")
+    score = converter.parse(str(lead_sheet))
+    marks = [(0.0, fallback_bpm)]
+    for mark in score.recurse().getElementsByClass(tempo.MetronomeMark):
+        value = mark.getQuarterBPM()
+        if value is not None and math.isfinite(value) and value > 0:
+            marks.append((float(mark.getOffsetInHierarchy(score)), float(value)))
+    marks.sort(key=lambda pair: pair[0])
+    def to_seconds(offset: float) -> float:
+        elapsed = 0.0
+        for index, (start, rate) in enumerate(marks):
+            if start >= offset:
+                break
+            end = min(offset, marks[index + 1][0] if index + 1 < len(marks) else offset)
+            elapsed += max(0.0, end - start) * 60.0 / rate
+        return elapsed
+    chords = []
+    keys = []
+    for element in score.recurse():
+        if isinstance(element, harmony.ChordSymbol):
+            chords.append({
+                "time_seconds": to_seconds(float(element.getOffsetInHierarchy(score))),
+                "label": element.figure,
+            })
+        elif isinstance(element, key.Key):
+            keys.append({
+                "time_seconds": to_seconds(float(element.getOffsetInHierarchy(score))),
+                "label": element.tonic.name,
+            })
+    chords.sort(key=lambda event: event["time_seconds"])
+    keys.sort(key=lambda event: event["time_seconds"])
+    time_signatures = list(score.recurse().getElementsByClass(meter.TimeSignature))
+    result: dict[str, Any] = {"schema_version": 1, "chords": chords, "keys": keys}
+    if time_signatures:
+        result["meter"] = time_signatures[0].ratioString
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(json.dumps(result, indent=2) + "\\n", encoding="utf-8")
+    return load_sheetsage_events(destination)
