@@ -17,9 +17,20 @@ def test_committed_matrix_has_unique_valid_stages() -> None:
     assert all(s.get("blocked_reason") for s in stages if not s.get("enabled"))
 
 
-def test_non_amt_stage_cannot_run_without_adapter() -> None:
-    with pytest.raises(ValueError, match="adapter"):
-        plan({"schema_version": 1, "stages": [{"id": "hybrid", "kind": "hybrid", "enabled": True}]})
+def test_hybrid_requires_base_stage() -> None:
+    with pytest.raises(ValueError, match="base_stage"):
+        plan({"schema_version": 1, "stages": [
+            {"id": "hybrid", "kind": "hybrid", "enabled": True},
+        ]})
+
+
+def test_hybrid_rejects_forward_dependency() -> None:
+    with pytest.raises(ValueError, match="earlier"):
+        plan({"schema_version": 1, "stages": [
+            {"id": "hybrid", "kind": "hybrid", "enabled": True, "base_stage": "amt"},
+            {"id": "amt", "kind": "amt", "enabled": True,
+             "engine": "mt3_infer", "model": "yourmt3"},
+        ]})
 
 
 def test_duplicate_or_unsafe_stage_rejected() -> None:
