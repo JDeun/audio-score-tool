@@ -1,6 +1,12 @@
 name: Tier 2 Model Experiments
 
 on:
+  pull_request:
+    paths:
+      - 'benchmarks/tier2/**'
+      - 'scripts/run_tier2_matrix.py'
+      - 'tests/test_tier2_matrix.py'
+      - '.github/workflows/tier2-model-experiments.yml'
   workflow_dispatch:
     inputs:
       execute:
