@@ -45,3 +45,19 @@ def test_adapter_rejects_unsorted_events(tmp_path):
     }), encoding="utf-8")
     with pytest.raises(SheetSageError, match="chronological"):
         load_sheetsage_events(events)
+
+
+def test_variable_tempo_beat_alignment():
+    from audio_score_tool.sheetsage_hybrid import _quarter_offset
+
+    beats = [{"time_seconds": 0.0}, {"time_seconds": 0.4},
+             {"time_seconds": 1.0}, {"time_seconds": 1.8}]
+    assert _quarter_offset(0.7, bpm=120, beats=beats) == pytest.approx(1.5)
+    assert _quarter_offset(1.4, bpm=120, beats=beats) == pytest.approx(2.5)
+
+
+def test_nonfinite_beat_is_rejected(tmp_path):
+    events = tmp_path / "bad.json"
+    events.write_text('{"schema_version":1,"beats":[{"time_seconds":NaN}]}')
+    with pytest.raises(SheetSageError, match="finite"):
+        load_sheetsage_events(events)
