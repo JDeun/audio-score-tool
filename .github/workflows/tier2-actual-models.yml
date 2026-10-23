@@ -62,3 +62,50 @@ jobs:
           path: out/
           if-no-files-found: warn
           retention-days: 7
+
+  hybrid:
+    name: ${{ matrix.model }} + SheetSage2 fusion
+    needs: amt
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [yourmt3, mr_mt3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Download base model output
+        uses: actions/download-artifact@v4
+        with:
+          name: amt-${{ matrix.model }}-${{ github.run_id }}
+          path: out
+      - name: Install SheetSage2 and MusicXML dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          python -m pip install 'sheetsage-infer @ git+https://github.com/openmirlab/sheetsage-infer.git@8f31ada34494ac24ee02f0d7e96edcb33a3e997b' music21
+      - name: Run SheetSage2 and merge base transcription
+        run: |
+          test -s out/${{ matrix.model }}/score.musicxml
+          python scripts/sheetsage2_infer_adapter.py out/chords.wav out/sheetsage2.json --device cpu
+          python - <<'PY'
+          from pathlib import Path
+          from audio_score_tool.sheetsage_hybrid import merge_sheetsage_musicxml
+          model = "${{ matrix.model }}"
+          print(merge_sheetsage_musicxml(
+              Path(f"out/{model}/score.musicxml"),
+              Path("out/sheetsage2.json"),
+              Path(f"out/{model}+sheetsage2.musicxml"),
+          ))
+          PY
+      - name: Upload fusion evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hybrid-${{ matrix.model }}-${{ github.run_id }}
+          path: out/
+          if-no-files-found: warn
+          retention-days: 7
