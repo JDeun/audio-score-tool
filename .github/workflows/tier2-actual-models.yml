@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       youtube_url:
-        description: 'Permitted YouTube video URL (max 180 seconds)'
+        description: 'Permitted YouTube video URL (max 300 seconds)'
         required: false
         type: string
 
