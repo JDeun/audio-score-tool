@@ -45,16 +45,6 @@ jobs:
           toolchain: 1.98.1
           components: clippy
 
-      # Temporary diagnostic: generate a resolver-authored lock diff for security remediation.
-      - name: Resolve security lock updates (diagnostic)
-        run: |
-          set -euo pipefail
-          uv lock --upgrade-package certifi --upgrade-package pillow --upgrade-package urllib3
-          echo '=== BEGIN UV LOCK DIFF ==='
-          git diff -- uv.lock
-          echo '=== END UV LOCK DIFF ==='
-          exit 1
-
       - name: Repository forensic hygiene
         run: python scripts/forensic_hygiene.py
 
