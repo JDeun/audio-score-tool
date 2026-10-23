@@ -31,6 +31,14 @@ def plan(matrix: dict, *, include_blocked: bool = False) -> list[dict]:
                 raise ValueError("hybrid stage needs base_stage")
         if stage.get("enabled") and stage.get("kind") == "amt" and (not stage.get("engine") or not stage.get("model")):
             raise ValueError("enabled AMT stage needs engine and model")
+    positions = {stage["id"]: index for index, stage in enumerate(stages)}
+    for index, stage in enumerate(stages):
+        if stage["kind"] == "hybrid":
+            base = stage.get("base_stage")
+            if base not in positions or positions[base] >= index:
+                raise ValueError("hybrid base_stage must refer to an earlier stage")
+            if stages[positions[base]]["kind"] != "amt":
+                raise ValueError("hybrid base_stage must refer to an AMT stage")
     return stages if include_blocked else [s for s in stages if s.get("enabled")]
 
 
