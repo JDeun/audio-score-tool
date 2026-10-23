@@ -64,12 +64,15 @@ def main() -> int:
             ):
                 parser.error(f"missing real audio for case {case.id}")
     reports: list[Path] = []
+    completed_stages: set[str] = set()
     for stage in stages:
         item = {"id": stage["id"], "kind": stage["kind"]}
         if not stage.get("enabled"):
             item.update(status="blocked", reason=stage.get("blocked_reason", "not implemented"))
         elif args.dry_run:
             item["status"] = "planned"
+        elif stage["kind"] == "hybrid" and stage["base_stage"] not in completed_stages:
+            item.update(status="blocked", reason="base stage not completed: " + stage["base_stage"])
         elif stage["kind"] == "hybrid":
             from audio_score_tool.sheetsage_hybrid import (
                 merge_sheetsage_musicxml,
@@ -112,6 +115,7 @@ def main() -> int:
                     report_sha256=hashlib.sha256(report.read_bytes()).hexdigest(),
                 )
                 reports.append(report)
+                completed_stages.add(stage['id'])
             finally:
                 item["elapsed_seconds"] = round(time.monotonic() - started, 3)
         else:
@@ -149,6 +153,7 @@ def main() -> int:
                         report_sha256=hashlib.sha256(report.read_bytes()).hexdigest(),
                     )
                     reports.append(report)
+                    completed_stages.add(stage['id'])
                 finally:
                     item["elapsed_seconds"] = round(time.monotonic() - started, 3)
         results.append(item)
