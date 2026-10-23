@@ -125,7 +125,7 @@ jobs:
 
   muscriptor:
     name: MuScriptor small CPU transcription
-    if: ${{ secrets.HF_TOKEN != '' }}
+    if: ${{ vars.ENABLE_MUSCRIPTOR == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 100
     env:
@@ -137,7 +137,7 @@ jobs:
           python-version: '3.11'
       - name: Install model and audio tools
         run: |
-          sudo apt-get update && sudo apt-get install -y ffmpeg musescore3
+          sudo apt-get update && sudo apt-get install -y ffmpeg
           python -m pip install muscriptor yt-dlp
       - name: Download permitted YouTube audio
         if: inputs.youtube_url != ''
