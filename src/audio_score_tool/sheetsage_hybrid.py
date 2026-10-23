@@ -164,5 +164,5 @@ def normalize_lead_sheet_musicxml(
     if time_signatures:
         result["meter"] = time_signatures[0].ratioString
     destination.parent.mkdir(parents=True, exist_ok=True)
-    destination.write_text(json.dumps(result, indent=2) + "\\n", encoding="utf-8")
+    destination.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     return load_sheetsage_events(destination)
