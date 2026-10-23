@@ -39,6 +39,14 @@
 
 > 유지보수자 문서는 현재 제품 사용법의 authoritative source가 아닐 수 있습니다. 사용자 동작과 릴리스 상태는 README, 설치/의존성/아키텍처/릴리스 문서를 우선합니다.
 
+## 연구 지식 및 의사결정 관리
+
+- [연구 위키](knowledge/README.md) — 출처 provenance, 종합 색인, 실험 이력
+- [연구 보고서](research/README.md) — 재현 가능한 연구 기록 템플릿
+- [기술 의사결정](decisions/README.md) — 검토·승인된 ADR
+
+로컬 도구: `python scripts/check_knowledge_wiki.py`, `python scripts/query_knowledge.py SheetSage2`, `python scripts/ingest_knowledge_source.py --help`, `python scripts/plan_knowledge_update.py --help`. 자동 외부 수집이나 LLM 실행은 포함하지 않습니다.
+
 ## 문서 변경 원칙
 
 코드 변경으로 입력 형식, canonical storage, runtime/component 요구사항, 보안 경계, 릴리스 상태가 달라지면 같은 PR에서 관련 문서를 함께 수정합니다. 일반 사용자가 별도 시스템 프로그램을 설치해야 하는 상태를 self-contained라고 표현하지 않으며, 아직 실제로 검증하지 않은 managed component나 signed release를 완료된 것처럼 문서화하지 않습니다.

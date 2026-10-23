@@ -45,8 +45,22 @@ jobs:
           toolchain: 1.98.1
           components: clippy
 
+      - name: Regenerate updater lockfile for security fix
+        run: |
+          set -euo pipefail
+          cd desktop/src-tauri
+          cargo update -p tauri-plugin-updater
+          echo '=== BEGIN UPDATER LOCK DIFF ==='
+          git diff -- Cargo.lock
+          echo '=== END UPDATER LOCK DIFF ==='
+          cargo tree --target all -i zip || true
+          exit 1
+
       - name: Repository forensic hygiene
         run: python scripts/forensic_hygiene.py
+
+      - name: Validate research knowledge wiki
+        run: python scripts/check_knowledge_wiki.py
 
       - name: Verify Python lockfile
         run: uv lock --check
