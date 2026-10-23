@@ -116,3 +116,4 @@ def merge_sheetsage_musicxml(
     return {"schema_version": 1, "added": added, "source": str(amt_musicxml),
             "sheetsage": str(sheetsage_json), "tempo_assumption_bpm": bpm,
             "alignment": "beat_interpolated" if len(beats) >= 2 else "constant_bpm"
+}
