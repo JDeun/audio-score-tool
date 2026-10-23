@@ -119,8 +119,7 @@ def main() -> int:
         "blocked": sum(r["status"] == "blocked" for r in results),
     }
     (args.output_root / "summary.json").write_text(
-        json.dumps(summary, ensure_ascii=False, indent=2) + "
-", encoding="utf-8",
+        json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8",
     )
     has_failure = any(r["status"] == "failed" for r in results)
     has_blocked = any(r["status"] == "blocked" for r in results)
