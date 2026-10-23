@@ -5,6 +5,7 @@ import hashlib
 import json
 import time
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -23,9 +24,12 @@ def plan(matrix: dict, *, include_blocked: bool = False) -> list[dict]:
         ids.add(stage["id"])
         if stage.get("kind") not in ("amt", "analysis", "hybrid"):
             raise ValueError("invalid stage kind")
-        if stage.get("enabled") and stage.get("kind") != "amt":
-            raise ValueError("non-AMT stage needs a real adapter before enabling")
-        if stage.get("enabled") and (not stage.get("engine") or not stage.get("model")):
+        if stage.get("enabled") and stage.get("kind") == "analysis":
+            raise ValueError("analysis stage requires a separately reviewed inference runner")
+        if stage.get("enabled") and stage.get("kind") == "hybrid":
+            if not stage.get("base_stage"):
+                raise ValueError("hybrid stage needs base_stage")
+        if stage.get("enabled") and stage.get("kind") == "amt" and (not stage.get("engine") or not stage.get("model")):
             raise ValueError("enabled AMT stage needs engine and model")
     return stages if include_blocked else [s for s in stages if s.get("enabled")]
 
@@ -66,6 +70,42 @@ def main() -> int:
             item.update(status="blocked", reason=stage.get("blocked_reason", "not implemented"))
         elif args.dry_run:
             item["status"] = "planned"
+        elif stage["kind"] == "hybrid":
+            from audio_score_tool.sheetsage_hybrid import merge_sheetsage_musicxml
+
+            base = args.output_root / stage["base_stage"]
+            prediction_root = args.output_root / stage["id"]
+            report = args.output_root / (stage["id"] + "-report.json")
+            started = time.monotonic()
+            try:
+                prediction_root.mkdir(parents=True, exist_ok=True)
+                for case in cases:
+                    midi = base / f"{case.id}.mid"
+                    musicxml = base / f"{case.id}.musicxml"
+                    events = args.output_root / "sheetsage2" / f"{case.id}.json"
+                    if not (midi.is_file() and musicxml.is_file() and events.is_file()):
+                        raise FileNotFoundError(f"missing AMT or SheetSage2 artifact: {case.id}")
+                    shutil.copy2(midi, prediction_root / midi.name)
+                    merge_sheetsage_musicxml(
+                        musicxml, events, prediction_root / musicxml.name,
+                        bpm=float(stage.get("bpm", 120)),
+                    )
+                subprocess.run(
+                    [sys.executable, "scripts/run_tier2_benchmark.py", str(args.manifest),
+                     "--corpus-root", str(args.corpus_root),
+                     "--predictions-root", str(prediction_root), "--output", str(report)],
+                    check=True,
+                )
+            except (OSError, ValueError, subprocess.CalledProcessError) as exc:
+                item.update(status="failed", reason=str(exc))
+            else:
+                item.update(
+                    status="completed", report=str(report),
+                    report_sha256=hashlib.sha256(report.read_bytes()).hexdigest(),
+                )
+                reports.append(report)
+            finally:
+                item["elapsed_seconds"] = round(time.monotonic() - started, 3)
         else:
             prefix = "TIER2_" + stage["id"].upper().replace("-", "_").replace("+", "_")
             revision = os.environ.get(prefix + "_MODEL_REVISION")
