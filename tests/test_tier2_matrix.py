@@ -27,3 +27,34 @@ def test_duplicate_or_unsafe_stage_rejected() -> None:
         plan({"schema_version": 1, "stages": [{"id": "../escape", "kind": "amt", "enabled": False}]})
     with pytest.raises(ValueError, match="duplicate"):
         plan({"schema_version": 1, "stages": [{"id": "a", "kind": "amt"}, {"id": "a", "kind": "amt"}]})
+
+
+
+def test_dry_run_writes_explicit_blocked_summary(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import sys
+
+    from scripts import run_tier2_matrix
+
+    monkeypatch.setattr(sys, "argv", [
+        "run_tier2_matrix.py",
+        "--dry-run",
+        "--output-root",
+        str(tmp_path),
+    ])
+    assert run_tier2_matrix.main() == 0
+    summary = json.loads((tmp_path / "summary.json").read_text(encoding="utf-8"))
+    assert summary["completed"] == 0
+    assert summary["blocked"] >= 1
+    assert any(item["id"] == "yourmt3" and item["status"] == "planned" for item in summary["results"])
+
+
+def test_dry_run_strict_mode_rejects_blocked_combinations(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import sys
+
+    from scripts import run_tier2_matrix
+
+    monkeypatch.setattr(sys, "argv", [
+        "run_tier2_matrix.py", "--dry-run", "--fail-on-blocked",
+        "--output-root", str(tmp_path),
+    ])
+    assert run_tier2_matrix.main() == 1
