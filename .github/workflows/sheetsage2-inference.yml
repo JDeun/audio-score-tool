@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 100
     env:
-      HF_HOME: ${{ runner.temp }}/hf
+      HF_HOME: /tmp/sheetsage-hf
       HF_HUB_DISABLE_TELEMETRY: '1'
       OMP_NUM_THREADS: '2'
       MKL_NUM_THREADS: '2'
@@ -29,7 +29,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: pip
       - name: System audio dependencies
         run: sudo apt-get update && sudo apt-get install -y ffmpeg libsndfile1
       - name: Install pinned SheetSage2 inference runtime
