@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "stages": [
+    {
+      "id": "yourmt3",
+      "kind": "amt",
+      "engine": "mt3_infer",
+      "model": "yourmt3",
+      "enabled": true
+    },
+    {
+      "id": "mr-mt3",
+      "kind": "amt",
+      "engine": "mt3_infer",
+      "model": "mr_mt3",
+      "enabled": false,
+      "blocked_reason": "Verify registered model ID and checkpoint before enabling"
+    },
+    {
+      "id": "muscriptor",
+      "kind": "amt",
+      "engine": "muscriptor",
+      "model": "default",
+      "enabled": false,
+      "blocked_reason": "Non-commercial checkpoint and runner setup required"
+    },
+    {
+      "id": "sheetsage2",
+      "kind": "analysis",
+      "enabled": false,
+      "blocked_reason": "Separate lead-sheet adapter and NC license isolation required"
+    },
+    {
+      "id": "yourmt3+sheetsage2",
+      "kind": "hybrid",
+      "enabled": false,
+      "blocked_reason": "Reconciliation adapter and common output evaluation not implemented"
+    },
+    {
+      "id": "mr-mt3+sheetsage2",
+      "kind": "hybrid",
+      "enabled": false,
+      "blocked_reason": "MR-MT3 and reconciliation adapters not validated"
+    },
+    {
+      "id": "muscriptor+sheetsage2",
+      "kind": "hybrid",
+      "enabled": false,
+      "blocked_reason": "NC-only combination and reconciliation adapter not implemented"
+    }
+  ]
+}
