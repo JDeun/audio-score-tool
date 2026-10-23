@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from music21 import chord, converter, harmony, key, meter, note, stream, tempo
+from music21 import converter, harmony, key, meter
 
 
 class SheetSageError(ValueError):
