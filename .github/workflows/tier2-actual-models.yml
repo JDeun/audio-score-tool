@@ -66,7 +66,6 @@ jobs:
   hybrid:
     name: ${{ matrix.model }} + SheetSage2 fusion
     needs: amt
-    if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 100
     strategy:
