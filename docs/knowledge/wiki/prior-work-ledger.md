@@ -1,6 +1,6 @@
 # Prior work ledger
 
-Status: implementation history audited; Last reviewed: 2026-11-06
+Status: implementation history audited; Last reviewed: 2026-11-05
 
 - [AMT engine survey](../../ENGINE_PERFORMANCE.ko.md): external benchmarks and candidate policies; no local Tier 2 approval implied.
 - [Music adversarial benchmark](../../MUSIC_ADVERSARIAL_BENCHMARK.ko.md): deterministic cases are not a substitute for real-audio results.
