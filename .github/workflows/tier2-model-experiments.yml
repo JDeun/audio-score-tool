@@ -56,7 +56,8 @@ jobs:
           set -euo pipefail
           test -d "${TIER2_CORPUS_ROOT:?Set TIER2_CORPUS_ROOT on the private runner}"
           test -f "${TIER2_MANIFEST_PATH:?Set TIER2_MANIFEST_PATH on the private runner}"
-          uv sync --frozen\n          uv run --frozen python -c 'import audio_score_tool'
+          uv sync --frozen
+          uv run --frozen python -c 'import audio_score_tool'
       - name: Run available combinations sequentially
         shell: bash
         run: |

@@ -33,8 +33,10 @@ jobs:
       matrix:
         model: [yourmt3, mr_mt3]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           python-version: '3.11'
       - name: Install inference runtime
@@ -53,29 +55,15 @@ jobs:
         env:
           BENCHMARK_URL: ${{ inputs.youtube_url }}
         run: python scripts/download_youtube_benchmark.py "$BENCHMARK_URL" out/chords.wav
-      - name: Synthesize fixed AMT test audio
+      - name: Synthesize original AMT test audio
         if: inputs.youtube_url == ''
-        run: |
-          mkdir -p out
-          python - <<'PY'
-          import math, struct, wave
-          rate=16000
-          with wave.open("out/chords.wav","wb") as wav:
-              wav.setnchannels(1)
-              wav.setsampwidth(2)
-              wav.setframerate(rate)
-              for n in range(rate*8):
-                  t=n/rate
-                  freqs=(261.63,329.63,392.0) if t<4 else (349.23,440.0,523.25)
-                  amp=sum(math.sin(2*math.pi*f*t) for f in freqs)/3
-                  wav.writeframesraw(struct.pack("<h",int(amp*7000)))
-          PY
+        run: python scripts/generate_tier2_smoke_audio.py out/chords.wav
       - name: Run real AMT inference
         run: |
           python scripts/run_tier2_model_smoke.py out/chords.wav out/${{ matrix.model }} --model ${{ matrix.model }}
       - name: Upload outputs and logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: amt-${{ matrix.model }}-${{ github.run_id }}
           path: |
@@ -95,12 +83,14 @@ jobs:
       matrix:
         model: [yourmt3, mr_mt3]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           python-version: '3.11'
       - name: Download base model output
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           name: amt-${{ matrix.model }}-${{ github.run_id }}
           path: out
@@ -108,6 +98,17 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y ffmpeg
           python -m pip install 'sheetsage-infer @ git+https://github.com/openmirlab/sheetsage-infer.git@8f31ada34494ac24ee02f0d7e96edcb33a3e997b' music21
+      - name: Recreate original AMT test audio for hybrid comparison
+        if: inputs.youtube_url == ''
+        run: python scripts/generate_tier2_smoke_audio.py out/chords.wav
+      - name: Install authorized YouTube downloader
+        if: inputs.youtube_url != ''
+        run: python -m pip install yt-dlp
+      - name: Download authorized reference audio for hybrid comparison
+        if: inputs.youtube_url != ''
+        env:
+          BENCHMARK_URL: ${{ inputs.youtube_url }}
+        run: python scripts/download_youtube_benchmark.py "$BENCHMARK_URL" out/chords.wav
       - name: Run SheetSage2 and merge base transcription
         run: |
           test -s out/${{ matrix.model }}/score.musicxml
@@ -124,7 +125,7 @@ jobs:
           PY
       - name: Upload fusion evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: hybrid-${{ matrix.model }}-${{ github.run_id }}
           path: |
@@ -142,8 +143,10 @@ jobs:
     env:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           python-version: '3.11'
       - name: Install model and audio tools
@@ -164,7 +167,7 @@ jobs:
           test -s out/muscriptor/score.musicxml
       - name: Upload MuScriptor results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: muscriptor-${{ github.run_id }}
           path: out/muscriptor/

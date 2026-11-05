@@ -53,3 +53,29 @@ def test_render_pdf_is_self_contained(tmp_path: Path):
     assert target.read_bytes().startswith(b"%PDF-")
     assert target.stat().st_size > 500
     assert not list(tmp_path.glob("*.ly"))
+
+
+def test_music21_export_skips_same_file_with_relative_target(tmp_path: Path, monkeypatch):
+    """music21 may return an absolute path even when fp is relative."""
+    from music21 import converter
+    from audio_score_tool.notation_backend import midi_to_musicxml, musicxml_to_midi
+
+    class FakeScore:
+        def write(self, fmt: str, fp: str) -> str:
+            written = Path(fp).resolve()
+            written.write_text(fmt, encoding="utf-8")
+            return str(written)
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(converter, "parse", lambda _: FakeScore())
+
+    def forbidden_copy(*_args, **_kwargs):
+        raise AssertionError("An export must not copy a file onto itself")
+
+    monkeypatch.setattr("audio_score_tool.notation_backend.shutil.copy2", forbidden_copy)
+    for export, suffix in ((midi_to_musicxml, "musicxml"), (musicxml_to_midi, "mid")):
+        source = tmp_path / "input"
+        source.write_text("source", encoding="utf-8")
+        target = Path("out") / f"score.{suffix}"
+        assert export(source, target) == target
+        assert target.read_text(encoding="utf-8")
