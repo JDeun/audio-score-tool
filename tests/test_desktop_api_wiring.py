@@ -40,4 +40,9 @@ def test_all_literal_react_api_fetch_urls_resolve_to_fastapi_routes():
             if _normalize_client_path(template) not in actual:
                 missing.append(f"{path.name}: {template}")
     assert checked >= 30, "No longer inspecting the desktop's API fetch calls"
-    assert not missing, "Desktop URLs without registered FastAPI routes:\n" + "\n".join(missing)
+    assert not missing, (
+        "Desktop URLs without registered FastAPI routes:\n"
+        + "\n".join(missing)
+        + "\nRegistered routes: "
+        + ", ".join(sorted(actual))
+    )
