@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 
 import pytest
-from music21 import chord, converter, note, stream
+from music21 import chord, converter, harmony, note, stream
 
 from audio_score_tool.sheetsage_hybrid import (
     SheetSageError,
@@ -61,3 +61,55 @@ def test_nonfinite_beat_is_rejected(tmp_path):
     events.write_text('{"schema_version":1,"beats":[{"time_seconds":NaN}]}')
     with pytest.raises(SheetSageError, match="finite"):
         load_sheetsage_events(events)
+
+
+@pytest.mark.parametrize(
+    ("label", "expected_figure", "expected_kind"),
+    [
+        ("C:maj", "C", "major"),
+        ("Bb:min", "B-m", "minor"),
+        ("C:aug", "C+", "augmented"),
+        ("F#:dim", "F#dim", "diminished"),
+        ("D:min7", "Dm7", "minor-seventh"),
+        ("G:7", "G7", "dominant-seventh"),
+        ("C:hdim7", "Cm7b5", "half-diminished"),
+    ],
+)
+def test_sheetsage_harte_chord_symbol_uses_music21_spelling(
+    label, expected_figure, expected_kind,
+):
+    from audio_score_tool.sheetsage_hybrid import _parse_chord_symbol
+
+    parsed = _parse_chord_symbol(label)
+    assert isinstance(parsed, harmony.ChordSymbol)
+    assert parsed.figure == expected_figure
+    assert parsed.chordKind == expected_kind
+
+
+def test_sheetsage_merge_accepts_augmented_chord_from_real_model(tmp_path):
+    source = tmp_path / "amt.musicxml"
+    score = stream.Score()
+    part = stream.Part()
+    part.append(note.Note("C4", quarterLength=1))
+    score.append(part)
+    score.write("musicxml", fp=str(source))
+    events = tmp_path / "events.json"
+    events.write_text(
+        json.dumps({"schema_version": 1, "chords": [{"time_seconds": 0, "label": "C:aug"}]}),
+        encoding="utf-8",
+    )
+    target = tmp_path / "merged.musicxml"
+    report = merge_sheetsage_musicxml(source, events, target)
+    parsed = converter.parse(str(target))
+    assert report["added"]["chords"] == 1
+    assert any(item.chordKind == "augmented" for item in parsed.recurse()
+               .getElementsByClass(harmony.ChordSymbol))
+    assert len(list(parsed.recurse().notes)) == 1
+
+
+@pytest.mark.parametrize("label", ["C:unrecognized", "Q:maj", "C:aug/3"])
+def test_sheetsage_rejects_unmappable_harte_chords(label):
+    from audio_score_tool.sheetsage_hybrid import _parse_chord_symbol
+
+    with pytest.raises(SheetSageError, match="unsupported chord label"):
+        _parse_chord_symbol(label)

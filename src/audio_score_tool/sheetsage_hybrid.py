@@ -4,6 +4,7 @@ import bisect
 import json
 import math
 import os
+import re
 import shlex
 import subprocess
 from pathlib import Path
@@ -68,6 +69,53 @@ def _quarter_offset(seconds: float, *, bpm: float, beats: list[dict[str, Any]] |
     return index + (seconds - anchors[index]) / (anchors[index + 1] - anchors[index])
 
 
+# SheetSage2 emits Harte-style labels (e.g. C:aug); music21 expects C+.
+# Only unambiguous, documented chord qualities are translated; unfamiliar
+# alterations remain errors rather than silently changing harmonic content.
+_HARTE_QUALITY_TO_MUSIC21 = {
+    "maj": "",
+    "min": "m",
+    "aug": "+",
+    "dim": "dim",
+    "5": "power",
+    "sus2": "sus2",
+    "sus4": "sus4",
+    "6": "6",
+    "maj6": "6",
+    "min6": "m6",
+    "7": "7",
+    "majmin7": "7",
+    "min7": "m7",
+    "minmin7": "m7",
+    "maj7": "M7",
+    "dim7": "dim7",
+    "hdim7": "m7b5",
+    "minmaj7": "mM7",
+    "aug7": "7+",
+    "9": "9",
+    "maj9": "Maj9",
+    "min9": "m9",
+    "11": "11",
+    "maj11": "Maj11",
+    "min11": "m11",
+    "13": "13",
+    "maj13": "Maj13",
+    "min13": "m13",
+}
+
+
+def _parse_chord_symbol(label: str) -> harmony.ChordSymbol:
+    """Convert recognized Harte triad/seventh labels into music21 notation."""
+    if ":" not in label:
+        return harmony.ChordSymbol(label)
+    root, quality = label.split(":", 1)
+    if not re.fullmatch(r"[A-G](?:#|b)?", root) or quality not in _HARTE_QUALITY_TO_MUSIC21:
+        raise SheetSageError(f"unsupported chord label: {label}")
+    # music21 uses '-' rather than 'b' for a flat root (e.g. Bb -> B-).
+    figure = root.replace("b", "-") + _HARTE_QUALITY_TO_MUSIC21[quality]
+    return harmony.ChordSymbol(figure)
+
+
 def merge_sheetsage_musicxml(
     amt_musicxml: Path,
     sheetsage_json: Path,
@@ -95,7 +143,7 @@ def merge_sheetsage_musicxml(
         if label in {"", "N", "N.C.", "no_chord"}:
             continue
         try:
-            symbol = harmony.ChordSymbol(label)
+            symbol = _parse_chord_symbol(label)
         except Exception as exc:
             raise SheetSageError(f"unsupported chord label: {label}") from exc
         target.insert(_quarter_offset(event["time_seconds"], bpm=bpm, beats=beats), symbol)

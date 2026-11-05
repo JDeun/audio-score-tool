@@ -65,3 +65,9 @@ uv run --frozen python scripts/compare_tier2_reports.py \
 - 동일 실행에서 MR-MT3는 `T5Block.forward() got an unexpected keyword argument 'past_key_values'`로 중단됐다. 사용된 `transformers==4.44.2`의 T5Block 시그니처는 `past_key_value`(단수)인 반면 MR-MT3 wrapper는 복수형을 전달한다.
 - 시험용 환경을 `mt3-infer[torch]==0.2.0` + `transformers==4.57.6`으로 고정하고 로드 시 T5Block 시그니처를 검사하도록 수정했다. **수정 전후의 실제 추론 성공 여부와 정확도는 별도로 확인해야 한다.**
 - 여기 기록된 합성 스모크 결과는 장르별 실음원 corpus, 독립 reference MIDI, 계측된 사람 편집 시간에 대한 어떠한 대체도 아니다. 모델 성능 순위와 v1 상용 기본 모델 결정은 계속 보류한다.
+
+### 2026-11-05 SheetSage2 hybrid 실추론 레이블 호환성
+
+- AMT 단독 작업은 YourMT3 및 MR-MT3 모두 실행 완료. YourMT3 합성음원 악보에는 음표가 **0개**, MR-MT3에는 **2개**였음. 실행 성공을 품질 통과와 혼동하지 않는다.
+- [실험 #41978284123](https://github.com/JDeun/audio-score-tool/actions/runs/41978284123) 하이브리드에서 Harte 레이블 `C:aug`를 music21 기본 표기로 전달해 실패한 사례를 확인함. 알려진 Harte 품질만 명시적으로 대응하고, 지원하지 않는 변형은 오류로 유지하는 정규화와 회귀 테스트를 추가함.
+- YourMT3에는 `transformers==4.44.2`, MR-MT3에는 `4.57.6`을 각각 고정하여 T5 API 충돌을 격리함. 현재 실제 음원의 화성 정확도 및 수동 수정시간 평가는 별도이다.
