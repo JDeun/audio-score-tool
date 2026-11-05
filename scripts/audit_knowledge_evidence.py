@@ -108,9 +108,6 @@ def audit(
                     "reproduced needs canonical GitHub Actions run URL")
         elif version:
             add("error", "unsupported-source-schema", path, version)
-        else:
-            add("warning", "legacy-source-metadata", path,
-                "immutable v1 record predates scope/comparability fields")
         if not fields.get("URL"):
             continue
         uri = urlsplit(fields["URL"])
