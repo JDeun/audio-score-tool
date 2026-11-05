@@ -45,16 +45,6 @@ jobs:
           toolchain: 1.98.1
           components: clippy
 
-      # Temporary resolver diagnostic: capture the uv-generated lock diff for review.
-      - name: Capture resolver diff for supported Python security upgrade
-        run: |
-          set -euo pipefail
-          uv lock --upgrade-package filelock --upgrade-package pillow --upgrade-package certifi --upgrade-package urllib3
-          echo '=== BEGIN FILELOCK LOCK DIFF ==='
-          git diff -- uv.lock
-          echo '=== END FILELOCK LOCK DIFF ==='
-          exit 1
-
       - name: Repository forensic hygiene
         run: python scripts/forensic_hygiene.py
 
