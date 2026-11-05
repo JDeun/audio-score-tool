@@ -88,6 +88,26 @@ def audit(
         for field in FIELDS:
             if not fields.get(field):
                 add("error", "missing-raw-field", path, field)
+        # Old immutable records remain untouched; new v2 records have
+        # explicit scope/comparability and reproduced-run evidence contracts.
+        version = fields.get("Record schema")
+        if version == "2":
+            for field in ("Scope", "Benchmark comparability"):
+                if not fields.get(field):
+                    add("error", "missing-v2-provenance", path, field)
+            if fields.get("Benchmark comparability") not in {
+                "unknown", "not-comparable", "pending-same-corpus",
+            }:
+                add("error", "invalid-benchmark-comparability", path,
+                    fields.get("Benchmark comparability", ""))
+            if fields.get("Evidence") == "reproduced" and not re.fullmatch(
+                r"https://github\.com/[^/]+/[^/]+/actions/runs/\d+",
+                fields.get("Run", ""),
+            ):
+                add("error", "invalid-reproduction-run", path,
+                    "reproduced needs canonical GitHub Actions run URL")
+        elif version:
+            add("error", "unsupported-source-schema", path, version)
         if not fields.get("URL"):
             continue
         uri = urlsplit(fields["URL"])
