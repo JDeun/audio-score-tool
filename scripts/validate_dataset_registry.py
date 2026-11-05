@@ -1,4 +1,5 @@
 """Validate Tier-2 benchmark dataset provenance before any downloads or evaluation."""
+
 from __future__ import annotations
 
 import argparse

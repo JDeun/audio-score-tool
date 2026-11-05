@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import wave
 from pathlib import Path
+
 from scripts.generate_tier2_smoke_audio import generate_fixture
 
 

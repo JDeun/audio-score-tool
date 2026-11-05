@@ -58,6 +58,7 @@ def test_render_pdf_is_self_contained(tmp_path: Path):
 def test_music21_export_skips_same_file_with_relative_target(tmp_path: Path, monkeypatch):
     """music21 may return an absolute path even when fp is relative."""
     from music21 import converter
+
     from audio_score_tool.notation_backend import midi_to_musicxml, musicxml_to_midi
 
     class FakeScore:
