@@ -4,11 +4,114 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 import time
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
+
+from audio_score_tool.tier2_prediction import load_tier2_prediction_provenance
+
+
+_STAGE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.+_-]{0,79}$")
+_PROVENANCE_FILE = "tier2-prediction-provenance.json"
+_SHA256 = re.compile(r"^[0-9a-fA-F]{64}$")
+
+
+def _pinned_analysis_identity() -> dict[str, str] | None:
+    """Require a reviewed SheetSage2 checkpoint/runtime for hybrid experiments."""
+    prefix = "TIER2_SHEETSAGE2_"
+    model = os.environ.get(prefix + "MODEL_REVISION", "").strip()
+    runtime = os.environ.get(prefix + "RUNTIME_REVISION", "").strip()
+    checksum = os.environ.get(prefix + "ARTIFACT_SHA256", "").strip().lower()
+    if not model or not runtime or not _SHA256.fullmatch(checksum):
+        return None
+    return {
+        "provider": "sheetsage2",
+        "model_revision": model,
+        "runtime_revision": runtime,
+        "artifact_sha256": checksum,
+        "license": "CC BY-NC 4.0",
+        "commercial_eligible": False,
+    }
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _write_experiment_provenance(
+    *,
+    source_root: Path,
+    prediction_root: Path,
+    stage_id: str,
+    corpus_version: str,
+    case_ids: tuple[str, ...],
+    analysis: dict[str, str] | None = None,
+    event_root: Path | None = None,
+) -> dict:
+    """Verify source identity and record stage-distinct, hash-bound outputs.
+
+    A benchmark report must distinguish YourMT3, MR-MT3, and their SheetSage2
+    hybrids even when both base variants share the `mt3_infer` Python runner.
+    Stage IDs are *experimental candidates*, not authorized commercial engines.
+    """
+    source_corpus, engine, original_ids, original = load_tier2_prediction_provenance(source_root)
+    if source_corpus != corpus_version or original_ids != case_ids:
+        raise ValueError("experiment source provenance differs from corpus manifest")
+    if source_root != prediction_root and analysis is None:
+        raise ValueError("hybrid provenance must identify its analysis checkpoint")
+    original_engine = original.get("inference_engine") or original["engine"]
+    if not isinstance(original_engine, dict):
+        raise ValueError("experiment inference engine identity must be an object")
+
+    artifacts = {}
+    for case_id in case_ids:
+        file_hashes = {}
+        for suffix in ("mid", "musicxml"):
+            candidate = prediction_root / f"{case_id}.{suffix}"
+            if not candidate.is_file():
+                raise FileNotFoundError(f"missing experiment output: {case_id}.{suffix}")
+            file_hashes[suffix + "_sha256"] = _sha256_file(candidate)
+        if event_root is not None:
+            events = event_root / f"{case_id}.json"
+            if not events.is_file():
+                raise FileNotFoundError(f"missing hybrid analysis events: {case_id}")
+            file_hashes["sheetsage_events_sha256"] = _sha256_file(events)
+        artifacts[case_id] = file_hashes
+
+    payload = dict(original)
+    payload["engine"] = {**original["engine"], "id": stage_id}
+    payload["inference_engine"] = dict(original_engine)
+    payload["stage_id"] = stage_id
+    payload["experiment"] = {
+        "run_id": uuid.uuid4().hex,
+        "recorded_at_utc": datetime.now(timezone.utc).isoformat(),
+        "repository_commit": os.environ.get("GITHUB_SHA") or None,
+        "candidate_kind": "hybrid" if analysis is not None else "amt",
+        "commercial_eligible": False if analysis is not None else None,
+        "artifacts": artifacts,
+    }
+    if analysis is not None:
+        payload["analysis"] = dict(analysis)
+        payload["source_stage_id"] = original.get("stage_id")
+
+    prediction_root.mkdir(parents=True, exist_ok=True)
+    target = prediction_root / _PROVENANCE_FILE
+    temporary = target.with_name(target.name + f".{uuid.uuid4().hex}.tmp")
+    try:
+        temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        temporary.replace(target)
+    finally:
+        temporary.unlink(missing_ok=True)
+    return payload
 
 
 def plan(matrix: dict, *, include_blocked: bool = False) -> list[dict]:
@@ -19,7 +122,7 @@ def plan(matrix: dict, *, include_blocked: bool = False) -> list[dict]:
     for stage in stages:
         if not isinstance(stage, dict) or not isinstance(stage.get("id"), str):
             raise ValueError("invalid stage")
-        if stage["id"] in ids or "/" in stage["id"] or ".." in stage["id"]:
+        if stage["id"] in ids or not _STAGE_ID.fullmatch(stage["id"]) or ".." in stage["id"]:
             raise ValueError("duplicate or unsafe stage ID")
         ids.add(stage["id"])
         if stage.get("kind") not in ("amt", "analysis", "hybrid"):
@@ -64,7 +167,8 @@ def main() -> int:
     results: list[dict] = []
     if not args.dry_run:
         from audio_score_tool.tier2_benchmark import load_manifest, resolve_locator
-        _, cases = load_manifest(args.manifest)
+        corpus_version, cases = load_manifest(args.manifest)
+        case_ids = tuple(case.id for case in cases)
         for case in cases:
             if (
                 case.audio_locator is None
@@ -81,6 +185,12 @@ def main() -> int:
             item["status"] = "planned"
         elif stage["kind"] == "hybrid" and stage["base_stage"] not in completed_stages:
             item.update(status="blocked", reason="base stage not completed: " + stage["base_stage"])
+        elif stage["kind"] == "hybrid" and _pinned_analysis_identity() is None:
+            item.update(
+                status="blocked",
+                reason="missing pinned TIER2_SHEETSAGE2_MODEL_REVISION/"
+                       "RUNTIME_REVISION/ARTIFACT_SHA256",
+            )
         elif stage["kind"] == "hybrid":
             from audio_score_tool.sheetsage_hybrid import (
                 merge_sheetsage_musicxml,
@@ -109,6 +219,15 @@ def main() -> int:
                         musicxml, events, prediction_root / musicxml.name,
                         bpm=float(stage.get("bpm", 120)),
                     )
+                _write_experiment_provenance(
+                    source_root=base,
+                    prediction_root=prediction_root,
+                    stage_id=stage["id"],
+                    corpus_version=corpus_version,
+                    case_ids=case_ids,
+                    analysis=_pinned_analysis_identity(),
+                    event_root=args.output_root / "sheetsage2",
+                )
                 subprocess.run(
                     [sys.executable, "scripts/run_tier2_benchmark.py", str(args.manifest),
                      "--corpus-root", str(args.corpus_root),
@@ -152,9 +271,16 @@ def main() -> int:
                 started = time.monotonic()
                 try:
                     subprocess.run(generate, check=True)
+                    _write_experiment_provenance(
+                        source_root=prediction_root,
+                        prediction_root=prediction_root,
+                        stage_id=stage["id"],
+                        corpus_version=corpus_version,
+                        case_ids=case_ids,
+                    )
                     subprocess.run(evaluate, check=True)
-                except subprocess.CalledProcessError as exc:
-                    item.update(status="failed", reason=f"command exited {exc.returncode}")
+                except (OSError, ValueError, subprocess.CalledProcessError) as exc:
+                    item.update(status="failed", reason=str(exc))
                 else:
                     item.update(
                         status="completed", report=str(report),
