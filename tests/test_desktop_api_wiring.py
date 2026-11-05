@@ -14,16 +14,22 @@ ROOT = Path(__file__).resolve().parents[1]
 UI_SOURCE = ROOT / "desktop" / "src"
 FETCH_TEMPLATE = re.compile(r"fetch\(\s*`\$\{API\}(/api/[^\`]+)\`")
 DYNAMIC_SEGMENT = re.compile(r"\$\{[^}]+\}")
+SERVER_SEGMENT = re.compile(r"\{[^}]+\}")
 
 
-def _client_route_pattern(template: str) -> re.Pattern[str]:
+def _normalize_client_path(template: str) -> str:
+    """Normalize JS interpolations to FastAPI-style path components."""
     path = template.split("?", 1)[0]
-    segments = DYNAMIC_SEGMENT.split(path)
-    return re.compile("^" + "[^/]+".join(re.escape(item) for item in segments) + "$")
+    return DYNAMIC_SEGMENT.sub("{param}", path)
+
+
+def _normalize_server_path(route: str) -> str:
+    """Normalize FastAPI path parameter names for structural comparison."""
+    return SERVER_SEGMENT.sub("{param}", route)
 
 
 def test_all_literal_react_api_fetch_urls_resolve_to_fastapi_routes():
-    actual = {getattr(route, "path", "") for route in app.routes}
+    actual = {_normalize_server_path(getattr(route, "path", "")) for route in app.routes}
     checked = 0
     missing = []
     for path in sorted(UI_SOURCE.glob("*.tsx")):
@@ -31,8 +37,7 @@ def test_all_literal_react_api_fetch_urls_resolve_to_fastapi_routes():
         for match in FETCH_TEMPLATE.finditer(source):
             checked += 1
             template = match.group(1)
-            expression = _client_route_pattern(template)
-            if not any(expression.fullmatch(route) for route in actual):
+            if _normalize_client_path(template) not in actual:
                 missing.append(f"{path.name}: {template}")
     assert checked >= 30, "No longer inspecting the desktop's API fetch calls"
     assert not missing, "Desktop URLs without registered FastAPI routes:\n" + "\n".join(missing)
