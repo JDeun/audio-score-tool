@@ -14,7 +14,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-
 _STAGE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.+_-]{0,79}$")
 _PROVENANCE_FILE = "tier2-prediction-provenance.json"
 _SHA256 = re.compile(r"^[0-9a-fA-F]{64}$")
@@ -64,7 +63,7 @@ def _write_experiment_provenance(
     """
     from audio_score_tool.tier2_prediction import load_tier2_prediction_provenance
 
-    source_corpus, engine, original_ids, original = load_tier2_prediction_provenance(source_root)
+    source_corpus, _, original_ids, original = load_tier2_prediction_provenance(source_root)
     if source_corpus != corpus_version or original_ids != case_ids:
         raise ValueError("experiment source provenance differs from corpus manifest")
     if source_root != prediction_root and analysis is None:
