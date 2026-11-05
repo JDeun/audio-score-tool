@@ -6,6 +6,9 @@ on:
     paths:
       - '.github/workflows/tier2-actual-models.yml'
       - 'scripts/run_tier2_model_smoke.py'
+      - 'scripts/generate_tier2_smoke_audio.py'
+      - 'src/audio_score_tool/sheetsage_hybrid.py'
+      - 'tests/test_sheetsage_hybrid.py'
   workflow_dispatch:
     inputs:
       youtube_url:
