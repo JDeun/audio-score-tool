@@ -17,6 +17,11 @@ _STAGE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.+_-]{0,79}$")
 _PROVENANCE_FILE = "tier2-prediction-provenance.json"
 _SHA256 = re.compile(r"^[0-9a-fA-F]{64}$")
 
+if __package__:
+    from scripts.tier2_execution_ledger import build_receipt, save_receipt
+else:
+    from tier2_execution_ledger import build_receipt, save_receipt
+
 
 def _pinned_analysis_identity() -> dict[str, str] | None:
     """Require a reviewed SheetSage2 checkpoint/runtime for hybrid experiments."""
@@ -154,6 +159,10 @@ def main() -> int:
     parser.add_argument("--output-root", type=Path, default=Path("tier2-results"))
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--retest-of", type=Path,
+        help="Previous private execution-receipt.json; validates exact matrix/corpus identity",
+    )
     parser.add_argument(
         "--fail-on-blocked", action="store_true",
         help="Require every listed combination to be executable",
@@ -319,6 +328,15 @@ def main() -> int:
     (args.output_root / "summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8",
     )
+    receipt = build_receipt(
+        summary=summary,
+        matrix_path=args.matrix,
+        manifest_path=args.manifest if not args.dry_run else None,
+        output_root=args.output_root,
+        device=args.device,
+        retest_of=args.retest_of,
+    )
+    save_receipt(args.output_root / "execution-receipt.json", receipt)
     has_failure = any(r["status"] == "failed" for r in results)
     has_blocked = any(r["status"] == "blocked" for r in results)
     return 1 if has_failure or (args.fail_on_blocked and has_blocked) else 0
