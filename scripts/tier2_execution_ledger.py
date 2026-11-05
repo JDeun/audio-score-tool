@@ -131,7 +131,7 @@ def build_receipt(
     if not isinstance(device, str) or device not in {"cpu", "cuda", "mps"}:
         raise ValueError("unknown inference device")
     corpus = _manifest_info(manifest_path) if manifest_path is not None else None
-    if corpus is None and any(item.get("status") != "planned" for item in stages):
+    if corpus is None and any(item.get("status") not in {"planned", "blocked"} for item in stages):
         raise ValueError("non-dry-run execution receipt requires a corpus manifest")
     matrix_digest = sha256(matrix_path)
     output = output_root.expanduser().resolve()
@@ -141,6 +141,18 @@ def build_receipt(
         if not isinstance(stage, dict):
             raise ValueError("result stages must be objects")
         name, status = stage.get("id"), stage.get("status")
+        if name == "comparison" and status == "failed":
+            if "comparison" in seen:
+                raise ValueError("duplicate comparison result")
+            seen.add("comparison")
+            ledger.append({
+                "id": "comparison", "kind": "comparison", "status": "failed",
+                "error_or_blocker_recorded": True, "report_verified": False,
+                "failure_reason_sha256": hashlib.sha256(
+                    b"comparison command failed; details retained in private job logs"
+                ).hexdigest(),
+            })
+            continue
         if (not isinstance(name, str) or not STAGE.fullmatch(name)
                 or name not in ids or name in seen or status not in STATUSES):
             raise ValueError("unknown, duplicate or invalid stage result")
@@ -155,8 +167,9 @@ def build_receipt(
         if status == "completed":
             if corpus is None or not stage.get("report") or not stage.get("report_sha256"):
                 raise ValueError("completed stage must have corpus, report and checksum")
-            candidate = Path(stage["report"]).resolve()
-            if candidate.is_symlink() or not candidate.is_relative_to(output) or not candidate.is_file():
+            raw_report = Path(stage["report"])
+            candidate = raw_report.resolve()
+            if raw_report.is_symlink() or not candidate.is_relative_to(output) or not candidate.is_file():
                 raise ValueError("completed report is missing or outside its private output root")
             report_sha = stage["report_sha256"]
             if not isinstance(report_sha, str) or not HEX64.fullmatch(report_sha):
@@ -191,7 +204,7 @@ def build_receipt(
         else:
             item["report_verified"] = False
         ledger.append(item)
-    if len(seen) != len(ids):
+    if seen - {"comparison"} != ids:
         raise ValueError("summary must cover every declared experiment stage exactly once")
     if (summary.get("completed") != sum(i["status"] == "completed" for i in ledger)
             or summary.get("blocked") != sum(i["status"] == "blocked" for i in ledger)):
