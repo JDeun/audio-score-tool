@@ -41,6 +41,22 @@ def test_all_literal_react_api_fetch_urls_resolve_to_fastapi_routes():
         for match in FETCH_TEMPLATE.finditer(source):
             checked += 1
             template = match.group(1)
+            if "${action}" in template:
+                # This UI action is a finite TypeScript union, not an arbitrary
+                # FastAPI path parameter. Check every possible URL explicitly.
+                if path.name != "SongWorkspace.tsx" or (
+                    'action: "undo" | "restore" | "export"' not in source
+                ):
+                    missing.append(f"{path.name}: unbounded dynamic action: {template}")
+                    continue
+                endpoints = [
+                    _normalize_client_path(template.replace("${action}", action))
+                    for action in ("undo", "restore", "export")
+                ]
+                for endpoint in endpoints:
+                    if endpoint not in actual:
+                        missing.append(f"{path.name}: {endpoint}")
+                continue
             if _normalize_client_path(template) not in actual:
                 missing.append(f"{path.name}: {template}")
     assert checked >= 30, "No longer inspecting the desktop's API fetch calls"
