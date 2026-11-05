@@ -51,6 +51,9 @@ jobs:
       - name: Validate research knowledge wiki
         run: python scripts/check_knowledge_wiki.py
 
+      - name: Audit research claim provenance and review freshness
+        run: python scripts/audit_knowledge_evidence.py
+
       - name: Verify Python lockfile
         run: uv lock --check
 
