@@ -1,0 +1,196 @@
+name: Tier 2 Actual Model Smoke Tests
+
+on:
+  push:
+    branches: [research/tier2-model-experiments]
+    paths:
+      - '.github/workflows/tier2-actual-models.yml'
+      - 'scripts/run_tier2_model_smoke.py'
+      - 'scripts/generate_tier2_smoke_audio.py'
+      - 'src/audio_score_tool/sheetsage_hybrid.py'
+      - 'tests/test_sheetsage_hybrid.py'
+  workflow_dispatch:
+    inputs:
+      youtube_url:
+        description: 'Permitted YouTube video URL (max 300 seconds)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}
+
+concurrency:
+  group: tier2-actual-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  amt:
+    name: ${{ matrix.model }} CPU transcription
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [yourmt3, mr_mt3]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.11'
+      - name: Install inference runtime
+        env:
+          MT3_MODEL: ${{ matrix.model }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install --upgrade pip
+          python -m pip install 'mt3-infer[torch]==0.2.0' 'music21>=9.7,<11'
+          # The two upstream adapters need incompatible Transformers T5 APIs.
+          if [ "${{ matrix.model }}" = "mr_mt3" ]; then
+            python -m pip install 'transformers==4.57.6'
+          else
+            python -m pip install 'transformers==4.44.2' 'tokenizers>=0.19,<0.20'
+          fi
+          python - <<'PY'
+          import inspect
+          import os
+          import transformers
+          from transformers.models.t5.modeling_t5 import T5Block
+          model = os.environ["MT3_MODEL"]
+          expected_version = "4.57.6" if model == "mr_mt3" else "4.44.2"
+          expected_argument = "past_key_values" if model == "mr_mt3" else "past_key_value"
+          assert transformers.__version__ == expected_version, transformers.__version__
+          assert expected_argument in inspect.signature(T5Block.forward).parameters
+          PY
+      - name: Install YouTube audio downloader
+        if: inputs.youtube_url != ''
+        run: python -m pip install yt-dlp
+      - name: Download permitted real-world audio
+        if: inputs.youtube_url != ''
+        env:
+          BENCHMARK_URL: ${{ inputs.youtube_url }}
+        run: python scripts/download_youtube_benchmark.py "$BENCHMARK_URL" out/chords.wav
+      - name: Synthesize original AMT test audio
+        if: inputs.youtube_url == ''
+        run: python scripts/generate_tier2_smoke_audio.py out/chords.wav
+      - name: Run real AMT inference
+        run: |
+          python scripts/run_tier2_model_smoke.py out/chords.wav out/${{ matrix.model }} --model ${{ matrix.model }}
+      - name: Upload outputs and logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: amt-${{ matrix.model }}-${{ github.run_id }}
+          path: |
+            out/**/*.mid
+            out/**/*.musicxml
+            out/**/*.json
+          if-no-files-found: warn
+          retention-days: 7
+
+  hybrid:
+    name: ${{ matrix.model }} + SheetSage2 fusion
+    # Preserve evidence for a successful model even if another matrix entry fails.
+    if: ${{ always() && needs.amt.result != 'cancelled' }}
+    needs: amt
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [yourmt3, mr_mt3]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.11'
+      - name: Download base model output
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: amt-${{ matrix.model }}-${{ github.run_id }}
+          path: out
+      - name: Install SheetSage2 and MusicXML dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          python -m pip install 'sheetsage-infer @ git+https://github.com/openmirlab/sheetsage-infer.git@8f31ada34494ac24ee02f0d7e96edcb33a3e997b' music21
+      - name: Recreate original AMT test audio for hybrid comparison
+        if: inputs.youtube_url == ''
+        run: python scripts/generate_tier2_smoke_audio.py out/chords.wav
+      - name: Install authorized YouTube downloader
+        if: inputs.youtube_url != ''
+        run: python -m pip install yt-dlp
+      - name: Download authorized reference audio for hybrid comparison
+        if: inputs.youtube_url != ''
+        env:
+          BENCHMARK_URL: ${{ inputs.youtube_url }}
+        run: python scripts/download_youtube_benchmark.py "$BENCHMARK_URL" out/chords.wav
+      - name: Run SheetSage2 and merge base transcription
+        run: |
+          test -s out/${{ matrix.model }}/score.musicxml
+          python scripts/sheetsage2_infer_adapter.py out/chords.wav out/sheetsage2.json --device cpu
+          python - <<'PY'
+          from pathlib import Path
+          from audio_score_tool.sheetsage_hybrid import merge_sheetsage_musicxml
+          model = "${{ matrix.model }}"
+          print(merge_sheetsage_musicxml(
+              Path(f"out/{model}/score.musicxml"),
+              Path("out/sheetsage2.json"),
+              Path(f"out/{model}+sheetsage2.musicxml"),
+          ))
+          PY
+      - name: Upload fusion evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: hybrid-${{ matrix.model }}-${{ github.run_id }}
+          path: |
+            out/**/*.mid
+            out/**/*.musicxml
+            out/**/*.json
+          if-no-files-found: warn
+          retention-days: 7
+
+  muscriptor:
+    name: MuScriptor small CPU transcription
+    if: ${{ vars.ENABLE_MUSCRIPTOR == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.11'
+      - name: Install model and audio tools
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          python -m pip install muscriptor yt-dlp
+      - name: Download permitted YouTube audio
+        if: inputs.youtube_url != ''
+        env:
+          BENCHMARK_URL: ${{ inputs.youtube_url }}
+        run: python scripts/download_youtube_benchmark.py "$BENCHMARK_URL" out/chords.wav
+      - name: Run MuScriptor inference
+        if: inputs.youtube_url != ''
+        run: |
+          mkdir -p out/muscriptor
+          muscriptor transcribe out/chords.wav --format sheets --output out/muscriptor --device cpu --model small --detect-tempo best-effort
+          test -s out/muscriptor/score.mid
+          test -s out/muscriptor/score.musicxml
+      - name: Upload MuScriptor results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: muscriptor-${{ github.run_id }}
+          path: out/muscriptor/
+          if-no-files-found: warn

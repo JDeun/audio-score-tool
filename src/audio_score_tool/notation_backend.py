@@ -84,7 +84,7 @@ def midi_to_musicxml(source: Path, target: Path) -> Path:
     except Exception as exc:
         raise NotationBackendError(f"music21 MIDI→MusicXML 변환 실패: {exc}") from exc
     result = Path(str(written)) if written else target
-    if result != target and result.is_file():
+    if result.is_file() and not (target.is_file() and result.samefile(target)):
         shutil.copy2(result, target)
     if not target.is_file():
         raise NotationBackendError("music21이 MusicXML을 생성하지 않았습니다.")
@@ -103,7 +103,7 @@ def musicxml_to_midi(source: Path, target: Path) -> Path:
     except Exception as exc:
         raise NotationBackendError(f"music21 MusicXML→MIDI 변환 실패: {exc}") from exc
     result = Path(str(written)) if written else target
-    if result != target and result.is_file():
+    if result.is_file() and not (target.is_file() and result.samefile(target)):
         shutil.copy2(result, target)
     if not target.is_file():
         raise NotationBackendError("music21이 MIDI를 생성하지 않았습니다.")
