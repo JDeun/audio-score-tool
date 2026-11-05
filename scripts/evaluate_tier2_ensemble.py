@@ -20,7 +20,12 @@ from audio_score_tool.metrics import evaluate_midi_files, midi_notes
 from audio_score_tool.tier2_experiment_record import validate_tier2_experiment_record
 from audio_score_tool.tier2_benchmark import case_fingerprint, load_manifest, resolve_locator
 from audio_score_tool.tier2_prediction import load_tier2_prediction_provenance
-from scripts.ensemble_amt_predictions import ensemble
+# Direct script invocation puts ./scripts on sys.path, while pytest imports
+# this module as scripts.evaluate_tier2_ensemble from the repository root.
+if __package__:
+    from scripts.ensemble_amt_predictions import ensemble
+else:
+    from ensemble_amt_predictions import ensemble
 
 _SAFE_CASE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$")
 _METRICS = (
