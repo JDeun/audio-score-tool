@@ -110,7 +110,9 @@ def test_sheetsage_merge_accepts_augmented_chord_from_real_model(tmp_path):
     assert any(item.chordKind == "augmented" for item in symbols), [
         (item.figure, item.chordKind) for item in symbols
     ]
-    assert len(list(parsed.recurse().notes)) == 1
+    # music21 also exposes harmony.ChordSymbol via .notes; filter pitched
+    # note.Note instances when checking AMT note preservation.
+    assert len([item for item in parsed.recurse().notes if isinstance(item, note.Note)]) == 1
 
 
 @pytest.mark.parametrize("label", ["C:unrecognized", "Q:maj", "C:aug/3"])
