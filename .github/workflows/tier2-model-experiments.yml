@@ -45,6 +45,7 @@ jobs:
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           python-version: '3.12'
+          version: 0.12.10
       - name: Install frozen test dependencies
         run: uv sync --frozen --extra dev
       - name: Verify SheetSage2 and MIDI ensemble round-trip contracts
@@ -65,6 +66,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: 0.12.10
       - name: Verify runner environment
         shell: bash
         run: |
@@ -77,7 +81,7 @@ jobs:
         shell: bash
         run: |
           uv run --frozen python scripts/run_tier2_matrix.py \
-            --manifest benchmarks/tier2/manifest.json \
+            --manifest "$TIER2_MANIFEST_PATH" \
             --corpus-root "$TIER2_CORPUS_ROOT" \
             --device "${{ inputs.device }}" \
             --output-root tier2-results
