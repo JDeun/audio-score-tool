@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from statistics import mean
@@ -9,6 +10,9 @@ from typing import Any
 
 from .metrics import evaluate_midi_files, midi_notes
 from .tier2_structure_metrics import evaluate_musicxml_structure
+
+_SAFE_CASE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$")
+
 
 _EDIT_KEYS = (
     "manual_note_edits",
@@ -134,6 +138,8 @@ def load_manifest(path: Path) -> tuple[str, tuple[Tier2Case, ...]]:
         if not isinstance(raw, dict):
             raise ValueError(f"manifest.cases[{index}] must be an object")
         case_id = _require_string(raw, "id", context=f"manifest.cases[{index}]")
+        if raw.get("id") != case_id or not _SAFE_CASE_ID.fullmatch(case_id) or ".." in case_id:
+            raise ValueError(f"unsafe Tier 2 case id: {case_id!r}")
         if case_id in seen:
             raise ValueError(f"duplicate Tier 2 case id: {case_id}")
         seen.add(case_id)

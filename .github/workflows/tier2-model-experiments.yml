@@ -5,7 +5,11 @@ on:
     paths:
       - 'benchmarks/tier2/**'
       - 'scripts/run_tier2_matrix.py'
+      - 'scripts/validate_tier2_experiment.py'
+      - 'src/audio_score_tool/tier2_experiment_record.py'
+      - 'src/audio_score_tool/tier2_benchmark.py'
       - 'tests/test_tier2_matrix.py'
+      - 'tests/test_tier2_matrix_provenance.py'
       - 'src/audio_score_tool/sheetsage_hybrid.py'
       - 'tests/test_sheetsage_hybrid.py'
       - 'scripts/ensemble_amt_predictions.py'
@@ -41,10 +45,11 @@ jobs:
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           python-version: '3.12'
+          version: 0.12.10
       - name: Install frozen test dependencies
         run: uv sync --frozen --extra dev
       - name: Verify SheetSage2 and MIDI ensemble round-trip contracts
-        run: uv run --frozen pytest -q tests/test_sheetsage_hybrid.py tests/test_ensemble_amt_predictions.py
+        run: uv run --frozen pytest -q tests/test_sheetsage_hybrid.py tests/test_ensemble_amt_predictions.py tests/test_tier2_matrix.py tests/test_tier2_matrix_provenance.py
       - name: Validate and enumerate full model combination plan
         run: python scripts/run_tier2_matrix.py --dry-run --output-root tier2-results
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -61,6 +66,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: 0.12.10
       - name: Verify runner environment
         shell: bash
         run: |
@@ -72,8 +80,8 @@ jobs:
       - name: Run available combinations sequentially
         shell: bash
         run: |
-          python scripts/run_tier2_matrix.py \
-            --manifest benchmarks/tier2/manifest.json \
+          uv run --frozen python scripts/run_tier2_matrix.py \
+            --manifest "$TIER2_MANIFEST_PATH" \
             --corpus-root "$TIER2_CORPUS_ROOT" \
             --device "${{ inputs.device }}" \
             --output-root tier2-results

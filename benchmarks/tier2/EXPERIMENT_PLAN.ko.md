@@ -71,3 +71,7 @@ uv run --frozen python scripts/compare_tier2_reports.py \
 - AMT 단독 작업은 YourMT3 및 MR-MT3 모두 실행 완료. YourMT3 합성음원 악보에는 음표가 **0개**, MR-MT3에는 **2개**였음. 실행 성공을 품질 통과와 혼동하지 않는다.
 - [실험 #41978284123](https://github.com/JDeun/audio-score-tool/actions/runs/41978284123) 하이브리드에서 Harte 레이블 `C:aug`를 music21 기본 표기로 전달해 실패한 사례를 확인함. 알려진 Harte 품질만 명시적으로 대응하고, 지원하지 않는 변형은 오류로 유지하는 정규화와 회귀 테스트를 추가함.
 - YourMT3에는 `transformers==4.44.2`, MR-MT3에는 `4.57.6`을 각각 고정하여 T5 API 충돌을 격리함. 현재 실제 음원의 화성 정확도 및 수동 수정시간 평가는 별도이다.
+
+### Hybrid provenance guard (2026-11-05)
+
+Matrix experiments must produce a candidate-specific `tier2-prediction-provenance.json` before evaluation. `yourmt3`, `mr-mt3` and their SheetSage2 augmentations may use the same base MT3-Infer runner but **must not share a report candidate ID**. The source AMT identity and checksums are preserved; the analysis checkpoint/runtime SHA-256 and every case's event-file SHA-256 are explicit. If pins or case identity are absent, evaluation is blocked instead of fabricating a completed benchmark. For the workflow implementation and tests see issue #47.
