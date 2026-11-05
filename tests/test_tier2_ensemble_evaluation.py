@@ -7,6 +7,7 @@ from pathlib import Path
 
 import mido
 import pytest
+from music21 import note, stream
 
 from scripts.evaluate_tier2_ensemble import evaluate_ensemble_candidates
 from scripts.run_tier2_matrix import _write_experiment_provenance
@@ -66,6 +67,17 @@ def _corpus(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
     _midi(second / "a.mid", [(60, 0.12, 0.52), (64, 0.7, 1.0)])
     _midi(first / "b.mid", [])
     _midi(second / "b.mid", [(72, 0.1, 0.5)])
+    # The experiment receipt records both MIDI and MusicXML as required
+    # production outputs, even though this metric runner reads only MIDI.
+    for root in (first, second):
+        for case_id in ("a", "b"):
+            score = stream.Score()
+            part = stream.Part()
+            measure = stream.Measure(number=1)
+            measure.append(note.Note("C4", quarterLength=1))
+            part.append(measure)
+            score.append(part)
+            score.write("musicxml", fp=str(root / f"{case_id}.musicxml"))
     for root, candidate in ((first, "yourmt3"), (second, "mr-mt3")):
         _write_experiment_provenance(
             source_root=root, prediction_root=root,
