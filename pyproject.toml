@@ -54,7 +54,7 @@ audio-score-native = "audio_score_tool.native_cli:app"
 packages = ["src/audio_score_tool"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers --strict-config"
 filterwarnings = [
