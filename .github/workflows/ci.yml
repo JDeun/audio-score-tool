@@ -45,6 +45,16 @@ jobs:
           toolchain: 1.98.1
           components: clippy
 
+      # Temporary diagnostic; the resulting resolver diff is reviewed and committed separately.
+      - name: Capture resolver diff for setuptools security upgrade
+        run: |
+          set -euo pipefail
+          uv lock --upgrade-package setuptools
+          echo '=== BEGIN SETUPTOOLS LOCK DIFF ==='
+          git diff -- uv.lock
+          echo '=== END SETUPTOOLS LOCK DIFF ==='
+          exit 1
+
       - name: Repository forensic hygiene
         run: python scripts/forensic_hygiene.py
 
