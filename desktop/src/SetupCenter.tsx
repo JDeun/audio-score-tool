@@ -140,6 +140,36 @@ export default function SetupCenter() {
     }
   };
 
+  const remove = async (component: Component) => {
+    if (!component.managed_status?.ready || busy) return;
+    setBusy(component.key);
+    setFeedback(null);
+    try {
+      const response = await fetch(`${API}/api/setup/remove`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ component: component.key }),
+      });
+      if (!response.ok) throw new Error(await apiError(response));
+      const result = await response.json() as {
+        removed: { removed: boolean; cleanup_pending: boolean };
+        setup: SetupStatus;
+      };
+      setStatus(result.setup);
+      setFeedback({
+        message: result.removed.removed
+          ? `${component.label}이(가) 삭제됐습니다.${result.removed.cleanup_pending ? " 잔여 파일은 복구 기능으로 정리할 수 있습니다." : ""}`
+          : `${component.label}은(는) 설치되어 있지 않습니다.`,
+        error: false,
+      });
+    } catch (error) {
+      setFeedback({ message: error instanceof Error ? error.message : "구성요소 삭제 실패", error: true });
+      await refresh();
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const recover = async () => {
     if (busy) return;
     setBusy("recovery");
@@ -243,6 +273,12 @@ export default function SetupCenter() {
                         onClick={() => void install(component)}>
                         {busy === component.key ? "설치·검증 중…" :
                           component.managed_status?.ready ? "재설치 / 업데이트" : "앱에서 설치"}
+                      </button>
+                    )}
+                    {component.managed_status?.ready && (
+                      <button className="secondary" type="button" disabled={Boolean(busy)}
+                        onClick={() => void remove(component)}>
+                        {busy === component.key ? "처리 중…" : "구성요소 삭제"}
                       </button>
                     )}
                   </div>
