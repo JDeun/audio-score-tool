@@ -40,17 +40,29 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install inference runtime
+        env:
+          MT3_MODEL: ${{ matrix.model }}
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
           python -m pip install --upgrade pip
-          python -m pip install 'mt3-infer[torch]==0.2.0' 'transformers==4.57.6' 'music21>=9.7,<11'
+          python -m pip install 'mt3-infer[torch]==0.2.0' 'music21>=9.7,<11'
+          # The two upstream adapters need incompatible Transformers T5 APIs.
+          if [ "${{ matrix.model }}" = "mr_mt3" ]; then
+            python -m pip install 'transformers==4.57.6'
+          else
+            python -m pip install 'transformers==4.44.2' 'tokenizers>=0.19,<0.20'
+          fi
           python - <<'PY'
           import inspect
+          import os
           import transformers
           from transformers.models.t5.modeling_t5 import T5Block
-          assert transformers.__version__ == "4.57.6", transformers.__version__
-          assert "past_key_values" in inspect.signature(T5Block.forward).parameters
+          model = os.environ["MT3_MODEL"]
+          expected_version = "4.57.6" if model == "mr_mt3" else "4.44.2"
+          expected_argument = "past_key_values" if model == "mr_mt3" else "past_key_value"
+          assert transformers.__version__ == expected_version, transformers.__version__
+          assert expected_argument in inspect.signature(T5Block.forward).parameters
           PY
       - name: Install YouTube audio downloader
         if: inputs.youtube_url != ''
