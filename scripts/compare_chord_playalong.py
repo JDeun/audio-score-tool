@@ -178,7 +178,7 @@ def compare_chord_predictions(
             )
             if len(ref_intervals) >= 2 and len(est_intervals) >= 2:
                 try:
-                    _precision, _recall, f1 = mir_eval.segment.boundary_detection(
+                    _precision, _recall, f1 = mir_eval.segment.detection(
                         ref_intervals, est_intervals, window=0.5, trim=True,
                     )
                 except ValueError:
