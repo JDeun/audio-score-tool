@@ -96,7 +96,9 @@ def _write_events(path: Path, groups: dict[tuple[int, bool], list[NoteEvent]]) -
                 mido.Message("note_off", channel=channel, note=note.pitch, velocity=0),
             ))
         previous = 0
-        for tick, _order, _pitch, message in sorted(events):
+        # Stable key sort avoids comparing mido.Message objects when identical
+        # notes yield equal (tick, priority, pitch) tuples.
+        for tick, _order, _pitch, message in sorted(events, key=lambda item: item[:3]):
             message.time = tick - previous
             track.append(message)
             previous = tick

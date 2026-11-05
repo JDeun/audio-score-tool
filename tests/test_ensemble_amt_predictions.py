@@ -90,3 +90,13 @@ def test_consensus_rejects_invalid_thresholds(tmp_path: Path) -> None:
         ensemble(a, b, out, onset_tolerance=float("nan"))
     with pytest.raises(ValueError, match="Invalid consensus"):
         ensemble(a, b, out, min_overlap=1.5)
+
+
+def test_consensus_preserves_duplicate_matching_note_onsets(tmp_path: Path) -> None:
+    a, b, out = (tmp_path / x for x in ("a.mid", "b.mid", "out.mid"))
+    notes = [(60, 0.1, 0.8), (60, 0.1, 0.8)]
+    _write(a, notes)
+    _write(b, notes)
+    result = ensemble(a, b, out)
+    assert result["matched_notes"] == 2
+    assert len(_read_events(out)[(0, False)]) == 2
