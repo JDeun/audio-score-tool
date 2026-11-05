@@ -227,3 +227,20 @@ export AST_SHEETSAGE2_ADAPTER="<reviewed-executable>"
 모델/런타임/아티팩트 중 어느 하나라도 누락되거나 SHA-256 형식이 틀리면 하이브리드 stage는 `blocked` 처리됩니다. `analysis.commercial_eligible=false` 및 `CC BY-NC 4.0`은 실험 결과에 명시합니다. 단독 AMT의 품질과 비상업 SheetSage2 보강 결과를 동일한 상용 후보로 취급하거나 자동 승격하지 않습니다.
 
 각 stage의 원본 오디오와 비밀 토큰/로컬 절대 경로는 공개 artifacts에 넣지 않습니다. 이 기록은 **코드/실험 결과 출처 추적**이며, 외부 체크포인트 자체나 정식 저작권·재배포 허가를 검증했다는 뜻이 아닙니다. 실제 채보 품질 평가(#34)와 사용자 편집 시간/출판 성공 측정은 별도로 필요합니다.
+
+## 저장된 실험 결과 무결성 검증
+
+실험 결과를 다른 환경에서 사용하거나 #34 승인용 보고서로 전달하기 전에 파일이 원래 기록과 일치하는지 독립 검증하십시오. 원본 데이터셋과 동일한 manifest를 제공하면 corpus 버전과 case 순서도 확인합니다.
+
+```bash
+uv run --frozen python scripts/validate_tier2_experiment.py \
+  --predictions-root /secure/tier2/runs/yourmt3 \
+  --manifest /secure/tier2/manifest.json
+
+uv run --frozen python scripts/validate_tier2_experiment.py \
+  --predictions-root /secure/tier2/runs/yourmt3+sheetsage2 \
+  --manifest /secure/tier2/manifest.json \
+  --events-root /secure/tier2/runs/sheetsage2
+```
+
+검증기는 `tier2-prediction-provenance.json`의 필수 스키마, 실험 후보/실행 엔진 신원, 실행 ID, UTC 기록 시각, 체크포인트 SHA-256, 사례 목록 및 실제 MIDI/MusicXML/SheetSage2 이벤트 파일의 해시를 검사합니다. 하이브리드는 비상업 라이선스 표시와 events 경로가 필수입니다. 기록을 수정하거나 파일이 달라지면 오류와 비영(非0) 종료 코드로 차단합니다. 이 검증은 오디오 소유권 및 모델 권리 확인을 대체하지 않으며, 품질 지표를 만들어내지 않습니다.

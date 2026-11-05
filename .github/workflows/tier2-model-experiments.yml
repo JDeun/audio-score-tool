@@ -5,6 +5,9 @@ on:
     paths:
       - 'benchmarks/tier2/**'
       - 'scripts/run_tier2_matrix.py'
+      - 'scripts/validate_tier2_experiment.py'
+      - 'src/audio_score_tool/tier2_experiment_record.py'
+      - 'src/audio_score_tool/tier2_benchmark.py'
       - 'tests/test_tier2_matrix.py'
       - 'tests/test_tier2_matrix_provenance.py'
       - 'src/audio_score_tool/sheetsage_hybrid.py'
