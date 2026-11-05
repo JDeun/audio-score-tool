@@ -1,7 +1,6 @@
 {
   "schema_version": 1,
   "purpose": "historical-code-implementation-evidence",
-  "verified_at_utc": "2026-11-06T00:00:00Z",
   "repository": "JDeun/audio-score-tool",
   "scope": "Selected implementation PRs with confirmed successful GitHub Actions runs; not a complete repository audit",
   "entries": [
@@ -133,5 +132,6 @@
       "musical_quality_validated": false,
       "commercial_release_approved": false
     }
-  ]
+  ],
+  "review_date_kst": "2026-11-06"
 }
