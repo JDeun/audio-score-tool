@@ -13,7 +13,6 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from audio_score_tool.tier2_prediction import load_tier2_prediction_provenance
 
 
 _STAGE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.+_-]{0,79}$")
@@ -63,6 +62,8 @@ def _write_experiment_provenance(
     hybrids even when both base variants share the `mt3_infer` Python runner.
     Stage IDs are *experimental candidates*, not authorized commercial engines.
     """
+    from audio_score_tool.tier2_prediction import load_tier2_prediction_provenance
+
     source_corpus, engine, original_ids, original = load_tier2_prediction_provenance(source_root)
     if source_corpus != corpus_version or original_ids != case_ids:
         raise ValueError("experiment source provenance differs from corpus manifest")

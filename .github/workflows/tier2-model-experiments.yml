@@ -73,7 +73,7 @@ jobs:
       - name: Run available combinations sequentially
         shell: bash
         run: |
-          python scripts/run_tier2_matrix.py \
+          uv run --frozen python scripts/run_tier2_matrix.py \
             --manifest benchmarks/tier2/manifest.json \
             --corpus-root "$TIER2_CORPUS_ROOT" \
             --device "${{ inputs.device }}" \
