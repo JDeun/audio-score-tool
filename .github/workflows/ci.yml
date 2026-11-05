@@ -51,6 +51,9 @@ jobs:
       - name: Validate research knowledge wiki
         run: python scripts/check_knowledge_wiki.py
 
+      - name: Audit pinned historical implementation evidence
+        run: python scripts/audit_research_history.py
+
       - name: Audit research claim provenance and review freshness
         run: python scripts/audit_knowledge_evidence.py
 
