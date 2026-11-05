@@ -17,9 +17,10 @@ from pathlib import Path
 from statistics import mean
 
 from audio_score_tool.metrics import evaluate_midi_files, midi_notes
-from audio_score_tool.tier2_experiment_record import validate_tier2_experiment_record
 from audio_score_tool.tier2_benchmark import case_fingerprint, load_manifest, resolve_locator
+from audio_score_tool.tier2_experiment_record import validate_tier2_experiment_record
 from audio_score_tool.tier2_prediction import load_tier2_prediction_provenance
+
 # Direct script invocation puts ./scripts on sys.path, while pytest imports
 # this module as scripts.evaluate_tier2_ensemble from the repository root.
 if __package__:
