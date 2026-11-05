@@ -6,6 +6,7 @@ on:
       - 'benchmarks/tier2/**'
       - 'scripts/run_tier2_matrix.py'
       - 'tests/test_tier2_matrix.py'
+      - 'tests/test_tier2_matrix_provenance.py'
       - 'src/audio_score_tool/sheetsage_hybrid.py'
       - 'tests/test_sheetsage_hybrid.py'
       - 'scripts/ensemble_amt_predictions.py'
@@ -44,7 +45,7 @@ jobs:
       - name: Install frozen test dependencies
         run: uv sync --frozen --extra dev
       - name: Verify SheetSage2 and MIDI ensemble round-trip contracts
-        run: uv run --frozen pytest -q tests/test_sheetsage_hybrid.py tests/test_ensemble_amt_predictions.py
+        run: uv run --frozen pytest -q tests/test_sheetsage_hybrid.py tests/test_ensemble_amt_predictions.py tests/test_tier2_matrix.py tests/test_tier2_matrix_provenance.py
       - name: Validate and enumerate full model combination plan
         run: python scripts/run_tier2_matrix.py --dry-run --output-root tier2-results
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
