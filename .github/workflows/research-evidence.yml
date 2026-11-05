@@ -9,6 +9,8 @@ on:
       - 'scripts/audit_knowledge_evidence.py'
       - 'scripts/check_knowledge_wiki.py'
       - 'scripts/plan_knowledge_update.py'
+      - 'scripts/audit_research_history.py'
+      - 'tests/test_research_history.py'
       - 'scripts/ingest_knowledge_source.py'
       - 'tests/test_knowledge_evidence.py'
       - 'tests/test_knowledge_wiki.py'
@@ -44,7 +46,9 @@ jobs:
         run: python scripts/check_knowledge_wiki.py
       - name: Validate raw-source and claim evidence
         run: python scripts/audit_knowledge_evidence.py
+      - name: Audit pinned implementation history
+        run: python scripts/audit_research_history.py
       - name: Install frozen test environment
         run: uv sync --frozen --extra dev
       - name: Run offline provenance and impact regression tests
-        run: uv run --frozen pytest -q tests/test_knowledge_wiki.py tests/test_knowledge_evidence.py
+        run: uv run --frozen pytest -q tests/test_knowledge_wiki.py tests/test_knowledge_evidence.py tests/test_research_history.py
