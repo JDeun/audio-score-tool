@@ -468,3 +468,15 @@ def test_receipt_refuses_mutated_model_revision(tmp_path: Path):
     provenance.write_text(json.dumps(record), encoding="utf-8")
     with pytest.raises(ExperimentRecordError, match="candidate identity differs"):
         validate_tier2_experiment_record(root)
+
+
+def test_private_runner_consumes_verified_manifest_and_pinned_runtime():
+    workflow = (
+        Path(__file__).resolve().parents[1]
+        / ".github/workflows/tier2-model-experiments.yml"
+    ).read_text(encoding="utf-8")
+    assert 'test -f "${TIER2_MANIFEST_PATH:?' in workflow
+    assert '--manifest "$TIER2_MANIFEST_PATH"' in workflow
+    assert '--manifest benchmarks/tier2/manifest.json' not in workflow
+    assert 'uv run --frozen python scripts/run_tier2_matrix.py' in workflow
+    assert "version: 0.12.10" in workflow

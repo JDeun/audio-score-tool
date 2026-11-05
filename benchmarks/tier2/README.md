@@ -244,3 +244,5 @@ uv run --frozen python scripts/validate_tier2_experiment.py \
 ```
 
 검증기는 `tier2-prediction-provenance.json`의 필수 스키마, 실험 후보/실행 엔진 신원, 실행 ID, UTC 기록 시각, 체크포인트 SHA-256, 사례 목록 및 실제 MIDI/MusicXML/SheetSage2 이벤트 파일의 해시를 검사합니다. 하이브리드는 비상업 라이선스 표시와 events 경로가 필수입니다. 기록을 수정하거나 파일이 달라지면 오류와 비영(非0) 종료 코드로 차단합니다. 이 검증은 오디오 소유권 및 모델 권리 확인을 대체하지 않으며, 품질 지표를 만들어내지 않습니다.
+
+실제 실행에서 `experiment.corpus_manifest_sha256`은 manifest의 **전체 바이트**를 고정합니다. 같은 `corpus_version`·case ID라도 오디오 locator나 reference 파일 경로가 변경된 manifest를 재사용하면 독립 검증이 실패합니다. 전용 self-hosted 러너는 검증된 `TIER2_MANIFEST_PATH`의 비공개 manifest를 그대로 사용해야 하며, 저장소의 공개 예시 경로로 대체해서는 안 됩니다.
