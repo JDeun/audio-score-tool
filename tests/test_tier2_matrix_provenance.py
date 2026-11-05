@@ -182,3 +182,105 @@ def test_stage_identifier_rejects_unsafe_directory_names(stage_id: str):
         plan({"schema_version": 1, "stages": [
             {"id": stage_id, "kind": "amt", "enabled": False},
         ]})
+
+
+def test_non_dry_matrix_reaches_hybrid_evaluation_with_distinct_provenance(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+):
+    """Exercise full matrix branching, not just individual helper functions."""
+    import sys
+
+    from music21 import note, stream
+
+    from scripts import run_tier2_matrix
+
+    corpus = tmp_path / "licensed-corpus"
+    (corpus / "audio").mkdir(parents=True)
+    (corpus / "audio" / "piano.wav").write_bytes(b"owned-test-placeholder")
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps({
+            "corpus_version": "owned-corpus-2026",
+            "cases": [{
+                "id": CASE_ID, "title": "piano mock",
+                "category": "solo_piano", "genre": "classical",
+                "tags": ["piano"],
+                "audio": {"locator": "private://audio/piano.wav"},
+            }],
+        }),
+        encoding="utf-8",
+    )
+    matrix = tmp_path / "matrix.json"
+    matrix.write_text(
+        json.dumps({
+            "schema_version": 1, "stages": [
+                {"id": "yourmt3", "kind": "amt", "enabled": True,
+                 "engine": "mt3_infer", "model": "yourmt3"},
+                {"id": "yourmt3+sheetsage2", "kind": "hybrid",
+                 "enabled": True, "base_stage": "yourmt3"},
+            ],
+        }),
+        encoding="utf-8",
+    )
+    output_root = tmp_path / "output"
+    events = output_root / "sheetsage2"
+    events.mkdir(parents=True)
+    (events / f"{CASE_ID}.json").write_text(
+        json.dumps({
+            "schema_version": 1,
+            "chords": [{"time_seconds": 0, "label": "C:maj"}],
+            "keys": [{"time_seconds": 0, "label": "C:major"}],
+        }),
+        encoding="utf-8",
+    )
+    for prefix, suffix in (
+        ("TIER2_YOURMT3_", "MODEL_REVISION"),
+        ("TIER2_YOURMT3_", "RUNTIME_REVISION"),
+        ("TIER2_SHEETSAGE2_", "MODEL_REVISION"),
+        ("TIER2_SHEETSAGE2_", "RUNTIME_REVISION"),
+    ):
+        monkeypatch.setenv(prefix + suffix, "pinned-test-revision")
+    monkeypatch.setenv("TIER2_YOURMT3_ARTIFACT_SHA256", ENGINE_SHA)
+    monkeypatch.setenv("TIER2_SHEETSAGE2_ARTIFACT_SHA256", SHEETSAGE_SHA)
+
+    evaluated = []
+
+    def run(command, *, check):
+        assert check is True
+        operation = Path(command[1]).name
+        if operation == "generate_tier2_predictions.py":
+            root = Path(command[command.index("--predictions-root") + 1])
+            _fixture(root)
+            score = stream.Score()
+            part = stream.Part()
+            part.append(note.Note("C4", quarterLength=1))
+            score.append(part)
+            score.write("musicxml", fp=str(root / f"{CASE_ID}.musicxml"))
+        elif operation == "run_tier2_benchmark.py":
+            root = Path(command[command.index("--predictions-root") + 1])
+            version, identity, cases, payload = load_tier2_prediction_provenance(root)
+            assert version == "owned-corpus-2026"
+            assert cases == (CASE_ID,)
+            assert payload["experiment"]["artifacts"][CASE_ID]["musicxml_sha256"]
+            evaluated.append(identity.id)
+            report = Path(command[command.index("--output") + 1])
+            report.write_text(json.dumps({"engine_id": identity.id}), encoding="utf-8")
+        elif operation == "compare_tier2_reports.py":
+            assert evaluated == ["yourmt3", "yourmt3+sheetsage2"]
+            Path(command[command.index("--output") + 1]).write_text(
+                "{}", encoding="utf-8"
+            )
+        else:
+            raise AssertionError(f"unexpected subprocess: {command}")
+
+    monkeypatch.setattr(run_tier2_matrix.subprocess, "run", run)
+    monkeypatch.setattr(sys, "argv", [
+        "run_tier2_matrix.py", "--matrix", str(matrix), "--manifest", str(manifest),
+        "--corpus-root", str(corpus), "--output-root", str(output_root),
+    ])
+    assert run_tier2_matrix.main() == 0
+    assert evaluated == ["yourmt3", "yourmt3+sheetsage2"]
+    summary = json.loads((output_root / "summary.json").read_text(encoding="utf-8"))
+    assert summary["completed"] == 2
+    assert summary["blocked"] == 0
+    assert all(entry["status"] == "completed" for entry in summary["results"])
