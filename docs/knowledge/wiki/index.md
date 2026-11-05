@@ -1,6 +1,6 @@
 # Research wiki index
 
-Status: source register indexed; Last reviewed: 2026-11-05
+Status: source and implementation provenance indexed; Last reviewed: 2026-11-05
 
 | Topic | Evidence and canonical document | Status |
 | --- | --- | --- |
@@ -14,3 +14,4 @@ Status: source register indexed; Last reviewed: 2026-11-05
 | Experiments | [Experiment registry](experiment-registry.md) | initial inventory |
 | Research landscape | [Research landscape](research-landscape.md) | initial synthesis; validation pending |
 | Primary source evidence | [Sourced claim register](source-register.md) | offline consistency audited; third-party claims unverified locally |
+| Historical implementation checks | [PR/CI evidence](../../research/IMPLEMENTATION_EVIDENCE_2026.json) | code-only checks; actual model quality unverified |

@@ -6,3 +6,5 @@ Use [research template](RESEARCH_TEMPLATE.md) for reproducible investigations. I
 
 - [AMT provider landscape](AMT_PROVIDER_LANDSCAPE_2026.md) — published vs reproduced evidence, license constraints
 - [Experiment/failure audit ledger](EXPERIMENT_LEDGER_2026.md) — workstream status and missing evidence
+
+- [Audited implementation PR/CI timeline](IMPLEMENTATION_EVIDENCE_2026.json) — pinned source PRs, merge commits and successful workflow IDs (code evidence only); [scope and unknowns](EXPERIMENT_LEDGER_2026.md). Verify offline via `python scripts/audit_research_history.py`.
