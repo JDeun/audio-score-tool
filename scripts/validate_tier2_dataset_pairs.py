@@ -13,12 +13,13 @@ import math
 import re
 import wave
 from pathlib import Path
-from typing import Any
-
 import mido
 from mutagen import File as mutagen_file
 
-from scripts.validate_dataset_registry import KNOWN_TASKS
+if __package__:
+    from scripts.validate_dataset_registry import KNOWN_TASKS
+else:
+    from validate_dataset_registry import KNOWN_TASKS
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 HEX = re.compile(r"^[0-9a-f]{64}$")
