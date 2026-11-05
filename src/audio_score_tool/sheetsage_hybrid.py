@@ -116,6 +116,21 @@ def _parse_chord_symbol(label: str) -> harmony.ChordSymbol:
     return harmony.ChordSymbol(figure)
 
 
+def _parse_key_label(label: str) -> key.Key:
+    """Normalize the model's Harte `tonic:mode` notation without guessing."""
+    normalized = label.strip()
+    if ":" not in normalized:
+        return key.Key(normalized)
+    tonic, mode = normalized.split(":", 1)
+    if not re.fullmatch(r"[A-G](?:#|b)?", tonic):
+        raise SheetSageError(f"unsupported key label: {label}")
+    if mode not in {"major", "minor", "maj", "min"}:
+        raise SheetSageError(f"unsupported key label: {label}")
+    music21_tonic = tonic.replace("b", "-")
+    music21_mode = "major" if mode in {"major", "maj"} else "minor"
+    return key.Key(music21_tonic, music21_mode)
+
+
 def merge_sheetsage_musicxml(
     amt_musicxml: Path,
     sheetsage_json: Path,
@@ -150,7 +165,7 @@ def merge_sheetsage_musicxml(
         added["chords"] += 1
     for event in events.get("keys", []):
         try:
-            signature = key.Key(event["label"])
+            signature = _parse_key_label(event["label"])
         except Exception as exc:
             raise SheetSageError(f"unsupported key label: {event['label']}") from exc
         target.insert(_quarter_offset(event["time_seconds"], bpm=bpm, beats=beats), signature)

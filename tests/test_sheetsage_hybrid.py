@@ -113,3 +113,52 @@ def test_sheetsage_rejects_unmappable_harte_chords(label):
 
     with pytest.raises(SheetSageError, match="unsupported chord label"):
         _parse_chord_symbol(label)
+
+
+@pytest.mark.parametrize(
+    ("label", "tonic", "mode"),
+    [
+        ("C:major", "C", "major"),
+        ("A:minor", "A", "minor"),
+        ("F#:maj", "F#", "major"),
+        ("Bb:min", "B-", "minor"),
+        ("D", "D", "major"),
+    ],
+)
+def test_sheetsage_harte_key_label_normalization(label, tonic, mode):
+    from audio_score_tool.sheetsage_hybrid import _parse_key_label
+
+    parsed = _parse_key_label(label)
+    assert parsed.tonic.name == tonic
+    assert parsed.mode == mode
+
+
+@pytest.mark.parametrize("label", ["C:unknown", "C:major/3", "X:major"])
+def test_sheetsage_rejects_unsupported_key_labels(label):
+    from audio_score_tool.sheetsage_hybrid import _parse_key_label
+
+    with pytest.raises(SheetSageError, match="unsupported key label"):
+        _parse_key_label(label)
+
+
+def test_merge_accepts_harte_key_and_chord_from_sheet_sage(tmp_path):
+    score = stream.Score()
+    part = stream.Part()
+    part.append(note.Note("C4", quarterLength=1))
+    score.append(part)
+    source = tmp_path / "score.musicxml"
+    score.write("musicxml", fp=str(source))
+    payload = tmp_path / "events.json"
+    payload.write_text(
+        json.dumps({
+            "schema_version": 1,
+            "chords": [{"time_seconds": 0.0, "label": "C:aug"}],
+            "keys": [{"time_seconds": 0.0, "label": "C:major"}],
+        }),
+        encoding="utf-8",
+    )
+    target = tmp_path / "merged.musicxml"
+    result = merge_sheetsage_musicxml(source, payload, target)
+    assert result["added"]["chords"] == 1
+    assert result["added"]["keys"] == 1
+    assert target.is_file()
