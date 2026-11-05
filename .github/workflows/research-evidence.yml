@@ -1,0 +1,50 @@
+name: Research Evidence Contracts
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/research-evidence.yml'
+      - 'docs/knowledge/**'
+      - 'docs/research/**'
+      - 'scripts/audit_knowledge_evidence.py'
+      - 'scripts/check_knowledge_wiki.py'
+      - 'scripts/plan_knowledge_update.py'
+      - 'scripts/ingest_knowledge_source.py'
+      - 'tests/test_knowledge_evidence.py'
+      - 'tests/test_knowledge_wiki.py'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/research-evidence.yml'
+      - 'docs/knowledge/**'
+      - 'scripts/audit_knowledge_evidence.py'
+      - 'scripts/plan_knowledge_update.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: research-evidence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: 0.12.10
+          python-version: '3.12'
+      - name: Validate wiki structural links
+        run: python scripts/check_knowledge_wiki.py
+      - name: Validate raw-source and claim evidence
+        run: python scripts/audit_knowledge_evidence.py
+      - name: Install frozen test environment
+        run: uv sync --frozen --extra dev
+      - name: Run offline provenance and impact regression tests
+        run: uv run --frozen pytest -q tests/test_knowledge_wiki.py tests/test_knowledge_evidence.py
