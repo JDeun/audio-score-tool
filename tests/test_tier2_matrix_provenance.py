@@ -284,3 +284,139 @@ def test_non_dry_matrix_reaches_hybrid_evaluation_with_distinct_provenance(
     assert summary["completed"] == 2
     assert summary["blocked"] == 0
     assert all(entry["status"] == "completed" for entry in summary["results"])
+
+
+def test_receipt_validator_detects_modified_output_files(tmp_path: Path):
+    from audio_score_tool.tier2_experiment_record import (
+        ExperimentRecordError,
+        validate_tier2_experiment_record,
+    )
+
+    root = _fixture(tmp_path / "amt")
+    _write(root, "yourmt3")
+    receipt = validate_tier2_experiment_record(root)
+    assert receipt["validated"] is True
+    assert receipt["verified_artifacts"] == 2
+    (root / f"{CASE_ID}.musicxml").write_bytes(b"tampered-after-prediction")
+    with pytest.raises(ExperimentRecordError, match="SHA-256 mismatch"):
+        validate_tier2_experiment_record(root)
+
+
+def test_receipt_validator_rejects_bad_record_metadata(tmp_path: Path):
+    from audio_score_tool.tier2_experiment_record import (
+        ExperimentRecordError,
+        validate_tier2_experiment_record,
+    )
+
+    root = _fixture(tmp_path / "amt")
+    _write(root, "yourmt3")
+    path = root / "tier2-prediction-provenance.json"
+    original = json.loads(path.read_text(encoding="utf-8"))
+    original["experiment"]["run_id"] = "untracked"
+    path.write_text(json.dumps(original), encoding="utf-8")
+    with pytest.raises(ExperimentRecordError, match="run_id"):
+        validate_tier2_experiment_record(root)
+
+
+def test_receipt_validator_rejects_mismatched_corpus_manifest(tmp_path: Path):
+    from audio_score_tool.tier2_experiment_record import (
+        ExperimentRecordError,
+        validate_tier2_experiment_record,
+    )
+
+    root = _fixture(tmp_path / "amt")
+    _write(root, "yourmt3")
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps({
+            "corpus_version": "wrong-version",
+            "cases": [{
+                "id": CASE_ID, "title": "fixture", "category": "solo",
+                "genre": "test", "tags": [],
+            }],
+        }),
+        encoding="utf-8",
+    )
+    with pytest.raises(ExperimentRecordError, match="corpus manifest identity"):
+        validate_tier2_experiment_record(root, manifest_path=manifest)
+
+
+def test_hybrid_receipt_requires_events_and_noncommercial_license(tmp_path: Path):
+    from audio_score_tool.tier2_experiment_record import (
+        ExperimentRecordError,
+        validate_tier2_experiment_record,
+    )
+
+    base = _fixture(tmp_path / "base")
+    _write(base, "yourmt3")
+    hybrid = _fixture(tmp_path / "hybrid")
+    events = tmp_path / "sheetsage2"
+    events.mkdir()
+    (events / f"{CASE_ID}.json").write_text(
+        json.dumps({"schema_version": 1, "chords": []}), encoding="utf-8",
+    )
+    _write_experiment_provenance(
+        source_root=base,
+        prediction_root=hybrid,
+        stage_id="yourmt3+sheetsage2",
+        corpus_version="owned-corpus-2026",
+        case_ids=(CASE_ID,),
+        analysis={
+            "provider": "sheetsage2",
+            "model_revision": "checked-checkpoint",
+            "runtime_revision": "checked-runtime",
+            "artifact_sha256": SHEETSAGE_SHA,
+            "license": "CC BY-NC 4.0",
+            "commercial_eligible": False,
+        },
+        event_root=events,
+    )
+    assert validate_tier2_experiment_record(
+        hybrid, events_root=events,
+    )["verified_artifacts"] == 3
+    with pytest.raises(ExperimentRecordError, match="events_root"):
+        validate_tier2_experiment_record(hybrid)
+
+    provenance = hybrid / "tier2-prediction-provenance.json"
+    payload = json.loads(provenance.read_text(encoding="utf-8"))
+    payload["analysis"]["commercial_eligible"] = True
+    provenance.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ExperimentRecordError, match="cannot be commercial"):
+        validate_tier2_experiment_record(hybrid, events_root=events)
+
+
+@pytest.mark.parametrize("case_id", ["../escape", "folder/note", "C:\\Windows", " bad"])
+def test_corpus_loader_rejects_unsafe_case_ids(tmp_path: Path, case_id: str):
+    from audio_score_tool.tier2_benchmark import load_manifest
+
+    path = tmp_path / "manifest.json"
+    path.write_text(
+        json.dumps({
+            "corpus_version": "1", "cases": [{
+                "id": case_id, "title": "unsafe", "category": "solo",
+                "genre": "test", "tags": [],
+            }],
+        }),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="unsafe Tier 2 case id"):
+        load_manifest(path)
+
+
+def test_validate_experiment_cli_reports_verified_artifacts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture,
+):
+    import sys
+
+    from scripts import validate_tier2_experiment
+
+    root = _fixture(tmp_path / "amt")
+    _write(root, "yourmt3")
+    monkeypatch.setattr(sys, "argv", [
+        "validate_tier2_experiment.py", "--predictions-root", str(root),
+    ])
+    assert validate_tier2_experiment.main() == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["validated"] is True
+    assert output["stage_id"] == "yourmt3"
+    assert output["verified_artifacts"] == 2
