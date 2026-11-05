@@ -37,7 +37,7 @@ def _write(
             ))
         )
     current = 0
-    for tick, _kind, _pitch, message in sorted(messages):
+    for tick, _kind, _pitch, message in sorted(messages, key=lambda item: item[:3]):
         message.time = tick - current
         track.append(message)
         current = tick
