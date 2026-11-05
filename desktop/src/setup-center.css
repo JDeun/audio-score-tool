@@ -64,3 +64,19 @@
   .setup-component-actions { grid-column:2; justify-content:flex-start; max-width:none; }
   .setup-center-trigger { right:14px; bottom:14px; }
 }
+
+.setup-readiness .setup-readiness-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.setup-readiness-actions button:disabled,
+.setup-component-actions button:disabled { opacity: .5; cursor: not-allowed; }
+.setup-center-error { background: #fff1f1; color: #9c2a2a; }
+.setup-component-actions .setup-installed { text-align: right; }
+@media (max-width: 760px) {
+  .setup-readiness { align-items: flex-start; flex-direction: column; }
+  .setup-component-actions .setup-installed { text-align: left; }
+}

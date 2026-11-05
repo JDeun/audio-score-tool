@@ -22,6 +22,9 @@ type Component = {
   role: string;
   required_for: string[];
   note?: string | null;
+  auto_install?: boolean;
+  managed_status?: { ready?: boolean; integrity?: string; version?: string } | null;
+  catalog?: { published?: boolean; target?: string; version?: string } | null;
 };
 
 type SetupStatus = {
@@ -47,6 +50,16 @@ const tierLabel: Record<Tier, string> = {
   optional: "선택",
 };
 
+async function apiError(response: Response): Promise<string> {
+  const raw = await response.text();
+  try {
+    const parsed = JSON.parse(raw) as { detail?: string };
+    return typeof parsed.detail === "string" ? parsed.detail : raw;
+  } catch {
+    return raw || `요청이 실패했습니다 (HTTP ${response.status}).`;
+  }
+}
+
 const deliveryLabel: Record<Delivery, string> = {
   embedded: "앱 내장",
   "managed-model-runtime": "앱 관리 모델/런타임",
@@ -58,6 +71,8 @@ const deliveryLabel: Record<Delivery, string> = {
 export default function SetupCenter() {
   const [status, setStatus] = useState<SetupStatus | null>(null);
   const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ message: string; error: boolean } | null>(null);
 
   const refresh = async () => {
     try {
@@ -94,6 +109,61 @@ export default function SetupCenter() {
     return { ready: core.filter((item) => item.ready).length, total: core.length };
   }, [status]);
 
+  const install = async (component: Component) => {
+    if (!component.auto_install || !component.catalog?.published || busy) return;
+    setBusy(component.key);
+    setFeedback(null);
+    try {
+      const response = await fetch(`${API}/api/setup/install`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ component: component.key }),
+      });
+      if (!response.ok) throw new Error(await apiError(response));
+      const result = await response.json() as {
+        installed: { ready?: boolean; integrity?: string };
+        setup: SetupStatus;
+      };
+      setStatus(result.setup);
+      if (!result.installed?.ready || result.installed.integrity !== "verified") {
+        throw new Error("설치 요청이 완료됐지만 무결성 검증에 통과하지 못했습니다.");
+      }
+      setFeedback({
+        message: `${component.label} 설치 파일이 검증됐습니다. 실행 준비 상태를 다시 확인하세요.`,
+        error: false,
+      });
+    } catch (error) {
+      setFeedback({ message: error instanceof Error ? error.message : "구성요소 설치 실패", error: true });
+      await refresh();
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const recover = async () => {
+    if (busy) return;
+    setBusy("recovery");
+    setFeedback(null);
+    try {
+      const response = await fetch(`${API}/api/setup/recover`, { method: "POST" });
+      if (!response.ok) throw new Error(await apiError(response));
+      const result = await response.json() as {
+        recovery: { removed_component_staging?: number };
+        setup: SetupStatus;
+      };
+      setStatus(result.setup);
+      setFeedback({
+        message: `임시 설치 파일 ${result.recovery.removed_component_staging ?? 0}개를 정리했습니다.`,
+        error: false,
+      });
+    } catch (error) {
+      setFeedback({ message: error instanceof Error ? error.message : "복구 작업 실패", error: true });
+      await refresh();
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const close = () => {
     window.localStorage.setItem("ast-setup-center-v2", "dismissed");
     setOpen(false);
@@ -125,8 +195,18 @@ export default function SetupCenter() {
                 <strong>{status.core_ready ? "핵심 런타임 준비됨" : "패키지 구성요소 확인이 필요합니다"}</strong>
                 <span>핵심 {counts.ready}/{counts.total} 준비</span>
               </div>
-              <button type="button" onClick={() => void refresh()}>다시 검사</button>
+              <div className="setup-readiness-actions">
+                <button type="button" disabled={Boolean(busy)} onClick={() => void refresh()}>다시 검사</button>
+                <button type="button" disabled={Boolean(busy)} onClick={() => void recover()}>
+                  {busy === "recovery" ? "정리 중…" : "중단된 설치 복구"}
+                </button>
+              </div>
             </div>
+
+            {feedback && (
+              <p className={`setup-center-message${feedback.error ? " setup-center-error" : ""}`}
+                role={feedback.error ? "alert" : "status"}>{feedback.message}</p>
+            )}
 
             <div className="setup-profile-strip">
               <div><strong>핵심</strong><span>{status.profiles.core}</span></div>
@@ -148,8 +228,23 @@ export default function SetupCenter() {
                   </div>
                   <div className="setup-component-actions">
                     <span className="setup-installed">
-                      {component.ready ? "사용 가능" : component.tier === "core" ? "패키지 점검 필요" : "현재 비활성"}
+                      {component.ready
+                        ? "사용 가능"
+                        : component.managed_status?.ready
+                          ? "설치됨 · 실행 환경 점검 필요"
+                          : component.catalog && !component.catalog.published
+                            ? "이 플랫폼용 배포 파일 미게시"
+                            : component.delivery === "embedded"
+                              ? "패키지 점검 필요"
+                              : "현재 비활성"}
                     </span>
+                    {component.auto_install && component.catalog?.published && (
+                      <button type="button" disabled={Boolean(busy)}
+                        onClick={() => void install(component)}>
+                        {busy === component.key ? "설치·검증 중…" :
+                          component.managed_status?.ready ? "재설치 / 업데이트" : "앱에서 설치"}
+                      </button>
+                    )}
                   </div>
                 </article>
               ))}
@@ -162,7 +257,7 @@ export default function SetupCenter() {
 
             <footer>
               <button className="setup-later" type="button" onClick={close}>닫기</button>
-              <button className="setup-done" type="button" disabled={!status.core_ready} onClick={close}>
+              <button className="setup-done" type="button" disabled={!status.core_ready || Boolean(busy)} onClick={close}>
                 {status.core_ready ? "확인" : "핵심 구성요소를 확인하세요"}
               </button>
             </footer>
