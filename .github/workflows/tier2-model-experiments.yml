@@ -28,6 +28,10 @@ on:
         type: choice
         options: [cpu, cuda, mps]
         default: cpu
+      evaluate_ensemble:
+        description: "Compare two AMT predictions and their consensus using private independent MIDI references"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -87,6 +91,20 @@ jobs:
             --corpus-root "$TIER2_CORPUS_ROOT" \
             --device "${{ inputs.device }}" \
             --output-root tier2-results
+      - name: Evaluate AMT consensus against private licensed MIDI references
+        if: inputs.evaluate_ensemble == true
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "${TIER2_MANIFEST_PATH:?Private Tier 2 manifest required}"
+          test -d tier2-results/yourmt3
+          test -d tier2-results/mr-mt3
+          uv run --frozen python scripts/evaluate_tier2_ensemble.py \
+            "$TIER2_MANIFEST_PATH" \
+            --corpus-root "$TIER2_CORPUS_ROOT" \
+            --first-root tier2-results/yourmt3 \
+            --second-root tier2-results/mr-mt3 \
+            --output-root tier2-results/ensemble
       - name: Preserve reports even after failed runs
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -96,4 +114,5 @@ jobs:
             tier2-results/*-report.json
             tier2-results/comparison.json
             tier2-results/summary.json
+            tier2-results/ensemble/ensemble-evaluation.json
           if-no-files-found: warn
