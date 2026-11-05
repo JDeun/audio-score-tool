@@ -54,7 +54,14 @@ uv run --frozen python scripts/compare_tier2_reports.py \
 
 - 계획과 기존 runner/manifest 인터페이스 확인: 완료
 - 권한 있는 실제 음원 corpus 및 reference 확보: 미확인
-- YourMT3+/MR-MT3/MuScriptor/SheetSage2 추론 수행: 미실행
+- 라이선스가 확인된 실제 곡 및 동일 reference를 이용한 Tier 2 비교 추론: 미실행
 - 모델별 결과와 제품 KPI 비교: 미실행
 
 연계 이슈: #34 (Tier 2), #43 (SheetSage2), #47 (실험 provenance).
+
+## 2026-11-05 CI 스모크 실험 기록 (실제 음악 품질 측정 아님)
+
+- Actions [실행 #41976831365](https://github.com/JDeun/audio-score-tool/actions/runs/41976831365): **합성된 자체 코드 음원**으로 YourMT3 추론 명령이 완료되고 MIDI/MusicXML을 생성했지만, 파싱한 악보는 **1개 파트 / 0개 음표**였다. 따라서 end-to-end 품질 성공이나 note F1 달성으로 간주하지 않는다.
+- 동일 실행에서 MR-MT3는 `T5Block.forward() got an unexpected keyword argument 'past_key_values'`로 중단됐다. 사용된 `transformers==4.44.2`의 T5Block 시그니처는 `past_key_value`(단수)인 반면 MR-MT3 wrapper는 복수형을 전달한다.
+- 시험용 환경을 `mt3-infer[torch]==0.2.0` + `transformers==4.57.6`으로 고정하고 로드 시 T5Block 시그니처를 검사하도록 수정했다. **수정 전후의 실제 추론 성공 여부와 정확도는 별도로 확인해야 한다.**
+- 여기 기록된 합성 스모크 결과는 장르별 실음원 corpus, 독립 reference MIDI, 계측된 사람 편집 시간에 대한 어떠한 대체도 아니다. 모델 성능 순위와 v1 상용 기본 모델 결정은 계속 보류한다.

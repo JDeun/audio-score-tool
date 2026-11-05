@@ -44,9 +44,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg
           python -m pip install --upgrade pip
-          python -m pip install 'transformers>=4.41,<5' mt3-infer music21
-          python -m pip install --force-reinstall 'transformers==4.44.2' 'tokenizers>=0.19,<0.20'
-          python -c 'import transformers; assert transformers.__version__ == "4.44.2", transformers.__version__'
+          python -m pip install 'mt3-infer[torch]==0.2.0' 'transformers==4.57.6' 'music21>=9.7,<11'
+          python - <<'PY'
+          import inspect
+          import transformers
+          from transformers.models.t5.modeling_t5 import T5Block
+          assert transformers.__version__ == "4.57.6", transformers.__version__
+          assert "past_key_values" in inspect.signature(T5Block.forward).parameters
+          PY
       - name: Install YouTube audio downloader
         if: inputs.youtube_url != ''
         run: python -m pip install yt-dlp
@@ -75,6 +80,8 @@ jobs:
 
   hybrid:
     name: ${{ matrix.model }} + SheetSage2 fusion
+    # Preserve evidence for a successful model even if another matrix entry fails.
+    if: ${{ always() && needs.amt.result != 'cancelled' }}
     needs: amt
     runs-on: ubuntu-24.04
     timeout-minutes: 100

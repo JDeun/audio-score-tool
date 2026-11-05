@@ -25,12 +25,16 @@ def main() -> int:
     if not artifacts.midi_path.is_file() or not artifacts.musicxml_path.is_file():
         raise RuntimeError("Missing model outputs")
     score = converter.parse(str(artifacts.musicxml_path))
+    note_count = len(list(score.recurse().notes))
+    if not note_count:
+        print("WARNING: inference created a parseable score but detected no notes; this is not a quality pass.")
     result = {
         "model": args.model,
         "midi": str(artifacts.midi_path),
         "musicxml": str(artifacts.musicxml_path),
         "parts": len(score.parts),
-        "notes": len(list(score.recurse().notes)),
+        "notes": note_count,
+        "note_events_detected": bool(note_count),
     }
     (args.output / "smoke-result.json").write_text(
         json.dumps(result, indent=2) + "\n", encoding="utf-8",
