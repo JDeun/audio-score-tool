@@ -1,0 +1,77 @@
+name: Python Compatibility and Lock Security
+
+on:
+  pull_request:
+    paths:
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/python-compatibility-audit.yml'
+      - '.github/workflows/ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/python-compatibility-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-compatibility-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compatibility-audit:
+    name: python-${{ matrix.python-version }}-compatibility-audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Verify supported Python minimum and frozen lock
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import sys
+          import tomllib
+          from pathlib import Path
+
+          project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          minimum = project["project"]["requires-python"]
+          assert minimum == ">=3.11", f"Unsupported Python support policy: {minimum}"
+          assert (3, 11) <= sys.version_info[:2] <= (3, 12), sys.version
+          print("Interpreter:", sys.version, "Policy:", minimum)
+          PY
+          uv lock --check
+      - name: Audit runtime dependencies for this Python version
+        run: |
+          set -euo pipefail
+          uv export --frozen --no-hashes --output-file /tmp/runtime-requirements.raw.txt
+          grep -vE '^-e[[:space:]]+\.$' /tmp/runtime-requirements.raw.txt > /tmp/runtime-requirements.txt
+          uvx --from pip-audit==2.9.0 pip-audit --strict --requirement /tmp/runtime-requirements.txt
+      - name: Audit desktop/build dependencies for this Python version
+        run: |
+          set -euo pipefail
+          uv export --frozen --no-hashes --extra dev --extra desktop \
+            --output-file /tmp/build-requirements.raw.txt
+          grep -vE '^-e[[:space:]]+\.$' /tmp/build-requirements.raw.txt > /tmp/build-requirements.txt
+          uvx --from pip-audit==2.9.0 pip-audit --strict --requirement /tmp/build-requirements.txt
+      - name: Verify frozen install and selected compatibility contracts
+        run: |
+          uv sync --frozen --extra dev
+          uv run --frozen pytest -q \
+            tests/test_api.py \
+            tests/test_preflight_v2.py \
+            tests/test_managed_component_catalog.py \
+            tests/test_managed_components.py \
+            tests/test_setup_center_managed_runtime.py
