@@ -287,3 +287,30 @@ uv run --frozen python scripts/validate_tier2_dataset_pairs.py \
 ```
 
 검사 범위는 경로 탈출·심볼릭 링크 차단, 실제 오디오/참조 MIDI 파일 SHA-256, WAV 및 일반 압축 오디오의 메타데이터 길이, MIDI 구문 파싱, 동일 `recording_id` 또는 오디오 SHA-256의 train/validation/test 교차 누출 차단, 소스 라이선스 일치와 사용자 권리 검토 선언입니다. 결과는 **파일 경로 없는 메타데이터 보고서**와 저장소 밖에 보관할 Tier 2 manifest입니다. 악보 주석이 실제 오디오와 얼마나 정렬됐는지나 곡별 정답의 음악적 품질은 이 계약만으로 검증할 수 없습니다. 실제 샘플을 확보하고 독립 측정 결과를 제출하는 작업은 #59–#61/#34에 남습니다.
+
+## 2026-11-05 — 실행 환경·실패·재시험 메타데이터 영수증 (#47)
+
+모델 매트릭스 `scripts/run_tier2_matrix.py`는 이제 `summary.json`과 함께 **`execution-receipt.json`**을 원자적으로 기록합니다. 드라이런은 상태 `planned`/`blocked`만 기록하고 corpus/실제 실행이 존재한다고 주장하지 않습니다. 실제 실행에서 완료된 단계는 `tier2-prediction-provenance.json`(정확한 manifest SHA-256 및 출력 MIDI/MusicXML 해시 포함)과 후보 평가 보고서 SHA-256을 재검증한 뒤에만 `completed`로 수락됩니다.
+
+영수증에는 실행 UUID, UTC 기록 시각, 매트릭스/manifest SHA-256, 순서가 있는 case fingerprint, 케이스별 운영자 선언 권리, Python/OS/CPU 수/요청된 연산장치, uv.lock SHA, 커밋(있는 경우), 단계별 실행 시간·상태, 실패 사유 SHA-256, 검증된 결과 보고서 및 원본 예측 provenance SHA-256이 포함됩니다. 실제 음원, 전체 로컬 경로, 원문 예외 문자열, 암호/토큰은 복제하지 않습니다. 따라서 실패 원문의 조사는 **비공개 CI 로그**를 사용해야 합니다. 이 영수증은 디바이스 메모리 사용량이나 GPU 실행 가능성을 직접 측정했다고 주장하지 않습니다.
+
+완료 보고서를 변조하거나 manifest와 예측 아티팩트가 불일치하면 영수증 생성은 실패합니다. 실패·차단 뒤 다시 실행할 때 다음처럼 **이전 영수증의 corpus/matrix 신원이 동일한지 검증**하여 재시험 링크를 생성할 수 있습니다.
+
+```bash
+uv run --frozen python scripts/run_tier2_matrix.py \
+  --matrix benchmarks/tier2/experiment-matrix.json \
+  --manifest /private/tier2/manifest.json \
+  --corpus-root /private/tier2 \
+  --output-root /private/tier2/retest-02 \
+  --retest-of /private/tier2/failed-run/execution-receipt.json
+
+# No inference, verify and reconstruct receipt from an existing summary:
+uv run --frozen python scripts/tier2_execution_ledger.py \
+  --matrix benchmarks/tier2/experiment-matrix.json \
+  --manifest /private/tier2/manifest.json \
+  --summary /private/tier2/retest-02/summary.json \
+  --output-root /private/tier2/retest-02 \
+  --output /private/tier2/retest-02/revalidated-receipt.json
+```
+
+비모델 실행 기록 계약과 CI 테스트가 존재해도 적법한 다중 곡 corpus와 사람이 검토한 실제 품질 결과가 확보됐다는 의미는 아닙니다. 외부 권리 확인·실제 측정 지표·성능 승인 등은 #34/#47 후속 실증 조건으로 남깁니다.

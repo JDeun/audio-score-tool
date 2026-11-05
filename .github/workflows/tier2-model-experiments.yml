@@ -6,6 +6,8 @@ on:
       - 'benchmarks/tier2/**'
       - 'scripts/run_tier2_matrix.py'
       - 'scripts/validate_tier2_experiment.py'
+      - 'scripts/tier2_execution_ledger.py'
+      - 'tests/test_tier2_execution_ledger.py'
       - 'src/audio_score_tool/tier2_experiment_record.py'
       - 'src/audio_score_tool/tier2_benchmark.py'
       - 'tests/test_tier2_matrix.py'
@@ -55,15 +57,19 @@ jobs:
       - name: Install frozen test dependencies
         run: uv sync --frozen --extra dev
       - name: Verify SheetSage2 and MIDI ensemble round-trip contracts
-        run: uv run --frozen pytest -q tests/test_sheetsage_hybrid.py tests/test_ensemble_amt_predictions.py tests/test_tier2_matrix.py tests/test_tier2_matrix_provenance.py tests/test_tier2_ensemble_evaluation.py
+        run: uv run --frozen pytest -q tests/test_sheetsage_hybrid.py tests/test_ensemble_amt_predictions.py tests/test_tier2_matrix.py tests/test_tier2_matrix_provenance.py tests/test_tier2_ensemble_evaluation.py tests/test_tier2_execution_ledger.py
       - name: Validate ensemble reference CLI entrypoint
         run: uv run --frozen python scripts/evaluate_tier2_ensemble.py --help
       - name: Validate and enumerate full model combination plan
         run: python scripts/run_tier2_matrix.py --dry-run --output-root tier2-results
+      - name: Verify metadata-only planned execution receipt
+        run: python -c 'import json; p=json.load(open("tier2-results/execution-receipt.json")); assert p["commercial_approval"] is False and p["corpus"] is None'
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: tier2-experiment-plan
-          path: tier2-results/summary.json
+          path: |
+            tier2-results/summary.json
+            tier2-results/execution-receipt.json
 
   execute-models:
     if: inputs.execute == true
@@ -116,5 +122,6 @@ jobs:
             tier2-results/*-report.json
             tier2-results/comparison.json
             tier2-results/summary.json
+            tier2-results/execution-receipt.json
             tier2-results/ensemble/ensemble-evaluation.json
           if-no-files-found: warn
