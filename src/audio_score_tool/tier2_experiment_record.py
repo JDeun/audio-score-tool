@@ -89,7 +89,7 @@ def validate_tier2_experiment_record(
     if not isinstance(execution, dict):
         raise ExperimentRecordError("experiment inference_engine is required")
     try:
-        Tier2EngineIdentity(
+        runner = Tier2EngineIdentity(
             id=_required_text(execution, "id"),
             model_revision=_required_text(execution, "model_revision"),
             runtime_revision=_required_text(execution, "runtime_revision"),
@@ -98,7 +98,7 @@ def validate_tier2_experiment_record(
     except ValueError as exc:
         raise ExperimentRecordError("experiment inference_engine identity is invalid") from exc
     if any(
-        getattr(identity, field) != execution.get(field)
+        getattr(identity, field) != getattr(runner, field)
         for field in ("model_revision", "runtime_revision", "artifact_sha256")
     ):
         raise ExperimentRecordError("experiment candidate identity differs from inference_engine")

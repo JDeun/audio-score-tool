@@ -44,13 +44,15 @@ def _fixture(directory: Path, *, candidate: str = "mt3_infer") -> Path:
 
 
 def _write(root: Path, stage_id: str, *, source: Path | None = None,
-           events: Path | None = None, analysis: dict | None = None) -> dict:
+           events: Path | None = None, analysis: dict | None = None,
+           manifest: Path | None = None) -> dict:
     return _write_experiment_provenance(
         source_root=source or root,
         prediction_root=root,
         stage_id=stage_id,
         corpus_version="owned-corpus-2026",
         case_ids=(CASE_ID,),
+        manifest_path=manifest,
         analysis=analysis,
         event_root=events,
     )
@@ -420,3 +422,49 @@ def test_validate_experiment_cli_reports_verified_artifacts(
     assert output["validated"] is True
     assert output["stage_id"] == "yourmt3"
     assert output["verified_artifacts"] == 2
+
+
+def test_receipt_binds_exact_manifest_bytes_not_just_case_ids(tmp_path: Path):
+    from audio_score_tool.tier2_experiment_record import (
+        ExperimentRecordError,
+        validate_tier2_experiment_record,
+    )
+
+    root = _fixture(tmp_path / "amt")
+    manifest = tmp_path / "manifest.json"
+    source = {
+        "corpus_version": "owned-corpus-2026",
+        "cases": [{
+            "id": CASE_ID, "title": "reviewed input",
+            "category": "solo", "genre": "classical", "tags": [],
+        }],
+    }
+    manifest.write_text(json.dumps(source), encoding="utf-8")
+    record = _write(root, "yourmt3", manifest=manifest)
+    assert record["experiment"]["corpus_manifest_sha256"] == hashlib.sha256(
+        manifest.read_bytes()
+    ).hexdigest()
+    assert validate_tier2_experiment_record(
+        root, manifest_path=manifest,
+    )["validated"] is True
+
+    source["cases"][0]["title"] = "silently modified input"
+    manifest.write_text(json.dumps(source), encoding="utf-8")
+    with pytest.raises(ExperimentRecordError, match="manifest SHA-256 mismatch"):
+        validate_tier2_experiment_record(root, manifest_path=manifest)
+
+
+def test_receipt_refuses_mutated_model_revision(tmp_path: Path):
+    from audio_score_tool.tier2_experiment_record import (
+        ExperimentRecordError,
+        validate_tier2_experiment_record,
+    )
+
+    root = _fixture(tmp_path / "amt")
+    _write(root, "yourmt3")
+    provenance = root / "tier2-prediction-provenance.json"
+    record = json.loads(provenance.read_text(encoding="utf-8"))
+    record["engine"]["model_revision"] = "silently-changed-checkpoint"
+    provenance.write_text(json.dumps(record), encoding="utf-8")
+    with pytest.raises(ExperimentRecordError, match="candidate identity differs"):
+        validate_tier2_experiment_record(root)
