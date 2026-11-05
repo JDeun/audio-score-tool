@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from scripts.audit_knowledge_evidence import audit
 from scripts import plan_knowledge_update as review
+from scripts.audit_knowledge_evidence import audit
 
 
 def _setup(tmp_path: Path) -> tuple[Path, Path, Path]:
