@@ -46,10 +46,10 @@ jobs:
           components: clippy
 
       # Temporary resolver diagnostic: capture the uv-generated lock diff for review.
-      - name: Capture resolver diff for filelock security upgrade
+      - name: Capture resolver diff for supported Python security upgrade
         run: |
           set -euo pipefail
-          uv lock --upgrade-package filelock
+          uv lock --upgrade-package filelock --upgrade-package pillow --upgrade-package certifi --upgrade-package urllib3
           echo '=== BEGIN FILELOCK LOCK DIFF ==='
           git diff -- uv.lock
           echo '=== END FILELOCK LOCK DIFF ==='
