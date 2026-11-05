@@ -13,6 +13,7 @@ import math
 import re
 import wave
 from pathlib import Path
+
 import mido
 from mutagen import File as mutagen_file
 
