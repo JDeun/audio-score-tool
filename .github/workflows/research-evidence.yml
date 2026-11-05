@@ -13,6 +13,7 @@ on:
       - 'tests/test_research_history.py'
       - 'scripts/ingest_knowledge_source.py'
       - 'tests/test_knowledge_evidence.py'
+      - 'tests/test_research_source_v2.py'
       - 'tests/test_knowledge_wiki.py'
   push:
     branches: [main]
@@ -51,4 +52,4 @@ jobs:
       - name: Install frozen test environment
         run: uv sync --frozen --extra dev
       - name: Run offline provenance and impact regression tests
-        run: uv run --frozen pytest -q tests/test_knowledge_wiki.py tests/test_knowledge_evidence.py tests/test_research_history.py
+        run: uv run --frozen pytest -q tests/test_knowledge_wiki.py tests/test_knowledge_evidence.py tests/test_research_history.py tests/test_research_source_v2.py
