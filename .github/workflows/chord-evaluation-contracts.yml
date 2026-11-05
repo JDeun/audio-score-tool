@@ -1,0 +1,52 @@
+name: Chord Comparison Contracts
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/chord-evaluation-contracts.yml'
+      - 'scripts/import_manual_chord_chart.py'
+      - 'scripts/compare_chord_playalong.py'
+      - 'scripts/score_casd_chords.py'
+      - 'tests/test_manual_chord_chart.py'
+      - 'tests/test_compare_chord_playalong.py'
+      - 'tests/test_score_casd_chords.py'
+      - 'docs/CHORDIFY_RESEARCH_WIKI.md'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/chord-evaluation-contracts.yml'
+      - 'scripts/import_manual_chord_chart.py'
+      - 'scripts/compare_chord_playalong.py'
+      - 'tests/test_manual_chord_chart.py'
+      - 'tests/test_compare_chord_playalong.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chord-evaluation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  chord-contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: 0.12.10
+          python-version: '3.12'
+      - name: Install frozen project dependencies
+        run: uv sync --frozen --extra dev
+      - name: Validate manual chord and timed beat adapter
+        run: uv run --frozen pytest -q tests/test_manual_chord_chart.py
+      - name: Validate independent WCSR and beat metrics with mir_eval 0.8.2
+        run: uv run --frozen --with mir_eval==0.8.2 pytest -q tests/test_score_casd_chords.py tests/test_compare_chord_playalong.py
+      - name: Check CLI entrypoints
+        run: |
+          uv run --frozen python scripts/import_manual_chord_chart.py --help
+          uv run --frozen --with mir_eval==0.8.2 python scripts/compare_chord_playalong.py --help

@@ -69,3 +69,31 @@ No public official Chordify inference API or model weights were verified in this
 - ASAP (https://github.com/fosfrancesco/asap-dataset): classical piano MIDI/audio-alignment and beats, better for AMT than pop harmony.
 - Hugging Face hosts community datasets but presence on HF **does not imply permission to redistribute commercial recordings**. Inspect each dataset card, actual audio availability, license and alignment; prefer authoritative source when available.
 - 2026 MIREX ACE guidelines (https://music-ir.org/mirex/wiki/2026%3AAudio_Chord_Estimation) prohibit Billboard 2013 test material for training, validation or model selection in the competition; maintain split provenance if seeking MIREX-comparable results.
+
+## 2026-11-05 — 수동 주석 비교 도구 (#53)
+
+이 프로젝트는 **Chordify 인증 세션, 비공식 API, 웹 스크래핑을 구현하지 않습니다**. 사용자가 적법하게 확보하고 직접 작성한 시간 정렬 CSV를 받아 비교용 이벤트로 정규화합니다. 다음은 공식 Chordify CSV 포맷이라는 주장이 아닌 **AudioScoreTool 수동 입력 계약**입니다.
+
+- `chords.csv`: `time_seconds,chord` 헤더와 시간 오름차순 코드 행(예: `0,C`, `2,Am`, `3.5,N`)
+- 선택 `beats.csv`: `time_seconds,kind` 헤더, `kind`는 `beat` 또는 `downbeat`
+- 원본 오디오 SHA-256과 재생 길이는 운영자가 지정하며, 파일 바이트가 원본과 실제 일치하는지 이 도구가 직접 검증하지 않습니다.
+- 인식 불가능한 코드 품질·전위는 추측하지 않고 오류로 처리합니다.
+
+```bash
+uv run --frozen python scripts/import_manual_chord_chart.py \
+  /private/chords.csv /private/manual-events.json \
+  --beats-csv /private/beats.csv \
+  --duration-seconds 120 \
+  --recording-sha256 <ACTUAL_64_CHAR_RECORDING_SHA256>
+
+uv run --frozen --with mir_eval==0.8.2 python scripts/compare_chord_playalong.py \
+  /private/independent-reference.json \
+  /private/manual-events.json \
+  /private/sheetsage-events-with-audio-identity.json \
+  /private/chord-comparison.json \
+  --output-csv /private/chord-comparison.csv
+```
+
+독립 참조 JSON은 `recording_sha256`, `duration_seconds`, `annotators[{index,intervals[{start,end,label}]}]`를 필수로 포함하고, 선택적으로 `beats`와 `downbeats`를 포함합니다. SheetSage2 JSON에도 **동일한** `recording_sha256` 및 `duration_seconds`가 있어야 합니다. 서로 다른 녹음·길이의 결과를 섞으면 실패하며, 결과의 오디오 신원과 이용권 보증은 여전히 사람이 확인해야 합니다.
+
+결과 JSON/CSV에는 독립 주석 기반 root, maj/min, thirds, triads, sevenths WCSR과 beat/downbeat F1, 화성 분할 boundary F1, no-chord 구간 재현율이 포함됩니다. 두 예측 간 일치율은 `inter_model_agreement_not_accuracy`로 **별도 분류**합니다. 주석 출처·오디오 정렬이 검증되지 않은 값은 상용 모델 품질 근거로 사용할 수 없습니다. 설치된 기본 앱에 `mir_eval`을 강제하지 않고 선택형 벤치마크 CLI에서만 임시로 사용합니다. 합성 테스트와 실제 합법적 다중 곡 벤치마크는 구별하며, 실제 곡의 평가 결과가 없으므로 #53의 실증 인수 조건은 남습니다.
