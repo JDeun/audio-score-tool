@@ -17,6 +17,7 @@ from pathlib import Path
 from statistics import mean
 
 from audio_score_tool.metrics import evaluate_midi_files, midi_notes
+from audio_score_tool.tier2_experiment_record import validate_tier2_experiment_record
 from audio_score_tool.tier2_benchmark import case_fingerprint, load_manifest, resolve_locator
 from audio_score_tool.tier2_prediction import load_tier2_prediction_provenance
 from scripts.ensemble_amt_predictions import ensemble
@@ -93,6 +94,10 @@ def evaluate_ensemble_candidates(
     if any(output_root == parent or output_root in parent.parents for parent in (first_root, second_root)):
         raise ValueError("ensemble output must not be an ancestor of a source directory")
 
+    # The matrix's independent provenance verifier ensures the predictions
+    # still match their recorded hashes and the entire corpus manifest bytes.
+    validate_tier2_experiment_record(first_root, manifest_path=manifest_path)
+    validate_tier2_experiment_record(second_root, manifest_path=manifest_path)
     first_identity = _identity(first_root, corpus_version=corpus_version, case_ids=ids)
     second_identity = _identity(second_root, corpus_version=corpus_version, case_ids=ids)
     if first_identity["id"] == second_identity["id"]:

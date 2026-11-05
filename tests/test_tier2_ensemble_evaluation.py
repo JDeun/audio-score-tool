@@ -9,6 +9,7 @@ import mido
 import pytest
 
 from scripts.evaluate_tier2_ensemble import evaluate_ensemble_candidates
+from scripts.run_tier2_matrix import _write_experiment_provenance
 
 
 def _midi(path: Path, notes: list[tuple[int, float, float]]) -> None:
@@ -65,6 +66,12 @@ def _corpus(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
     _midi(second / "a.mid", [(60, 0.12, 0.52), (64, 0.7, 1.0)])
     _midi(first / "b.mid", [])
     _midi(second / "b.mid", [(72, 0.1, 0.5)])
+    for root, candidate in ((first, "yourmt3"), (second, "mr-mt3")):
+        _write_experiment_provenance(
+            source_root=root, prediction_root=root,
+            stage_id=candidate, corpus_version="owned-fixtures-v1",
+            case_ids=("a", "b"), manifest_path=manifest,
+        )
     return manifest, corpus, first, second
 
 
@@ -110,7 +117,7 @@ def test_ensemble_provenance_case_order_mismatch_fails_before_any_output(tmp_pat
     d = json.loads(src.read_text(encoding="utf-8"))
     d["case_ids"] = ["b", "a"]
     src.write_text(json.dumps(d), encoding="utf-8")
-    with pytest.raises(ValueError, match="exact corpus and case order"):
+    with pytest.raises(ValueError, match="corpus manifest identity"):
         evaluate_ensemble_candidates(
             manifest, corpus_root=corpus, first_root=first, second_root=second,
             output_root=tmp_path / "results",
@@ -134,6 +141,7 @@ def test_ensemble_duplicate_engine_ids_are_not_distinct_candidates(tmp_path: Pat
     p = second / "tier2-prediction-provenance.json"
     d = json.loads(p.read_text(encoding="utf-8"))
     d["engine"]["id"] = "yourmt3"
+    d["stage_id"] = "yourmt3"
     p.write_text(json.dumps(d), encoding="utf-8")
     with pytest.raises(ValueError, match="distinct engine IDs"):
         evaluate_ensemble_candidates(
@@ -172,3 +180,35 @@ def test_ensemble_consensus_is_not_a_commercial_release_decision(tmp_path: Path)
     assert not result["commercial_baseline_approved"]
     assert result["notes"].startswith("Metrics use independent MIDI references")
     assert result["consensus"]["total_consensus_runtime_seconds"] >= 0
+
+
+def test_ensemble_rejects_tampered_candidate_before_scoring(tmp_path: Path):
+    manifest, corpus, first, second = _corpus(tmp_path)
+    (first / "a.mid").write_bytes(b"modified-prediction")
+    with pytest.raises(ValueError, match="SHA-256 mismatch"):
+        evaluate_ensemble_candidates(
+            manifest, corpus_root=corpus, first_root=first, second_root=second,
+            output_root=tmp_path / "results",
+        )
+    assert not (tmp_path / "results").exists()
+
+
+def test_ensemble_cli_returns_report_from_frozen_inputs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture,
+):
+    import sys
+
+    from scripts import evaluate_tier2_ensemble
+
+    manifest, corpus, first, second = _corpus(tmp_path)
+    output = tmp_path / "results"
+    monkeypatch.setattr(sys, "argv", [
+        "evaluate_tier2_ensemble.py", str(manifest),
+        "--corpus-root", str(corpus), "--first-root", str(first),
+        "--second-root", str(second), "--output-root", str(output),
+    ])
+    assert evaluate_tier2_ensemble.main() == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["case_count"] == 2
+    assert report["candidate_ids"] == ["yourmt3", "mr-mt3"]
+    assert (output / "ensemble-evaluation.json").is_file()
