@@ -1,6 +1,6 @@
 # Experiment registry
 
-Status: code-contract history indexed; Last reviewed: 2026-11-06
+Status: code-contract history indexed; Last reviewed: 2026-11-05
 
 | Experiment | Tracking | Evidence state |
 | --- | --- | --- |
