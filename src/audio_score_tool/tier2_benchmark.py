@@ -138,7 +138,7 @@ def load_manifest(path: Path) -> tuple[str, tuple[Tier2Case, ...]]:
         if not isinstance(raw, dict):
             raise ValueError(f"manifest.cases[{index}] must be an object")
         case_id = _require_string(raw, "id", context=f"manifest.cases[{index}]")
-        if not _SAFE_CASE_ID.fullmatch(case_id) or ".." in case_id:
+        if raw.get("id") != case_id or not _SAFE_CASE_ID.fullmatch(case_id) or ".." in case_id:
             raise ValueError(f"unsafe Tier 2 case id: {case_id!r}")
         if case_id in seen:
             raise ValueError(f"duplicate Tier 2 case id: {case_id}")
