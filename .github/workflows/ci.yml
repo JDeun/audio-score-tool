@@ -45,6 +45,17 @@ jobs:
           toolchain: 1.98.1
           components: clippy
 
+      # Capture exact npm dependency resolver output for a reviewed security fix.
+      - name: Capture npm advisory lockfile fix
+        working-directory: desktop
+        run: |
+          set -euo pipefail
+          npm audit fix --package-lock-only --ignore-scripts || true
+          echo '=== BEGIN NPM LOCK DIFF ==='
+          git diff -- package.json package-lock.json
+          echo '=== END NPM LOCK DIFF ==='
+          exit 1
+
       - name: Repository forensic hygiene
         run: python scripts/forensic_hygiene.py
 
