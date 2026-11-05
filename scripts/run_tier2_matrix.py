@@ -13,7 +13,6 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-
 _STAGE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.+_-]{0,79}$")
 _PROVENANCE_FILE = "tier2-prediction-provenance.json"
 _SHA256 = re.compile(r"^[0-9a-fA-F]{64}$")
