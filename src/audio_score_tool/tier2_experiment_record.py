@@ -97,6 +97,11 @@ def validate_tier2_experiment_record(
         )
     except ValueError as exc:
         raise ExperimentRecordError("experiment inference_engine identity is invalid") from exc
+    if any(
+        getattr(identity, field) != execution.get(field)
+        for field in ("model_revision", "runtime_revision", "artifact_sha256")
+    ):
+        raise ExperimentRecordError("experiment candidate identity differs from inference_engine")
 
     info = payload.get("experiment")
     if not isinstance(info, dict):
@@ -111,6 +116,14 @@ def validate_tier2_experiment_record(
         raise ExperimentRecordError("experiment recorded_at_utc is invalid") from exc
     if timestamp.utcoffset() != timedelta(0):
         raise ExperimentRecordError("experiment recorded_at_utc must have UTC timezone")
+    manifest_sha = info.get("corpus_manifest_sha256")
+    if manifest_sha is not None:
+        _check_sha(manifest_sha, label="corpus_manifest_sha256")
+    if manifest_path is not None:
+        if manifest_sha is None:
+            raise ExperimentRecordError("experiment corpus_manifest_sha256 is missing")
+        if _digest(manifest_path) != manifest_sha:
+            raise ExperimentRecordError("experiment corpus manifest SHA-256 mismatch")
     commit = info.get("repository_commit")
     if commit is not None and (
         not isinstance(commit, str) or not _COMMIT.fullmatch(commit)
@@ -133,8 +146,11 @@ def validate_tier2_experiment_record(
         for name in ("model_revision", "runtime_revision"):
             _required_text(analysis, name)
         _check_sha(analysis.get("artifact_sha256"), label="analysis artifact_sha256")
-        if not isinstance(payload.get("source_stage_id"), str):
+        source_stage = payload.get("source_stage_id")
+        if not isinstance(source_stage, str) or not _CANDIDATE.fullmatch(source_stage):
             raise ExperimentRecordError("hybrid source_stage_id is required")
+        if source_stage == stage:
+            raise ExperimentRecordError("hybrid cannot refer to itself as source stage")
         if events_root is None:
             raise ExperimentRecordError("hybrid events_root must be provided for verification")
     elif analysis is not None:

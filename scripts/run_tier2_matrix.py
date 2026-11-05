@@ -51,6 +51,7 @@ def _write_experiment_provenance(
     stage_id: str,
     corpus_version: str,
     case_ids: tuple[str, ...],
+    manifest_path: Path | None = None,
     analysis: dict[str, str] | None = None,
     event_root: Path | None = None,
 ) -> dict:
@@ -93,6 +94,7 @@ def _write_experiment_provenance(
     payload["experiment"] = {
         "run_id": uuid.uuid4().hex,
         "recorded_at_utc": datetime.now(timezone.utc).isoformat(),
+        "corpus_manifest_sha256": _sha256_file(manifest_path) if manifest_path else None,
         "repository_commit": os.environ.get("GITHUB_SHA") or None,
         "candidate_kind": "hybrid" if analysis is not None else "amt",
         "commercial_eligible": False if analysis is not None else None,
@@ -226,6 +228,7 @@ def main() -> int:
                     stage_id=stage["id"],
                     corpus_version=corpus_version,
                     case_ids=case_ids,
+                    manifest_path=args.manifest,
                     analysis=_pinned_analysis_identity(),
                     event_root=args.output_root / "sheetsage2",
                 )
@@ -283,6 +286,7 @@ def main() -> int:
                         stage_id=stage["id"],
                         corpus_version=corpus_version,
                         case_ids=case_ids,
+                        manifest_path=args.manifest,
                     )
                     validate_tier2_experiment_record(prediction_root, manifest_path=args.manifest)
                     subprocess.run(evaluate, check=True)
