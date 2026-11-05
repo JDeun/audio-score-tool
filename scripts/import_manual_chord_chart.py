@@ -33,7 +33,8 @@ def normalize_chord(label: str) -> str:
         return "N"
     found = _HARTE.fullmatch(label)
     if found:
-        return found["root"].upper().replace("B", "B", 1) + ":" + found["quality"]
+        tonic = found["root"][0].upper() + found["root"][1:]
+        return tonic + ":" + found["quality"]
     found = _SIMPLE.fullmatch(label)
     if found:
         tonic = found["root"][0].upper() + found["root"][1:]
@@ -62,7 +63,7 @@ def _timestamp(text: str, *, duration: float, last: float, what: str) -> float:
         value = float(text)
     except (ValueError, TypeError) as exc:
         raise ValueError(f"{what} time_seconds must be numeric") from exc
-    if not math.isfinite(value) or not last < value < duration:
+    if not math.isfinite(value) or not 0 <= value < duration or value <= last:
         raise ValueError(f"{what} times must be strictly ordered within recording duration")
     return value
 
