@@ -5,8 +5,8 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from audio_score_tool.api import app
 from audio_score_tool import model_manager_api as models
+from audio_score_tool.api import app
 
 
 def test_desktop_hugging_face_auth_uses_server_session_route():
