@@ -48,3 +48,29 @@ No exhaustive Hugging Face search or automatic license audit is claimed. Dataset
 - https://github.com/ismir/mir-datasets/blob/master/mir-datasets.yaml
 - https://github.com/smashub/choco
 - https://magenta.tensorflow.org/datasets/maestro
+
+## 2026-11-05 — metadata-first 소량 Hub shard 수집 계약 (#62)
+
+`scripts/ingest_hf_dataset_subset.py`는 실행 전에 **명시적으로 지정된 파일 목록**과 라이선스·용량·SHA-256·split 중복을 검사합니다. 기본 실행은 네트워크나 디스크에 접근하지 않는 계획/검증 모드입니다. `--fetch`를 직접 입력해야만 파일을 다운로드합니다. 전체 Hub 데이터셋을 열거하거나 ~151GB 수집본을 자동 다운로드하지 않습니다.
+
+예제 파일: [hf-subset.example.json](../benchmarks/tier2/hf-subset.example.json). 안전을 위해 이 예제는 **권리 미검증 / revision 000... / 예시 SHA**이므로 원본 그대로는 다운로드할 수 없습니다. 이용 전에 사람이 원저작자 약관을 검토하고 실제 dataset repository, 정확한 40자 commit, 소스별 사용권, 소량 파일 크기와 SHA, 녹음·분할 정보를 모두 교체한 뒤에 `rights_reviewed: true`로 설정해야 합니다.
+
+```bash
+# Offline validation, does NOT download any bytes:
+uv run --frozen python scripts/ingest_hf_dataset_subset.py \
+  /private/verified-subset.json --private-root /private/datasets
+
+# Explicitly download at most 8 selected files, 32MiB per file, 64MiB total:
+uv run --frozen python scripts/ingest_hf_dataset_subset.py \
+  /private/verified-subset.json --private-root /private/datasets \
+  --fetch --report /private/subset-receipt.json
+
+# Noncommercial sources cannot enter this mode:
+uv run --frozen python scripts/ingest_hf_dataset_subset.py \
+  /private/verified-subset.json --private-root /private/datasets \
+  --fetch --commercial
+```
+
+각 shard는 다운로드 **이전** Hugging Face 서버에 파일 길이를 조회하고 예상 길이와 일치하지 않으면 중단합니다. 다운로드 후 실제 바이트 SHA-256 검증, 안전한 private-root 이동, 기존 파일 불일치 시 덮어쓰기 거부를 적용합니다. `recording_id` 및 선택 `audio_sha256`을 기준으로 train/validation/test 간 같은 녹음 중복을 거부합니다. 파일은 git 작업공간 바깥에만 저장되며 CI 테스트는 소유한 합성 바이트로 네트워크를 모킹해 실행합니다.
+
+**중요한 제한:** `rights_reviewed: true`는 운영자의 검토 진술이지 자동 라이선스 인증이 아닙니다. Hub 메타데이터와 실제 저작권 상태는 다를 수 있습니다. 다운로드 가능성 ≠ 학습·상업적 이용·재배포 허가이며, 파일명/녹음 식별자만으로 모든 복제·리마스터·데이터셋 간 누출을 잡을 수도 없습니다. 실제 허가된 샘플과 상위 저작권 검증, 악보/음원 정렬 인수시험은 #59–#62에 남습니다.
