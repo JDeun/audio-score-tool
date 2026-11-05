@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "datasets": [
+    {
+      "id": "replace-with-authorized-dataset",
+      "repo_id": "example-owner/example-dataset",
+      "revision": "0000000000000000000000000000000000000000",
+      "license": "verify_upstream",
+      "rights_reviewed": false,
+      "files": [
+        {
+          "path": "annotations/replace-with-authorized-file.jams",
+          "size_bytes": 128,
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "recording_id": "replace-with-verified-recording",
+          "split": "test"
+        }
+      ]
+    }
+  ]
+}

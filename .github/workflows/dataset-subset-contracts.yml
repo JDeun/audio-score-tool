@@ -1,0 +1,43 @@
+name: Dataset Subset Contracts
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/dataset-subset-contracts.yml'
+      - 'scripts/ingest_hf_dataset_subset.py'
+      - 'tests/test_hf_dataset_subset.py'
+      - 'benchmarks/tier2/hf-subset.example.json'
+      - 'docs/HF_MUSIC_DATASETS_WIKI.md'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/dataset-subset-contracts.yml'
+      - 'scripts/ingest_hf_dataset_subset.py'
+      - 'tests/test_hf_dataset_subset.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dataset-subset-contracts-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: 0.12.10
+          python-version: '3.12'
+      - name: Install frozen dependencies
+        run: uv sync --frozen --extra dev
+      - name: Verify metadata-only import and no-network synthetic shard tests
+        run: uv run --frozen pytest -q tests/test_hf_dataset_subset.py tests/test_validate_dataset_registry.py
+      - name: Verify CLI
+        run: uv run --frozen python scripts/ingest_hf_dataset_subset.py --help
