@@ -10,7 +10,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from music21 import converter, harmony, key, meter, tempo
+from music21 import converter, harmony, key, meter, stream, tempo
 
 
 class SheetSageError(ValueError):
@@ -49,10 +49,12 @@ def load_sheetsage_events(path: Path) -> dict[str, Any]:
             if not isinstance(event, dict):
                 raise SheetSageError(f"invalid {name} event")
             at = event.get("time_seconds")
-            if isinstance(at, bool) or not isinstance(at, (int, float)) or not 0 <= at < 1e8:
+            if isinstance(at, bool) or not isinstance(at, (int, float)):
                 raise SheetSageError(f"invalid {name} time_seconds")
             if not math.isfinite(at):
-                raise SheetSageError(f'{name} time_seconds must be finite')
+                raise SheetSageError(f"{name} time_seconds must be finite")
+            if not 0 <= at < 1e8:
+                raise SheetSageError(f"invalid {name} time_seconds")
             if at <= last:
                 raise SheetSageError(f"{name} events must be chronological")
             last = float(at)
@@ -131,6 +133,23 @@ def _parse_key_label(label: str) -> key.Key:
     return key.Key(music21_tonic, music21_mode)
 
 
+def _insert_score_element(part: stream.Part, offset: float, element: Any) -> None:
+    """Insert into the containing Measure so MusicXML exports the new metadata.
+
+    MusicXML import creates measured parts. Inserting harmony directly into a
+    Part instead of a Measure can leave the symbol out of the serialized XML,
+    despite its presence in the in-memory stream.
+    """
+    measures = list(part.getElementsByClass(stream.Measure))
+    if not measures:
+        part.insert(offset, element)
+        return
+    starts = [float(measure.getOffsetBySite(part)) for measure in measures]
+    index = max(0, bisect.bisect_right(starts, offset) - 1)
+    measure = measures[index]
+    measure.insert(max(0.0, offset - starts[index]), element)
+
+
 def merge_sheetsage_musicxml(
     amt_musicxml: Path,
     sheetsage_json: Path,
@@ -161,20 +180,24 @@ def merge_sheetsage_musicxml(
             symbol = _parse_chord_symbol(label)
         except Exception as exc:
             raise SheetSageError(f"unsupported chord label: {label}") from exc
-        target.insert(_quarter_offset(event["time_seconds"], bpm=bpm, beats=beats), symbol)
+        _insert_score_element(
+            target, _quarter_offset(event["time_seconds"], bpm=bpm, beats=beats), symbol
+        )
         added["chords"] += 1
     for event in events.get("keys", []):
         try:
             signature = _parse_key_label(event["label"])
         except Exception as exc:
             raise SheetSageError(f"unsupported key label: {event['label']}") from exc
-        target.insert(_quarter_offset(event["time_seconds"], bpm=bpm, beats=beats), signature)
+        _insert_score_element(
+            target, _quarter_offset(event["time_seconds"], bpm=bpm, beats=beats), signature
+        )
         added["keys"] += 1
     signature = events.get("meter")
     if signature is not None:
         if not isinstance(signature, str):
             raise SheetSageError("meter must be a string")
-        target.insert(0, meter.TimeSignature(signature))
+        _insert_score_element(target, 0, meter.TimeSignature(signature))
         added["meter"] += 1
     destination.parent.mkdir(parents=True, exist_ok=True)
     score.write("musicxml", fp=str(destination))

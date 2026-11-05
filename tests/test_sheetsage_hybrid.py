@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 
 import pytest
-from music21 import chord, converter, harmony, note, stream
+from music21 import converter, harmony, note, stream
 
 from audio_score_tool.sheetsage_hybrid import (
     SheetSageError,
@@ -33,7 +33,7 @@ def test_merger_preserves_notes_and_adds_chords(tmp_path):
     result = converter.parse(str(output))
     assert [n.pitch.nameWithOctave for n in result.recurse().notes
             if isinstance(n, note.Note)] == ["C4", "E4"]
-    assert len(list(result.recurse().getElementsByClass(chord.ChordSymbol))) == 2
+    assert len(list(result.recurse().getElementsByClass(harmony.ChordSymbol))) == 2
     assert report["added"]["chords"] == 2
 
 
@@ -72,7 +72,7 @@ def test_nonfinite_beat_is_rejected(tmp_path):
         ("F#:dim", "F#dim", "diminished"),
         ("D:min7", "Dm7", "minor-seventh"),
         ("G:7", "G7", "dominant-seventh"),
-        ("C:hdim7", "Cm7b5", "half-diminished"),
+        ("C:hdim7", "Cm7b5", "minor-seventh"),
     ],
 )
 def test_sheetsage_harte_chord_symbol_uses_music21_spelling(
@@ -84,6 +84,10 @@ def test_sheetsage_harte_chord_symbol_uses_music21_spelling(
     assert isinstance(parsed, harmony.ChordSymbol)
     assert parsed.figure == expected_figure
     assert parsed.chordKind == expected_kind
+    if label == "C:hdim7":
+        # Music21 represents m7b5 as minor-seventh + altered fifth, not a
+        # separate chordKind. Verify the actual half-diminished pitch classes.
+        assert sorted(p.pitchClass for p in parsed.pitches) == [0, 3, 6, 10]
 
 
 def test_sheetsage_merge_accepts_augmented_chord_from_real_model(tmp_path):
@@ -102,8 +106,10 @@ def test_sheetsage_merge_accepts_augmented_chord_from_real_model(tmp_path):
     report = merge_sheetsage_musicxml(source, events, target)
     parsed = converter.parse(str(target))
     assert report["added"]["chords"] == 1
-    assert any(item.chordKind == "augmented" for item in parsed.recurse()
-               .getElementsByClass(harmony.ChordSymbol))
+    symbols = list(parsed.recurse().getElementsByClass(harmony.ChordSymbol))
+    assert any(item.chordKind == "augmented" for item in symbols), [
+        (item.figure, item.chordKind) for item in symbols
+    ]
     assert len(list(parsed.recurse().notes)) == 1
 
 
