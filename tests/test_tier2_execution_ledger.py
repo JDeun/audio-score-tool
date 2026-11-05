@@ -83,7 +83,8 @@ def test_comparison_failure_is_tracked_without_raw_logs(tmp_path: Path):
     matrix = _matrix(tmp_path / "matrix.json")
     summary = _summary()
     summary["results"].append({"id": "comparison", "status": "failed"})
-    result = build_receipt(summary=summary, matrix_path=matrix, output_root=tmp_path)
+    result = build_receipt(summary=summary, matrix_path=matrix, output_root=tmp_path,
+                           manifest_path=MANIFEST)
     assert result["failed"] == 1
     assert result["stages"][-1]["kind"] == "comparison"
 
@@ -93,7 +94,7 @@ def _completed_fixture(tmp_path: Path) -> tuple[Path, dict, Path]:
     matrix = _matrix(tmp_path / "matrix.json")
     root = tmp_path / "predictions"
     model_root = root / "yourmt3"
-    model_root.mkdir(parents=True)
+    model_root.mkdir(parents=True, exist_ok=True)
     midi, xml = b"owned MIDI bytes", b"owned MusicXML bytes"
     (model_root / "pop-band-001.mid").write_bytes(midi)
     (model_root / "pop-band-001.musicxml").write_bytes(xml)
