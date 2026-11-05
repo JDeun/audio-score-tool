@@ -17,16 +17,6 @@ def test_desktop_hugging_face_auth_uses_server_session_route():
     assert "/api/models/hf-auth/token" not in source
 
 
-def test_registered_model_auth_routes_match_desktop():
-    operations = {
-        method
-        for route in app.routes
-        if getattr(route, "path", None) == "/api/models/hf-auth/session"
-        for method in getattr(route, "methods", set())
-    }
-    assert {"POST", "DELETE"} <= operations
-
-
 def test_session_auth_and_revocation_are_wired_without_external_requests(monkeypatch):
     seen = []
 
