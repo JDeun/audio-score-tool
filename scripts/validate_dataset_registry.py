@@ -7,7 +7,6 @@ import json
 from pathlib import Path
 from urllib.parse import urlparse
 
-
 KNOWN_TASKS = {
     "chord", "chord_beat", "multi_instrument_amt", "piano_amt",
     "guitar_amt", "ensemble_amt", "classical_amt", "drum_amt",
