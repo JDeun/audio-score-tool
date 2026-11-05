@@ -192,25 +192,67 @@ def _atomic_write_json(path: Path, payload: dict) -> None:
         raise
 
 
+def _removal_stage(root: Path, component: str, version: str) -> Path:
+    digest = hashlib.sha256(f"{component}:{version}".encode()).hexdigest()[:16]
+    return root / f".removing-{component}-{digest}"
+
+
 def recover_component_staging(root: Path | None = None) -> dict[str, int]:
+    """Restore interrupted removals or purge artifacts no longer in committed state."""
     root = (root or _root()).resolve()
     removed = 0
-    for path in root.glob(".staging-*"):
+    restored = 0
+    with _INSTALL_LOCK:
+        # Never erase a pending removal when the active state is corrupt:
+        # the only copy of a verified install may be in .removing-*.
         try:
-            if path.is_dir() and not path.is_symlink():
-                shutil.rmtree(path)
-            else:
-                path.unlink(missing_ok=True)
-            removed += 1
-        except OSError:
-            continue
-    for path in root.glob(".download-*"):
-        try:
-            path.unlink(missing_ok=True)
-            removed += 1
-        except OSError:
-            continue
-    return {"removed_component_staging": removed}
+            state = _load_state(root)
+        except ComponentIntegrityError:
+            state = None
+        for path in root.glob(".removing-*"):
+            if state is None:
+                continue
+            if not path.is_symlink() and not path.is_dir():
+                continue
+            owner = None
+            for component, item in state["components"].items():
+                version = item.get("version") if isinstance(item, dict) else None
+                if isinstance(version, str) and _safe_identifier(version):
+                    if path.name == _removal_stage(root, component, version).name:
+                        owner = component
+                        break
+            if owner is not None:
+                target_parent = root / "installed"
+                target = target_parent / owner
+                if target_parent.is_symlink() or target.is_symlink():
+                    continue
+                if not target.exists():
+                    target_parent.mkdir(parents=True, exist_ok=True)
+                    try:
+                        path.replace(target)
+                        restored += 1
+                    except OSError:
+                        continue
+                    continue
+            try:
+                if path.is_symlink():
+                    path.unlink()
+                else:
+                    shutil.rmtree(path)
+                removed += 1
+            except OSError:
+                continue
+        for pattern in (".staging-*", ".download-*"):
+            for path in root.glob(pattern):
+                try:
+                    if path.is_dir() and not path.is_symlink():
+                        shutil.rmtree(path)
+                    else:
+                        path.unlink(missing_ok=True)
+                    removed += 1
+                except OSError:
+                    continue
+    return {"removed_component_staging": removed, "restored_component_removal": restored}
 
 
 def _copy_stream(source: BinaryIO, target: Path, *, max_bytes: int) -> str:
@@ -475,6 +517,69 @@ def install_component_artifact(
             download.unlink(missing_ok=True)
             if staged.exists():
                 shutil.rmtree(staged, ignore_errors=True)
+
+
+def remove_component_artifact(component: str, *, root: Path | None = None) -> dict:
+    """Atomically deactivate a catalog-owned component; never remove arbitrary paths.
+
+    A crash before state commit restores the staged directory on recovery.
+    A crash after state commit only leaves a detached stage, cleaned on recovery.
+    """
+    if not _safe_identifier(component):
+        raise ComponentIntegrityError("Managed component name is unsafe.")
+    root = (root or _root()).resolve()
+    with _INSTALL_LOCK:
+        state = _load_state(root)
+        entry = state["components"].get(component)
+        if entry is None:
+            return {"component": component, "removed": False, "cleanup_pending": False}
+        if not isinstance(entry, dict):
+            raise ComponentIntegrityError("Managed component state entry is invalid.")
+        version = entry.get("version")
+        relative_root = entry.get("root")
+        if not isinstance(version, str) or not _safe_identifier(version):
+            raise ComponentIntegrityError("Managed component version is unsafe.")
+        expected = (PurePosixPath("installed") / component / version).as_posix()
+        if relative_root != expected:
+            raise ComponentIntegrityError("Managed component removal path is not owned by the app.")
+        installed_parent = root / "installed"
+        component_root = installed_parent / component
+        current = component_root / version
+        if (
+            installed_parent.is_symlink()
+            or component_root.is_symlink()
+            or not component_root.is_dir()
+            or current.is_symlink()
+            or not current.is_dir()
+        ):
+            raise ComponentIntegrityError("Managed component installation root is unsafe.")
+        stage = _removal_stage(root, component, version)
+        if stage.exists() or stage.is_symlink():
+            raise ComponentIntegrityError("Managed component removal staging already exists.")
+        component_root.replace(stage)
+        try:
+            components = dict(state["components"])
+            del components[component]
+            _atomic_write_json(
+                _state_path(root),
+                {"schema": _SCHEMA_VERSION, "components": components},
+            )
+        except BaseException:
+            stage.replace(component_root)
+            raise
+        try:
+            shutil.rmtree(stage)
+            pending = False
+        except OSError:
+            # The component is already deactivated in state.json; recovery
+            # may remove this detached directory after any lingering file lock.
+            pending = True
+        return {
+            "component": component,
+            "removed": True,
+            "removed_version": version,
+            "cleanup_pending": pending,
+        }
 
 
 def component_status(component: str, *, root: Path | None = None) -> dict:

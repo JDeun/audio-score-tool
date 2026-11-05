@@ -79,3 +79,19 @@ artifact를 실제로 게시하기 전까지 해당 platform entry는 비워 둡
 - Windows/macOS/Linux packaged sidecar가 managed catalog/integrity policy를 실제 보고
 
 실제 third-party runtime artifact publication은 각 artifact의 재배포 라이선스와 provenance를 확인한 뒤 수행합니다. 코드가 installer를 지원한다는 이유만으로 unpublished artifact를 `ready`로 보고하지 않습니다.
+
+## Setup Center 배선 감사 (2026-11-05, PR #63)
+
+이 항목은 설치/복구 UI와 백엔드 API의 **코드 연결 상태**를 기록합니다. 실제 바이너리 발행 및 상용 서비스 품질 확인이 아닙니다.
+
+| 동작 | 호출 경로 | 설치 파일 검증/제약 |
+|---|---|---|
+| 구성요소 상태 조회 | `GET /api/setup/center` | 상태와 대상 OS/아키텍처 표시 |
+| 설치·동일 구성요소 갱신 | `POST /api/setup/install` | 게시된 catalog artifact에만 사용자 클릭 제공, 서버에서 SHA-256·tool path 검증 |
+| 앱 관리 구성요소 제거 | `POST /api/setup/remove` | 앱이 소유한 설치 디렉터리와 등록 상태를 확인 후 제거, 실패/중단 복구 지원 |
+| 다운로드·설치 잔여물 복구 | `POST /api/setup/recover` | 임시 파일 정리 및 중단된 removal의 원복/정리 |
+
+- 설치 버튼은 trust policy에 따라 `catalog.published == true`일 때만 노출하고, 클라이언트는 주소·해시·경로를 제공하지 않습니다.
+- `managed_status.ready`는 실제 설치 파일의 무결성이 확인된 상태이며, 관련 실행 명령의 서비스 준비 상태(`component.ready`)와 구분됩니다.
+- 데스크톱 Playwright 테스트는 공개 catalog의 설치 가능 여부를 모의 응답으로 확인합니다. 이 테스트가 실제 배포 파일을 발행하거나 라이선스를 승인하지는 않습니다.
+- **현시점 번들 catalog의 다섯 component 모두 `artifacts: {}`** 입니다. 따라서 Windows/macOS의 실사용 AMT/YouTube/OMR 런타임을 준비했다고 선언할 수 없습니다. 게시 아티팩트의 라이선스·checksum·패키징을 확인하는 #29와 정식 서명/업데이트 인수시험 #22는 별도로 필요합니다.
