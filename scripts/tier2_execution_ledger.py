@@ -13,7 +13,6 @@ import json
 import os
 import platform
 import re
-import sys
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
