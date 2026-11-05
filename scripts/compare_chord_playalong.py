@@ -16,7 +16,10 @@ from statistics import mean
 
 import numpy as np
 
-from scripts.score_casd_chords import intervals_from_prediction, score
+if __package__:
+    from scripts.score_casd_chords import intervals_from_prediction, score
+else:
+    from score_casd_chords import intervals_from_prediction, score
 
 _HASH = re.compile(r"^[0-9a-f]{64}$")
 _METRICS = ("root", "majmin", "thirds", "triads", "sevenths")
