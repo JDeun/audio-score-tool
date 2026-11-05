@@ -166,6 +166,8 @@ def main() -> int:
     results: list[dict] = []
     if not args.dry_run:
         from audio_score_tool.tier2_benchmark import load_manifest, resolve_locator
+        from audio_score_tool.tier2_experiment_record import validate_tier2_experiment_record
+
         corpus_version, cases = load_manifest(args.manifest)
         case_ids = tuple(case.id for case in cases)
         for case in cases:
@@ -227,6 +229,11 @@ def main() -> int:
                     analysis=_pinned_analysis_identity(),
                     event_root=args.output_root / "sheetsage2",
                 )
+                validate_tier2_experiment_record(
+                    prediction_root,
+                    manifest_path=args.manifest,
+                    events_root=args.output_root / "sheetsage2",
+                )
                 subprocess.run(
                     [sys.executable, "scripts/run_tier2_benchmark.py", str(args.manifest),
                      "--corpus-root", str(args.corpus_root),
@@ -277,6 +284,7 @@ def main() -> int:
                         corpus_version=corpus_version,
                         case_ids=case_ids,
                     )
+                    validate_tier2_experiment_record(prediction_root, manifest_path=args.manifest)
                     subprocess.run(evaluate, check=True)
                 except (OSError, ValueError, subprocess.CalledProcessError) as exc:
                     item.update(status="failed", reason=str(exc))

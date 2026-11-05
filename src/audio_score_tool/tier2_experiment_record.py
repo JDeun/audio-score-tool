@@ -15,7 +15,7 @@ from .tier2_benchmark import Tier2EngineIdentity, load_manifest
 from .tier2_prediction import load_tier2_prediction_provenance
 
 _CANDIDATE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.+_-]{0,79}$")
-_CASE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+_CASE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$")
 _DIGEST = re.compile(r"^[0-9a-f]{64}$")
 _RUN_ID = re.compile(r"^[0-9a-f]{32}$")
 _COMMIT = re.compile(r"^[0-9a-f]{40}$")
