@@ -1,6 +1,6 @@
 # Research wiki index
 
-Status: source and implementation provenance indexed; Last reviewed: 2026-11-06
+Status: source and implementation provenance indexed; Last reviewed: 2026-11-05
 
 | Topic | Evidence and canonical document | Status |
 | --- | --- | --- |
