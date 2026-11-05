@@ -8,6 +8,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from fastapi.testclient import TestClient
+
 from audio_score_tool.api import app
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,7 +31,9 @@ def _normalize_server_path(route: str) -> str:
 
 
 def test_all_literal_react_api_fetch_urls_resolve_to_fastapi_routes():
-    actual = {_normalize_server_path(getattr(route, "path", "")) for route in app.routes}
+    response = TestClient(app).get("/openapi.json")
+    assert response.status_code == 200
+    actual = {_normalize_server_path(route) for route in response.json()["paths"]}
     checked = 0
     missing = []
     for path in sorted(UI_SOURCE.glob("*.tsx")):
