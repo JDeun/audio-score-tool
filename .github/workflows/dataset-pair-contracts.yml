@@ -1,0 +1,43 @@
+name: Dataset Pair Integrity
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/dataset-pair-contracts.yml'
+      - 'scripts/validate_tier2_dataset_pairs.py'
+      - 'scripts/validate_dataset_registry.py'
+      - 'tests/test_tier2_dataset_pairs.py'
+      - 'benchmarks/tier2/README.md'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/dataset-pair-contracts.yml'
+      - 'scripts/validate_tier2_dataset_pairs.py'
+      - 'tests/test_tier2_dataset_pairs.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dataset-pair-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: 0.12.10
+          python-version: '3.12'
+      - name: Install frozen test dependencies
+        run: uv sync --frozen --extra dev
+      - name: Validate synthetic owned audio/MIDI pairs and split integrity
+        run: uv run --frozen pytest -q tests/test_tier2_dataset_pairs.py tests/test_validate_dataset_registry.py
+      - name: Verify direct CLI entrypoint
+        run: uv run --frozen python scripts/validate_tier2_dataset_pairs.py --help

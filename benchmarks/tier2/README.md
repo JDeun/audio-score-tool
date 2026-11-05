@@ -247,6 +247,47 @@ uv run --frozen python scripts/validate_tier2_experiment.py \
 
 실제 실행에서 `experiment.corpus_manifest_sha256`은 manifest의 **전체 바이트**를 고정합니다. 같은 `corpus_version`·case ID라도 오디오 locator나 reference 파일 경로가 변경된 manifest를 재사용하면 독립 검증이 실패합니다. 전용 self-hosted 러너는 검증된 `TIER2_MANIFEST_PATH`의 비공개 manifest를 그대로 사용해야 하며, 저장소의 공개 예시 경로로 대체해서는 안 됩니다.
 
+## 도메인 데이터셋 오디오/MIDI 쌍 검증 (#59–#61)
+
+`scripts/validate_tier2_dataset_pairs.py`는 Slakh2100/URMP, MAESTRO/ASAP/GuitarSet/GAPS, MusicNet-EM/드럼/베이스/RWC 팝 등에서 **운영자가 적법하게 확보한** 동일 녹음의 오디오·정답 MIDI 쌍을 로컬에서 검증합니다. 모델을 호출하지 않으며 파일을 공개 저장소에 복제하지 않습니다. 원본 `dataset-registry.json`에서 해당 데이터셋의 `status`가 `verified_for_evaluation`이고 라이선스가 해결된 경우만 대상으로 합니다. 기존 `planned`이나 `verify_upstream` 상태는 자동 승인되지 않습니다.
+
+비공개 입력 JSON 예시:
+
+```json
+{
+  "schema_version": 1,
+  "cases": [{
+    "id": "piano-001",
+    "dataset_id": "maestro",
+    "recording_id": "verified-global-recording-id",
+    "split": "test",
+    "rights_reviewed": true,
+    "license": "CC-BY-NC-SA-4.0",
+    "audio": {
+      "locator": "private://audio/piano.wav",
+      "sha256": "<ACTUAL_AUDIO_SHA256>"
+    },
+    "reference_midi": {
+      "locator": "private://reference/piano.mid",
+      "sha256": "<ACTUAL_MIDI_SHA256>"
+    }
+  }]
+}
+```
+
+위는 **형식 예시**이며 실제 자료·SHA·권리 검토를 충족하지 않으므로 그대로는 실행 불가합니다. 데이터셋 레지스트리에 출처별로 정확한 `status/license`를 확인한 뒤 비공개 복사본에서 반영해야 합니다.
+
+```bash
+uv run --frozen python scripts/validate_tier2_dataset_pairs.py \
+  /private/pairs.json \
+  --registry /private/reviewed-dataset-registry.json \
+  --corpus-root /private/corpus \
+  --report /private/pair-verification.json \
+  --tier2-manifest /private/tier2/manifest.json
+```
+
+검사 범위는 경로 탈출·심볼릭 링크 차단, 실제 오디오/참조 MIDI 파일 SHA-256, WAV 및 일반 압축 오디오의 메타데이터 길이, MIDI 구문 파싱, 동일 `recording_id` 또는 오디오 SHA-256의 train/validation/test 교차 누출 차단, 소스 라이선스 일치와 사용자 권리 검토 선언입니다. 결과는 **파일 경로 없는 메타데이터 보고서**와 저장소 밖에 보관할 Tier 2 manifest입니다. 악보 주석이 실제 오디오와 얼마나 정렬됐는지나 곡별 정답의 음악적 품질은 이 계약만으로 검증할 수 없습니다. 실제 샘플을 확보하고 독립 측정 결과를 제출하는 작업은 #59–#61/#34에 남습니다.
+
 ## 2026-11-05 — 실행 환경·실패·재시험 메타데이터 영수증 (#47)
 
 모델 매트릭스 `scripts/run_tier2_matrix.py`는 이제 `summary.json`과 함께 **`execution-receipt.json`**을 원자적으로 기록합니다. 드라이런은 상태 `planned`/`blocked`만 기록하고 corpus/실제 실행이 존재한다고 주장하지 않습니다. 실제 실행에서 완료된 단계는 `tier2-prediction-provenance.json`(정확한 manifest SHA-256 및 출력 MIDI/MusicXML 해시 포함)과 후보 평가 보고서 SHA-256을 재검증한 뒤에만 `completed`로 수락됩니다.
