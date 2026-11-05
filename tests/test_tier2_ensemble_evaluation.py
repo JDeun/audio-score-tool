@@ -187,6 +187,16 @@ def test_ensemble_output_must_not_overwrite_inputs(tmp_path: Path):
         )
 
 
+def test_ensemble_output_cannot_be_nested_within_predictions(tmp_path: Path):
+    manifest, corpus, first, second = _corpus(tmp_path)
+    with pytest.raises(ValueError, match="must not overlap any source"):
+        evaluate_ensemble_candidates(
+            manifest, corpus_root=corpus, first_root=first, second_root=second,
+            output_root=first / "output",
+        )
+    assert not (first / "output").exists()
+
+
 def test_ensemble_consensus_is_not_a_commercial_release_decision(tmp_path: Path):
     result = _evaluate(tmp_path)
     assert not result["commercial_baseline_approved"]

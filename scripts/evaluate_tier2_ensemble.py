@@ -97,8 +97,11 @@ def evaluate_ensemble_candidates(
     output_root = output_root.expanduser().resolve()
     if len({first_root, second_root, output_root}) != 3:
         raise ValueError("ensemble source and output directories must differ")
-    if any(output_root == parent or output_root in parent.parents for parent in (first_root, second_root)):
-        raise ValueError("ensemble output must not be an ancestor of a source directory")
+    if any(
+        output_root in parent.parents or parent in output_root.parents
+        for parent in (first_root, second_root)
+    ):
+        raise ValueError("ensemble output must not overlap any source directory")
 
     # The matrix's independent provenance verifier ensures the predictions
     # still match their recorded hashes and the entire corpus manifest bytes.
