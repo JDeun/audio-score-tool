@@ -306,3 +306,73 @@ def test_repeated_install_soak_keeps_single_active_version(tmp_path: Path):
         assert Path(status["tools"]["fixture-tool"]).read_bytes() == payload
     assert not list(root.glob(".staging-*"))
     assert not list(root.glob(".download-*"))
+
+
+def test_component_removal_deregisters_verified_tool_and_deletes_files(tmp_path: Path):
+    from audio_score_tool.managed_components import remove_component_artifact
+
+    root = tmp_path / "components"
+    archive = tmp_path / "component.zip"
+    _zip_component(archive)
+    install_component_artifact(_artifact(archive), root=root, local_archive=archive)
+
+    result = remove_component_artifact("fixture", root=root)
+
+    assert result == {
+        "component": "fixture", "removed": True,
+        "removed_version": "1", "cleanup_pending": False,
+    }
+    assert resolve_managed_tool("fixture-tool", root=root) is None
+    assert component_status("fixture", root=root)["integrity"] == "not-installed"
+    assert not (root / "installed" / "fixture").exists()
+    assert remove_component_artifact("fixture", root=root)["removed"] is False
+
+
+def test_component_removal_rolls_back_on_state_write_failure(tmp_path: Path, monkeypatch):
+    from audio_score_tool.managed_components import remove_component_artifact
+
+    root = tmp_path / "components"
+    archive = tmp_path / "component.zip"
+    _zip_component(archive)
+    install_component_artifact(_artifact(archive), root=root, local_archive=archive)
+
+    def fail(_path, _payload):
+        raise OSError("simulated state commit failure")
+
+    monkeypatch.setattr(components, "_atomic_write_json", fail)
+    with pytest.raises(OSError, match="simulated state"):
+        remove_component_artifact("fixture", root=root)
+    assert component_status("fixture", root=root)["ready"] is True
+
+
+def test_recovery_restores_interrupted_component_removal(tmp_path: Path):
+    from audio_score_tool.managed_components import _removal_stage
+
+    root = tmp_path / "components"
+    archive = tmp_path / "component.zip"
+    _zip_component(archive)
+    install_component_artifact(_artifact(archive), root=root, local_archive=archive)
+    (root / "installed" / "fixture").replace(_removal_stage(root, "fixture", "1"))
+
+    result = recover_component_staging(root)
+
+    assert result["restored_component_removal"] == 1
+    assert component_status("fixture", root=root)["ready"] is True
+
+
+def test_removal_refuses_state_paths_outside_owned_component(tmp_path: Path):
+    from audio_score_tool.managed_components import remove_component_artifact
+
+    root = tmp_path / "components"
+    root.mkdir()
+    (root / "state.json").write_text(
+        json.dumps({
+            "schema": 1,
+            "components": {
+                "fixture": {"version": "1", "root": "../outside", "tools": {}},
+            },
+        }),
+        encoding="utf-8",
+    )
+    with pytest.raises(ComponentIntegrityError, match="not owned"):
+        remove_component_artifact("fixture", root=root)

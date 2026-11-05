@@ -125,7 +125,7 @@ export default function ModelManager() {
     setBusy(true);
     setMessage("");
     try {
-      const response = await fetch(`${API}/api/models/hf-auth/token`, {
+      const response = await fetch(`${API}/api/models/hf-auth/session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token }),
@@ -145,7 +145,7 @@ export default function ModelManager() {
   const clearAuthentication = async () => {
     setBusy(true);
     try {
-      const response = await fetch(`${API}/api/models/hf-auth/token`, { method: "DELETE" });
+      const response = await fetch(`${API}/api/models/hf-auth/session`, { method: "DELETE" });
       if (!response.ok) throw new Error("세션 인증을 해제하지 못했습니다.");
       setMessage("AudioScoreTool 세션의 Hugging Face 인증을 해제했습니다.");
       await refresh();

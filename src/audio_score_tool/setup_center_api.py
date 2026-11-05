@@ -11,6 +11,7 @@ from .managed_components import (
     component_status,
     install_component_artifact,
     recover_component_staging,
+    remove_component_artifact,
 )
 from .preflight_v2 import preflight
 from .runner import command_exists
@@ -229,3 +230,15 @@ def install_setup_component(payload: InstallRequest) -> dict:
 @router.post("/api/setup/recover")
 def recover_setup_components() -> dict:
     return {"recovery": recover_component_staging(), "setup": setup_center_status()}
+
+
+@router.post("/api/setup/remove")
+def remove_setup_component(payload: InstallRequest) -> dict:
+    component = payload.component.strip()
+    if component not in _MANAGED_COMPONENTS:
+        raise HTTPException(409, f"{component}: 앱 관리 삭제 대상이 아닙니다.")
+    try:
+        result = remove_component_artifact(component)
+    except ComponentError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return {"removed": result, "setup": setup_center_status()}
