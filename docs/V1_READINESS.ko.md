@@ -189,3 +189,7 @@ v1은 다음 조건을 모두 만족해야 합니다.
 9. P3 optional feature가 core canonical/release contract를 침범하지 않는다.
 10. 문서와 실제 runtime contract가 일치한다.
 11. CI/adversarial/package gates가 모두 green이다.
+
+## GitHub 저장소 보호 정책 코드 감사 (#38, 2026-11-05)
+
+`scripts/audit_branch_governance.py`는 보호 규칙의 API 스냅샷에 PR 강제·`verify` CI 요구·최신 브랜치 강제·force push/삭제 방지·관리자 우회 정책이 있는지 **오프라인으로** 검사합니다. 자세한 절차는 [main 보호 정책](BRANCH_GOVERNANCE.ko.md)에서 확인합니다. 저장소 ruleset은 확인 시점에 비어 있었으며 branch protection 조회에는 HTTP 403이 발생했습니다. 따라서 **실제 보호 활성화는 미검증 운영 과제**이고 출시 준비 완료 주장에 포함하지 않습니다.
