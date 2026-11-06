@@ -117,3 +117,83 @@ def test_edit_telemetry_ignores_failed_and_other_song_mutations(tmp_path: Path, 
     payload = read_edit_session(path)
     assert payload["total_edit_actions"] == 0
     assert payload["successful_export"] is False
+
+
+def test_combined_pitch_and_lyric_changes_are_two_categories_but_one_action(
+    tmp_path: Path, monkeypatch
+):
+    path = tmp_path / "combined.product.json"
+    start_edit_session(path, case_id="combined", song_id="song-1")
+    monkeypatch.setenv("AST_TIER2_TELEMETRY_FILE", str(path))
+
+    record_successful_song_mutation(
+        song_id="song-1",
+        method="PATCH",
+        path="/api/songs/song-1/notes/n1/structure",
+        status_code=200,
+        request_body=b'{"step":"D","lyric":"hello"}',
+    )
+
+    result = read_edit_session(path)
+    assert result["manual_note_edits"] == 1
+    assert result["manual_lyric_edits"] == 1
+    assert result["total_edit_actions"] == 1
+
+
+def test_single_dimension_edits_and_atomic_credits_have_correct_categories(
+    tmp_path: Path, monkeypatch
+):
+    path = tmp_path / "categories.product.json"
+    start_edit_session(path, case_id="categories", song_id="song-1")
+    monkeypatch.setenv("AST_TIER2_TELEMETRY_FILE", str(path))
+
+    cases = (
+        ("PATCH", "/api/songs/song-1/notes/n1/structure", b'{"lyric":"A"}'),
+        ("PATCH", "/api/songs/song-1/notes/n1/structure", b'{"step":"F"}'),
+        ("PATCH", "/api/songs/song-1/notes/n1/chord", b'{"symbol":"Cmaj7"}'),
+        ("POST", "/api/songs/song-1/measures/0/insert-after", b'{}'),
+        ("PATCH", "/api/songs/song-1/credits", b'{"title":"New","composer":"A"}'),
+        ("PATCH", "/api/songs/song-1", b'{"artist":"A"}'),
+    )
+    for method, route, body in cases:
+        record_successful_song_mutation(
+            song_id="song-1",
+            method=method,
+            path=route,
+            status_code=200,
+            request_body=body,
+        )
+
+    result = read_edit_session(path)
+    assert result["manual_lyric_edits"] == 1
+    assert result["manual_note_edits"] == 1
+    assert result["manual_chord_edits"] == 1
+    assert result["manual_measure_edits"] == 1
+    assert result["manual_layout_edits"] == 2
+    assert result["total_edit_actions"] == 6
+
+
+def test_empty_and_rejected_note_edits_do_not_inflate_product_metrics(
+    tmp_path: Path, monkeypatch
+):
+    path = tmp_path / "empty.product.json"
+    start_edit_session(path, case_id="empty", song_id="song-1")
+    monkeypatch.setenv("AST_TIER2_TELEMETRY_FILE", str(path))
+
+    for method, payload, status in (
+        ("PATCH", b"{}", 200),
+        ("PATCH", b'{"lyric":"rejected"}', 422),
+        ("PATCH", b"not-json", 200),
+    ):
+        record_successful_song_mutation(
+            song_id="song-1",
+            method=method,
+            path="/api/songs/song-1/notes/n1/structure",
+            status_code=status,
+            request_body=payload,
+        )
+
+    result = read_edit_session(path)
+    assert result["total_edit_actions"] == 0
+    assert result["manual_note_edits"] == 0
+    assert result["manual_lyric_edits"] == 0
