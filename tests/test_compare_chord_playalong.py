@@ -132,3 +132,20 @@ def test_cli_exports_json_and_csv_without_media(tmp_path: Path, monkeypatch: pyt
     assert report["reference_annotation_sha256"] == report["input_sha256"]["reference"]
     assert "manual" in csv_out.read_text(encoding="utf-8")
     assert "sheetsage2" in csv_out.read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("gap_type", ["initial", "internal", "trailing", "empty"])
+def test_incomplete_reference_cannot_produce_chord_accuracy(
+    tmp_path: Path, gap_type: str,
+):
+    reference, manual, sheetsage = _inputs(tmp_path)
+    if gap_type == "initial":
+        reference["annotators"][0]["intervals"][0]["start"] = 0.2
+    elif gap_type == "internal":
+        reference["annotators"][0]["intervals"][0]["end"] = 1.8
+    elif gap_type == "trailing":
+        reference["annotators"][0]["intervals"][-1]["end"] = 3.8
+    else:
+        reference["annotators"][0]["intervals"] = []
+    with pytest.raises(ValueError, match="complete|cover|empty"):
+        compare_chord_playalong.compare_chord_predictions(reference, manual, sheetsage)

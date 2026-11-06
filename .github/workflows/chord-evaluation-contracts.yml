@@ -6,11 +6,14 @@ on:
       - '.github/workflows/chord-evaluation-contracts.yml'
       - 'scripts/import_manual_chord_chart.py'
       - 'scripts/compare_chord_playalong.py'
+      - 'scripts/aggregate_chord_corpus.py'
       - 'scripts/score_casd_chords.py'
       - 'tests/test_manual_chord_chart.py'
       - 'tests/test_compare_chord_playalong.py'
+      - 'tests/test_chord_corpus_aggregation.py'
       - 'tests/test_score_casd_chords.py'
       - 'docs/CHORDIFY_RESEARCH_WIKI.md'
+      - 'docs/CHORD_CORPUS_EVALUATION.ko.md'
   push:
     branches: [main]
     paths:
@@ -45,8 +48,9 @@ jobs:
       - name: Validate manual chord and timed beat adapter
         run: uv run --frozen pytest -q tests/test_manual_chord_chart.py
       - name: Validate independent WCSR and beat metrics with mir_eval 0.8.2
-        run: uv run --frozen --with mir_eval==0.8.2 pytest -q tests/test_score_casd_chords.py tests/test_compare_chord_playalong.py
+        run: uv run --frozen --with mir_eval==0.8.2 pytest -q tests/test_score_casd_chords.py tests/test_compare_chord_playalong.py tests/test_chord_corpus_aggregation.py
       - name: Check CLI entrypoints
         run: |
           uv run --frozen python scripts/import_manual_chord_chart.py --help
           uv run --frozen --with mir_eval==0.8.2 python scripts/compare_chord_playalong.py --help
+          uv run --frozen --with mir_eval==0.8.2 python scripts/aggregate_chord_corpus.py --help
