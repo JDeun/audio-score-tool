@@ -123,3 +123,44 @@ def test_retry_rejects_unsupported_kind_before_creating_a_job(tmp_path: Path, mo
         lifecycle.retry_job_v2("previous")
     assert error.value.status_code == 409
     assert [job["job_id"] for job in store.list()] == ["previous"]
+
+
+def test_retry_refuses_omr_without_runtime_before_reserving_job(tmp_path: Path, monkeypatch):
+    store = JobStore(tmp_path / "jobs.sqlite3")
+    store.create("previous", kind="omr", status="failed")
+    original = tmp_path / "jobs" / "previous" / "source-score.pdf"
+    original.parent.mkdir(parents=True)
+    original.write_bytes(b"%PDF-1.4")
+    monkeypatch.setattr(lifecycle.base_api, "_store", store)
+    monkeypatch.setattr(lifecycle, "jobs_dir", lambda: tmp_path / "jobs")
+    monkeypatch.setattr(lifecycle, "runtime_settings", lambda: SimpleNamespace(audiveris_cmd="audiveris"))
+    monkeypatch.setattr(omr, "audiveris_status", lambda command: {"ready": False})
+
+    with pytest.raises(HTTPException) as error:
+        lifecycle.retry_job_v2("previous")
+    assert error.value.status_code == 503
+    assert [job["job_id"] for job in store.list()] == ["previous"]
+
+
+def test_retry_rejects_ambiguous_or_symlinked_original_sources(tmp_path: Path, monkeypatch):
+    store = JobStore(tmp_path / "jobs.sqlite3")
+    store.create("previous", kind="transcription", status="failed")
+    source_dir = tmp_path / "jobs" / "previous"
+    source_dir.mkdir(parents=True)
+    (source_dir / "input.wav").write_bytes(b"wave")
+    (source_dir / "input.mp3").write_bytes(b"mp3")
+    monkeypatch.setattr(lifecycle.base_api, "_store", store)
+    monkeypatch.setattr(lifecycle, "jobs_dir", lambda: tmp_path / "jobs")
+    with pytest.raises(HTTPException) as ambiguous:
+        lifecycle.retry_job_v2("previous")
+    assert ambiguous.value.status_code == 409
+
+    (source_dir / "input.mp3").unlink()
+    (source_dir / "input.wav").unlink()
+    outside = tmp_path / "private.wav"
+    outside.write_bytes(b"private")
+    (source_dir / "input.wav").symlink_to(outside)
+    with pytest.raises(HTTPException) as escaped:
+        lifecycle.retry_job_v2("previous")
+    assert escaped.value.status_code == 404
+    assert [job["job_id"] for job in store.list()] == ["previous"]
