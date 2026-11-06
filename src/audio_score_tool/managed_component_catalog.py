@@ -100,28 +100,53 @@ def artifact_for(component: str, *, target: str | None = None) -> ComponentArtif
 
 
 def catalog_summary(component: str) -> dict:
+    """Expose the *same* publication eligibility used by the release checker.
+
+    A JSON object under artifacts[platform] is not sufficient evidence of a
+    downloadable, redistribution-approved runtime. Setup Center must never
+    show an install action that its stricter release contract would reject.
+    This is metadata approval only: actual binary/runtime validation remains
+    a separate clean-machine release acceptance.
+    """
     try:
         component = _validated_identifier(component, label="name")
         entry = catalog_entry(component)
     except ComponentIntegrityError:
-        return {"component": str(component), "published": False, "target": platform_key(), "integrity": "invalid-name"}
+        return {
+            "component": str(component),
+            "published": False,
+            "target": platform_key(),
+            "integrity": "invalid-name",
+            "publication_reason": "invalid-name",
+        }
     target = platform_key()
     if entry is None:
-        return {"component": component, "published": False, "target": target}
-    artifacts = entry.get("artifacts") if isinstance(entry.get("artifacts"), dict) else {}
-    version = entry.get("version")
-    version_safe = False
+        return {
+            "component": component,
+            "published": False,
+            "target": target,
+            "publication_reason": "component-not-in-catalog",
+        }
+
+    # Defer this import to avoid a catalog <-> readiness initialization cycle.
+    # The checker validates the complete artifact schema, license/provenance,
+    # upstream pin, redistribution approval and required tool names.
+    from .managed_publication_readiness import check_publication
+
+    check = check_publication(component, target)
     try:
-        _validated_identifier(version, label="version")
-        version_safe = True
+        _validated_identifier(entry.get("version"), label="version")
+        version_integrity = "valid"
     except ComponentIntegrityError:
-        pass
+        version_integrity = "invalid-version"
+
     return {
         "component": component,
-        "published": version_safe and isinstance(artifacts.get(target), dict),
+        "published": check.ready,
         "target": target,
-        "version": version,
+        "version": entry.get("version"),
         "license": entry.get("license"),
         "provenance": entry.get("provenance"),
-        "integrity": "valid" if version_safe else "invalid-version",
+        "integrity": version_integrity,
+        "publication_reason": check.reason,
     }
