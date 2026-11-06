@@ -183,7 +183,7 @@ def test_youtube_cli_smoke_uses_only_absolute_managed_paths_and_bounded_versions
     })
     outputs = {
         "yt-dlp": "2026.10.26",
-        "deno": "deno 2.9.8\\nv8 14.3",
+        "deno": "deno 2.9.8",
         "ffmpeg": "ffmpeg version 7.1",
         "ffprobe": "ffprobe version 7.1",
     }
