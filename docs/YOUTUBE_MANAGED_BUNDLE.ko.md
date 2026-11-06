@@ -13,6 +13,7 @@ YouTube 가져오기 기능은 `yt-dlp`, `deno`, `ffmpeg`, `ffprobe` 네 개의 
 - 원본 도구의 license notice 네 개와 FFmpeg의 빌드 설정 증빙을 아카이브에 함께 기록합니다.
 - FFmpeg `--enable-nonfree`는 거부합니다. `--enable-gpl` 사용 시 FFmpeg/ffprobe의 라이선스를 GPL로 명시해야 합니다. **플래그 검사 자체가 재배포 적법성을 승인하지는 않습니다.**
 - CLI는 바이너리를 실행·다운로드하지 않고, 공식 `managed_components.py`를 격리된 임시 경로에서 호출해 ZIP 설치·무결성 검사만 리허설합니다.
+- **FFmpeg/ffprobe 검증 보고서가 필수**입니다. `scripts/verify_ffmpeg_build_provenance.py`가 만든 `*.pending.json`의 소스 커밋·SHA-256·license family·configure 플래그·빌드 기록이 입력 매니페스트와 정확하게 일치하지 않으면 통합 ZIP을 만들지 않습니다. 이 보고서를 아카이브의 `provenance/ffmpeg-attestation.pending.json`에도 넣습니다.
 - 생성물은 언제나 `redistribution_status=pending`. 공식 `managed-component-catalog.json`을 자동 변경하지 않습니다.
 
 ## 상류 검토 후보 (2026-11-06 기준)
@@ -108,7 +109,8 @@ macOS arm64의 경우 `--target macos-aarch64`, `yt-dlp_macos`, `deno-aarch64-ap
   "ffmpeg_build": {
     "configure_flags": ["--disable-nonfree", "--disable-autodetect"],
     "toolchain": "EXACT_BUILD_COMPILER_AND_VERSION",
-    "build_record": "/absolute/work/ffmpeg-build-and-linked-libraries.txt"
+    "build_record": "/absolute/work/ffmpeg-build-and-linked-libraries.txt",
+    "attestation_file": "/absolute/work/ffmpeg-build-review.pending.json"
   }
 }
 ```
@@ -128,6 +130,8 @@ uv run --frozen python scripts/assemble_youtube_runtime_candidate.py \
 - `youtube-runtime-windows.zip`: `bin/{yt-dlp,deno,ffmpeg,ffprobe}.exe`, 4개 license notice, FFmpeg 빌드 기록, `BUNDLE-INVENTORY.json`.
 - `youtube-runtime-windows.zip.pending.json`: 각 원본·최종 ZIP SHA-256, revision, 로컬 설치 검증 결과, **승인 대기** 상태.
 - 기존 아티팩트/증빙 파일이 있으면 덮어쓰지 않습니다.
+
+**선행 조건:** FFmpeg의 동일 파일·버전·소스 revision·configure/라이선스에 대한 `verify_ffmpeg_build_provenance.py` 보고서를 먼저 생성해야 ZIP 조립을 시작할 수 있습니다. 
 
 후속 승인 순서는 [로컬 아티팩트 후보 관리](MANAGED_ARTIFACT_CANDIDATES.ko.md)의 URL·SHA-256 확인 → 라이선스/재배포 승인 → 배포 카탈로그 작성 → Windows/macOS `Desktop Packages` 수동 `require_managed_delivery` → 실제 YouTube 처리·복구·클린 머신 smoke입니다.
 
