@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, field_validator
 
+from .config import packaged_runtime
 from .engine_release_policy import release_policy_summary
 from .optional_feature_policy import optional_feature_summary
 from .preflight_v2 import preflight
@@ -90,6 +91,7 @@ def _recommendation(settings) -> dict:
 def get_engines() -> dict:
     settings = runtime_settings(store=_store)
     return {
+        "packaged_runtime": packaged_runtime(),
         "usage_mode": settings.usage_mode,
         "selected": settings.transcription_engine,
         "mt3_infer_cmd": settings.mt3_infer_cmd,

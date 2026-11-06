@@ -11,6 +11,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
 from .benchmark import configs_for_profile, run_benchmark_matrix
+from .config import packaged_runtime
 from .desktop_utils import reveal_in_file_manager
 from .devices import detect_device_plan
 from .job_store import JobStore
@@ -339,6 +340,7 @@ def _benchmark_worker(
 def health() -> dict:
     return {
         "status": "ok",
+        "packaged_runtime": packaged_runtime(),
         "device_plan": detect_device_plan().as_dict(),
         "preflight": preflight(_runtime_settings()),
         "presets": list_presets(),
@@ -351,6 +353,7 @@ def health() -> dict:
 @app.get("/api/setup")
 def setup() -> dict:
     return {
+        "packaged_runtime": packaged_runtime(),
         "preflight": preflight(_runtime_settings()),
         "instructions": setup_instructions(),
         "tool_paths": _settings_store.read(),
@@ -397,6 +400,11 @@ def cleanup_storage(keep: int = 30) -> dict:
 
 @app.put("/api/settings/tool-paths")
 def update_tool_paths(payload: ToolPathSettings) -> dict:
+    if packaged_runtime():
+        raise HTTPException(
+            409,
+            "패키지 앱은 사용자 지정 실행 명령을 허용하지 않습니다. Setup Center에서 앱 관리형 구성요소를 확인하세요.",
+        )
     saved = _settings_store.update(payload.model_dump())
     return {
         "tool_paths": saved,
