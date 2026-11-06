@@ -1,0 +1,71 @@
+name: Dependency Security
+
+permissions:
+  contents: read
+
+# Expensive registry/vulnerability scans run on dependency changes, after merges
+# and weekly. They no longer delay ordinary feature PRs' CI/verify check.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 1"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "desktop/package.json"
+      - "desktop/package-lock.json"
+      - "desktop/src-tauri/Cargo.toml"
+      - "desktop/src-tauri/Cargo.lock"
+      - ".github/workflows/dependency-security.yml"
+  push:
+    branches: ["main"]
+
+concurrency:
+  group: dependency-security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node-audit:
+    name: node-audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.23.2
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Install locked dependencies without executing install scripts
+        working-directory: desktop
+        run: npm ci --ignore-scripts --loglevel=error
+
+      - name: Audit production, development and packaging dependencies
+        working-directory: desktop
+        run: npm audit --audit-level=high
+
+  rustsec-audit:
+    name: rustsec-audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.98.1
+
+      - name: Install pinned cargo-audit and scan frozen dependency tree
+        run: |
+          cargo install cargo-audit --locked --version 0.22.0
+          cargo audit --file desktop/src-tauri/Cargo.lock
