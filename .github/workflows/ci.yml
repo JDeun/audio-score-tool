@@ -3,6 +3,8 @@ name: CI
 permissions:
   contents: read
 
+# Fast PR gate: parallel code/contract checks. Full installers and expensive
+# dependency audits have separate workflows. Preserve "verify" for #38.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -15,10 +17,10 @@ on:
     branches: ["main"]
 
 jobs:
-  verify:
-    name: verify
+  python:
+    name: python
     runs-on: ubuntu-24.04
-    timeout-minutes: 50
+    timeout-minutes: 35
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -31,19 +33,6 @@ jobs:
         with:
           version: 0.12.10
           enable-cache: true
-
-      - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 22.23.2
-          cache: npm
-          cache-dependency-path: desktop/package-lock.json
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
-        with:
-          toolchain: 1.98.1
-          components: clippy
 
       - name: Repository forensic hygiene
         run: python scripts/forensic_hygiene.py
@@ -60,50 +49,21 @@ jobs:
       - name: Verify Python lockfile
         run: uv lock --check
 
-      - name: Install Tauri system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            build-essential \
-            libxdo-dev \
-            libssl-dev \
-            libayatana-appindicator3-dev \
-            librsvg2-dev
-
       - name: Install Python dependencies
         run: uv sync --frozen --extra dev
 
       - name: Python lint
         run: uv run --frozen ruff check src tests training scripts
 
-      - name: Python runtime dependency vulnerability audit
+      - name: Music adversarial benchmark gate
         run: |
-          set -euo pipefail
-          uv export --frozen --no-dev --no-hashes --output-file /tmp/runtime-requirements.raw.txt
-          # pip-audit cannot resolve this repository's local editable package on PyPI.
-          # Exclude only the project itself; every third-party runtime dependency remains audited.
-          grep -vE '^-e[[:space:]]+\.$' /tmp/runtime-requirements.raw.txt > /tmp/runtime-requirements.txt
-          uvx --from pip-audit==2.9.0 pip-audit --strict --requirement /tmp/runtime-requirements.txt
+          uv run --frozen python scripts/run_music_adversarial_benchmark.py \
+            --output /tmp/music-adversarial-benchmark.json
 
-      - name: Python CI and desktop build dependency vulnerability audit
-        run: |
-          set -euo pipefail
-          uv export --frozen --no-hashes --extra dev --extra desktop \
-            --output-file /tmp/build-requirements.raw.txt
-          # The CI/test/build toolchain executes during trusted release jobs and therefore
-          # belongs in the supply-chain audit boundary, not only the shipped runtime set.
-          grep -vE '^-e[[:space:]]+\.$' /tmp/build-requirements.raw.txt > /tmp/build-requirements.txt
-          uvx --from pip-audit==2.9.0 pip-audit --strict --requirement /tmp/build-requirements.txt
-
-      - name: Rust dependency vulnerability audit
-        run: |
-          # cargo-audit 0.22 is the first release line that can parse CVSS 4.0
-          # advisories now present in the live RustSec database.
-          cargo install cargo-audit --locked --version 0.22.0
-          cargo audit --file desktop/src-tauri/Cargo.lock
-
-      - name: Adversarial boundary and recovery stress gate
+      # Every full pytest run already covers the adversarial and concurrency suites.
+      # Repeat destructive/stress cases after merging instead of three times per PR.
+      - name: Adversarial boundary and recovery stress (main/manual)
+        if: github.event_name != 'pull_request'
         run: |
           set -euo pipefail
           for attempt in 1 2 3; do
@@ -118,24 +78,33 @@ jobs:
               tests/test_youtube.py::test_validate_youtube_url_rejects_credential_and_ssrf_like_inputs
           done
 
-      - name: Concurrency and recovery soak gate
+      - name: Concurrency and recovery soak (main/manual)
+        if: github.event_name != 'pull_request'
         run: uv run --frozen pytest -q tests/test_concurrency_soak.py
-
-      - name: Music adversarial benchmark gate
-        run: |
-          uv run --frozen python scripts/run_music_adversarial_benchmark.py \
-            --output /tmp/music-adversarial-benchmark.json
 
       - name: Python tests (warnings are errors)
         run: uv run --frozen pytest -q
 
+  frontend:
+    name: frontend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.23.2
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
       - name: Install frontend
         working-directory: desktop
         run: npm ci --loglevel=error
-
-      - name: Frontend dependency vulnerability audit
-        working-directory: desktop
-        run: npm audit --audit-level=high
 
       - name: Typecheck and build frontend
         working-directory: desktop
@@ -145,9 +114,58 @@ jobs:
         working-directory: desktop
         run: npx --no-install playwright install --with-deps chromium
 
-      - name: Accessibility and visual-contract E2E
+      - name: Accessibility, workflow and visual-contract E2E
         working-directory: desktop
         run: npm run test:e2e
+
+  tauri:
+    name: tauri
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.23.2
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.98.1
+          components: clippy
+
+      - name: Cache Rust dependencies and build
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            desktop/src-tauri/target
+          key: ${{ runner.os }}-rust-1.98.1-${{ hashFiles('desktop/src-tauri/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-1.98.1-
+
+      - name: Install Tauri system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - name: Install frontend tools for icon generation
+        working-directory: desktop
+        run: npm ci --loglevel=error
 
       - name: Generate Tauri icons
         working-directory: desktop
@@ -164,3 +182,23 @@ jobs:
 
       - name: Clippy Tauri shell
         run: cargo clippy --locked --manifest-path desktop/src-tauri/Cargo.toml -- -D warnings
+
+  # The only required status context on main stays "verify".
+  # A failed/skipped upstream job cannot be masked by a green aggregate.
+  verify:
+    name: verify
+    if: ${{ always() }}
+    needs: [python, frontend, tauri]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require successful Python, frontend and Tauri checks
+        env:
+          PYTHON_RESULT: ${{ needs.python.result }}
+          FRONTEND_RESULT: ${{ needs.frontend.result }}
+          TAURI_RESULT: ${{ needs.tauri.result }}
+        run: |
+          echo "python=$PYTHON_RESULT frontend=$FRONTEND_RESULT tauri=$TAURI_RESULT"
+          test "$PYTHON_RESULT" = success
+          test "$FRONTEND_RESULT" = success
+          test "$TAURI_RESULT" = success
