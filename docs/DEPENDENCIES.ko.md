@@ -91,6 +91,8 @@ source checkout과 integration debugging을 위해 `AST_*_CMD` 환경변수 일�
 
 정식 installer acceptance에서는 override가 없는 깨끗한 환경을 사용합니다.
 
+패키지 모드(`AST_PACKAGED=1`)의 `GET /api/health`, `GET /api/setup`, `GET /api/engines`는 `packaged_runtime: true`를 반환합니다. 이 모드에서 UI는 개발용 실행 파일 경로 입력을 숨기고 Setup Center의 managed component 설치·검증·복구 상태를 안내합니다. `PUT /api/settings/tool-paths`를 직접 호출해도 HTTP 409로 거부하며, 이전에 저장된 개발 경로를 packaged runtime이 실행하지 않는 기존 정책은 유지합니다. 엔진 선택·모델 크기 설정은 계속 제공하되, 개발용 Native 실행 명령은 배포 사용자에게 제공하지 않습니다.
+
 ## 배포 acceptance
 
 stable release 후보는 깨끗한 Windows/macOS 환경에서 다음 조건을 만족해야 합니다.
