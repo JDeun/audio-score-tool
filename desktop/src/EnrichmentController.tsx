@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import "./enrichment-controller.css";
+import { useSelectedSong } from "./SelectedSongContext";
 
 const API = "http://127.0.0.1:8080";
 
-type Target = { songId: string; title: string };
 type Candidate = {
   recording_mbid?: string;
   title?: string;
@@ -33,19 +33,8 @@ type IdentificationReport = {
   musicbrainz_error?: string | null;
 };
 
-function currentTarget(): Target | null {
-  const workbench = document.querySelector(".score-workbench");
-  const scoreLink = workbench?.querySelector<HTMLAnchorElement>('a[href*="/api/songs/"][href*="/files/"]');
-  if (!scoreLink) return null;
-  const pathname = new URL(scoreLink.href, window.location.href).pathname;
-  const match = pathname.match(/\/api\/songs\/([^/]+)\/files\//);
-  if (!match) return null;
-  const title = workbench?.querySelector(".score-toolbar h2")?.textContent?.trim() || "악보";
-  return { songId: decodeURIComponent(match[1]), title };
-}
-
 export default function EnrichmentController() {
-  const [target, setTarget] = useState<Target | null>(null);
+  const { target } = useSelectedSong();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
@@ -64,12 +53,12 @@ export default function EnrichmentController() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const refresh = () => setTarget(currentTarget());
-    refresh();
-    const observer = new MutationObserver(refresh);
-    observer.observe(document.body, { subtree: true, childList: true });
-    return () => observer.disconnect();
-  }, []);
+    // A modal must never submit data for a song that is no longer selected.
+    setOpen(false);
+    setReport(null);
+    setIdentification(null);
+    setMessage("");
+  }, [target?.songId]);
 
   useEffect(() => {
     if (!open || !target) return;
