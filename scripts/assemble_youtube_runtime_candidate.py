@@ -195,6 +195,8 @@ def _ffmpeg_build(
     if (
         report.get("version") != sources["ffmpeg"]["version"]
         or report.get("source_revision") != sources["ffmpeg"]["upstream_revision"]
+        or report.get("source_url") != sources["ffmpeg"]["upstream_url"]
+        or report.get("source_url") != sources["ffprobe"]["upstream_url"]
         or set(report.get("configure_flags") or []) != set(flags)
         or report.get("toolchain") != toolchain
         or report.get("build_record_sha256") != _digest(evidence)
