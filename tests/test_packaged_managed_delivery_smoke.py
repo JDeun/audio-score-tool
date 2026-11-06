@@ -177,6 +177,10 @@ def test_youtube_cli_smoke_uses_only_absolute_managed_paths_and_bounded_versions
         path = root / name
         path.write_bytes(b"non-executable CI fixture")
         binary_map[name] = str(path)
+    monkeypatch.setattr(smoke, "_youtube_inventory", lambda *_: {
+        "yt-dlp": "2026.10.26", "deno": "2.9.8",
+        "ffmpeg": "7.1", "ffprobe": "7.1",
+    })
     outputs = {
         "yt-dlp": "2026.10.26",
         "deno": "deno 2.9.8\\nv8 14.3",
@@ -210,11 +214,15 @@ def test_youtube_cli_failure_or_wrong_version_blocks_release(tmp_path: Path, mon
         executable.write_bytes(b"fixture")
         tools[name] = str(executable)
 
+    monkeypatch.setattr(smoke, "_youtube_inventory", lambda *_: {
+        "yt-dlp": "2026.10.26", "deno": "2.9.8",
+        "ffmpeg": "7.1", "ffprobe": "7.1",
+    })
     monkeypatch.setattr(
         smoke, "run_command",
         lambda command, args, **kwargs: type("Result", (), {"stdout": "nonsense"})(),
     )
-    with pytest.raises(RuntimeError, match="unexpected packaged CLI version format"):
+    with pytest.raises(RuntimeError, match="packaged CLI version does not match bundle inventory"):
         smoke._verify_youtube_cli_tools(tools, root)
 
     from audio_score_tool.runner import CommandError
@@ -251,11 +259,11 @@ def test_youtube_cli_rejects_path_escape_and_symlink_without_exec(
 
     monkeypatch.setattr(smoke, "run_command", safe_earlier_probes)
     tools["ffmpeg"] = str(outside)
-    with pytest.raises(RuntimeError, match="escapes the managed root"):
+    with pytest.raises(RuntimeError, match="managed executable escapes root"):
         smoke._verify_youtube_cli_tools(tools, root)
     alias = root / "foreign-link"
     alias.symlink_to(outside)
     tools["ffmpeg"] = str(alias)
-    with pytest.raises(RuntimeError, match="symlinked"):
+    with pytest.raises(RuntimeError, match="missing or symlinked"):
         smoke._verify_youtube_cli_tools(tools, root)
-    assert calls == ["yt-dlp", "deno", "yt-dlp", "deno"]
+    assert calls == []
