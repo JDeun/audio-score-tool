@@ -79,7 +79,9 @@ uv run --frozen python scripts/verify_ffmpeg_build_provenance.py \
 - `reproducible_rebuild_verified`
 - `linked_libraries_independently_inspected`
 
-검증된 로컬 후보에 대해서도 `redistribution_status=pending`과 `legal_review_status=pending`을 유지합니다. 그다음 [YouTube 런타임 통합 ZIP 조립](YOUTUBE_MANAGED_BUNDLE.ko.md)과 [#29](https://github.com/JDeun/audio-score-tool/issues/29)의 승인 절차로 넘깁니다.
+검증된 로컬 후보에 대해서도 `redistribution_status=pending`과 `legal_review_status=pending`을 유지합니다. 이 보고서는 이제 YouTube ZIP 조립기의 `ffmpeg_build.attestation_file` **필수 입력**입니다. 각 바이너리 SHA-256, FFmpeg 소스 URL, license 및 빌드 설정이 조립 매니페스트와 다르면 조립이 실패합니다. 보고서의 증거를 ZIP에도 포함합니다.
+
+그다음 [YouTube 런타임 통합 ZIP 조립](YOUTUBE_MANAGED_BUNDLE.ko.md)과 [#29](https://github.com/JDeun/audio-score-tool/issues/29)의 승인 절차로 넘깁니다.
 
 ## 배포 전 별도 확인 항목
 

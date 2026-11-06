@@ -11,6 +11,7 @@ import pytest
 
 from audio_score_tool.managed_components import ComponentArtifact, install_component_artifact
 from scripts import assemble_youtube_runtime_candidate as assembler
+from scripts import verify_ffmpeg_build_provenance as ffmpeg_review
 
 _TOOLS = ("yt-dlp", "deno", "ffmpeg", "ffprobe")
 
@@ -41,6 +42,45 @@ def _sha(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
+def _write_ffmpeg_review(manifest: dict, root: Path) -> None:
+    """Synthetic cross-platform evidence, never executable or legally approved."""
+    entries = {}
+    for name in ("ffmpeg", "ffprobe"):
+        tool = manifest["tools"][name]
+        version_report = root / f"{name}-version.txt"
+        version_report.write_text(
+            f"{name} version {tool['version']} synthetic CI fixture\n"
+            "built with synthetic-build-toolchain\n"
+            + "configuration: "
+            + " ".join(manifest["ffmpeg_build"]["configure_flags"])
+            + "\n",
+            encoding="utf-8",
+        )
+        entries[name] = {
+            "file": tool["file"],
+            "sha256": tool["sha256"],
+            "version_report": str(version_report),
+            "license": tool["license"],
+        }
+    review_manifest = {
+        "schema": 1,
+        "target": manifest["target"],
+        "version": manifest["tools"]["ffmpeg"]["version"],
+        "source_revision": manifest["tools"]["ffmpeg"]["upstream_revision"],
+        "source_url": manifest["tools"]["ffmpeg"]["upstream_url"],
+        "toolchain": manifest["ffmpeg_build"]["toolchain"],
+        "license_notice": manifest["tools"]["ffmpeg"]["license_notice"],
+        "build_record": manifest["ffmpeg_build"]["build_record"],
+        "configure_flags": manifest["ffmpeg_build"]["configure_flags"],
+        "external_libraries": {},
+        "tools": entries,
+    }
+    report = ffmpeg_review.review_ffmpeg_build(review_manifest)
+    attestation = root / "ffmpeg-build-review.pending.json"
+    attestation.write_text(json.dumps(report), encoding="utf-8")
+    manifest["ffmpeg_build"]["attestation_file"] = str(attestation)
+
+
 def _input(tmp_path: Path, target: str = "windows-x86_64") -> dict:
     tools = {}
     suffix = ".exe" if target.startswith("windows") else ""
@@ -59,20 +99,24 @@ def _input(tmp_path: Path, target: str = "windows-x86_64") -> dict:
             else "MIT" if name == "deno"
             else "LGPL-2.1-or-later"
         )
-        revision = "ffmpeg-commit-abc" if name in {"ffmpeg", "ffprobe"} else name + "-v1"
+        revision = "a" * 40 if name in {"ffmpeg", "ffprobe"} else name + "-v1"
         version = "ffmpeg-7.0" if name in {"ffmpeg", "ffprobe"} else name + "-1.0"
         tools[name] = {
             "file": str(binary),
             "sha256": _sha(content),
             "version": version,
             "upstream_revision": revision,
-            "upstream_url": f"https://example.invalid/upstream/releases/tag/{version}",
+            "upstream_url": (
+                f"https://github.com/FFmpeg/FFmpeg/commit/{revision}"
+                if name in {"ffmpeg", "ffprobe"}
+                else f"https://example.invalid/upstream/releases/tag/{version}"
+            ),
             "license": license_name,
             "license_notice": str(notice),
         }
     build = tmp_path / "ffmpeg-build.txt"
     build.write_text("synthetic cross-compile, no nonfree components\n", encoding="utf-8")
-    return {
+    manifest = {
         "schema": 1,
         "target": target,
         "version": "youtube-fixture-1",
@@ -85,6 +129,8 @@ def _input(tmp_path: Path, target: str = "windows-x86_64") -> dict:
             "build_record": str(build),
         },
     }
+    _write_ffmpeg_review(manifest, tmp_path)
+    return manifest
 
 
 @pytest.mark.parametrize("target", ["windows-x86_64", "macos-aarch64"])
@@ -110,9 +156,10 @@ def test_youtube_candidate_is_verified_and_never_autoapproved(tmp_path: Path, ta
         assert set(expected_paths.values()) <= names
         assert {f"notices/{name}.LICENSE.txt" for name in _TOOLS} <= names
         assert "provenance/ffmpeg-build.txt" in names
+        assert "provenance/ffmpeg-attestation.pending.json" in names
         inventory = json.loads(archive.read("BUNDLE-INVENTORY.json"))
         assert inventory["redistribution_status"] == "pending"
-        assert inventory["tools"]["ffmpeg"]["upstream_revision"] == "ffmpeg-commit-abc"
+        assert inventory["tools"]["ffmpeg"]["upstream_revision"] == "a" * 40
         for name in _TOOLS:
             info = archive.getinfo(expected_paths[name])
             assert stat.S_ISREG(info.external_attr >> 16)
@@ -233,6 +280,7 @@ def test_manifest_will_not_misrepresent_ffmpeg_as_lgpl_if_gpl_enabled(tmp_path: 
     manifest["ffmpeg_build"]["configure_flags"] = ["--enable-gpl"]
     for name in ("ffmpeg", "ffprobe"):
         manifest["tools"][name]["license"] = "GPL-2.0-or-later"
+    _write_ffmpeg_review(manifest, tmp_path)
     report = assembler.assemble_youtube_candidate(manifest, tmp_path / "gpl.zip")
     assert report["tools"]["ffmpeg"]["license"] == "GPL-2.0-or-later"
 
@@ -242,3 +290,34 @@ def test_no_unreviewed_url_or_actual_binary_is_committed_to_repo(tmp_path: Path)
     manifest["tools"]["deno"]["upstream_url"] = "http://example.invalid/v1"
     with pytest.raises(ValueError, match="pinned"):
         assembler.assemble_youtube_candidate(manifest, tmp_path / "insecure.zip")
+
+
+def test_missing_or_inconsistent_ffmpeg_review_blocks_bundle(tmp_path: Path):
+    manifest = _input(tmp_path)
+    attestation = manifest["ffmpeg_build"].pop("attestation_file")
+    with pytest.raises(ValueError, match="attestation_file"):
+        assembler.assemble_youtube_candidate(manifest, tmp_path / "missing.zip")
+
+    manifest["ffmpeg_build"]["attestation_file"] = attestation
+    review = json.loads(Path(attestation).read_text(encoding="utf-8"))
+    review["tools"]["ffmpeg"]["file_sha256"] = "0" * 64
+    Path(attestation).write_text(json.dumps(review), encoding="utf-8")
+    with pytest.raises(ValueError, match="attestation hash/license"):
+        assembler.assemble_youtube_candidate(manifest, tmp_path / "tampered.zip")
+
+
+def test_ffmpeg_review_for_another_platform_cannot_be_reused(tmp_path: Path):
+    manifest = _input(tmp_path)
+    attestation = Path(manifest["ffmpeg_build"]["attestation_file"])
+    review = json.loads(attestation.read_text(encoding="utf-8"))
+    review["target"] = "macos-aarch64"
+    attestation.write_text(json.dumps(review), encoding="utf-8")
+    with pytest.raises(ValueError, match="validated pending review"):
+        assembler.assemble_youtube_candidate(manifest, tmp_path / "wrong-platform.zip")
+
+
+def test_ffmpeg_manifest_config_drift_after_review_fails(tmp_path: Path):
+    manifest = _input(tmp_path)
+    manifest["ffmpeg_build"]["configure_flags"].append("--disable-doc")
+    with pytest.raises(ValueError, match="provenance/configuration differs"):
+        assembler.assemble_youtube_candidate(manifest, tmp_path / "config-drift.zip")
