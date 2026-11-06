@@ -46,6 +46,7 @@ def _youtube_worker(*args, **kwargs) -> None:
 # Imports happen only after the runtime compatibility bridge exists. Critical product
 # endpoints are registered explicitly below so method/path ownership does not depend on
 # compatibility-era router composition or import order.
+from .credits_api import update_credits_atomic  # noqa: E402
 from .direct_score_import_api import import_notation  # noqa: E402
 from .engine_api import router as engine_router  # noqa: E402
 from .enrichment_api import router as enrichment_router  # noqa: E402
@@ -151,6 +152,12 @@ app.add_api_route(
     update_publication_v2,
     methods=["PATCH"],
     tags=["publication-v2"],
+)
+app.add_api_route(
+    "/api/songs/{song_id}/credits",
+    update_credits_atomic,
+    methods=["PATCH"],
+    tags=["atomic-credits"],
 )
 app.add_api_route(
     "/api/songs/{song_id}",
