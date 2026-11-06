@@ -102,7 +102,7 @@ def build_exports_v3(song_id: str, payload: ExportRequest | None = None) -> dict
                 for part in list_score_parts(score):
                     slug = part["slug"]
                     part_xml = parts_dir / f"{slug}.musicxml"
-                    extract_part_musicxml(score, str(part["id"]), part_xml)
+                    extract_part_musicxml(score, str(part["part_id"]), part_xml)
                     render_pdf(part_xml, parts_dir / f"{slug}.pdf", settings=settings)
         except (NotationBackendError, NotationBackendUnavailable, OSError) as exc:
             raise _export_error(exc) from exc
