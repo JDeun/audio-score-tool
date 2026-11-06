@@ -25,6 +25,33 @@ YouTube 가져오기 기능은 `yt-dlp`, `deno`, `ffmpeg`, `ffprobe` 네 개의 
 
 위 값은 **조립을 위한 출처 후보**이지 번들 카탈로그로 등록된 릴리스 핀이나 재배포 승인 기록이 아닙니다. 특히 FFmpeg는 정확한 빌드 플래그를 검토하기 전에는 `approved`로 전환할 수 없습니다. 최신 버전은 정식 아티팩트 publication 직전에 다시 확인해야 합니다.
 
+## 공식 배포물 원본 검증 (FFmpeg 조립 이전)
+
+수동으로 다운로드한 공식 upstream 바이너리는 조립 전에 **release asset 자체의 SHA-256와 크기**부터 검증합니다. 리뷰용 정확한 핀 목록은 [release/review/youtube-official-source-pins-2026-11-06.json](../release/review/youtube-official-source-pins-2026-11-06.json)에 저장되어 있습니다.
+
+- yt-dlp `2026.10.26`: Windows `yt-dlp.exe`, macOS `yt-dlp_macos`
+- Deno `v2.9.8`: Windows `deno-x86_64-pc-windows-msvc.zip`, macOS `deno-aarch64-apple-darwin.zip`
+
+이 SHA-256는 공식 GitHub 릴리스 API의 **배포 자산 메타데이터**에서 확인한 것이며, 원본 파일 자체를 아직 다운로드/검증했다는 뜻이 아닙니다.
+
+Windows 원본 파일을 별도로 확보한 뒤:
+
+```bash
+uv run --frozen python scripts/verify_youtube_official_sources.py \
+  --target windows-x86_64 \
+  --yt-dlp-asset /absolute/work/downloaded/yt-dlp.exe \
+  --deno-zip /absolute/work/downloaded/deno-x86_64-pc-windows-msvc.zip \
+  --output-dir /absolute/work/verified-windows
+```
+
+macOS arm64의 경우 `--target macos-aarch64`, `yt-dlp_macos`, `deno-aarch64-apple-darwin.zip`으로 변경합니다.
+
+실행 결과에는 원본 SHA-256·크기·ZIP 내부의 Deno 추출 파일 해시가 기록됩니다. Deno ZIP은 루트의 단일 `deno`/`deno.exe` 파일 외의 항목, 심볼릭 링크 및 비정상적으로 큰 압축 해제 결과를 거부합니다. **원본 파일을 실행하지 않고 네트워크를 사용하지 않습니다.**
+
+산출 디렉터리의 `yt-dlp[.exe]`와 `deno[.exe]`는 아래 조립 매니페스트의 `tools[].file`로 사용할 수 있으며, `SOURCE-EVIDENCE.pending.json`의 개별 파일 해시를 입력해야 합니다. FFmpeg/ffprobe는 아직 승인된 소스·빌드가 없으므로 별도 제공·검증이 필요합니다.
+
+이 검증은 GitHub 릴리스 checksum/signature의 독립 검증, 실행 파일 서명/공증, 재배포 법률 검토를 완료한 것으로 간주할 수 없습니다.
+
 ## 매니페스트 형식
 
 아래 파일을 `youtube-review-input.json` 같은 외부 작업 경로에 작성합니다. 실제 시스템에 있는 바이너리/라이선스 고지/빌드 기록의 **절대 경로**와 업스트림에서 확인한 SHA-256로 채웁니다. 자리표시자를 그대로 실행하지 않습니다.
