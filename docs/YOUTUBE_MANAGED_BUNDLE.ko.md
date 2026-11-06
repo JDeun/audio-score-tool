@@ -25,6 +25,8 @@ YouTube 가져오기 기능은 `yt-dlp`, `deno`, `ffmpeg`, `ffprobe` 네 개의 
 
 위 값은 **조립을 위한 출처 후보**이지 번들 카탈로그로 등록된 릴리스 핀이나 재배포 승인 기록이 아닙니다. 특히 FFmpeg는 정확한 빌드 플래그를 검토하기 전에는 `approved`로 전환할 수 없습니다. 최신 버전은 정식 아티팩트 publication 직전에 다시 확인해야 합니다.
 
+FFmpeg/ffprobe의 로컬 바이너리와 버전 출력에서 실제 configure 플래그가 일치하는지 확인하는 도구는 [FFmpeg 빌드 출처 검증](FFMPEG_BUILD_PROVENANCE.ko.md)에 정리합니다. 이 검증은 별도 license 승인을 대체하지 않으며, 단독 통합 ZIP을 합법적 배포물로 만들지 않습니다.
+
 ## 공식 배포물 원본 검증 (FFmpeg 조립 이전)
 
 위 후보의 GitHub API 자산 SHA-256과 공식 upstream 체크섬 텍스트가 서로 일치하는지는 [공식 릴리스 출처 검증 절차](YOUTUBE_UPSTREAM_RELEASE_EVIDENCE.ko.md)의 `collect_youtube_upstream_release_evidence.py`로 재확인할 수 있습니다. 이는 바이너리를 직접 내려받아 확인하는 단계보다 앞선 검토용 증거이며, 카탈로그 승인과는 분리합니다.
