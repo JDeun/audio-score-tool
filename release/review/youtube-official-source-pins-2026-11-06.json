@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "purpose": "review-only candidate release pin; never constitutes redistribution approval or a published managed component",
+  "observed_on": "2026-11-06",
+  "approval_status": "pending",
+  "evidence_basis": "Official GitHub release API asset digest and size; local bytes and release signatures NOT yet verified",
+  "targets": {
+    "windows-x86_64": {
+      "yt-dlp": {
+        "repository": "yt-dlp/yt-dlp",
+        "tag": "2026.10.26",
+        "asset": "yt-dlp.exe",
+        "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.10.26/yt-dlp.exe",
+        "sha256": "f5389d3698ecde4ef06f4e6b1ce0294fe9ac1396228c8990b8d3416d6d177a7d",
+        "bytes": 23575744,
+        "extracted_tool": "yt-dlp.exe",
+        "license_review": "GPL-3.0-or-later combined PyInstaller work; third-party notices/source obligations pending"
+      },
+      "deno": {
+        "repository": "denoland/deno",
+        "tag": "v2.9.8",
+        "asset": "deno-x86_64-pc-windows-msvc.zip",
+        "url": "https://github.com/denoland/deno/releases/download/v2.9.8/deno-x86_64-pc-windows-msvc.zip",
+        "sha256": "cba84b26e0df5ae7f74fc66b86a95b866872a86292ebd84fa1e959927edd93bf",
+        "bytes": 42917472,
+        "extracted_tool": "deno.exe",
+        "license_review": "MIT; complete build/distribution notice review pending"
+      }
+    },
+    "macos-aarch64": {
+      "yt-dlp": {
+        "repository": "yt-dlp/yt-dlp",
+        "tag": "2026.10.26",
+        "asset": "yt-dlp_macos",
+        "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.10.26/yt-dlp_macos",
+        "sha256": "0f922c15ccc0b83eefa1c8bc9104e434318c4bf16e408e1ee93b7745a6efe0aa",
+        "bytes": 37466304,
+        "extracted_tool": "yt-dlp",
+        "license_review": "GPL-3.0-or-later combined PyInstaller work; notarization/source obligations pending"
+      },
+      "deno": {
+        "repository": "denoland/deno",
+        "tag": "v2.9.8",
+        "asset": "deno-aarch64-apple-darwin.zip",
+        "url": "https://github.com/denoland/deno/releases/download/v2.9.8/deno-aarch64-apple-darwin.zip",
+        "sha256": "9f0bf660393da2eaff044cdc7444cb08c73f235849b61d224d825a194ce7c98e",
+        "bytes": 38770795,
+        "extracted_tool": "deno",
+        "license_review": "MIT; complete build/distribution notice review pending"
+      }
+    }
+  },
+  "missing_by_design": [
+    "ffmpeg",
+    "ffprobe"
+  ],
+  "publication_catalog_modified": false
+}
