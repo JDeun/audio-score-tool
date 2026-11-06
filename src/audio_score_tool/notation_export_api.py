@@ -110,7 +110,7 @@ def build_exports_v3(song_id: str, payload: ExportRequest | None = None) -> dict
             raise _export_error(exc) from exc
 
         try:
-            final = _publish_export_tree(song_id, staged)
+            _publish_export_tree(song_id, staged)
         except Exception as exc:
             raise _export_error(exc) from exc
 
