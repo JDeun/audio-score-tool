@@ -19,6 +19,7 @@ type EngineInfo = {
 };
 
 type EngineState = {
+  packaged_runtime?: boolean;
   usage_mode: UsageMode;
   selected: string;
   mt3_infer_cmd?: string | null;
@@ -89,6 +90,8 @@ export default function EngineSettingsDock() {
     }
   }, [usageMode, engine]);
 
+  const packaged = state?.packaged_runtime === true;
+
   const save = async () => {
     setSaving(true);
     setMessage("");
@@ -99,12 +102,14 @@ export default function EngineSettingsDock() {
         body: JSON.stringify({
           usage_mode: usageMode,
           transcription_engine: engine,
-          mt3_infer_cmd: mt3Command || null,
           mt3_model: mt3Model,
-          muscriptor_cmd: muscriptorCommand || null,
           muscriptor_model: muscriptorModel,
-          native_engine_cmd: command || null,
-          native_checkpoint: checkpoint || null,
+          ...(!packaged ? {
+            mt3_infer_cmd: mt3Command || null,
+            muscriptor_cmd: muscriptorCommand || null,
+            native_engine_cmd: command || null,
+            native_checkpoint: checkpoint || null,
+          } : {}),
         }),
       });
       const body = await response.json().catch(() => null);
@@ -156,7 +161,7 @@ export default function EngineSettingsDock() {
 
           <div className="engine-choice-grid">
             {(state?.engines ?? fallbackEngines).map((item) => {
-              const disabled = usageMode === "commercial" && item.key === "muscriptor";
+              const disabled = (usageMode === "commercial" && item.key === "muscriptor") || (packaged && item.key === "native");
               return (
                 <button
                   key={item.key}
@@ -167,7 +172,7 @@ export default function EngineSettingsDock() {
                   <strong>{item.name}</strong>
                   <small>{engineDescription(item.key)}</small>
                   <em className={item.ready ? "ready" : "warning"}>
-                    {disabled ? "상용 사용 불가" : item.ready ? "준비됨" : "첫 실행 준비 필요"}
+                    {packaged && item.key === "native" ? "배포 앱에서 개발용 Native 경로 불가" : disabled ? "상용 사용 불가" : item.ready ? "준비됨" : "첫 실행 준비 필요"}
                   </em>
                 </button>
               );
@@ -184,10 +189,10 @@ export default function EngineSettingsDock() {
                   <option value="small">Small</option>
                 </select>
               </label>
-              <label>
+              {!packaged && <label>
                 <span>MuScriptor 실행 명령</span>
                 <input value={muscriptorCommand} onChange={(event) => setMuscriptorCommand(event.target.value)} placeholder="muscriptor" />
-              </label>
+              </label>}
               <div className="engine-license-note safe">
                 개인/비상업용 최고 품질 기본 경로입니다. 코드 자체는 MIT지만 공개 model weights는 CC BY-NC 4.0이므로 상용 사용은 차단됩니다.
               </div>
@@ -204,10 +209,10 @@ export default function EngineSettingsDock() {
                   <option value="mr_mt3">MR-MT3 · 빠른 permissive fallback</option>
                 </select>
               </label>
-              <label>
+              {!packaged && <label>
                 <span>MT3-Infer 실행 명령</span>
                 <input value={mt3Command} onChange={(event) => setMt3Command(event.target.value)} placeholder="mt3-infer" />
-              </label>
+              </label>}
               {mt3Model === "yourmt3" ? (
                 <div className="engine-license-note">
                   YourMT3+ checkpoint와 mt3-infer vendored implementation은 Apache-2.0으로 표기되지만 공식 GitHub 저장소는 GPL-3.0입니다. 개인 사용에는 문제가 없고, 상용 배포 전에는 고정 revision 기준 provenance 검토가 필요합니다.
@@ -222,12 +227,15 @@ export default function EngineSettingsDock() {
 
           {engine === "native" && (
             <div className="engine-native-fields">
-              <label><span>Native 실행 명령</span><input value={command} onChange={(event) => setCommand(event.target.value)} placeholder="audio-score-native" /></label>
-              <label><span>프로젝트 소유 체크포인트</span><input value={checkpoint} onChange={(event) => setCheckpoint(event.target.value)} placeholder="/path/to/audio-score-native.pt" /></label>
+              {!packaged && <>
+                <label><span>Native 실행 명령</span><input value={command} onChange={(event) => setCommand(event.target.value)} placeholder="audio-score-native" /></label>
+                <label><span>프로젝트 소유 체크포인트</span><input value={checkpoint} onChange={(event) => setCheckpoint(event.target.value)} placeholder="/path/to/audio-score-native.pt" /></label>
+              </>}
               <p>장기적으로 외부 weights를 제거해야 할 때를 위한 R&D 경로입니다.</p>
             </div>
           )}
 
+          {packaged && <p className="engine-license-note safe">배포 앱에서는 사용자 지정 실행 명령을 적용하지 않습니다. 구성요소 설치·검증·복구는 '구성요소 상태'에서 진행하세요.</p>}
           {state?.recommendation && (
             <div className="engine-license-note safe">
               권장: {state.recommendation.engine} / {state.recommendation.model} — {state.recommendation.reason}
