@@ -369,6 +369,87 @@ class SongStoreV2:
         self.clear_exports(song_id)
         return self.get(song_id)
 
+    def commit_identified_metadata(
+        self,
+        song_id: str,
+        *,
+        title: str,
+        artist: str | None,
+        score_xml: str,
+        publication: dict[str, Any],
+        expected_revision: int,
+    ) -> dict[str, Any]:
+        """Commit identified metadata and canonical MusicXML as one Undo revision.
+
+        Never persist a snapshot before validating the expected revision. An
+        artist-only change must be as undoable as a title/score change, while a
+        repeated identical identification must not inflate revisions or remove
+        otherwise valid exports.
+        """
+        xml_text = _valid_score_xml(score_xml)
+        normalized_title = title.strip() or "제목 없는 곡"
+        normalized_artist = artist.strip() or None if artist is not None else None
+        serialized_publication = json.dumps(
+            publication, ensure_ascii=False, separators=(",", ":")
+        )
+        changed = False
+        with self._lock, self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT revision, title, artist, current_score_xml
+                FROM songs WHERE song_id=?
+                """,
+                (song_id,),
+            ).fetchone()
+            if not row or not row["current_score_xml"]:
+                raise KeyError(song_id)
+            revision = int(row["revision"])
+            if revision != expected_revision:
+                raise ConcurrentEditError(
+                    f"Song {song_id} changed during source identification. Reload and retry."
+                )
+            changed = (
+                row["title"] != normalized_title
+                or row["artist"] != normalized_artist
+                or row["current_score_xml"] != xml_text
+            )
+            if changed:
+                stamp = _now()
+                conn.execute(
+                    """
+                    INSERT OR REPLACE INTO song_revisions(
+                        song_id, revision, musicxml, publication_json,
+                        title, artist, created_at
+                    ) VALUES(?,?,?,?,?,?,?)
+                    """,
+                    (
+                        song_id, revision, row["current_score_xml"],
+                        serialized_publication, row["title"], row["artist"], stamp,
+                    ),
+                )
+                updated = conn.execute(
+                    """
+                    UPDATE songs
+                    SET title=?, artist=?, current_score_xml=?,
+                        revision=revision+1, updated_at=?
+                    WHERE song_id=? AND revision=?
+                    """,
+                    (
+                        normalized_title, normalized_artist, xml_text, stamp,
+                        song_id, expected_revision,
+                    ),
+                )
+                if updated.rowcount != 1:
+                    raise ConcurrentEditError(
+                        "Song changed while saving identified metadata."
+                    )
+        if changed:
+            self.clear_exports(song_id)
+        current = self.get(song_id)
+        if current is None:
+            raise KeyError(song_id)
+        return current
+
     def update_metadata(self, song_id: str, *, title: str | None = None, artist: str | None = None) -> dict[str, Any] | None:
         fields: dict[str, Any] = {}
         if title is not None:
