@@ -4,7 +4,7 @@
 
 AudioScoreTool 편집기는 SVG를 직접 수정하지 않습니다.
 
-OpenSheetMusicDisplay(OSMD)는 MusicXML을 렌더링하는 미리보기 엔진이고, 모든 편집은 MusicXML 구조에 반영됩니다. v0.8부터는 **현재 MusicXML 문서가 SQLite 안에 저장되며 DB가 canonical state**입니다. 파일은 OSMD/MuseScore 등 파일 경로가 필요한 처리에서만 관리형 cache로 materialize합니다.
+OpenSheetMusicDisplay(OSMD)는 MusicXML을 렌더링하는 미리보기 엔진이고, 모든 편집은 MusicXML 구조에 반영됩니다. v0.8부터는 **현재 MusicXML 문서가 SQLite 안에 저장되며 DB가 canonical state**입니다. 파일은 OSMD 미리보기 및 내장 music21/Verovio/fpdf2 같은 파일 경로가 필요한 처리에서만 관리형 cache로 materialize합니다.
 
 ```text
 SQLite current_score_xml
@@ -21,7 +21,7 @@ OSMD re-render
   ↓
 [사용자가 최종 Export 요청]
   ↓
-MuseScore export
+내장 music21/Verovio/fpdf2 export
 ```
 
 따라서 미리보기와 최종 PDF는 동일한 DB Revision에서 파생됩니다.
@@ -153,4 +153,4 @@ Export 창에서 다음을 선택합니다.
    └─ ... 감지된 기타 파트
 ```
 
-MusicXML만 내보내는 경우 MuseScore가 없어도 가능하며, PDF/MIDI/파트 PDF에는 MuseScore 4가 필요합니다.
+MusicXML/MIDI/PDF/파트 PDF는 MuseScore 없이 처리합니다. MIDI 변환은 앱에 내장된 music21, PDF/파트 PDF는 Verovio SVG → fpdf2 벡터 PDF 경로를 사용합니다.
