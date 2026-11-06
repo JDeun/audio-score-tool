@@ -221,8 +221,12 @@ class SongStoreV2:
         safe_suffixes = {
             ".wav", ".mp3", ".flac", ".m4a", ".aac", ".ogg", ".opus", ".webm",
         }
-        root = (jobs_dir() / song_id).resolve()
-        if not root.is_dir():
+        jobs_root = jobs_dir().resolve()
+        source_dir = jobs_root / song_id
+        if source_dir.is_symlink():
+            return None
+        root = source_dir.resolve()
+        if root.parent != jobs_root or not root.is_dir():
             return None
         candidates = sorted(
             file for file in root.glob("input.*")
@@ -233,8 +237,14 @@ class SongStoreV2:
         if len(candidates) != 1:
             return None
         original = candidates[0]
-        target = self.asset_root / song_id / f"original-audio{original.suffix.lower()}"
-        target.parent.mkdir(parents=True, exist_ok=True)
+        assets_root = self.asset_root.resolve()
+        target_dir = self.asset_root / song_id
+        if target_dir.is_symlink():
+            return None
+        target_dir.mkdir(parents=True, exist_ok=True)
+        if target_dir.resolve().parent != assets_root:
+            return None
+        target = target_dir / f"original-audio{original.suffix.lower()}"
         if target.exists():
             return target if target.is_file() and not target.is_symlink() else None
         temp = target.with_suffix(target.suffix + ".copying")
