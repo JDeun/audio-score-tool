@@ -65,6 +65,9 @@ def test_canonical_job_endpoints_apply_saved_model_for_auto_only(
     monkeypatch.setattr(lifecycle, "jobs_dir", lambda: jobs)
     monkeypatch.setattr(upload, "runtime_settings", lambda: default)
     monkeypatch.setattr(lifecycle, "runtime_settings", lambda: default)
+    monkeypatch.setattr(upload, "preflight", lambda *_args, **_kwargs: {"ok": True})
+    monkeypatch.setattr(lifecycle, "preflight", lambda *_args, **_kwargs: {"ok": True})
+    monkeypatch.setattr(lifecycle, "youtube_tool_status", lambda _settings: {"ready": True})
 
     class FakeThread:
         def __init__(self, *, target, args, daemon):
@@ -119,6 +122,8 @@ def test_canonical_job_explicit_overrides_take_precedence(tmp_path: Path, monkey
             pass
 
     monkeypatch.setattr(lifecycle, "Thread", FakeThread)
+    monkeypatch.setattr(lifecycle, "preflight", lambda *_args, **_kwargs: {"ok": True})
+    monkeypatch.setattr(lifecycle, "youtube_tool_status", lambda _settings: {"ready": True})
     response = TestClient(app).post(
         "/api/jobs/youtube",
         json={
