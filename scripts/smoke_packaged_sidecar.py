@@ -12,6 +12,7 @@ import urllib.request
 from pathlib import Path
 
 from audio_score_tool.managed_publication_readiness import _REQUIRED_TOOLS, CORE_COMPONENTS
+from audio_score_tool.runner import CommandError, run_command
 
 ROOT = Path(__file__).resolve().parents[1]
 BIN_DIR = ROOT / "desktop" / "src-tauri" / "binaries"
@@ -126,6 +127,55 @@ def _component_index(base_url: str, token: str) -> dict[str, dict]:
     }
 
 
+def _verify_youtube_cli_tools(tools: dict[str, str], managed_root: Path) -> None:
+    """Execute only installed, explicitly pinned YouTube tool versions offline.
+
+    File hashes alone do not prove a packaged binary starts on the target OS.
+    Use absolute in-root paths, a tightly scoped environment and bounded
+    output/time. This intentionally performs no media download or inference.
+    """
+    probes = {
+        "yt-dlp": ("--version",),
+        "deno": ("--version",),
+        "ffmpeg": ("-version",),
+        "ffprobe": ("-version",),
+    }
+    for name, args in probes.items():
+        binary_value = tools.get(name)
+        if not isinstance(binary_value, str):
+            raise RuntimeError(f"{name}: missing managed executable for startup smoke.")
+        binary = Path(binary_value)
+        if binary.is_symlink() or not binary.is_file():
+            raise RuntimeError(f"{name}: managed CLI is missing or symlinked.")
+        try:
+            binary.resolve().relative_to(managed_root.resolve())
+        except ValueError as exc:
+            raise RuntimeError(f"{name}: managed CLI escapes the managed root.") from exc
+        try:
+            result = run_command(
+                str(binary.resolve()),
+                args,
+                env={"PATH": "", "PYTHONNOUSERSITE": "1"},
+                timeout_seconds=20,
+                max_output_bytes=16 * 1024,
+            )
+        except CommandError as exc:
+            raise RuntimeError(f"{name}: packaged CLI startup/version check failed: {exc}") from exc
+        output = result.stdout.strip()
+        if not output:
+            raise RuntimeError(f"{name}: packaged CLI returned no version information.")
+        if name == "yt-dlp":
+            import re
+
+            valid = bool(re.match(r"^\d{4}\.\d{1,2}\.\d{1,2}(?:\s|$)", output))
+        elif name == "deno":
+            valid = output.lower().startswith("deno ")
+        else:
+            valid = output.lower().startswith(f"{name} version ")
+        if not valid:
+            raise RuntimeError(f"{name}: unexpected packaged CLI version format.")
+
+
 def _verify_managed_delivery(base_url: str, token: str, component_root: Path) -> None:
     """Deep sidecar smoke: actual approved archive download/install on this OS.
 
@@ -178,6 +228,8 @@ def _verify_managed_delivery(base_url: str, token: str, component_root: Path) ->
                 raise RuntimeError(
                     f"{component}: installed tool escapes the managed root: {name}"
                 ) from exc
+        if component == "youtube_runtime":
+            _verify_youtube_cli_tools(tools, trusted_root)
 
     # The API is re-queried so this is not merely a trust in POST responses.
     latest = _component_index(base_url, token)
