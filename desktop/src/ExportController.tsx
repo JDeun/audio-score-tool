@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import "./export-controller.css";
+import { useSelectedSong } from "./SelectedSongContext";
 
 const API = "http://127.0.0.1:8080";
 
@@ -18,25 +19,8 @@ const labels: Record<ExportKind, string> = {
   parts: "파트별 MusicXML + PDF",
 };
 
-function resolveTarget(button: Element): ExportTarget | null {
-  const workbench = button.closest(".score-workbench");
-  const scoreLink = workbench?.querySelector<HTMLAnchorElement>(
-    'a[href*="/api/songs/"][href*="/files/"]',
-  );
-  if (!scoreLink) return null;
-
-  const pathname = new URL(scoreLink.href, window.location.href).pathname;
-  const match = pathname.match(/\/api\/songs\/([^/]+)\/files\//);
-  if (!match) return null;
-
-  const title = workbench?.querySelector(".score-toolbar h2")?.textContent?.trim();
-  return {
-    songId: decodeURIComponent(match[1]),
-    title: title || "악보",
-  };
-}
-
 export default function ExportController() {
+  const { target: selectedSong } = useSelectedSong();
   const [target, setTarget] = useState<ExportTarget | null>(null);
   const [destination, setDestination] = useState("");
   const [selected, setSelected] = useState<Record<ExportKind, boolean>>({
@@ -59,21 +43,24 @@ export default function ExportController() {
     const intercept = (event: MouseEvent) => {
       const element = event.target instanceof Element ? event.target : null;
       const button = element?.closest("button.export-button");
-      if (!button) return;
-      const nextTarget = resolveTarget(button);
-      if (!nextTarget) return;
+      if (!button || !button.closest(".score-workbench") || !selectedSong) return;
 
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
-      setTarget(nextTarget);
+      setTarget({ songId: selectedSong.songId, title: selectedSong.title });
       setDestination("");
       setMessage("");
     };
 
     document.addEventListener("click", intercept, true);
     return () => document.removeEventListener("click", intercept, true);
-  }, []);
+  }, [selectedSong]);
+
+  useEffect(() => {
+    // Never leave a modal targeting the previously selected score.
+    setTarget(null);
+  }, [selectedSong?.songId]);
 
   const chooseDirectory = async () => {
     setMessage("");
