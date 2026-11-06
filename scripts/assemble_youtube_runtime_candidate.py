@@ -155,7 +155,7 @@ def _ffmpeg_build(value: Any, sources: dict[str, dict[str, Any]]) -> dict[str, A
     if any(x.lower() == "--enable-nonfree" for x in flags):
         raise ValueError("Nonfree FFmpeg builds must not be bundled.")
     if any(x.lower() == "--enable-gpl" for x in flags):
-        if any("GPL" not in sources[tool]["license"].upper() for tool in ("ffmpeg", "ffprobe")):
+        if any(not sources[tool]["license"].upper().startswith("GPL-") for tool in ("ffmpeg", "ffprobe")):
             raise ValueError("FFmpeg --enable-gpl needs a GPL license declaration.")
     evidence = _read_local(
         value.get("build_record"), label="ffmpeg_build.build_record", limit=_MAX_NOTICE_BYTES
@@ -181,7 +181,7 @@ def _zip_entry(
         while chunk := source.read(1024 * 1024):
             digest.update(chunk)
             output.write(chunk)
-    # Recheck after the second read: a source mutation while assembling fails closed.
+    # Recheck against the pinned source hash: mutation during packaging fails closed.
     if digest.hexdigest() != expected_sha256:
         raise ValueError(f"{name}: source changed during archive creation.")
 
