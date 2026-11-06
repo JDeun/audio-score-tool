@@ -59,18 +59,23 @@ AcoustID confidence가 0.90 이상일 때 후보로 선택하고, 자동 metadat
 
 낮은 신뢰도의 결과는 분석 데이터로만 보존하고 기존 사용자 수정값을 덮어쓰지 않습니다.
 
-## 5. 실행 시점
+## 5. 실행 시점 — 현재 구현
 
-Desktop의 `SourceIdentificationController`는 곡 라이브러리를 주기적으로 확인하고 새 song을 발견하면 한 번 식별합니다. 따라서 사용자가 별도로 `곡 정보` 창을 열지 않아도 ingestion 이후 자동 enrichment가 시작됩니다.
+현재 데스크톱에는 별도의 자동 실행 `SourceIdentificationController`가 없습니다. **사용자가 곡 라이브러리에서 곡을 선택한 후 `곡 정보 → 원본 음원 자동 식별` 버튼을 클릭할 때만** `POST /api/songs/{song_id}/identify-source`를 호출합니다.
 
-OMR처럼 원본 오디오 asset이 없는 곡은 조용히 skip됩니다. 식별 실패는 채보/편집/내보내기 실패로 전파되지 않습니다.
+이 버튼의 '자동'은 *사용자가 실행을 시작한 이후* 로컬 태그 → ISRC → 조건부 AcoustID/MusicBrainz 후보 선택 과정을 자동 처리한다는 뜻이며, 곡 등록 직후의 무인 백그라운드 네트워크 요청을 뜻하지 않습니다.
+
+- `refresh=false`로 API를 호출하면 저장된 분석 결과를 재사용할 수 있고, 현재 Desktop의 명시적 버튼은 최신 조회를 위해 `refresh=true`를 보냅니다.
+- 사용자 동의 없이 외부 식별 서비스를 자동 호출하지 않습니다. 상용 모드에서 MusicBrainz/AcoustID는 해당 서비스의 사용 자격 확인이 있어야 조회할 수 있습니다.
+- 상용 모드라도 **로컬 embedded-tag 식별은 두 외부 서비스 권한을 체크하지 않고 사용할 수 있습니다.** 권한 체크는 MusicBrainz/AcoustID 각각의 네트워크 조회에만 적용됩니다([#102](https://github.com/JDeun/audio-score-tool/issues/102), [PR #103](https://github.com/JDeun/audio-score-tool/pull/103)).
+- 오디오 원본이 없는 OMR/MusicXML/MIDI 가져오기 곡은 `no_audio` 결과로 끝나며, 외부 조회를 하지 않습니다.
+- 식별 및 외부 조회 실패는 채보·편집·내보내기 실패로 전파되지 않습니다.
+
+**향후 자동 등록 트리거는 별도 정책 결정이 필요합니다.** [후속 이슈 #100](https://github.com/JDeun/audio-score-tool/issues/100)에서 로컬 태그만 자동 처리할지, 명시적 실행을 유지할지, 별도 동의가 필요한 외부 조회까지 선택 허용할지 결정합니다.
 
 ## Setup Center
 
-`Chromaprint / fpcalc`는 optional component입니다.
-
-- macOS + Homebrew: 앱에서 `brew install chromaprint` 자동 설치 가능
-- Windows/Linux: 공식 Chromaprint 배포판 또는 OS package manager 사용
+`Chromaprint / fpcalc`는 선택적 acoustic fingerprint 구성요소입니다. **패키지 앱은 Homebrew/winget 등 시스템 패키지 매니저로 설치하지 않습니다.** 앱 관리형 공급이 승인·구현되기 전에는 해당 기능이 준비되지 않았음을 표시해야 합니다. 소스 개발 환경의 별도 실행 파일 설정은 일반 사용자 설치 경로가 아닙니다.
 
 태그가 충분하면 Chromaprint 자체가 필요하지 않습니다.
 

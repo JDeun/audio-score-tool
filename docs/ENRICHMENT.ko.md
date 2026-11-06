@@ -4,7 +4,7 @@ AudioScoreTool은 모델이 이미 존재하는 깨끗한 정보를 다시 추�
 
 ## 자동 음원 식별
 
-새 곡이 라이브러리에 들어오면 Desktop의 `SourceIdentificationController`가 자동으로 식별을 시도합니다.
+현재는 사용자가 **곡 라이브러리 → 곡 정보 → 원본 음원 자동 식별**을 명시적으로 실행하면 `EnrichmentController`가 식별 API를 호출합니다. 새 곡이 등록됐다는 이유만으로 AcoustID/MusicBrainz 네트워크 조회를 시작하지 않습니다. 로컬-only 자동 태그 식별 또는 opt-in 실행 정책은 [#100](https://github.com/JDeun/audio-score-tool/issues/100)에서 별도 결정합니다.
 
 ```text
 Embedded tags
