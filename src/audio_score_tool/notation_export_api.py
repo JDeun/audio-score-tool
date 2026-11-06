@@ -102,7 +102,7 @@ def build_exports_v3(song_id: str, payload: ExportRequest | None = None) -> dict
                 for part in list_score_parts(score):
                     slug = part["slug"]
                     part_xml = parts_dir / f"{slug}.musicxml"
-                    extract_part_musicxml(score, str(part["id"]), part_xml)
+                    extract_part_musicxml(score, str(part["part_id"]), part_xml)
                     render_pdf(part_xml, parts_dir / f"{slug}.pdf", settings=settings)
         except (NotationBackendError, NotationBackendUnavailable, OSError) as exc:
             raise _export_error(exc) from exc
@@ -110,16 +110,13 @@ def build_exports_v3(song_id: str, payload: ExportRequest | None = None) -> dict
             raise _export_error(exc) from exc
 
         try:
-            final = _publish_export_tree(song_id, staged)
+            _publish_export_tree(song_id, staged)
         except Exception as exc:
             raise _export_error(exc) from exc
 
-    exports = {
-        "pdf": (final / "score.pdf").exists(),
-        "midi": (final / "score.mid").exists(),
-        "musicxml": (final / "score.musicxml").exists(),
-    }
-    _song_store.set_exports(song_id, exports)
+    # SongStoreV2 derives the exported formats from the canonical export tree
+    # on every read. The removed legacy set_exports() API does not exist on V2.
+    # Query only after the complete staged tree was published.
     updated = _song_store.get(song_id) or song
     return {"song": _public(updated), "parts": _part_exports(updated)}
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import shutil
 import uuid
 import xml.etree.ElementTree as ET
@@ -22,6 +23,9 @@ _MIDI_EXTENSIONS = {".mid", ".midi"}
 _ALLOWED = _MUSICXML_EXTENSIONS | _MIDI_EXTENSIONS
 _MAX_NOTATION_BYTES = 64 * 1024 * 1024
 _FORBIDDEN_XML_MARKERS = (b"<!DOCTYPE", b"<!ENTITY")
+# Only trusted music21-generated scores may have a standard DTD stripped.
+# An uploaded MusicXML/MXL source must continue to reject all DOCTYPE/ENTITY.
+_GENERATED_DOCTYPE = re.compile(rb"<!DOCTYPE\s+score-partwise\b[^>\[]*>", re.IGNORECASE)
 
 
 def _validate_musicxml_file(path: Path) -> None:
@@ -42,6 +46,30 @@ def _validate_musicxml_file(path: Path) -> None:
         raise ValueError("유효한 MusicXML score 문서가 아닙니다.")
 
 
+def _normalize_generated_musicxml(path: Path) -> None:
+    """Strip a top-level DTD only from an internally generated MIDI conversion.
+
+    Reject external entities, internal DTD subsets and non-header DOCTYPE tags;
+    never call this normalization on a directly uploaded XML or MXL document.
+    """
+    raw = path.read_bytes()
+    if b"<!ENTITY" in raw.upper():
+        raise ValueError("Generated MusicXML contains an unsafe ENTITY declaration.")
+    if b"<!DOCTYPE" in raw.upper():
+        matches = list(_GENERATED_DOCTYPE.finditer(raw))
+        if len(matches) != 1:
+            raise ValueError("Generated MusicXML contains an unsupported DOCTYPE declaration.")
+        match = matches[0]
+        prefix = raw[:match.start()]
+        if re.fullmatch(rb'\s*(?:<\?xml[^>]*\?>\s*)?', prefix) is None:
+            raise ValueError("Generated MusicXML DOCTYPE is not at the document header.")
+        normalized = raw[:match.start()] + raw[match.end():]
+        if b"<!DOCTYPE" in normalized.upper():
+            raise ValueError("Generated MusicXML still contains a DOCTYPE declaration.")
+        path.write_bytes(normalized)
+    _validate_musicxml_file(path)
+
+
 def _cleanup_reservation(job_id: str, job_dir: Path) -> None:
     shutil.rmtree(job_dir, ignore_errors=True)
     _store.delete(job_id)
@@ -59,7 +87,7 @@ def _worker(job_id: str, source: Path, suffix: str) -> None:
             midi = output_dir / "score.mid"
             shutil.copy2(source, midi)
             midi_to_musicxml(midi, musicxml)
-            _validate_musicxml_file(musicxml)
+            _normalize_generated_musicxml(musicxml)
         else:
             if suffix == ".mxl":
                 normalize_musicxml(source, musicxml)
