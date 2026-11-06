@@ -80,7 +80,13 @@ def test_approved_catalog_installs_verified_tools_in_temp_managed_root(
 
     monkeypatch.setattr(smoke, "_component_index", index)
     monkeypatch.setattr(smoke, "_post_json", install)
+    youtube_probes = []
+    monkeypatch.setattr(
+        smoke, "_verify_youtube_cli_tools",
+        lambda tools, component_root: youtube_probes.append((tools, component_root)),
+    )
     smoke._verify_managed_delivery("http://127.0.0.1:9999", "test-token", root)
+    assert youtube_probes == [(installed_paths["youtube_runtime"], root.resolve())]
     assert indexes == 2
     assert len(calls) == len(CORE_COMPONENTS)
     assert all(url.endswith("/api/setup/install") and token == "test-token" for url, token in calls)
@@ -151,3 +157,105 @@ def test_managed_delivery_check_is_manual_or_v1_tag_only():
     assert "matrix.name != 'linux'" in workflow
     assert "startsWith(github.ref, 'refs/tags/v1')" in workflow
     assert "--require-managed-delivery" in workflow
+
+@pytest.mark.parametrize(
+    ("tool", "expected_flag"),
+    [
+        ("yt-dlp", "--version"),
+        ("deno", "--version"),
+        ("ffmpeg", "-version"),
+        ("ffprobe", "-version"),
+    ],
+)
+def test_youtube_cli_smoke_uses_only_absolute_managed_paths_and_bounded_versions(
+    tmp_path: Path, monkeypatch, tool: str, expected_flag: str,
+):
+    root = tmp_path / "components"
+    root.mkdir()
+    binary_map = {}
+    for name in ("yt-dlp", "deno", "ffmpeg", "ffprobe"):
+        path = root / name
+        path.write_bytes(b"non-executable CI fixture")
+        binary_map[name] = str(path)
+    outputs = {
+        "yt-dlp": "2026.10.26",
+        "deno": "deno 2.9.8\\nv8 14.3",
+        "ffmpeg": "ffmpeg version 7.1",
+        "ffprobe": "ffprobe version 7.1",
+    }
+    calls = []
+
+    def fake_run(command, args, **kwargs):
+        calls.append((command, args, kwargs))
+        name = Path(command).name
+        return type("Result", (), {"stdout": outputs[name]})()
+
+    monkeypatch.setattr(smoke, "run_command", fake_run)
+    smoke._verify_youtube_cli_tools(binary_map, root)
+    assert len(calls) == 4
+    selected = next(call for call in calls if Path(call[0]).name == tool)
+    assert selected[0] == binary_map[tool]
+    assert selected[1] == (expected_flag,)
+    assert selected[2]["env"]["PATH"] == ""
+    assert selected[2]["timeout_seconds"] <= 20
+    assert selected[2]["max_output_bytes"] <= 16 * 1024
+
+
+def test_youtube_cli_failure_or_wrong_version_blocks_release(tmp_path: Path, monkeypatch):
+    root = tmp_path / "managed"
+    root.mkdir()
+    tools = {}
+    for name in ("yt-dlp", "deno", "ffmpeg", "ffprobe"):
+        executable = root / name
+        executable.write_bytes(b"fixture")
+        tools[name] = str(executable)
+
+    monkeypatch.setattr(
+        smoke, "run_command",
+        lambda command, args, **kwargs: type("Result", (), {"stdout": "nonsense"})(),
+    )
+    with pytest.raises(RuntimeError, match="unexpected packaged CLI version format"):
+        smoke._verify_youtube_cli_tools(tools, root)
+
+    from audio_score_tool.runner import CommandError
+
+    def crash(*_args, **_kwargs):
+        raise CommandError("not runnable on target OS")
+
+    monkeypatch.setattr(smoke, "run_command", crash)
+    with pytest.raises(RuntimeError, match="packaged CLI startup/version check failed"):
+        smoke._verify_youtube_cli_tools(tools, root)
+
+
+def test_youtube_cli_rejects_path_escape_and_symlink_without_exec(
+    tmp_path: Path, monkeypatch,
+):
+    root = tmp_path / "managed"
+    root.mkdir()
+    outside = tmp_path / "foreign-tool"
+    outside.write_bytes(b"not managed")
+    tools = {}
+    for name in ("yt-dlp", "deno", "ffmpeg", "ffprobe"):
+        path = root / name
+        path.write_bytes(b"fixture")
+        tools[name] = str(path)
+    expected = {"yt-dlp": "2026.10.26", "deno": "deno 2.9.8"}
+    calls: list[str] = []
+
+    def safe_earlier_probes(command, _args, **_kwargs):
+        name = Path(command).name
+        calls.append(name)
+        if name not in expected:
+            raise AssertionError("Attempted to execute the unsafe FFmpeg path")
+        return type("Result", (), {"stdout": expected[name]})()
+
+    monkeypatch.setattr(smoke, "run_command", safe_earlier_probes)
+    tools["ffmpeg"] = str(outside)
+    with pytest.raises(RuntimeError, match="escapes the managed root"):
+        smoke._verify_youtube_cli_tools(tools, root)
+    alias = root / "foreign-link"
+    alias.symlink_to(outside)
+    tools["ffmpeg"] = str(alias)
+    with pytest.raises(RuntimeError, match="symlinked"):
+        smoke._verify_youtube_cli_tools(tools, root)
+    assert calls == ["yt-dlp", "deno", "yt-dlp", "deno"]
