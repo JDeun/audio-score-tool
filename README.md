@@ -156,7 +156,7 @@ MuScriptor 공개 weights는 차단합니다. 실제 stable commercial provider�
 
 source checkout 개발에만 다음 toolchain을 사용합니다.
 
-- Python 3.12+
+- Python 3.11+ (프로젝트/lockfile 지원 범위)
 - `uv`
 - Node.js 22 계열
 - Rust toolchain (Tauri shell 개발 시)
@@ -188,7 +188,9 @@ CI는 다음 계약을 자동 검증합니다.
 - Chromium keyboard accessibility E2E
 - **visual-contract E2E** — 지원 viewport overflow, dark-mode score paper, semantic selection/focus color, tactile micro-state, reduced motion
 - Tauri/Rust `cargo check` + warnings-as-errors clippy
-- 별도 Desktop Packages workflow의 Windows/macOS/Linux packaged sidecar smoke와 installer/bundle build
+- 수동 또는 배포 태그에서 실행하는 별도 `Desktop Packages` workflow의 Windows/macOS/Linux packaged sidecar smoke 및 installer/bundle build
+
+일반 PR은 Python·frontend·필요 시 Tauri의 병렬 코드 검증을 `CI / verify`에 집계하며, 무거운 의존성 보안 감사는 별도 워크플로에서 잠금 파일 변경·`main` 반영·정기 실행 시 수행합니다. 3개 OS 설치 패키지는 **일반 PR마다 빌드하지 않습니다.** 실행 조건과 릴리스 게이트는 [CI 전략 문서](docs/CI_STRATEGY.ko.md)를 참조하십시오.
 
 안정화 범위와 공격 표면은 [적대적 검증 문서](docs/ADVERSARIAL_VALIDATION.ko.md), UI의 미학 후보 비교·최종 디자인 시스템·시각 완료 기준은 [UI/UX 디자인 시스템](docs/UI_DESIGN.ko.md)을 참조하십시오.
 
