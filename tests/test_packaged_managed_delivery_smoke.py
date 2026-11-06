@@ -159,16 +159,16 @@ def test_managed_delivery_check_is_manual_or_v1_tag_only():
     assert "--require-managed-delivery" in workflow
 
 @pytest.mark.parametrize(
-    ("tool", "expected_flag", "response"),
+    ("tool", "expected_flag"),
     [
-        ("yt-dlp", "--version", "2026.10.26"),
-        ("deno", "--version", "deno 2.9.8"),
-        ("ffmpeg", "-version", "ffmpeg version 7.1"),
-        ("ffprobe", "-version", "ffprobe version 7.1"),
+        ("yt-dlp", "--version"),
+        ("deno", "--version"),
+        ("ffmpeg", "-version"),
+        ("ffprobe", "-version"),
     ],
 )
 def test_youtube_cli_smoke_uses_only_absolute_managed_paths_and_bounded_versions(
-    tmp_path: Path, monkeypatch, tool: str, expected_flag: str, response: str,
+    tmp_path: Path, monkeypatch, tool: str, expected_flag: str,
 ):
     root = tmp_path / "components"
     root.mkdir()
