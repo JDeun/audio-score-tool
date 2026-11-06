@@ -46,6 +46,7 @@ def test_setup_install_calls_catalog_and_verifier_not_user_supplied_url(monkeypa
         return {"ready": True, "integrity": "verified"}
 
     monkeypatch.setattr(setup, "artifact_for", lookup)
+    monkeypatch.setattr(setup, "check_publication", lambda *_: type("Approved", (), {"ready": True})())
     monkeypatch.setattr(setup, "install_component_artifact", install)
     monkeypatch.setattr(setup, "setup_center_status", lambda: {"core_ready": False})
     client = TestClient(app)

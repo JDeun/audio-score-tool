@@ -42,7 +42,9 @@ catalog의 component entry는 platform/architecture 별 artifact를 명시합니
     "youtube_runtime": {
       "version": "...",
       "license": "...",
-      "provenance": "...",
+      "provenance": "fixed upstream release/build evidence",
+      "upstream_revision": "reviewed-version-or-commit",
+      "redistribution_status": "approved",
       "artifacts": {
         "windows-x86_64": {
           "url": "https://...",
@@ -50,7 +52,9 @@ catalog의 component entry는 platform/architecture 별 artifact를 명시합니
           "archive": "zip",
           "tools": {
             "yt-dlp": "bin/yt-dlp.exe",
-            "ffmpeg": "bin/ffmpeg.exe"
+            "deno": "bin/deno.exe",
+            "ffmpeg": "bin/ffmpeg.exe",
+            "ffprobe": "bin/ffprobe.exe"
           }
         }
       }
@@ -59,7 +63,19 @@ catalog의 component entry는 platform/architecture 별 artifact를 명시합니
 }
 ```
 
-artifact를 실제로 게시하기 전까지 해당 platform entry는 비워 둡니다. **존재하지 않는 binary URL이나 검증하지 않은 license를 catalog에 가정해서 넣지 않습니다.**
+artifact를 실제로 게시하기 전까지 해당 platform entry는 비워 둡니다. **존재하지 않는 binary URL이나 검증하지 않은 license를 catalog에 가정해서 넣지 않습니다.** 위 JSON은 필수 필드 구조만 설명하는 예시이며 실제 게시·라이선스 승인 기록이 아닙니다.
+
+### 설치 가능 여부와 재배포 승인 기준
+
+Setup Center의 `catalog.published` 및 `auto_install`은 별도 릴리스 게이트 `check_publication(component, platform)`와 동일한 판정을 사용합니다. 버전과 다운로드 URL이 그럴듯하거나 `artifacts[platform]`이 빈 객체로 존재하는 것만으로는 설치 버튼을 노출하지 않습니다.
+
+- 안전한 component/version, HTTPS URL, SHA-256, archive 종류, managed root 내부 tool 경로 검증
+- `license`, `provenance`, 고정된 `upstream_revision`, `redistribution_status=approved`
+- 구성요소별 필수 실행 명령: AMT(`mt3-infer`), YouTube(`yt-dlp`·`deno`·`ffmpeg`·`ffprobe`), OMR(`audiveris`). 실제 모델/배포 공급자 결정은 별도 승인 (#34)
+- UI에 '재배포 승인 대기', '필수 실행 도구 구성 누락', '배포 파일 미게시' 등을 구분해 표시
+- 수동으로 `POST /api/setup/install`을 호출해도 같은 승인을 통과하지 못하면 HTTP 409로 거부. 사용자는 임의 URL이나 checksum으로 카탈로그 승인을 우회할 수 없음
+
+**중요:** `published=true`는 *카탈로그 메타데이터가 승인 기준을 충족했다*는 뜻이며, 실제 파일을 다운로드했거나 실행이 검증됐다는 뜻이 아닙니다. 실물 SHA-256 일치, 실행 파일 및 해당 의존성 확인, Windows/macOS clean-machine acceptance는 #29에 계속 남아 있습니다.
 
 ## Release gate
 

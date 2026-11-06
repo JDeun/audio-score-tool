@@ -5,14 +5,16 @@ import platform
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from .managed_component_catalog import artifact_for, catalog_summary
+from .managed_component_catalog import artifact_for, catalog_summary, platform_key
 from .managed_components import (
     ComponentError,
+    ComponentUnavailable,
     component_status,
     install_component_artifact,
     recover_component_staging,
     remove_component_artifact,
 )
+from .managed_publication_readiness import check_publication
 from .preflight_v2 import preflight
 from .runner import command_exists
 from .runtime_settings import runtime_settings
@@ -220,6 +222,11 @@ def install_setup_component(payload: InstallRequest) -> dict:
             ),
         )
     try:
+        approval = check_publication(component, platform_key())
+        if not approval.ready:
+            raise ComponentUnavailable(
+                f"{component}: published runtime is not approved: {approval.reason}"
+            )
         artifact = artifact_for(component)
         result = install_component_artifact(artifact)
     except ComponentError as exc:
