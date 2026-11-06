@@ -35,7 +35,7 @@ PRESETS = {
         label="Quality",
         muscriptor_model="large",
         whisperx_model="large-v3",
-        description="Default: highest configured transcription/lyrics quality; substantially slower.",
+        description="Explicit highest configured transcription/lyrics quality; substantially slower.",
     ),
 }
 
