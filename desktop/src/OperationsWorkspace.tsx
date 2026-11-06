@@ -229,6 +229,8 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
   };
 
   const saveLocalIdentification = async (enabled: boolean) => {
+    const previous = autoLocalIdentification;
+    setAutoLocalIdentification(enabled);
     setBusy(true);
     try {
       const response = await fetch(`${API}/api/settings/local-identification`, {
@@ -243,6 +245,7 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
         ? "새 음원 등록 시 로컬 태그 자동 식별을 활성화했습니다."
         : "로컬 태그 자동 식별을 비활성화했습니다.");
     } catch (error) {
+      setAutoLocalIdentification(previous);
       showToast(error instanceof Error ? error.message : String(error), "error");
     } finally {
       setBusy(false);
