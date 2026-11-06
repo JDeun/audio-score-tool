@@ -79,6 +79,10 @@ test("note editor avoids no-op requests and sends only actual pitch/lyric change
   await editor.getByRole("button", { name: "노트 전체 저장" }).click();
   await expect.poll(() => requests.length).toBe(1);
   expect(requests[0]).toEqual({ lyric: "hello" });
+  // The save action reloads canonical state asynchronously. Do not edit the
+  // next value until the previous save/reload has committed to the inspector.
+  await expect(page.locator(".workspace-message")).toContainText("노트·리듬·표현을 저장했습니다.");
+  await expect(editor.locator(".lyric-field input")).toHaveValue("hello");
 
   await editor.locator(".pitch-fields select").first().selectOption("D");
   await editor.locator(".lyric-field input").fill("world");
