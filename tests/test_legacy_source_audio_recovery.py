@@ -131,3 +131,40 @@ def test_legacy_input_symlink_does_not_escape_job_root(
     assert response.status_code == 200
     assert response.json()["status"] == "no_audio"
     assert outside.read_bytes() == b"private-data"
+
+
+def test_song_asset_directory_symlink_cannot_redirect_recovery(
+    legacy, tmp_path: Path,
+):
+    store, root = legacy
+    job_audio = root / "legacy-1" / "input.mp3"
+    job_audio.parent.mkdir(parents=True, exist_ok=True)
+    job_audio.write_bytes(b"safe job audio")
+    redirected = tmp_path / "outside-assets"
+    redirected.mkdir()
+    (store.asset_root / "legacy-1").symlink_to(redirected, target_is_directory=True)
+
+    response = TestClient(app).post(
+        "/api/songs/legacy-1/identify-source",
+        json={"apply_high_confidence_metadata": False},
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "no_audio"
+    assert list(redirected.iterdir()) == []
+
+
+def test_job_directory_symlink_cannot_redirect_recovery(
+    legacy, tmp_path: Path,
+):
+    _store, root = legacy
+    outside = tmp_path / "foreign-job"
+    outside.mkdir()
+    (outside / "input.mp3").write_bytes(b"unrelated audio")
+    (root / "legacy-1").symlink_to(outside, target_is_directory=True)
+
+    response = TestClient(app).post(
+        "/api/songs/legacy-1/identify-source",
+        json={"apply_high_confidence_metadata": False},
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "no_audio"
