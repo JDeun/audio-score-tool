@@ -96,6 +96,8 @@ Revision에는 다음이 포함됩니다.
 
 한 번의 사용자 저장을 하나의 Revision으로 처리하는 것을 원칙으로 합니다.
 
+특히 Studio의 **첫 페이지 제목 영역 적용**은 곡 제목·아티스트·부제·작사/작곡/편곡·권리·글꼴 크기를 별도 두 번의 PATCH가 아니라 `PATCH /api/songs/{song_id}/credits` 한 번으로 저장합니다. API는 호출자가 확인한 `expected_revision`과 SQLite CAS를 검사하고, MusicXML/곡 메타데이터/출판 설정/Undo snapshot을 단일 트랜잭션에서 기록합니다. 실패하면 부분 저장 없이 롤백하고, 정상 저장은 단일 Undo로 복원해야 합니다.
+
 Undo는 해당 Revision의 MusicXML, 제목/아티스트, publication settings를 함께 되돌립니다. 새 편집이 commit되면 이전 Revision에서 생성된 export는 자동 무효화합니다.
 
 ## 출판 조판
