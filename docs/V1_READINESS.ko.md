@@ -56,6 +56,8 @@ candidate 비교는 `corpus_version` 문자열만 같아서는 안 됩니다. re
 
 **최상위 KPI는 `time_to_publish_seconds`와 사람이 수정한 총량입니다.**
 
+데스크톱의 명시적인 `최종 파일 생성`은 `POST /api/songs/{song_id}/export-to`를 사용합니다. Tier 2 opt-in telemetry는 이 호출이 **전체 MusicXML/PDF/MIDI/파트 악보를 선택한 대상 폴더로 성공적으로 복사한 후**에만 `successful_export`와 `time_to_publish_seconds`를 기록합니다. 부분 형식 export, 실패한 복사, 타곡의 작업, 동일 세션의 재출력은 최초 성공한 완료 시각을 변경하지 않습니다.
+
 Release candidate qualification은 일부 case 결과만으로 통과할 수 없습니다.
 
 - 모든 case의 note/instrument/music-start 평가
