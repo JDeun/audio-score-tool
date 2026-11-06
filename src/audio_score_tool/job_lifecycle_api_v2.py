@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException
 from . import api as base_api
 from .job_admission import JobCapacityError, reserve_job
 from .paths import jobs_dir, song_assets_dir
+from .presets import resolve_job_models
 from .runtime_settings import runtime_settings
 from .song_store_v2 import SongStoreV2
 from .youtube import YouTubeSourceError, validate_youtube_url
@@ -92,12 +93,16 @@ def create_youtube_job_v2(payload: base_api.YouTubeJobRequest) -> dict:
         raise HTTPException(422, "이 콘텐츠를 처리할 권한이 있음을 확인해야 합니다.")
     try:
         url = validate_youtube_url(payload.url)
-        selected = base_api.resolve_preset(payload.preset)
+        defaults = runtime_settings()
+        resolved_muscriptor, resolved_whisperx = resolve_job_models(
+            payload.preset,
+            selected_muscriptor_model=defaults.muscriptor_model,
+            selected_whisperx_model=defaults.whisperx_model,
+            muscriptor_override=payload.muscriptor_model,
+            whisperx_override=payload.whisperx_model,
+        )
     except (YouTubeSourceError, ValueError) as exc:
         raise HTTPException(422, str(exc)) from exc
-
-    resolved_muscriptor = payload.muscriptor_model or selected.muscriptor_model
-    resolved_whisperx = payload.whisperx_model or selected.whisperx_model
     job_id = uuid.uuid4().hex
     _reserve_or_429(
         job_id,
