@@ -7,6 +7,7 @@ import pytest
 from fastapi import HTTPException
 
 from audio_score_tool import job_lifecycle_api_v2 as lifecycle
+from audio_score_tool import omr
 from audio_score_tool.job_store import JobStore
 
 
@@ -49,7 +50,7 @@ def test_retry_dispatches_by_original_job_kind_and_keeps_source(
         lifecycle, "runtime_settings",
         lambda: SimpleNamespace(muscriptor_model="large", whisperx_model="small", audiveris_cmd="audiveris"),
     )
-    monkeypatch.setattr(lifecycle, "audiveris_status", lambda command: {"ready": True})
+    monkeypatch.setattr(omr, "audiveris_status", lambda command: {"ready": True})
 
     threads = []
 
@@ -105,7 +106,7 @@ def test_retry_missing_or_symlinked_original_does_not_create_job(
     monkeypatch.setattr(lifecycle.base_api, "_store", store)
     monkeypatch.setattr(lifecycle, "jobs_dir", lambda: tmp_path / "jobs")
     monkeypatch.setattr(lifecycle, "runtime_settings", lambda: SimpleNamespace(audiveris_cmd="audiveris"))
-    monkeypatch.setattr(lifecycle, "audiveris_status", lambda command: {"ready": True})
+    monkeypatch.setattr(omr, "audiveris_status", lambda command: {"ready": True})
 
     with pytest.raises(HTTPException) as error:
         lifecycle.retry_job_v2("previous")
