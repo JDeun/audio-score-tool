@@ -97,10 +97,23 @@ def _apply_metadata(
 
 def _source_audio(song_id: str) -> Path | None:
     root = _store.asset_root / song_id
-    if not root.exists():
-        return None
-    matches = sorted(root.glob("original-audio.*"))
-    return matches[0] if matches else None
+    if root.is_dir() and not root.is_symlink():
+        matches = sorted(
+            item for item in root.glob("original-audio.*")
+            if item.is_file() and not item.is_symlink()
+        )
+        if len(matches) == 1:
+            return matches[0]
+    # Songs ingested before #106 never copied the original audio out of the
+    # temporary Job workspace. A manual user-initiated lookup may recover it,
+    # if storage cleanup has not already deleted the Job input.
+    song = _store.get(song_id)
+    if song and song.get("source_kind") in {"local", "youtube"}:
+        try:
+            return _store._preserve_original_audio(song_id)
+        except OSError:
+            return None
+    return None
 
 
 def _apply_external_lyrics(song_id: str, text: str) -> dict:
