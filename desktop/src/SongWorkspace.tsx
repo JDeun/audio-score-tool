@@ -368,21 +368,32 @@ export default function SongWorkspace() {
   const saveNote = async () => {
     if (!song || !selectedNote) return;
     await withBusy(async () => {
-      const body = {
-        ...(noteRest ? {} : {
-          step: noteStep,
-          alter: Number(noteAlter),
-          octave: Number(noteOctave),
-        }),
-        lyric: noteLyric,
-        type: noteType,
-        dots: noteDots,
-        rest: noteRest,
-        articulations: noteArticulations,
-        ties: noteTies,
-        slurs: noteSlurs,
-        beam: noteBeam || null,
-      };
+      // A sparse patch represents the *actual* changed correction dimensions.
+      // Sending the entire inspector form on every save incorrectly inflated
+      // lyric corrections and created empty revisions.
+      const body: Record<string, unknown> = {};
+      const changedList = (current: string[], original?: string[]) =>
+        current.length !== (original ?? []).length ||
+        current.some((value, index) => value !== (original ?? [])[index]);
+
+      if (noteRest !== selectedNote.rest) body.rest = noteRest;
+      if (!noteRest) {
+        if (selectedNote.rest || noteStep !== (selectedNote.step ?? "C")) body.step = noteStep;
+        if (selectedNote.rest || Number(noteAlter) !== (selectedNote.alter ?? 0)) body.alter = Number(noteAlter);
+        if (selectedNote.rest || Number(noteOctave) !== (selectedNote.octave ?? 4)) body.octave = Number(noteOctave);
+      }
+      if (noteLyric !== (selectedNote.lyric ?? "")) body.lyric = noteLyric;
+      if (noteType !== (selectedNote.type ?? "quarter")) body.type = noteType;
+      if (noteDots !== (selectedNote.dots ?? 0)) body.dots = noteDots;
+      if (changedList(noteArticulations, selectedNote.articulations)) body.articulations = noteArticulations;
+      if (changedList(noteTies, selectedNote.ties)) body.ties = noteTies;
+      if (changedList(noteSlurs, selectedNote.slurs)) body.slurs = noteSlurs;
+      if (noteBeam !== (selectedNote.beam ?? "")) body.beam = noteBeam || null;
+
+      if (Object.keys(body).length === 0) {
+        setMessage("변경된 노트 항목이 없습니다.");
+        return;
+      }
       const response = await fetch(`${API}/api/songs/${song.song_id}/notes/${selectedNote.note_id}/structure`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
