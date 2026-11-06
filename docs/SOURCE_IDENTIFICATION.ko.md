@@ -67,6 +67,7 @@ AcoustID confidence가 0.90 이상일 때 후보로 선택하고, 자동 metadat
 
 - `refresh=false`로 API를 호출하면 저장된 분석 결과를 재사용할 수 있고, 현재 Desktop의 명시적 버튼은 최신 조회를 위해 `refresh=true`를 보냅니다.
 - 사용자 동의 없이 외부 식별 서비스를 자동 호출하지 않습니다. 상용 모드에서 MusicBrainz/AcoustID는 해당 서비스의 사용 자격 확인이 있어야 조회할 수 있습니다.
+- 상용 모드라도 **로컬 embedded-tag 식별은 두 외부 서비스 권한을 체크하지 않고 사용할 수 있습니다.** 권한 체크는 MusicBrainz/AcoustID 각각의 네트워크 조회에만 적용됩니다([#102](https://github.com/JDeun/audio-score-tool/issues/102), [PR #103](https://github.com/JDeun/audio-score-tool/pull/103)).
 - 오디오 원본이 없는 OMR/MusicXML/MIDI 가져오기 곡은 `no_audio` 결과로 끝나며, 외부 조회를 하지 않습니다.
 - 식별 및 외부 조회 실패는 채보·편집·내보내기 실패로 전파되지 않습니다.
 
