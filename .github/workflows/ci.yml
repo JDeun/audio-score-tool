@@ -17,6 +17,38 @@ on:
     branches: ["main"]
 
 jobs:
+  changes:
+    name: changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      tauri: ${{ steps.filter.outputs.tauri }}
+    steps:
+      - name: Checkout full history for base comparison
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Determine whether Rust/Tauri needs recompiling
+        id: filter
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" != "pull_request" ]]; then
+            tauri=true
+          elif git diff --name-only "$BASE_SHA" HEAD -- \
+            desktop/src-tauri desktop/package.json desktop/package-lock.json \
+            .github/workflows/ci.yml | grep -q .; then
+            tauri=true
+          else
+            tauri=false
+          fi
+          echo "tauri=$tauri" >> "$GITHUB_OUTPUT"
+          echo "Tauri compile needed: $tauri"
+
   python:
     name: python
     runs-on: ubuntu-24.04
@@ -120,6 +152,8 @@ jobs:
 
   tauri:
     name: tauri
+    needs: changes
+    if: needs.changes.outputs.tauri == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
@@ -188,17 +222,26 @@ jobs:
   verify:
     name: verify
     if: ${{ always() }}
-    needs: [python, frontend, tauri]
+    needs: [changes, python, frontend, tauri]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Require successful Python, frontend and Tauri checks
         env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
           PYTHON_RESULT: ${{ needs.python.result }}
           FRONTEND_RESULT: ${{ needs.frontend.result }}
+          TAURI_REQUIRED: ${{ needs.changes.outputs.tauri }}
           TAURI_RESULT: ${{ needs.tauri.result }}
+        shell: bash
         run: |
-          echo "python=$PYTHON_RESULT frontend=$FRONTEND_RESULT tauri=$TAURI_RESULT"
+          echo "changes=$CHANGES_RESULT python=$PYTHON_RESULT frontend=$FRONTEND_RESULT tauri=$TAURI_RESULT required=$TAURI_REQUIRED"
+          test "$CHANGES_RESULT" = success
           test "$PYTHON_RESULT" = success
           test "$FRONTEND_RESULT" = success
-          test "$TAURI_RESULT" = success
+          if [[ "$TAURI_REQUIRED" == "true" ]]; then
+            test "$TAURI_RESULT" = success
+          else
+            test "$TAURI_REQUIRED" = false
+            test "$TAURI_RESULT" = skipped
+          fi
