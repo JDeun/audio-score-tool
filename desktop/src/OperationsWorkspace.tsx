@@ -14,6 +14,7 @@ type DevicePlan = {
 
 type Health = {
   status: string;
+  packaged_runtime?: boolean;
   device_plan: DevicePlan;
   preflight: { ok: boolean; missing: string[]; tools: Record<string, boolean> };
   youtube?: { ready: boolean };
@@ -555,7 +556,20 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
     content = (
       <div className="operations-page settings-page">
         <section className="settings-summary-grid"><div className="work-card metric-card"><span>실행 장치</span><strong>{accelerator}</strong><small>MuScriptor 기준</small></div><div className="work-card metric-card"><span>Hugging Face</span><strong className={health?.system.hf_authenticated ? "positive" : "attention"}>{health?.system.hf_authenticated ? "인증됨" : "인증 필요"}</strong><small>MuScriptor 모델 접근</small></div><div className="work-card metric-card"><span>작업 데이터</span><strong>{formatBytes(health?.system.jobs_bytes)}</strong><small>{health?.data_dir ?? "로컬 저장소"}</small></div><div className="work-card metric-card"><span>남은 디스크</span><strong>{formatBytes(health?.system.disk_free_bytes)}</strong><small>현재 데이터 드라이브</small></div></section>
-        <section className="settings-columns"><div className="work-card settings-card"><div className="section-title-row"><div><span className="card-kicker">환경 진단</span><h2>필수 도구</h2><p>모든 모델과 렌더러는 이 컴퓨터에서 실행됩니다.</p></div></div><div className="tool-readiness-list">{health ? Object.entries(health.preflight.tools).map(([name, ready]) => <div key={name}><span className={`tool-check ${ready ? "ready" : "missing"}`}>{ready ? "✓" : "!"}</span><div><strong>{name.replace("_override_or_path", "")}</strong><small>{ready ? "사용 가능" : "확인 필요"}</small></div></div>) : <div className="settings-skeleton">환경 정보를 확인하고 있습니다…</div>}</div>{!health?.system.hf_authenticated && <div className="settings-callout"><strong>MuScriptor 모델 인증이 필요합니다</strong><p>{setup?.instructions.hf_note}</p>{setup?.instructions.hf_login_command && <code>{setup.instructions.hf_login_command}</code>}</div>}</div><div className="work-card settings-card"><div className="section-title-row"><div><span className="card-kicker">실행 파일</span><h2>도구 경로</h2><p>앱이 도구를 자동으로 찾지 못하는 경우에만 지정하세요.</p></div></div><div className="path-input-list">{[["muscriptor_cmd", "MuScriptor"], ["demucs_cmd", "Demucs"], ["whisperx_cmd", "WhisperX"]].map(([key, label]) => <label key={key}><span>{label}</span><input value={toolPaths[key] ?? ""} placeholder="자동 검색" onChange={(event) => setToolPaths((current) => ({ ...current, [key]: event.target.value }))} /></label>)}</div><button className="primary-button" disabled={busy} onClick={() => void savePaths()}>경로 저장</button></div></section>
+        <section className="settings-columns"><div className="work-card settings-card"><div className="section-title-row"><div><span className="card-kicker">환경 진단</span><h2>필수 도구</h2><p>모든 모델과 렌더러는 이 컴퓨터에서 실행됩니다.</p></div></div><div className="tool-readiness-list">{health ? Object.entries(health.preflight.tools).map(([name, ready]) => <div key={name}><span className={`tool-check ${ready ? "ready" : "missing"}`}>{ready ? "✓" : "!"}</span><div><strong>{name.replace("_override_or_path", "")}</strong><small>{ready ? "사용 가능" : "확인 필요"}</small></div></div>) : <div className="settings-skeleton">환경 정보를 확인하고 있습니다…</div>}</div>{!health?.system.hf_authenticated && <div className="settings-callout"><strong>MuScriptor 모델 인증이 필요합니다</strong><p>{setup?.instructions.hf_note}</p>{setup?.instructions.hf_login_command && <code>{setup.instructions.hf_login_command}</code>}</div>}</div><div className="work-card settings-card">
+          {health?.packaged_runtime ? (
+            <div className="managed-runtime-settings">
+              <div className="section-title-row"><div><span className="card-kicker">실행 파일</span><h2>앱 관리형 구성요소</h2><p>배포 앱은 시스템 명령이나 사용자 지정 경로를 사용하지 않습니다.</p></div></div>
+              <p>채보 엔진, YouTube, OMR, 가사 구성요소의 실제 설치 및 검증 상태는 '구성요소 상태'에서 확인하세요. 미설치 구성요소는 해당 화면에서 설치 또는 복구할 수 있습니다.</p>
+            </div>
+          ) : (
+            <>
+              <div className="section-title-row"><div><span className="card-kicker">개발자용 실행 파일</span><h2>도구 경로</h2><p>소스 실행 환경에서만 사용자 지정 명령을 허용합니다.</p></div></div>
+              <div className="path-input-list">{[["muscriptor_cmd", "MuScriptor"], ["demucs_cmd", "Demucs"], ["whisperx_cmd", "WhisperX"]].map(([key, label]) => <label key={key}><span>{label}</span><input value={toolPaths[key] ?? ""} placeholder="자동 검색" onChange={(event) => setToolPaths((current) => ({ ...current, [key]: event.target.value }))} /></label>)}</div>
+              <button className="primary-button" disabled={busy} onClick={() => void savePaths()}>경로 저장</button>
+            </>
+          )}
+        </div></section>
         <section className="work-card storage-card"><div><span className="card-kicker">저장공간 관리</span><h3>오래된 작업 데이터 정리</h3><p>곡 라이브러리는 유지하고, 최근 30개를 제외한 오래된 작업 임시파일만 정리합니다.</p></div><button className="secondary-button" onClick={cleanupStorage}>저장공간 정리</button></section>
         {offline && <div className="offline-banner"><strong>로컬 백엔드에 연결할 수 없습니다.</strong><span>AudioScoreTool 백엔드가 실행 중인지 확인하세요.</span></div>}
       </div>
