@@ -34,6 +34,7 @@
 
 ## 유지보수자 문서
 
+- [`CI_STRATEGY.ko.md`](CI_STRATEGY.ko.md) — 일반 PR 필수 CI, 독립 보안 감사, 수동/태그 패키징과 최종 릴리스 게이트
 - [`STABILIZATION.ko.md`](STABILIZATION.ko.md) — v0.8 안정화 과정과 회귀 방지 맥락
 - 루트 [`PROJECT_CONTEXT.md`](../PROJECT_CONTEXT.md) — 프로젝트의 장기 제품/기술 맥락
 
