@@ -93,24 +93,64 @@ def read_edit_session(path: Path) -> dict[str, Any]:
     return payload
 
 
-def _category(method: str, path: str, body: bytes) -> str | None:
+def _body_fields(body: bytes) -> dict[str, Any]:
+    if not body:
+        return {}
+    try:
+        payload = json.loads(body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _categories(method: str, path: str, body: bytes) -> tuple[str, ...]:
+    """Classify *changed* fields, not every field in a full editor form.
+
+    A mixed pitch+lyric mutation can change two quality dimensions, yet remains
+    exactly one successful user editing action. The desktop sends a sparse patch
+    so unchanged lyric text is not mistaken for a lyric correction.
+    """
     method = method.upper()
-    if method == "PATCH" and path.endswith("/publication"):
-        return "manual_layout_edits"
-    if method == "PATCH" and path.endswith("/chord"):
-        return "manual_chord_edits"
-    if "/measures/" in path and method in {"POST", "PATCH", "DELETE"}:
-        return "manual_measure_edits"
-    if "/notes/" in path and method in {"POST", "PATCH", "DELETE"}:
-        if method == "PATCH" and body:
-            try:
-                payload = json.loads(body.decode("utf-8"))
-            except (UnicodeDecodeError, json.JSONDecodeError):
-                payload = None
-            if isinstance(payload, dict) and set(payload) <= {"lyric"} and "lyric" in payload:
-                return "manual_lyric_edits"
-        return "manual_note_edits"
-    return None
+    if method not in {"POST", "PATCH", "DELETE"}:
+        return ()
+    if method == "PATCH" and (
+        path.endswith("/publication")
+        or path.endswith("/credits")
+        or (path.startswith("/api/songs/") and path.count("/") == 3)
+    ):
+        return ("manual_layout_edits",)
+    if "/measures/" in path:
+        return ("manual_measure_edits",)
+    if "/parts/" in path:
+        return ("manual_part_edits",)
+    if "/notes/" in path:
+        if path.endswith("/chord") and method == "PATCH":
+            return ("manual_chord_edits",)
+        if method == "DELETE":
+            return ("manual_note_edits",)
+        payload = _body_fields(body)
+        if method == "POST":
+            return (
+                ("manual_note_edits", "manual_lyric_edits")
+                if payload.get("lyric") else ("manual_note_edits",)
+            )
+        if method == "PATCH":
+            if not payload:
+                return ()
+            fields = set(payload)
+            categories = []
+            if fields - {"lyric"}:
+                categories.append("manual_note_edits")
+            if "lyric" in fields:
+                categories.append("manual_lyric_edits")
+            return tuple(categories)
+    return ()
+
+
+def _category(method: str, path: str, body: bytes) -> str | None:
+    """Compatibility helper for callers needing one primary category."""
+    categories = _categories(method, path, body)
+    return categories[0] if categories else None
 
 
 def _is_complete_final_export(body: bytes) -> bool:
@@ -182,9 +222,13 @@ def record_successful_song_mutation(
             _atomic_write(target, payload)
             return
 
-        category = _category(method, path, request_body)
-        if category is None:
+        categories = _categories(method, path, request_body)
+        if not categories:
             return
-        payload[category] = int(payload.get(category) or 0) + 1
-        payload["total_edit_actions"] = sum(int(payload.get(key) or 0) for key in _EDIT_KEYS)
+        for category in categories:
+            payload[category] = int(payload.get(category) or 0) + 1
+        # A successful request is a single user action, even when it corrects
+        # both pitch and lyric; the per-dimension counters may therefore sum
+        # to more than the total number of actual edit actions.
+        payload["total_edit_actions"] = int(payload.get("total_edit_actions") or 0) + 1
         _atomic_write(target, payload)
