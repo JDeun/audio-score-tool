@@ -134,6 +134,33 @@ def create_youtube_job_v2(payload: base_api.YouTubeJobRequest) -> dict:
     return {"job_id": job_id, "status": "queued", "source": "youtube"}
 
 
+def _retry_input_source(job_id: str, kind: str) -> Path:
+    """Select the original source for this Job type, not just input.* audio files."""
+    if kind in {"transcription", "benchmark"}:
+        pattern, allowed = "input.*", base_api._AUDIO_EXTENSIONS
+    elif kind == "omr":
+        from .omr_api import _ALLOWED as allowed
+
+        pattern = "source-score.*"
+    elif kind == "notation-import":
+        from .direct_score_import_api import _ALLOWED as allowed
+
+        pattern = "source.*"
+    else:
+        raise HTTPException(409, f"Retry is unsupported for job kind: {kind}")
+
+    candidates = sorted(
+        path
+        for path in (jobs_dir() / job_id).glob(pattern)
+        if path.is_file() and not path.is_symlink() and path.suffix.lower() in allowed
+    )
+    if not candidates:
+        raise HTTPException(404, f"Original {kind} input is missing.")
+    if len(candidates) != 1:
+        raise HTTPException(409, f"Multiple original {kind} inputs found; cannot retry safely.")
+    return candidates[0]
+
+
 @router.post("/api/jobs/{job_id}/retry", status_code=202)
 def retry_job_v2(job_id: str) -> dict:
     source = base_api._store.get(job_id)
@@ -142,57 +169,67 @@ def retry_job_v2(job_id: str) -> dict:
     if source["status"] in {"queued", "running", "cancelling"}:
         raise HTTPException(409, "Running jobs cannot be retried.")
 
-    source_dir = jobs_dir() / job_id
-    audio_candidates = sorted(source_dir.glob("input.*"))
-    if not audio_candidates:
-        raise HTTPException(404, "Original input audio is missing.")
-
+    kind = str(source.get("kind") or "transcription")
+    original = _retry_input_source(job_id, kind)
     settings = runtime_settings()
-    new_id = uuid.uuid4().hex
-    is_benchmark = source.get("kind") == "benchmark"
-    if is_benchmark:
-        profile = source.get("preset") or "all"
-        _reserve_or_429(
-            new_id,
-            kind="benchmark",
-            status="queued",
-            stage="queued",
-            progress=0,
-            filename=source.get("filename"),
-            language=source.get("language"),
-            preset=profile,
-        )
-    else:
-        muscriptor_model = source.get("muscriptor_model") or settings.muscriptor_model
-        whisperx_model = source.get("whisperx_model") or settings.whisperx_model
-        _reserve_or_429(
-            new_id,
-            kind="transcription",
-            status="queued",
-            stage="queued",
-            progress=0,
-            filename=source.get("filename"),
-            language=source.get("language"),
-            skip_lyrics=source.get("skip_lyrics", False),
-            preset=source.get("preset") or "auto",
-            muscriptor_model=muscriptor_model,
-            whisperx_model=whisperx_model,
-        )
+    if kind == "omr":
+        from .omr import audiveris_status
 
+        if not audiveris_status(settings.audiveris_cmd)["ready"]:
+            raise HTTPException(503, "OMR component is unavailable; check Setup Center before retry.")
+
+    new_id = uuid.uuid4().hex
+    default_presets = {
+        "transcription": "auto",
+        "benchmark": "all",
+        "omr": "omr-audiveris",
+        "notation-import": "direct-notation-import",
+    }
+    values = {
+        "kind": kind,
+        "status": "queued",
+        "stage": "queued",
+        "progress": 0,
+        "filename": source.get("filename"),
+        "language": source.get("language"),
+        "preset": source.get("preset") or default_presets[kind],
+        "skip_lyrics": source.get("skip_lyrics", False) if kind == "transcription" else kind != "benchmark",
+    }
+    if kind == "transcription":
+        values["muscriptor_model"] = source.get("muscriptor_model") or settings.muscriptor_model
+        values["whisperx_model"] = source.get("whisperx_model") or settings.whisperx_model
+
+    _reserve_or_429(new_id, **values)
     target_dir = jobs_dir() / new_id
-    audio = target_dir / audio_candidates[0].name
+    copied = target_dir / original.name
     try:
         target_dir.mkdir(parents=True, exist_ok=False)
-        _copy_retry_input(audio_candidates[0], audio)
+        _copy_retry_input(original, copied)
 
-        if is_benchmark:
-            reference_source = source_dir / "reference.mid"
-            reference_target = target_dir / "reference.mid" if reference_source.exists() else None
+        if kind == "benchmark":
+            reference_source = original.parent / "reference.mid"
+            reference_target = (
+                target_dir / "reference.mid"
+                if reference_source.is_file() and not reference_source.is_symlink()
+                else None
+            )
             if reference_target is not None:
                 _copy_retry_input(reference_source, reference_target)
             thread = Thread(
                 target=base_api._benchmark_worker,
-                args=(new_id, audio, reference_target, source.get("language"), profile),
+                args=(new_id, copied, reference_target, source.get("language"), values["preset"]),
+                daemon=True,
+            )
+        elif kind == "omr":
+            from .omr_api import _worker as omr_worker
+
+            thread = Thread(target=omr_worker, args=(new_id, copied, settings), daemon=True)
+        elif kind == "notation-import":
+            from .direct_score_import_api import _worker as notation_worker
+
+            thread = Thread(
+                target=notation_worker,
+                args=(new_id, copied, copied.suffix.lower()),
                 daemon=True,
             )
         else:
@@ -200,11 +237,11 @@ def retry_job_v2(job_id: str) -> dict:
                 target=base_api._worker,
                 args=(
                     new_id,
-                    audio,
+                    copied,
                     source.get("language"),
                     source.get("skip_lyrics", False),
-                    muscriptor_model,
-                    whisperx_model,
+                    values["muscriptor_model"],
+                    values["whisperx_model"],
                 ),
                 daemon=True,
             )
@@ -213,7 +250,7 @@ def retry_job_v2(job_id: str) -> dict:
         raise
 
     _start_or_mark_failed(new_id, thread)
-    return {"job_id": new_id, "status": "queued", "retried_from": job_id}
+    return {"job_id": new_id, "status": "queued", "kind": kind, "retried_from": job_id}
 
 
 @router.delete("/api/jobs/{job_id}")
