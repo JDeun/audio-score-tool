@@ -114,12 +114,9 @@ def build_exports_v3(song_id: str, payload: ExportRequest | None = None) -> dict
         except Exception as exc:
             raise _export_error(exc) from exc
 
-    exports = {
-        "pdf": (final / "score.pdf").exists(),
-        "midi": (final / "score.mid").exists(),
-        "musicxml": (final / "score.musicxml").exists(),
-    }
-    _song_store.set_exports(song_id, exports)
+    # SongStoreV2 derives the exported formats from the canonical export tree
+    # on every read. The removed legacy set_exports() API does not exist on V2.
+    # Query only after the complete staged tree was published.
     updated = _song_store.get(song_id) or song
     return {"song": _public(updated), "parts": _part_exports(updated)}
 
