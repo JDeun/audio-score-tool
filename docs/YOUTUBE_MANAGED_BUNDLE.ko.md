@@ -27,6 +27,8 @@ YouTube 가져오기 기능은 `yt-dlp`, `deno`, `ffmpeg`, `ffprobe` 네 개의 
 
 ## 공식 배포물 원본 검증 (FFmpeg 조립 이전)
 
+위 후보의 GitHub API 자산 SHA-256과 공식 upstream 체크섬 텍스트가 서로 일치하는지는 [공식 릴리스 출처 검증 절차](YOUTUBE_UPSTREAM_RELEASE_EVIDENCE.ko.md)의 `collect_youtube_upstream_release_evidence.py`로 재확인할 수 있습니다. 이는 바이너리를 직접 내려받아 확인하는 단계보다 앞선 검토용 증거이며, 카탈로그 승인과는 분리합니다.
+
 수동으로 다운로드한 공식 upstream 바이너리는 조립 전에 **release asset 자체의 SHA-256와 크기**부터 검증합니다. 리뷰용 정확한 핀 목록은 [release/review/youtube-official-source-pins-2026-11-06.json](../release/review/youtube-official-source-pins-2026-11-06.json)에 저장되어 있습니다.
 
 - yt-dlp `2026.10.26`: Windows `yt-dlp.exe`, macOS `yt-dlp_macos`
