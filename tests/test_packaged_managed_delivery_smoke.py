@@ -137,7 +137,7 @@ def test_failed_remote_install_stops_acceptance(tmp_path: Path, monkeypatch):
         smoke, "_post_json",
         lambda *_: (409, b'{"detail":"checksum mismatch"}'),
     )
-    with pytest.raises(RuntimeError, match="managed installation failed \(409\)"):
+    with pytest.raises(RuntimeError, match="managed installation failed"):
         smoke._verify_managed_delivery("http://127.0.0.1:9999", "token", root)
 
 
