@@ -10,10 +10,10 @@ type Component = {
   required_for: string[];
   auto_install: boolean;
   managed_status?: { ready: boolean; integrity: string };
-  catalog?: { published: boolean; target: string; version: string };
+  catalog?: { published: boolean; target: string; version: string; publication_reason?: string | null };
 };
 
-function fixture(published: boolean) {
+function fixture(published: boolean, reason = "artifact-not-published") {
   const component: Component = {
     key: "audiveris",
     label: "OMR 엔진",
@@ -24,7 +24,7 @@ function fixture(published: boolean) {
     required_for: ["omr"],
     auto_install: published,
     managed_status: { ready: false, integrity: "not-installed" },
-    catalog: { published, target: "linux-x86_64", version: "1.0.0" },
+    catalog: { published, target: "linux-x86_64", version: "1.0.0", publication_reason: published ? null : reason },
   };
   const status = {
     platform: "linux",
@@ -118,4 +118,27 @@ test("unpublished artifact cannot install; recovery is a separate explicit actio
   await dialog.getByRole("button", { name: "중단된 설치 복구" }).click();
   await expect(dialog.getByRole("status")).toContainText("2개를 정리했습니다");
   expect(recoverCalls).toBe(1);
+});
+
+test("pending redistribution approval never offers install and explains why", async ({ page }) => {
+  const { status } = fixture(false, "redistribution-not-approved");
+  await page.route("**/api/setup/center", route => route.fulfill({ json: status }));
+  let attemptedInstalls = 0;
+  await page.route("**/api/setup/install", route => {
+    attemptedInstalls += 1;
+    return route.fulfill({ status: 409, json: { detail: "not approved" } });
+  });
+
+  const dialog = await openSetup(page);
+  await expect(dialog.getByText("재배포 승인 대기")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "앱에서 설치" })).toHaveCount(0);
+  expect(attemptedInstalls).toBe(0);
+});
+
+test("incomplete tool mappings are not advertised as installable", async ({ page }) => {
+  const { status } = fixture(false, "required-tools-missing:deno,ffprobe");
+  await page.route("**/api/setup/center", route => route.fulfill({ json: status }));
+  const dialog = await openSetup(page);
+  await expect(dialog.getByText("필수 실행 도구 구성 누락")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "앱에서 설치" })).toHaveCount(0);
 });
