@@ -131,7 +131,8 @@ def test_product_docs_do_not_claim_unimplemented_auto_enrichment():
         encoding="utf-8"
     )
 
-    assert "SourceIdentificationController" not in source_doc + enrich_doc
+    assert "별도의 자동 실행 `SourceIdentificationController`가 없습니다" in source_doc
+    assert "`SourceIdentificationController`가 자동으로 식별" not in enrich_doc
     assert "POST /api/songs/{song_id}/identify-source" in source_doc
     assert "identifyOriginal" in controller
     assert 'fetch(`${API}/api/songs/${target.songId}/identify-source`' in controller
