@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSelectedSong } from "./SelectedSongContext";
 
 const API = "http://127.0.0.1:8080";
 
@@ -161,6 +162,7 @@ function toggleValue(values: string[], value: string) {
 }
 
 export default function SongWorkspace() {
+  const { setTarget: setSelectedSong } = useSelectedSong();
   const [songs, setSongs] = useState<Song[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [song, setSong] = useState<Song | null>(null);
@@ -196,6 +198,21 @@ export default function SongWorkspace() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const scoreRef = useRef<HTMLDivElement>(null);
+  const activeSongId = useRef<string | null>(null);
+  const loadVersion = useRef(0);
+
+  const selectSong = (nextId: string | null) => {
+    // Invalidate any pending response before React starts rendering the new song.
+    activeSongId.current = nextId;
+    loadVersion.current += 1;
+    setSelectedId(nextId);
+    setSong(null);
+    setScore(null);
+    setMeasures([]);
+    setXml("");
+    setSelectedNoteId(null);
+    setMessage("");
+  };
 
   const refreshSongs = async () => {
     const response = await fetch(`${API}/api/songs`);
@@ -203,10 +220,11 @@ export default function SongWorkspace() {
     const body = await response.json();
     const next: Song[] = body.songs ?? [];
     setSongs(next);
-    if (!selectedId && next.length) setSelectedId(next[0].song_id);
+    if (!activeSongId.current && next.length) selectSong(next[0].song_id);
   };
 
   const loadSong = async (songId: string) => {
+    const requestVersion = ++loadVersion.current;
     const [songResponse, notesResponse, structureResponse, scoreResponse, publicationResponse] = await Promise.all([
       fetch(`${API}/api/songs/${songId}`),
       fetch(`${API}/api/songs/${songId}/notes`),
@@ -222,6 +240,7 @@ export default function SongWorkspace() {
     const structureBody = await structureResponse.json();
     const nextXml = await scoreResponse.text();
     const publicationBody = await publicationResponse.json();
+    if (requestVersion !== loadVersion.current || activeSongId.current !== songId) return;
     setSong(nextSong);
     setScore(nextScore);
     setMeasures(structureBody.measures ?? []);
@@ -238,8 +257,21 @@ export default function SongWorkspace() {
 
   useEffect(() => {
     if (!selectedId) return;
-    void loadSong(selectedId).catch((error) => setMessage(String(error)));
+    void loadSong(selectedId).catch((error) => {
+      if (activeSongId.current === selectedId) setMessage(String(error));
+    });
   }, [selectedId]);
+
+  useEffect(() => {
+    const current = song?.song_id === selectedId ? song : null;
+    setSelectedSong(current ? { songId: current.song_id, title: current.title } : null);
+    return () => setSelectedSong(null);
+  }, [selectedId, song?.song_id, song?.title, setSelectedSong]);
+
+  useEffect(() => () => {
+    activeSongId.current = null;
+    loadVersion.current += 1;
+  }, []);
 
   useEffect(() => {
     if (!xml || !scoreRef.current) return;
@@ -528,11 +560,7 @@ export default function SongWorkspace() {
     await withBusy(async () => {
       const response = await fetch(`${API}/api/songs/${song.song_id}`, { method: "DELETE" });
       if (!response.ok) throw new Error(await response.text());
-      setSelectedId(null);
-      setSong(null);
-      setScore(null);
-      setMeasures([]);
-      setXml("");
+      selectSong(null);
       await refreshSongs();
       setMessage("곡을 라이브러리에서 삭제했습니다. 원본 채보 Job은 History에 유지됩니다.");
     });
@@ -577,7 +605,7 @@ export default function SongWorkspace() {
           <div className="song-list">
             {songs.length === 0 && <p className="muted">완료된 채보가 아직 없습니다.</p>}
             {songs.map((item) => (
-              <button key={item.song_id} className={`song-item ${selectedId === item.song_id ? "active" : ""}`} onClick={() => setSelectedId(item.song_id)}>
+              <button key={item.song_id} className={`song-item ${selectedId === item.song_id ? "active" : ""}`} onClick={() => selectSong(item.song_id)}>
                 <strong>{item.title}</strong>
                 <span>{item.artist || (item.source_kind === "youtube" ? "YouTube" : "로컬 음원")}</span>
                 <small>Revision {item.revision} · {formatDate(item.updated_at)}</small>

@@ -9,6 +9,7 @@ import ModelManager from "./ModelManager";
 import NotationSettingsController from "./NotationSettingsController";
 import OMRImportController from "./OMRImportController";
 import ProductRoot from "./ProductRoot";
+import { SelectedSongProvider } from "./SelectedSongContext";
 import SetupCenter from "./SetupCenter";
 import StudioViewControls from "./StudioViewControls";
 import ValidationController from "./ValidationController";
@@ -117,16 +118,18 @@ function render() {
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
       <AppErrorBoundary>
-        <ProductRoot />
-        <StudioViewControls />
-        <EngineSettingsDock />
-        <ExportController />
-        <ValidationController />
-        <EnrichmentController />
-        <OMRImportController />
-        <NotationSettingsController />
-        <SetupCenter />
-        <ModelManager />
+        <SelectedSongProvider>
+          <ProductRoot />
+          <StudioViewControls />
+          <EngineSettingsDock />
+          <ExportController />
+          <ValidationController />
+          <EnrichmentController />
+          <OMRImportController />
+          <NotationSettingsController />
+          <SetupCenter />
+          <ModelManager />
+        </SelectedSongProvider>
       </AppErrorBoundary>
     </StrictMode>,
   );

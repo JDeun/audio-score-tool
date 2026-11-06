@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import "./validation-controller.css";
+import { useSelectedSong } from "./SelectedSongContext";
 
 const API = "http://127.0.0.1:8080";
 
-type ValidationTarget = { songId: string; title: string };
 type Issue = {
   severity: "error" | "warning" | "info";
   category: string;
@@ -45,19 +45,8 @@ type ValidationSettings = {
   fluidsynth_cmd?: string | null;
 };
 
-function currentTarget(): ValidationTarget | null {
-  const workbench = document.querySelector(".score-workbench");
-  const scoreLink = workbench?.querySelector<HTMLAnchorElement>('a[href*="/api/songs/"][href*="/files/"]');
-  if (!scoreLink) return null;
-  const pathname = new URL(scoreLink.href, window.location.href).pathname;
-  const match = pathname.match(/\/api\/songs\/([^/]+)\/files\//);
-  if (!match) return null;
-  const title = workbench?.querySelector(".score-toolbar h2")?.textContent?.trim() || "악보";
-  return { songId: decodeURIComponent(match[1]), title };
-}
-
 export default function ValidationController() {
-  const [target, setTarget] = useState<ValidationTarget | null>(null);
+  const { target } = useSelectedSong();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [report, setReport] = useState<ValidationReport | null>(null);
@@ -81,12 +70,11 @@ export default function ValidationController() {
   const [useAudio, setUseAudio] = useState(false);
 
   useEffect(() => {
-    const refreshTarget = () => setTarget(currentTarget());
-    refreshTarget();
-    const observer = new MutationObserver(refreshTarget);
-    observer.observe(document.body, { subtree: true, childList: true });
-    return () => observer.disconnect();
-  }, []);
+    // Close a validation report when the selected score changes or disappears.
+    setOpen(false);
+    setReport(null);
+    setMessage("");
+  }, [target?.songId]);
 
   useEffect(() => {
     if (!open) return;
