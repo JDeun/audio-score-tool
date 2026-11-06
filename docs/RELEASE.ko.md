@@ -7,9 +7,9 @@
 
 ## 1. artifact 등급
 
-### PR/CI QA artifact
+### 수동·태그 기반 QA artifact
 
-`Desktop Packages` workflow가 PR에서 생성하는 package는 **unsigned 테스트 artifact**입니다.
+`Desktop Packages` workflow는 일반 코드 PR마다 패키지를 생성하지 않습니다. 수동 실행(`workflow_dispatch`) 또는 `v*` 태그에서 만드는 package는 **unsigned QA 테스트 artifact**입니다. 일반 PR의 필수 코드 검증은 `CI / verify`가 담당합니다.
 
 검증 범위:
 
@@ -172,6 +172,8 @@ updater는 **향후 구현 항목이 아니라 구현된 기능**입니다.
 즉 **updater implementation complete ≠ trusted stable update channel activated**입니다.
 
 ## 7. CI / release gate
+
+일반 PR CI와 패키징·보안 감사의 실행 조건은 [CI 실행 전략](CI_STRATEGY.ko.md)을 따릅니다. Python/프런트엔드/Tauri의 빠른 코드 검증은 `verify`에 집계하고, 패키지·보안/권리·클린 머신·서명은 독립 출시 게이트로 유지합니다.
 
 정식 release 후보는 최소 다음을 통과해야 합니다.
 
