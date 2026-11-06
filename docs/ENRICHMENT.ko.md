@@ -4,7 +4,7 @@ AudioScoreTool은 모델이 이미 존재하는 깨끗한 정보를 다시 추�
 
 ## 자동 음원 식별
 
-현재는 사용자가 **곡 라이브러리 → 곡 정보 → 원본 음원 자동 식별**을 명시적으로 실행하면 `EnrichmentController`가 식별 API를 호출합니다. 새 곡이 등록됐다는 이유만으로 AcoustID/MusicBrainz 네트워크 조회를 시작하지 않습니다. 로컬-only 자동 태그 식별 또는 opt-in 실행 정책은 [#100](https://github.com/JDeun/audio-score-tool/issues/100)에서 별도 결정합니다.
+**외부 서비스 식별은 명시적 실행**입니다. 사용자가 곡 라이브러리 → 곡 정보 → 원본 음원 자동 식별을 클릭하면 `EnrichmentController`가 식별 API를 호출합니다. 새로운 오디오 Job 등록 시에는 설정에서 직접 켠 경우에 한해 **로컬 embedded title/artist 태그만 자동 분석**합니다. 이 로컬-only opt-in 경로는 AcoustID/MusicBrainz 네트워크 조회와 fingerprint를 실행하지 않으며, 한 번의 Undo Revision에만 기록합니다([#100](https://github.com/JDeun/audio-score-tool/issues/100)).
 
 ```text
 Embedded tags
