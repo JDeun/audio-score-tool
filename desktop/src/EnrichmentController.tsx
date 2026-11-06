@@ -162,7 +162,12 @@ export default function EnrichmentController() {
             <header><div><span>DATA ENRICHMENT</span><h2>곡 정보 보강</h2><p>외부 네트워크 조회는 이 화면에서 사용자가 실행할 때만 시작됩니다.</p></div><button type="button" aria-label="곡 정보 보강 닫기" onClick={() => setOpen(false)}>×</button></header>
             <div className="enrichment-policy"><strong>원본 식별은 명시적 실행, 메타데이터는 MusicBrainz, 가사는 허용된 provider만</strong><p>원본 식별은 embedded tag와 필요 시 AcoustID/MusicBrainz를 사용합니다. 앱이 백그라운드에서 음원 정보를 외부로 보내지 않습니다.</p></div>
             {usageMode === "commercial" && <><label className="enrichment-commercial-check"><input type="checkbox" checked={commercialEntitlement} onChange={(event) => setCommercialEntitlement(event.target.checked)} /><span>MusicBrainz Web Service의 상용 이용 자격/계약을 확인했습니다.</span></label><label className="enrichment-commercial-check"><input type="checkbox" checked={acoustidCommercialEntitlement} onChange={(event) => setAcoustidCommercialEntitlement(event.target.checked)} /><span>AcoustID 서비스의 상용 이용 자격/계약을 확인했습니다.</span></label></>}
-            <button className="enrichment-run" type="button" disabled={identifying || busy || (usageMode === "commercial" && (!commercialEntitlement || !acoustidCommercialEntitlement))} onClick={() => void identifyOriginal()}>{identifying ? "원본 식별 중…" : "원본 음원 자동 식별"}</button>
+            <button className="enrichment-run" type="button" disabled={identifying || busy} onClick={() => void identifyOriginal()}>{identifying ? "원본 식별 중…" : "원본 음원 자동 식별"}</button>
+            {usageMode === "commercial" && (
+              <small className="enrichment-identification-scope" role="status">
+                로컬 음원 태그 식별은 외부 서비스 권한 없이 사용할 수 있습니다. MusicBrainz·AcoustID는 각각 상용 이용 자격을 확인한 경우에만 조회합니다.
+              </small>
+            )}
             {identification?.selected && <div className="enrichment-message"><strong>{identification.selected.title ?? "제목 미상"}</strong>{identification.selected.artist ? ` · ${identification.selected.artist}` : ""}{typeof identification.selected_confidence === "number" ? ` · ${Math.round(identification.selected_confidence * 100)}%` : ""}</div>}
             <div className="enrichment-fields"><label><span>곡명</span><input value={title} onChange={(event) => setTitle(event.target.value)} /></label><label><span>아티스트</span><input value={artist} onChange={(event) => setArtist(event.target.value)} placeholder="알고 있다면 입력" /></label></div>
             <button className="enrichment-advanced-toggle" type="button" onClick={() => setAdvanced((value) => !value)}>{advanced ? "가사 API 설정 닫기" : "선택 사항 · 가사 API 연결"}</button>
