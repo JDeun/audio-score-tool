@@ -11,8 +11,8 @@ from threading import Lock, get_ident
 from typing import Any
 
 from .paths import cache_dir, database_path, exports_dir, jobs_dir, song_assets_dir
-from .sqlite_runtime import connect_sqlite
 from .settings_store import SettingsStore
+from .sqlite_runtime import connect_sqlite
 
 
 def _now() -> str:
