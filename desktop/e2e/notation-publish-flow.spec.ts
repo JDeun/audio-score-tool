@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const SCORE_XML = \`<?xml version="1.0" encoding="utf-8"?>
+const SCORE_XML = `<?xml version="1.0" encoding="utf-8"?>
 <score-partwise version="4.0">
   <work><work-title>Owned fixture</work-title></work>
   <part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
@@ -9,7 +9,7 @@ const SCORE_XML = \`<?xml version="1.0" encoding="utf-8"?>
     <note><pitch><step>C</step><octave>4</octave></pitch>
       <duration>1920</duration><type>whole</type></note>
   </measure></part>
-</score-partwise>\`;
+</score-partwise>`;
 
 test("import MusicXML → library → lyric edit → Undo → final export uses one song", async ({ page }) => {
   let imported = false;
@@ -82,7 +82,7 @@ test("import MusicXML → library → lyric edit → Undo → final export uses 
     contentType: "application/xml",
     body: SCORE_XML.replace(
       "</note>",
-      \`\${lyric ? \`<lyric><text>\${lyric}</text></lyric>\` : ""}</note>\`,
+      `${lyric ? `<lyric><text>${lyric}</text></lyric>` : ""}</note>`,
     ),
   }));
   await page.route("**/api/songs/owned-fixture-job/publication", route => route.fulfill({
