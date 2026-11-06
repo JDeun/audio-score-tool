@@ -17,7 +17,7 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-from audio_score_tool.managed_components import ComponentArtifact, install_component_artifact
+from audio_score_tool.managed_components import ComponentArtifact, ComponentError, install_component_artifact
 
 _TOOLS = ("yt-dlp", "deno", "ffmpeg", "ffprobe")
 _TARGETS = {"windows-x86_64", "macos-aarch64"}
@@ -169,7 +169,9 @@ def _ffmpeg_build(value: Any, sources: dict[str, dict[str, Any]]) -> dict[str, A
     }
 
 
-def _zip_entry(archive: zipfile.ZipFile, name: str, path: Path, *, executable: bool) -> None:
+def _zip_entry(
+    archive: zipfile.ZipFile, name: str, path: Path, *, executable: bool, expected_sha256: str
+) -> None:
     info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
     info.create_system = 3
     info.external_attr = (stat.S_IFREG | (0o755 if executable else 0o644)) << 16
@@ -180,8 +182,7 @@ def _zip_entry(archive: zipfile.ZipFile, name: str, path: Path, *, executable: b
             digest.update(chunk)
             output.write(chunk)
     # Recheck after the second read: a source mutation while assembling fails closed.
-    expected = _digest(path)
-    if digest.hexdigest() != expected:
+    if digest.hexdigest() != expected_sha256:
         raise ValueError(f"{name}: source changed during archive creation.")
 
 
@@ -251,23 +252,26 @@ def assemble_youtube_candidate(manifest: dict[str, Any], destination: Path) -> d
             tmp = Path(handle.name)
         with zipfile.ZipFile(tmp, "w", allowZip64=True) as archive:
             for name in _TOOLS:
-                _zip_entry(archive, paths[name], sources[name]["path"], executable=True)
+                _zip_entry(
+                    archive, paths[name], sources[name]["path"],
+                    executable=True, expected_sha256=sources[name]["sha256"],
+                )
             for name in _TOOLS:
                 _zip_entry(
                     archive, f"notices/{name}.LICENSE.txt",
                     sources[name]["notice"], executable=False,
+                    expected_sha256=sources[name]["notice_sha256"],
                 )
             _zip_entry(
                 archive, "provenance/ffmpeg-build.txt",
                 ffmpeg["build_record"], executable=False,
+                expected_sha256=ffmpeg["build_record_sha256"],
             )
             _zip_text(archive, "BUNDLE-INVENTORY.json", {
                 "schema": 1, "target": target, "version": version,
                 "tools": inventory, "redistribution_status": "pending",
             })
         # Reuse the exact product installer in a temporary isolated root.
-        from audio_score_tool.managed_components import ComponentArtifact, install_component_artifact
-
         archive_digest = _digest(tmp)
         artifact = ComponentArtifact(
             component="youtube_runtime", version=version,
@@ -320,7 +324,7 @@ def main() -> int:
     try:
         manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
         report = assemble_youtube_candidate(manifest, args.output)
-    except (OSError, ValueError, KeyError, TypeError, RuntimeError, json.JSONDecodeError) as exc:
+    except (OSError, ValueError, KeyError, TypeError, RuntimeError, ComponentError) as exc:
         parser.exit(2, f"YouTube bundle candidate rejected: {exc}\n")
     print(f"Verified local candidate: {args.output} (sha256={report['archive_sha256']})")
     print(f"Redistribution approval remains {report['redistribution_status']}.")
