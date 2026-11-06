@@ -48,7 +48,7 @@ async function openNewScore(
 
 test("missing optional WhisperX defaults to score-only while core upload stays available", async ({ page }) => {
   await openNewScore(page, { coreReady: true, whisperxReady: false, youtubeReady: false });
-  const lyricToggle = page.getByRole("button", { name: "악보만" });
+  const lyricToggle = page.locator(".transcription-options .product-switch");
   await expect(lyricToggle).toBeDisabled();
   await expect(lyricToggle).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByText(/WhisperX 미설치/)).toBeVisible();
