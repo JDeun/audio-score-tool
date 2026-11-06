@@ -34,6 +34,7 @@ _ALLOWED = {
     "visual_validation_max_pages",
     "audio_validation_enabled",
     "audio_validation_threshold",
+    "auto_local_identification_enabled",
 }
 _SECRET_ENV_KEYS = {"llm_validation_api_key_env"}
 
