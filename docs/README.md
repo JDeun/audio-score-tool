@@ -7,6 +7,7 @@
 - [`INSTALLATION.ko.md`](INSTALLATION.ko.md) — 설치 계층, self-contained desktop 계약, managed component 정책
 - [`DEPENDENCIES.ko.md`](DEPENDENCIES.ko.md) — 내장/앱 관리/계정/외부 서비스 의존성 inventory와 배포 기준
 - [`MANAGED_RUNTIME.ko.md`](MANAGED_RUNTIME.ko.md) — app-managed runtime catalog, SHA-256, atomic install/rollback, root containment 및 artifact publication 계약
+- [`MANAGED_ARTIFACT_CANDIDATES.ko.md`](MANAGED_ARTIFACT_CANDIDATES.ko.md) — 로컬 아티팩트 후보 SHA-256/압축 안전성 검증과 재배포 승인 전 준비 절차
 - [`EDITOR.ko.md`](EDITOR.ko.md) — MusicXML 편집기 기능과 편집 계약
 - [`UI_DESIGN.ko.md`](UI_DESIGN.ko.md) — 데스크탑 UI/UX 및 최종 미학 설계 계약
 - [`OMR.ko.md`](OMR.ko.md) — PDF/이미지 악보 가져오기와 optional OMR component
