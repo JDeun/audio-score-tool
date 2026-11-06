@@ -25,7 +25,7 @@ _MAX_NOTATION_BYTES = 64 * 1024 * 1024
 _FORBIDDEN_XML_MARKERS = (b"<!DOCTYPE", b"<!ENTITY")
 # Only trusted music21-generated scores may have a standard DTD stripped.
 # An uploaded MusicXML/MXL source must continue to reject all DOCTYPE/ENTITY.
-_GENERATED_DOCTYPE = re.compile(rb"<!DOCTYPE\\s+score-partwise\\b[^>\\[]*>", re.IGNORECASE)
+_GENERATED_DOCTYPE = re.compile(rb"<!DOCTYPE\s+score-partwise\b[^>\[]*>", re.IGNORECASE)
 
 
 def _validate_musicxml_file(path: Path) -> None:
@@ -61,7 +61,7 @@ def _normalize_generated_musicxml(path: Path) -> None:
             raise ValueError("Generated MusicXML contains an unsupported DOCTYPE declaration.")
         match = matches[0]
         prefix = raw[:match.start()]
-        if re.fullmatch(rb'\\s*(?:<\\?xml[^>]*\\?>\\s*)?', prefix) is None:
+        if re.fullmatch(rb'\s*(?:<\?xml[^>]*\?>\s*)?', prefix) is None:
             raise ValueError("Generated MusicXML DOCTYPE is not at the document header.")
         normalized = raw[:match.start()] + raw[match.end():]
         if b"<!DOCTYPE" in normalized.upper():
