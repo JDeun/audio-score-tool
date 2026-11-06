@@ -166,6 +166,14 @@ def test_import_library_edit_undo_and_real_publish_bundle(product, input_kind: s
     assert any((published / "parts").glob("*.musicxml"))
     assert songs.get(job_id)["revision"] == 2
 
+    # V2 does not write a legacy export flag: list/detail derive availability
+    # from the successfully published canonical managed export tree.
+    final_status = client.get(f"/api/songs/{job_id}")
+    assert final_status.status_code == 200
+    assert final_status.json()["exports"] == {
+        "musicxml": True, "pdf": True, "midi": True,
+    }
+
 
 def test_unsupported_notation_upload_does_not_create_a_song(product):
     client, jobs, songs, _root = product
