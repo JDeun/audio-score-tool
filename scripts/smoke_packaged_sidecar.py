@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import socket
@@ -11,6 +12,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from audio_score_tool.managed_component_catalog import platform_key
 from audio_score_tool.managed_publication_readiness import _REQUIRED_TOOLS, CORE_COMPONENTS
 from audio_score_tool.runner import CommandError, run_command
 
@@ -127,13 +129,94 @@ def _component_index(base_url: str, token: str) -> dict[str, dict]:
     }
 
 
-def _verify_youtube_cli_tools(tools: dict[str, str], managed_root: Path) -> None:
-    """Execute only installed, explicitly pinned YouTube tool versions offline.
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
-    File hashes alone do not prove a packaged binary starts on the target OS.
-    Use absolute in-root paths, a tightly scoped environment and bounded
-    output/time. This intentionally performs no media download or inference.
+
+def _youtube_inventory(tools: dict[str, str], managed_root: Path) -> dict[str, str]:
+    """Check the installed candidate's pinned binary identity and tool versions.
+
+    The installer confirms the catalog archive SHA; this additionally ties the
+    runtime's own per-tool provenance record to the exact binaries being run.
     """
+    import re
+
+    required = ("yt-dlp", "deno", "ffmpeg", "ffprobe")
+    root = managed_root.resolve()
+    paths = {}
+    for name in required:
+        raw = tools.get(name)
+        if not isinstance(raw, str):
+            raise RuntimeError(f"{name}: missing managed executable.")
+        path = Path(raw)
+        if path.is_symlink() or not path.is_file():
+            raise RuntimeError(f"{name}: missing or symlinked managed executable.")
+        try:
+            path.resolve().relative_to(root)
+        except ValueError as exc:
+            raise RuntimeError(f"{name}: managed executable escapes root.") from exc
+        paths[name] = path
+
+    # These four binaries must be delivered together by the controlled
+    # YouTube assembler, not accidentally mixed across unrelated bundles.
+    bin_dir = paths["yt-dlp"].parent.resolve()
+    if any(path.parent.resolve() != bin_dir for path in paths.values()):
+        raise RuntimeError("YouTube executable paths come from different directories.")
+    bundle_root = bin_dir.parent
+    inventory = bundle_root / "BUNDLE-INVENTORY.json"
+    if inventory.is_symlink() or not inventory.is_file():
+        raise RuntimeError("YouTube bundle inventory is missing or symlinked.")
+    try:
+        bundle_root.resolve().relative_to(root)
+        if inventory.stat().st_size > 256 * 1024:
+            raise RuntimeError("YouTube bundle inventory exceeds maximum size.")
+        document = json.loads(inventory.read_text(encoding="utf-8"))
+    except (OSError, ValueError, UnicodeError) as exc:
+        raise RuntimeError("YouTube bundle inventory cannot be read.") from exc
+    if (
+        not isinstance(document, dict)
+        or document.get("schema") != 1
+        or document.get("target") != platform_key()
+    ):
+        raise RuntimeError("YouTube bundle inventory schema/platform mismatch.")
+    records = document.get("tools")
+    if not isinstance(records, dict):
+        raise RuntimeError("YouTube bundle tool inventory is missing.")
+    versions = {}
+    for name in required:
+        record = records.get(name)
+        if not isinstance(record, dict):
+            raise RuntimeError(f"{name}: missing bundle inventory entry.")
+        relative = record.get("relative_path")
+        if (
+            not isinstance(relative, str)
+            or not relative.startswith("bin/")
+            or Path(relative).is_absolute()
+            or ".." in Path(relative).parts
+            or (bundle_root / relative).resolve() != paths[name].resolve()
+        ):
+            raise RuntimeError(f"{name}: inventory tool path mismatch.")
+        expected_sha = record.get("sha256")
+        if (
+            not isinstance(expected_sha, str)
+            or re.fullmatch(r"[a-f0-9]{64}", expected_sha) is None
+            or _file_sha256(paths[name]) != expected_sha
+        ):
+            raise RuntimeError(f"{name}: bundle inventory digest mismatch.")
+        version = record.get("version")
+        if not isinstance(version, str) or not version.strip():
+            raise RuntimeError(f"{name}: bundle inventory version missing.")
+        versions[name] = version.strip()
+    return versions
+
+
+def _verify_youtube_cli_tools(tools: dict[str, str], managed_root: Path) -> None:
+    """Prove installed four-tool binary identity AND native startup offline."""
+    versions = _youtube_inventory(tools, managed_root)
     probes = {
         "yt-dlp": ("--version",),
         "deno": ("--version",),
@@ -141,16 +224,7 @@ def _verify_youtube_cli_tools(tools: dict[str, str], managed_root: Path) -> None
         "ffprobe": ("-version",),
     }
     for name, args in probes.items():
-        binary_value = tools.get(name)
-        if not isinstance(binary_value, str):
-            raise RuntimeError(f"{name}: missing managed executable for startup smoke.")
-        binary = Path(binary_value)
-        if binary.is_symlink() or not binary.is_file():
-            raise RuntimeError(f"{name}: managed CLI is missing or symlinked.")
-        try:
-            binary.resolve().relative_to(managed_root.resolve())
-        except ValueError as exc:
-            raise RuntimeError(f"{name}: managed CLI escapes the managed root.") from exc
+        binary = Path(tools[name])
         try:
             result = run_command(
                 str(binary.resolve()),
@@ -161,19 +235,21 @@ def _verify_youtube_cli_tools(tools: dict[str, str], managed_root: Path) -> None
             )
         except CommandError as exc:
             raise RuntimeError(f"{name}: packaged CLI startup/version check failed: {exc}") from exc
-        output = result.stdout.strip()
-        if not output:
+        lines = result.stdout.strip().splitlines()
+        if not lines:
             raise RuntimeError(f"{name}: packaged CLI returned no version information.")
+        first = lines[0].strip().split()
         if name == "yt-dlp":
-            import re
-
-            valid = bool(re.match(r"^\d{4}\.\d{1,2}\.\d{1,2}(?:\s|$)", output))
+            actual = first[0] if first else ""
         elif name == "deno":
-            valid = output.lower().startswith("deno ")
+            actual = first[1] if len(first) >= 2 and first[0].lower() == "deno" else ""
         else:
-            valid = output.lower().startswith(f"{name} version ")
-        if not valid:
-            raise RuntimeError(f"{name}: unexpected packaged CLI version format.")
+            actual = first[2] if len(first) >= 3 and first[:2] == [name, "version"] else ""
+        if actual != versions[name]:
+            raise RuntimeError(
+                f"{name}: packaged CLI version does not match bundle inventory "
+                f"(expected {versions[name]!r}, got {actual!r})."
+            )
 
 
 def _verify_managed_delivery(base_url: str, token: str, component_root: Path) -> None:
