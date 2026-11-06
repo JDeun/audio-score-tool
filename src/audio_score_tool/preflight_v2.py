@@ -8,7 +8,7 @@ from .system_status import huggingface_authenticated
 from .transcription_engine import resolve_transcription_engine
 
 
-def preflight(settings: Settings | None = None, *, require_lyrics: bool = True) -> dict:
+def preflight(settings: Settings | None = None, *, require_lyrics: bool = False) -> dict:
     settings = settings or Settings()
     engine = resolve_transcription_engine(settings)
     notation = backend_status(settings)
@@ -38,6 +38,10 @@ def preflight(settings: Settings | None = None, *, require_lyrics: bool = True) 
         missing.append("embedded_pdf_renderer")
 
     warnings: list[str] = []
+    if not tools["whisperx"]:
+        warnings.append(
+            "Optional WhisperX lyrics are unavailable. Core MusicXML transcription is still supported."
+        )
     if not omr["ready"]:
         warnings.append(
             "OMR is optional and currently unavailable. PDF/image score import requires a bundled or configured OMR backend."
