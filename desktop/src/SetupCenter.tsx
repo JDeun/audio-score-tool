@@ -24,7 +24,7 @@ type Component = {
   note?: string | null;
   auto_install?: boolean;
   managed_status?: { ready?: boolean; integrity?: string; version?: string } | null;
-  catalog?: { published?: boolean; target?: string; version?: string } | null;
+  catalog?: { published?: boolean; target?: string; version?: string; publication_reason?: string | null } | null;
 };
 
 type SetupStatus = {
@@ -67,6 +67,17 @@ const deliveryLabel: Record<Delivery, string> = {
   "account-credential": "계정 인증",
   "external-service": "선택적 외부 서비스",
 };
+
+function publicationStatus(reason?: string | null): string {
+  if (reason === "artifact-not-published") return "이 플랫폼용 배포 파일 미게시";
+  if (reason === "redistribution-not-approved") return "재배포 승인 대기";
+  if (reason === "upstream-revision-missing") return "고정된 upstream revision 확인 필요";
+  if (reason === "license-missing" || reason === "provenance-missing")
+    return "라이선스·출처 검증 필요";
+  if (reason?.startsWith("required-tools-missing:"))
+    return "필수 실행 도구 구성 누락";
+  return "배포 아티팩트 검증 필요";
+}
 
 export default function SetupCenter() {
   const [status, setStatus] = useState<SetupStatus | null>(null);
@@ -263,7 +274,7 @@ export default function SetupCenter() {
                         : component.managed_status?.ready
                           ? "설치됨 · 실행 환경 점검 필요"
                           : component.catalog && !component.catalog.published
-                            ? "이 플랫폼용 배포 파일 미게시"
+                            ? publicationStatus(component.catalog.publication_reason)
                             : component.delivery === "embedded"
                               ? "패키지 점검 필요"
                               : "현재 비활성"}
