@@ -52,34 +52,47 @@ def _env_flag(name: str) -> bool:
     return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
 
 
-def _apply_metadata(song_id: str, song: dict, selected: dict, fallback_title: str, fallback_artist: str | None) -> bool:
+def _apply_metadata(
+    song_id: str,
+    song: dict,
+    selected: dict,
+    fallback_title: str,
+    fallback_artist: str | None,
+) -> bool:
+    """Save a trusted identification as one atomic, undoable Song mutation.
+
+    The previous two-step XML edit followed by metadata UPDATE caused partial
+    title/artist changes, and artist-only changes had no Undo revision.
+    Compute score layout first; commit only if the original song revision is
+    still current, so late network results cannot overwrite a later user edit.
+    """
     next_title = str(selected.get("title") or fallback_title).strip() or "제목 없는 곡"
     next_artist = str(selected.get("artist") or fallback_artist or "").strip() or None
-    title_changed = next_title != song.get("title")
-    revision: int | None = None
-    if title_changed:
-        revision = _store.snapshot_revision(song_id, _publication.read(song_id))
-        path = _store.checkout_current(song_id)
-        try:
-            set_score_title(path, next_title)
-            apply_publication_layout(path, title=next_title, settings=_publication.read(song_id))
-            _store.commit_edit_from_path(song_id, path)
-        except Exception:
-            if revision is not None:
-                _store.discard_snapshot(song_id, revision)
-            return False
     try:
-        updated = _store.update_metadata(song_id, title=next_title, artist=next_artist)
+        current_publication = _publication.read(song_id)
+        expected_revision = int(song["revision"])
+        if next_title != song.get("title"):
+            score = _store.checkout_current(song_id)
+            set_score_title(score, next_title)
+            apply_publication_layout(
+                score, title=next_title, settings=current_publication
+            )
+            xml_text = score.read_text(encoding="utf-8")
+        else:
+            xml_text = _store.score_xml(song_id)
+        _store.commit_identified_metadata(
+            song_id,
+            title=next_title,
+            artist=next_artist,
+            score_xml=xml_text,
+            publication=current_publication,
+            expected_revision=expected_revision,
+        )
+        return True
     except Exception:
-        # Keep canonical score metadata and the MusicXML title atomic from the user's
-        # perspective. If the DB metadata write fails after the score edit, restore the
-        # snapshot instead of leaving two conflicting titles behind.
-        if revision is not None:
-            _store.restore_revision(song_id, revision)
+        # Fail closed without changing the canonical Song, exporting an
+        # incomplete revision, or reapplying stale source-identification data.
         return False
-    if updated is None and revision is not None:
-        _store.restore_revision(song_id, revision)
-    return updated is not None
 
 
 def _source_audio(song_id: str) -> Path | None:
