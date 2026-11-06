@@ -107,7 +107,9 @@ test("import MusicXML → library → lyric edit → Undo → final export uses 
   await page.addInitScript(() => {
     localStorage.setItem("ast-onboarding-v1", "done");
     localStorage.setItem("ast-setup-center-v2", "dismissed");
-    localStorage.setItem("ast-section", "new");
+    // The importer intentionally sets "songs" before reloading. Do not
+    // override that navigation state during the next document initialization.
+    if (!localStorage.getItem("ast-section")) localStorage.setItem("ast-section", "new");
   });
 
   await page.goto("/");
