@@ -142,7 +142,9 @@ def _manifest_source(value: Any, *, tool: str, target: str) -> dict[str, Any]:
     }
 
 
-def _ffmpeg_build(value: Any, sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
+def _ffmpeg_build(
+    value: Any, sources: dict[str, dict[str, Any]], target: str
+) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError("Exact FFmpeg build provenance is required.")
     if (
@@ -165,11 +167,61 @@ def _ffmpeg_build(value: Any, sources: dict[str, dict[str, Any]]) -> dict[str, A
         value.get("build_record"), label="ffmpeg_build.build_record", limit=_MAX_NOTICE_BYTES
     )
     toolchain = _nonplaceholder(value.get("toolchain"), "ffmpeg_build.toolchain")
+    # A declared build record is not a verification. Require the independently
+    # generated pending review from verify_ffmpeg_build_provenance.py and match
+    # its exact local tool hashes, source revision, configure and license facts.
+    attestation_file = _read_local(
+        value.get("attestation_file"),
+        label="ffmpeg_build.attestation_file",
+        limit=_MAX_NOTICE_BYTES,
+    )
+    try:
+        report = json.loads(attestation_file.read_text(encoding="utf-8"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError("FFmpeg attestation report is unreadable.") from exc
+    if not isinstance(report, dict):
+        raise ValueError("FFmpeg attestation report must be an object.")
+    if (
+        report.get("schema") != 1
+        or report.get("component") != "youtube_runtime.ffmpeg"
+        or report.get("target") != target
+        or report.get("redistribution_status") != "pending"
+        or report.get("legal_review_status") != "pending"
+        or report.get("approval_required") is not True
+        or report.get("local_binary_sha256_verified") is not True
+        or report.get("supplied_version_reports_consistent") is not True
+    ):
+        raise ValueError("FFmpeg attestation is not a validated pending review for this target.")
+    if (
+        report.get("version") != sources["ffmpeg"]["version"]
+        or report.get("source_revision") != sources["ffmpeg"]["upstream_revision"]
+        or set(report.get("configure_flags") or []) != set(flags)
+        or report.get("toolchain") != toolchain
+        or report.get("build_record_sha256") != _digest(evidence)
+    ):
+        raise ValueError("FFmpeg attestation provenance/configuration differs from bundle inputs.")
+    verified = report.get("tools")
+    if not isinstance(verified, dict) or set(verified) != {"ffmpeg", "ffprobe"}:
+        raise ValueError("FFmpeg attestation tool inventory is incomplete.")
+    for name in ("ffmpeg", "ffprobe"):
+        if (
+            not isinstance(verified[name], dict)
+            or verified[name].get("file_sha256") != sources[name]["sha256"]
+            or report.get("inferred_license") != sources[name]["license"]
+        ):
+            raise ValueError(f"{name}: FFmpeg attestation hash/license differs from bundle input.")
+    if report.get("license_notice_sha256") not in {
+        sources["ffmpeg"]["notice_sha256"],
+        sources["ffprobe"]["notice_sha256"],
+    }:
+        raise ValueError("FFmpeg attestation license notice does not match bundle inputs.")
     return {
         "configure_flags": flags,
         "toolchain": toolchain,
         "build_record": evidence,
         "build_record_sha256": _digest(evidence),
+        "attestation_file": attestation_file,
+        "attestation_sha256": _digest(attestation_file),
     }
 
 
@@ -216,7 +268,7 @@ def assemble_youtube_candidate(manifest: dict[str, Any], destination: Path) -> d
         name: _manifest_source(raw_sources[name], tool=name, target=target)
         for name in _TOOLS
     }
-    ffmpeg = _ffmpeg_build(manifest.get("ffmpeg_build"), sources)
+    ffmpeg = _ffmpeg_build(manifest.get("ffmpeg_build"), sources, target)
     license_summary = _nonplaceholder(manifest.get("bundle_license"), "bundle_license")
     provenance = _nonplaceholder(manifest.get("bundle_provenance"), "bundle_provenance")
     pending_path = destination.with_name(destination.name + ".pending.json")
@@ -245,6 +297,7 @@ def assemble_youtube_candidate(manifest: dict[str, Any], destination: Path) -> d
         "configure_flags": ffmpeg["configure_flags"],
         "toolchain": ffmpeg["toolchain"],
         "build_record_sha256": ffmpeg["build_record_sha256"],
+        "attestation_sha256": ffmpeg["attestation_sha256"],
     }
 
     tmp = None
@@ -270,6 +323,11 @@ def assemble_youtube_candidate(manifest: dict[str, Any], destination: Path) -> d
                 archive, "provenance/ffmpeg-build.txt",
                 ffmpeg["build_record"], executable=False,
                 expected_sha256=ffmpeg["build_record_sha256"],
+            )
+            _zip_entry(
+                archive, "provenance/ffmpeg-attestation.pending.json",
+                ffmpeg["attestation_file"], executable=False,
+                expected_sha256=ffmpeg["attestation_sha256"],
             )
             _zip_text(archive, "BUNDLE-INVENTORY.json", {
                 "schema": 1, "target": target, "version": version,
