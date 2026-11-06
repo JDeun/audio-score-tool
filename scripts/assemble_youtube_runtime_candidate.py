@@ -17,7 +17,11 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-from audio_score_tool.managed_components import ComponentArtifact, ComponentError, install_component_artifact
+from audio_score_tool.managed_components import (
+    ComponentArtifact,
+    ComponentError,
+    install_component_artifact,
+)
 
 _TOOLS = ("yt-dlp", "deno", "ffmpeg", "ffprobe")
 _TARGETS = {"windows-x86_64", "macos-aarch64"}
