@@ -164,8 +164,13 @@ def record_successful_song_mutation(
         elif bound_song != song_id:
             return
 
-        if method.upper() == "POST" and path.endswith("/export"):
-            if not _is_complete_final_export(request_body):
+        # Studio publishes files through /export-to, not the legacy managed
+        # /export endpoint. The middleware records success only after the
+        # destination-copy endpoint has returned 2xx.
+        if method.upper() == "POST" and (
+            path.endswith("/export") or path.endswith("/export-to")
+        ):
+            if payload.get("successful_export") or not _is_complete_final_export(request_body):
                 return
             end = finished_at or _now()
             started = _parse_time(payload.get("started_at"))
