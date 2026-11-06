@@ -41,7 +41,8 @@ type SetupInfo = {
 
 type Job = {
   job_id: string;
-  kind?: "transcription" | "benchmark";
+  kind?: "transcription" | "benchmark" | "omr" | "notation-import";
+  available_artifacts?: string[];
   status: "queued" | "running" | "cancelling" | "cancelled" | "interrupted" | "done" | "failed";
   stage?: string;
   progress?: number;
@@ -442,20 +443,15 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
 
   const renderArtifacts = (target: Job) => {
     if (target.status !== "done") return null;
-    if (target.kind === "benchmark") {
-      return (
-        <div className="artifact-buttons compact">
-          <a href={artifactUrl(target, "benchmark_json")} target="_blank">JSON 결과</a>
-          <a href={artifactUrl(target, "benchmark_csv")} target="_blank">CSV 결과</a>
-          <button onClick={() => void revealJob(target)}>폴더 열기</button>
-        </div>
-      );
-    }
+    const links = target.kind === "benchmark"
+      ? [["benchmark_json", "JSON 결과"], ["benchmark_csv", "CSV 결과"]]
+      : [["pdf", "PDF"], ["musicxml", "MusicXML"], ["midi", "MIDI"]];
+    const available = new Set(target.available_artifacts ?? []);
     return (
       <div className="artifact-buttons compact">
-        <a href={artifactUrl(target, "pdf")} target="_blank">PDF</a>
-        <a href={artifactUrl(target, "musicxml")} target="_blank">MusicXML</a>
-        <a href={artifactUrl(target, "midi")} target="_blank">MIDI</a>
+        {links.filter(([kind]) => available.has(kind)).map(([kind, label]) => (
+          <a key={kind} href={artifactUrl(target, kind)} target="_blank">{label}</a>
+        ))}
         <button onClick={() => void revealJob(target)}>폴더 열기</button>
       </div>
     );

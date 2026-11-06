@@ -423,9 +423,17 @@ def inspect_youtube_source(payload: YouTubeInspectRequest) -> dict:
         raise HTTPException(422, str(exc)) from exc
 
 
+def _job_with_artifacts(job: dict) -> dict:
+    # Resolve availability at request time so stale paths and optional outputs do
+    # not become broken download buttons in the desktop client.
+    from .job_artifact_api_v2 import available_job_artifacts
+
+    return {**job, "available_artifacts": available_job_artifacts(job)}
+
+
 @app.get("/api/jobs")
 def list_jobs(limit: int = 50) -> dict:
-    return {"jobs": _store.list(limit=limit)}
+    return {"jobs": [_job_with_artifacts(job) for job in _store.list(limit=limit)]}
 
 
 @app.post("/api/jobs", status_code=202)
@@ -657,7 +665,7 @@ def get_job(job_id: str) -> dict:
     job = _store.get(job_id)
     if not job:
         raise HTTPException(404, "Job not found")
-    return job
+    return _job_with_artifacts(job)
 
 
 @app.post("/api/jobs/{job_id}/cancel", status_code=202)
