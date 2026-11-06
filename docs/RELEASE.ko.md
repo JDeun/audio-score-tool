@@ -202,7 +202,7 @@ PR CI green이나 unsigned package 생성만으로 `release verified`라고 부�
 
 일반 코드 PR에서는 Windows/macOS/Linux 패키지 빌드를 실행하지 않습니다. `Desktop Packages`를 수동 실행할 때 `require_managed_delivery` 옵션을 활성화하거나 `v1*` 릴리스 태그를 발행하면 **Windows/macOS**에서 별도의 managed-delivery smoke가 실행됩니다(Linux는 패키지 자체 회귀 범위 유지).
 
-이 강화 smoke는 배포된 PyInstaller sidecar를 독립된 임시 `AST_COMPONENT_DIR`로 실행하고, 앱이 실제 번들한 승인 카탈로그를 조회합니다. 각 필수 `transcription_engine`, `youtube_runtime`, `audiveris`에 대해 **실제 `POST /api/setup/install` 다운로드·SHA-256 설치 검증**을 수행합니다. 설치된 모든 필수 도구 파일의 관리 루트 containment 및 Setup Center의 저장된 verified 상태를 재검사합니다. 하나라도 미게시·재배포 미승인·다운로드 실패·checksum 불일치·도구 누락이면 smoke는 실패합니다.
+이 강화 smoke는 배포된 PyInstaller sidecar를 독립된 임시 `AST_COMPONENT_DIR`로 실행하고, 앱이 실제 번들한 승인 카탈로그를 조회합니다. 각 필수 `transcription_engine`, `youtube_runtime`, `audiveris`에 대해 **실제 `POST /api/setup/install` 다운로드·SHA-256 설치 검증**을 수행합니다. 설치된 모든 필수 도구 파일의 관리 루트 containment 및 Setup Center의 저장된 verified 상태를 재검사합니다. 또한 YouTube 구성요소(`yt-dlp`, `deno`, `ffmpeg`, `ffprobe`)는 **실제 설치 경로로 `--version`/`-version`을 실행**해 운영체제에서 기동되는지 확인합니다. 각 실행에는 시간·로그 출력 상한을 적용하고, `PATH`를 비워 시스템에 따로 설치된 실행 파일로 우회하지 못하게 합니다. 인터넷 접근이나 실제 영상 다운로드를 수행하지 않습니다. 하나라도 미게시·재배포 미승인·다운로드 실패·checksum 불일치·도구 누락이면 smoke는 실패합니다.
 
 이 smoke는 **실제 모델 추론 정확도, 특정 곡의 채보, Audiveris/JRE 기능 실행, signed clean install을 검증한 것이 아닙니다.** 이후 #29의 실제 음원/OMR 처리 및 clean-machine 인수시험과 #34의 모델 품질 선정은 별도로 수행합니다. 현시점 `artifacts: {}`이므로 강화 옵션은 예상대로 fail-closed 하며, 무해한 기본 패키지 QA smoke는 계속 실행할 수 있습니다.
 
