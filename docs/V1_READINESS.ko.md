@@ -56,6 +56,8 @@ candidate 비교는 `corpus_version` 문자열만 같아서는 안 됩니다. re
 
 **최상위 KPI는 `time_to_publish_seconds`와 사람이 수정한 총량입니다.**
 
+수정량 집계는 **유효한 사용자 변경 요청 1회 = `total_edit_actions` 1회**를 원칙으로 합니다. 예를 들어 한 PATCH가 음정과 가사 모두를 실제로 바꾸면 `manual_note_edits` 및 `manual_lyric_edits`는 각각 증가하지만, 총 편집 동작 수는 한 번만 증가합니다. Inspector는 변경된 필드만 PATCH하여 변하지 않은 가사를 수정으로 과대 집계하거나 무수정 저장으로 Revision을 늘리지 않습니다. 제목·크레딧 단일 저장(`/credits`)과 제목/아티스트 변경(`/api/songs/{id}`)은 현재 지표의 `manual_layout_edits`로 분류합니다.
+
 데스크톱의 명시적인 `최종 파일 생성`은 `POST /api/songs/{song_id}/export-to`를 사용합니다. Tier 2 opt-in telemetry는 이 호출이 **전체 MusicXML/PDF/MIDI/파트 악보를 선택한 대상 폴더로 성공적으로 복사한 후**에만 `successful_export`와 `time_to_publish_seconds`를 기록합니다. 부분 형식 export, 실패한 복사, 타곡의 작업, 동일 세션의 재출력은 최초 성공한 완료 시각을 변경하지 않습니다.
 
 Release candidate qualification은 일부 case 결과만으로 통과할 수 없습니다.
