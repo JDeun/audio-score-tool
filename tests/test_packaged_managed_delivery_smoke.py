@@ -239,10 +239,17 @@ def test_youtube_cli_rejects_path_escape_and_symlink_without_exec(
         path = root / name
         path.write_bytes(b"fixture")
         tools[name] = str(path)
-    monkeypatch.setattr(
-        smoke, "run_command",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("executed unsafe path")),
-    )
+    expected = {"yt-dlp": "2026.10.26", "deno": "deno 2.9.8"}
+    calls: list[str] = []
+
+    def safe_earlier_probes(command, _args, **_kwargs):
+        name = Path(command).name
+        calls.append(name)
+        if name not in expected:
+            raise AssertionError("Attempted to execute the unsafe FFmpeg path")
+        return type("Result", (), {"stdout": expected[name]})()
+
+    monkeypatch.setattr(smoke, "run_command", safe_earlier_probes)
     tools["ffmpeg"] = str(outside)
     with pytest.raises(RuntimeError, match="escapes the managed root"):
         smoke._verify_youtube_cli_tools(tools, root)
@@ -251,3 +258,4 @@ def test_youtube_cli_rejects_path_escape_and_symlink_without_exec(
     tools["ffmpeg"] = str(alias)
     with pytest.raises(RuntimeError, match="symlinked"):
         smoke._verify_youtube_cli_tools(tools, root)
+    assert calls == ["yt-dlp", "deno", "yt-dlp", "deno"]
