@@ -44,3 +44,11 @@
 `tests/test_ci_workflow_contracts.py`는 일반 PR 패키징 금지, `verify` 이름·업스트림 실패 전파, 코드 CI 필수 테스트, lockfile 기반/정기 보안 감사 트리거가 유지되는지 검사합니다.
 
 변경된 워크플로의 실행 시간이 개선되었는지는 PR/merge의 실제 GitHub Actions 소요 시간으로 판단합니다. 이 문서가 특정 속도 개선 수치를 보장하지는 않습니다.
+
+## 6. 모델 비의존 제품 E2E — AST-14
+
+출시 전 기본 제품 흐름은 실제 AI 가중치/외부 음원을 사용하지 않고도 검증합니다.
+
+- Python `tests/test_notation_product_e2e.py`: 테스트 내부에서 만든 MusicXML/MIDI → 실제 `/api/import/notation` → SQLite 곡 라이브러리 → 노트 가사 수정 → Undo → 수정 재적용 → `/export-to`로 실제 MusicXML/MIDI/PDF/파트 파일까지 임시 폴더에 생성·검증합니다. Job worker만 테스트 스레드에서 동기 실행하며 notation 변환·렌더러는 실 구현을 사용합니다.
+- Playwright `desktop/e2e/notation-publish-flow.spec.ts`: 사용자 파일 선택, 가져오기 작업 상태, 라이브러리, 편집, Undo, 최종 내보내기 요청의 UI 연결을 검증합니다. 외부 백엔드와 OS 폴더 대화상자는 모의 응답을 사용하므로 사용자 화면 계약을 독립적으로 검사할 수 있습니다.
+- AI/실제 음원 채보 품질은 별도 Tier 2 (#34)의 후속 acceptance입니다. 이 테스트들의 성공을 모델 정확도나 3-OS 클린 머신 패키지 acceptance로 혼동하지 않습니다.
