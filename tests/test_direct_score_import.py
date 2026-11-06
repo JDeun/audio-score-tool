@@ -139,3 +139,58 @@ def test_malformed_midi_failure_is_contained_to_job(tmp_path: Path, monkeypatch)
     assert final["stage"] == "failed"
     assert "malformed MIDI" in final["error"]
     assert not (jobs / "job-broken-midi" / "outputs" / "score.musicxml").exists()
+
+
+def test_midi_converter_generated_doctype_is_normalized_without_relaxing_upload_checks(
+    tmp_path: Path, monkeypatch,
+):
+    jobs = tmp_path / "jobs"
+    source = tmp_path / "score.mid"
+    source.write_bytes(b"MThd")
+    store = FakeStore()
+    monkeypatch.setattr(imports, "_store", store)
+    monkeypatch.setattr(imports, "jobs_dir", lambda: jobs)
+
+    doctype = (
+        '<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" '
+        '"http://www.musicxml.org/dtds/partwise.dtd">'
+    )
+
+    def generate_with_doctype(_source: Path, target: Path):
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(VALID_XML.replace("<score-partwise", doctype + "\n<score-partwise"), encoding="utf-8")
+        return target
+
+    monkeypatch.setattr(imports, "midi_to_musicxml", generate_with_doctype)
+    imports._worker("generated-midi", source, ".mid")
+    result = store.updates[-1][1]
+    assert result["status"] == "done", result.get("error")
+    normalized = Path(result["result"]["musicxml"]).read_text(encoding="utf-8")
+    assert "<!DOCTYPE" not in normalized
+    assert "<score-partwise" in normalized
+
+    user_upload = tmp_path / "user-upload.musicxml"
+    user_upload.write_text(VALID_XML.replace("<score-partwise", doctype + "\n<score-partwise"), encoding="utf-8")
+    with pytest.raises(ValueError, match="DOCTYPE/ENTITY"):
+        imports._validate_musicxml_file(user_upload)
+
+
+def test_generated_midi_xml_with_internal_entity_is_still_rejected(tmp_path: Path, monkeypatch):
+    jobs = tmp_path / "jobs"
+    source = tmp_path / "score.mid"
+    source.write_bytes(b"MThd")
+    store = FakeStore()
+    monkeypatch.setattr(imports, "_store", store)
+    monkeypatch.setattr(imports, "jobs_dir", lambda: jobs)
+
+    def generate_unsafe(_source: Path, target: Path):
+        target.parent.mkdir(parents=True, exist_ok=True)
+        payload = '<!DOCTYPE score-partwise [<!ENTITY injected "unsafe">]>\n' + VALID_XML
+        target.write_text(payload, encoding="utf-8")
+        return target
+
+    monkeypatch.setattr(imports, "midi_to_musicxml", generate_unsafe)
+    imports._worker("unsafe-generated-midi", source, ".mid")
+    final = store.updates[-1][1]
+    assert final["status"] == "failed"
+    assert "ENTITY" in final["error"]
