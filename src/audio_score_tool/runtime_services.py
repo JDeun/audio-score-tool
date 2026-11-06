@@ -18,7 +18,7 @@ from .paths import jobs_dir
 from .pipeline import PipelineCancelled
 from .pipeline_v2 import transcribe
 from .preflight_v2 import preflight
-from .presets import list_presets, resolve_preset
+from .presets import list_presets, resolve_job_models
 from .runtime_settings import runtime_settings
 from .settings_store import SettingsStore
 from .setup_info import setup_instructions
@@ -438,12 +438,16 @@ async def create_job(
     whisperx_model: str | None = Form(None),
 ) -> dict:
     try:
-        selected = resolve_preset(preset)
+        defaults = _runtime_settings()
+        resolved_muscriptor, resolved_whisperx = resolve_job_models(
+            preset,
+            selected_muscriptor_model=defaults.muscriptor_model,
+            selected_whisperx_model=defaults.whisperx_model,
+            muscriptor_override=muscriptor_model,
+            whisperx_override=whisperx_model,
+        )
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
-
-    resolved_muscriptor = muscriptor_model or selected.muscriptor_model
-    resolved_whisperx = whisperx_model or selected.whisperx_model
 
     suffix = _validate_upload(file.filename, _AUDIO_EXTENSIONS, "audio")
     job_id = uuid.uuid4().hex
@@ -491,12 +495,16 @@ def create_youtube_job(payload: YouTubeJobRequest) -> dict:
 
     try:
         url = validate_youtube_url(payload.url)
-        selected = resolve_preset(payload.preset)
+        defaults = _runtime_settings()
+        resolved_muscriptor, resolved_whisperx = resolve_job_models(
+            payload.preset,
+            selected_muscriptor_model=defaults.muscriptor_model,
+            selected_whisperx_model=defaults.whisperx_model,
+            muscriptor_override=payload.muscriptor_model,
+            whisperx_override=payload.whisperx_model,
+        )
     except (YouTubeSourceError, ValueError) as exc:
         raise HTTPException(422, str(exc)) from exc
-
-    resolved_muscriptor = payload.muscriptor_model or selected.muscriptor_model
-    resolved_whisperx = payload.whisperx_model or selected.whisperx_model
 
     job_id = uuid.uuid4().hex
     job_dir = jobs_dir() / job_id
