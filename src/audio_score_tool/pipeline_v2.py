@@ -188,7 +188,7 @@ def transcribe(
         warnings.append(f"Automatic chord analysis was skipped: {exc}")
     emit("chord_analysis", 62)
 
-    if skip_lyrics:
+    def score_without_lyrics() -> PipelineResult:
         emit("complete", 100)
         return PipelineResult(
             work_dir=work_dir,
@@ -205,107 +205,131 @@ def transcribe(
             warnings=warnings,
         )
 
-    emit("vocal_separation", 65)
-    stems_dir.mkdir()
-    vocals_path: Path | None = None
-    lyrics_audio = transcription_audio
-    if command_exists(settings.demucs_cmd):
-        try:
-            run_command(
-                settings.demucs_cmd,
-                [
-                    "--two-stems",
-                    "vocals",
-                    "-d",
-                    device.demucs_device,
-                    "-o",
-                    stems_dir,
-                    transcription_audio,
-                ],
-                cancel_event=cancel_event,
-            )
-            vocals_path = _find_one(stems_dir, "vocals.wav")
-            lyrics_audio = vocals_path
-        except CommandCancelled as exc:
-            raise PipelineCancelled("Vocal separation cancelled.") from exc
-        except (CommandError, PipelineError) as exc:
+    if skip_lyrics:
+        return score_without_lyrics()
+
+    # Lyrics are optional evidence/enrichment: never discard a valid AMT score
+    # just because the managed WhisperX component is missing.
+    if not command_exists(settings.whisperx_cmd):
+        warnings.append("WhisperX is unavailable. Lyrics were skipped; the base score is preserved.")
+        return score_without_lyrics()
+
+    def run_optional_lyrics() -> PipelineResult:
+        emit("vocal_separation", 65)
+        stems_dir.mkdir()
+        vocals_path: Path | None = None
+        lyrics_audio = transcription_audio
+        if command_exists(settings.demucs_cmd):
+            try:
+                run_command(
+                    settings.demucs_cmd,
+                    [
+                        "--two-stems",
+                        "vocals",
+                        "-d",
+                        device.demucs_device,
+                        "-o",
+                        stems_dir,
+                        transcription_audio,
+                    ],
+                    cancel_event=cancel_event,
+                )
+                vocals_path = _find_one(stems_dir, "vocals.wav")
+                lyrics_audio = vocals_path
+            except CommandCancelled as exc:
+                raise PipelineCancelled("Vocal separation cancelled.") from exc
+            except (CommandError, PipelineError) as exc:
+                warnings.append(
+                    "Demucs vocal separation failed; lyrics ASR is using the music-region mix instead. "
+                    f"Details: {exc}"
+                )
+        else:
             warnings.append(
-                "Demucs vocal separation failed; lyrics ASR is using the music-region mix instead. "
-                f"Details: {exc}"
+                "Demucs is not available; lyrics ASR is using the music-region mix. "
+                "Install Demucs only if isolated vocals improve lyric accuracy."
             )
-    else:
-        warnings.append(
-            "Demucs is not available; lyrics ASR is using the music-region mix. "
-            "Install Demucs only if isolated vocals improve lyric accuracy."
+
+        emit("vocal_separation", 74)
+        emit("lyrics_asr", 77)
+        lyrics_dir.mkdir()
+        whisper_args: list[str | Path] = [
+            lyrics_audio,
+            "--model",
+            settings.whisperx_model,
+            "--device",
+            device.whisperx_device,
+            "--compute_type",
+            device.whisperx_compute_type,
+            "--output_dir",
+            lyrics_dir,
+            "--output_format",
+            "json",
+        ]
+        if language:
+            whisper_args += ["--language", language]
+
+        try:
+            run_command(settings.whisperx_cmd, whisper_args, cancel_event=cancel_event)
+        except CommandCancelled as exc:
+            raise PipelineCancelled("Lyrics transcription cancelled.") from exc
+        except CommandError as exc:
+            raise PipelineError(f"WhisperX failed.\n{exc}") from exc
+
+        transcript_json = _find_whisper_json(lyrics_dir)
+        words = load_whisperx_words(transcript_json)
+        if not words:
+            raise PipelineError("WhisperX completed but produced no word-level timings.")
+        emit("lyrics_asr", 89)
+
+        aligned_tokens = expand_korean_syllables(words) if language == "ko" else words
+        emit("lyric_alignment", 92)
+        lyric_musicxml = work_dir / "score_with_lyrics.musicxml"
+        part_id, attached = attach_lyrics_to_musicxml(musicxml_path, lyric_musicxml, aligned_tokens)
+        metadata = {
+            "language": language,
+            "selected_part_id": part_id,
+            "word_count": len(words),
+            "lyric_token_count": len(aligned_tokens),
+            "attached_token_count": attached,
+            "automatic_chord_count": len(inferred_chords),
+            "transcription_engine": engine.key,
+            "vocal_separation": "demucs" if vocals_path else "full_mix_fallback",
+            "device_plan": device.as_dict(),
+            "export_policy": "deferred_until_user_export",
+            "music_structure": structure.as_dict(),
+            "pickup_normalization": pickup_result.as_dict(),
+            "choir": choir_result.as_dict(),
+        }
+        (work_dir / "alignment.json").write_text(
+            json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8"
         )
 
-    emit("vocal_separation", 74)
-    emit("lyrics_asr", 77)
-    lyrics_dir.mkdir()
-    whisper_args: list[str | Path] = [
-        lyrics_audio,
-        "--model",
-        settings.whisperx_model,
-        "--device",
-        device.whisperx_device,
-        "--compute_type",
-        device.whisperx_compute_type,
-        "--output_dir",
-        lyrics_dir,
-        "--output_format",
-        "json",
-    ]
-    if language:
-        whisper_args += ["--language", language]
+        emit("complete", 100)
+        return PipelineResult(
+            work_dir=work_dir,
+            score_dir=score_dir,
+            midi_path=midi_path,
+            musicxml_path=musicxml_path,
+            lyric_musicxml_path=lyric_musicxml,
+            pdf_path=None,
+            transcript_json_path=transcript_json,
+            vocals_path=vocals_path,
+            chord_report_path=chord_report if chord_report.exists() else None,
+            structure_report_path=structure_report,
+            part_pdfs=[],
+            warnings=warnings,
+        )
 
     try:
-        run_command(settings.whisperx_cmd, whisper_args, cancel_event=cancel_event)
-    except CommandCancelled as exc:
-        raise PipelineCancelled("Lyrics transcription cancelled.") from exc
-    except CommandError as exc:
-        raise PipelineError(f"WhisperX failed.\n{exc}") from exc
-
-    transcript_json = _find_whisper_json(lyrics_dir)
-    words = load_whisperx_words(transcript_json)
-    if not words:
-        raise PipelineError("WhisperX completed but produced no word-level timings.")
-    emit("lyrics_asr", 89)
-
-    aligned_tokens = expand_korean_syllables(words) if language == "ko" else words
-    emit("lyric_alignment", 92)
-    lyric_musicxml = work_dir / "score_with_lyrics.musicxml"
-    part_id, attached = attach_lyrics_to_musicxml(musicxml_path, lyric_musicxml, aligned_tokens)
-    metadata = {
-        "language": language,
-        "selected_part_id": part_id,
-        "word_count": len(words),
-        "lyric_token_count": len(aligned_tokens),
-        "attached_token_count": attached,
-        "automatic_chord_count": len(inferred_chords),
-        "transcription_engine": engine.key,
-        "vocal_separation": "demucs" if vocals_path else "full_mix_fallback",
-        "device_plan": device.as_dict(),
-        "export_policy": "deferred_until_user_export",
-        "music_structure": structure.as_dict(),
-        "pickup_normalization": pickup_result.as_dict(),
-        "choir": choir_result.as_dict(),
-    }
-    (work_dir / "alignment.json").write_text(
-        json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-
-    emit("complete", 100)
-    return PipelineResult(
-        work_dir=work_dir,
-        score_dir=score_dir,
-        midi_path=midi_path,
-        musicxml_path=musicxml_path,
-        lyric_musicxml_path=lyric_musicxml,
-        pdf_path=None,
-        transcript_json_path=transcript_json,
-        vocals_path=vocals_path,
-        chord_report_path=chord_report if chord_report.exists() else None,
-        structure_report_path=structure_report,
-        part_pdfs=[],
-        warnings=warnings,
-    )
+        return run_optional_lyrics()
+    except PipelineCancelled:
+        # User cancellation is intentional and must still abort the Job.
+        raise
+    except Exception as exc:
+        # A broken optional ASR/alignment path is not evidence that the
+        # independently generated canonical MusicXML/MIDI is invalid.
+        warnings.append(
+            f"Optional lyrics processing failed; base score preserved "
+            f"({type(exc).__name__}): {exc}"
+        )
+        return score_without_lyrics()
