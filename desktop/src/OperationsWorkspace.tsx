@@ -177,6 +177,7 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
   const [referenceMidi, setReferenceMidi] = useState<File | null>(null);
   const [benchmarkProfile, setBenchmarkProfile] = useState("all");
   const [toolPaths, setToolPaths] = useState<Record<string, string>>({});
+  const [autoLocalIdentification, setAutoLocalIdentification] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<{ message: string; kind: "success" | "error" } | null>(null);
   const [confirm, setConfirm] = useState<ConfirmState>(null);
@@ -216,6 +217,38 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
     }
   };
 
+  const refreshLocalIdentification = async () => {
+    try {
+      const response = await fetch(`${API}/api/settings/local-identification`);
+      if (!response.ok) return;
+      const body = await response.json();
+      setAutoLocalIdentification(body.enabled === true);
+    } catch {
+      // Offline status is handled by health.
+    }
+  };
+
+  const saveLocalIdentification = async (enabled: boolean) => {
+    setBusy(true);
+    try {
+      const response = await fetch(`${API}/api/settings/local-identification`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+      if (!response.ok) throw new Error(await response.text());
+      const payload = await response.json();
+      setAutoLocalIdentification(payload.enabled === true);
+      showToast(payload.enabled
+        ? "새 음원 등록 시 로컬 태그 자동 식별을 활성화했습니다."
+        : "로컬 태그 자동 식별을 비활성화했습니다.");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : String(error), "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const refreshJobs = async () => {
     try {
       const response = await fetch(`${API}/api/jobs?limit=100`);
@@ -230,6 +263,7 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
   useEffect(() => {
     void refreshHealth();
     void refreshSetup();
+    void refreshLocalIdentification();
     void refreshJobs();
     const timer = window.setInterval(() => {
       void refreshHealth();
@@ -570,6 +604,21 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
             </>
           )}
         </div></section>
+        <section className="work-card local-identification-card">
+          <div>
+            <span className="card-kicker">로컬 메타데이터</span>
+            <h3>새 음원 태그 자동 식별</h3>
+            <p>사용자가 활성화한 경우에만 새 음원의 제목·아티스트 태그를 컴퓨터 안에서 읽어 악보에 반영합니다. 외부 MusicBrainz·AcoustID 요청은 자동으로 보내지 않습니다. 변경은 Undo로 복구할 수 있습니다.</p>
+          </div>
+          <label className="enrichment-commercial-check">
+            <input type="checkbox"
+              checked={autoLocalIdentification === true}
+              disabled={busy || autoLocalIdentification === null || offline}
+              onChange={(event) => void saveLocalIdentification(event.target.checked)}
+            />
+            <span>{autoLocalIdentification === null ? "설정 확인 중" : "로컬-only 자동 식별 사용"}</span>
+          </label>
+        </section>
         <section className="work-card storage-card"><div><span className="card-kicker">저장공간 관리</span><h3>오래된 작업 데이터 정리</h3><p>곡 라이브러리는 유지하고, 최근 30개를 제외한 오래된 작업 임시파일만 정리합니다.</p></div><button className="secondary-button" onClick={cleanupStorage}>저장공간 정리</button></section>
         {offline && <div className="offline-banner"><strong>로컬 백엔드에 연결할 수 없습니다.</strong><span>AudioScoreTool 백엔드가 실행 중인지 확인하세요.</span></div>}
       </div>
