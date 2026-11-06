@@ -10,10 +10,11 @@ from fastapi import APIRouter, HTTPException
 from . import api as base_api
 from .job_admission import JobCapacityError, reserve_job
 from .paths import jobs_dir, song_assets_dir
+from .preflight_v2 import preflight
 from .presets import resolve_job_models
 from .runtime_settings import runtime_settings
 from .song_store_v2 import SongStoreV2
-from .youtube import YouTubeSourceError, validate_youtube_url
+from .youtube import YouTubeSourceError, validate_youtube_url, youtube_tool_status
 
 router = APIRouter(tags=["jobs-v2"])
 _songs = SongStoreV2()
@@ -103,6 +104,16 @@ def create_youtube_job_v2(payload: base_api.YouTubeJobRequest) -> dict:
         )
     except (YouTubeSourceError, ValueError) as exc:
         raise HTTPException(422, str(exc)) from exc
+
+    readiness = preflight(defaults, require_lyrics=False)
+    if not readiness["ok"]:
+        raise HTTPException(
+            503,
+            "채보 필수 실행환경이 준비되지 않았습니다: " + ", ".join(readiness["missing"]),
+        )
+    if not youtube_tool_status(defaults)["ready"]:
+        raise HTTPException(503, "YouTube 가져오기 구성요소가 준비되지 않았습니다.")
+
     job_id = uuid.uuid4().hex
     _reserve_or_429(
         job_id,

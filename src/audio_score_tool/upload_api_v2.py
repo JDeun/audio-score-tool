@@ -10,6 +10,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from . import api as base_api
 from .job_admission import JobCapacityError, reserve_job
 from .paths import jobs_dir
+from .preflight_v2 import preflight
 from .presets import resolve_job_models
 from .runtime_settings import runtime_settings
 from .upload_storage import UploadStorageError, persist_stream_atomic
@@ -65,6 +66,12 @@ async def create_job_v2(
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     suffix = base_api._validate_upload(file.filename, base_api._AUDIO_EXTENSIONS, "audio")
+    readiness = preflight(defaults, require_lyrics=False)
+    if not readiness["ok"]:
+        raise HTTPException(
+            503,
+            "채보 필수 실행환경이 준비되지 않았습니다: " + ", ".join(readiness["missing"]),
+        )
 
     job_id = uuid.uuid4().hex
     _reserve_or_429(

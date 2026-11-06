@@ -108,7 +108,7 @@ Audiveris 기반 OMR은 선택 기능입니다. 사용자가 Java/Audiveris를 �
 
 ### 가사/오디오 검증
 
-WhisperX, Demucs, FFmpeg, FluidSynth, SoundFont 등은 관련 기능에만 영향을 줍니다. 이들의 부재가 MusicXML/MIDI/PDF 편집·출판 workflow를 차단해서는 안 됩니다.
+WhisperX, Demucs, FFmpeg, FluidSynth, SoundFont 등은 관련 기능에만 영향을 줍니다. 이들의 부재가 MusicXML/MIDI/PDF 편집·출판 workflow를 차단해서는 안 됩니다. WhisperX가 준비되지 않았으면 새 악보에서 가사 옵션을 기본 비활성화하며, 선택적 가사 처리 중 실패해도 이미 생성한 MIDI/MusicXML은 보존하고 원인 경고를 Job 결과에 남깁니다. 단, 사용자가 취소한 작업은 정상적인 취소로 처리합니다.
 
 ## 계정/네트워크가 필요한 경우
 
