@@ -22,7 +22,7 @@ YourMT3+           ← 정확도 우선 후보, 배포 provenance 검토 필요
 MR-MT3             ← MIT 경로가 더 단순
 ```
 
-`auto` preset도 v0.8부터 **Quality**로 해석합니다. Fast/Balanced는 사용자가 명시적으로 선택할 때만 사용합니다.
+데스크톱 **새 악보 Job의 `auto`**는 Model Manager/엔진 설정에 저장된 기본 모델 크기를 사용합니다(최초 기본값은 개인 모드 MuScriptor large). `fast`/`balanced`/`quality`는 명시적 preset으로 모델 크기를 덮어쓰며 `custom`은 명시적으로 선택한 크기를 우선합니다. 공용 `recommended_preset()`의 권장값 Quality는 사용자가 별도 선택할 수 있는 품질 정책이며, 실제 Job의 `auto`를 무조건 Large로 덮어쓰지 않습니다.
 
 ---
 
