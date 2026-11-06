@@ -11,7 +11,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from audio_score_tool.managed_publication_readiness import CORE_COMPONENTS, _REQUIRED_TOOLS
+from audio_score_tool.managed_publication_readiness import _REQUIRED_TOOLS, CORE_COMPONENTS
 
 ROOT = Path(__file__).resolve().parents[1]
 BIN_DIR = ROOT / "desktop" / "src-tauri" / "binaries"
