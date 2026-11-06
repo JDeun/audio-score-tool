@@ -97,14 +97,6 @@ const stageLabel: Record<string, string> = {
   complete: "완료",
 };
 
-const presetLabel: Record<string, string> = {
-  auto: "자동",
-  fast: "빠르게",
-  balanced: "균형",
-  quality: "고품질",
-  custom: "직접 선택",
-};
-
 function formatBytes(bytes?: number) {
   if (bytes == null) return "—";
   const units = ["B", "KB", "MB", "GB", "TB"];
@@ -253,7 +245,6 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
   }, [job?.job_id, job?.status]);
 
   const active = !!job && ["queued", "running", "cancelling"].includes(job.status);
-  const recommended = health?.presets.recommended ?? "balanced";
   const accelerator = useMemo(() => {
     const device = health?.device_plan.muscriptor_device;
     if (!device) return "확인 중";
@@ -522,7 +513,7 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
         <section className="transcription-options work-card">
           <div className="section-title-row"><div><span className="card-kicker">채보 설정</span><h3>결과 품질과 가사 인식을 선택하세요</h3></div><span className="hardware-badge">{accelerator}</span></div>
           <div className="premium-form-grid">
-            <label><span>품질</span><select value={preset} onChange={(event) => setPreset(event.target.value)}><option value="auto">자동 · {presetLabel[recommended] ?? recommended}</option><option value="fast">빠르게</option><option value="balanced">균형</option><option value="quality">고품질</option><option value="custom">직접 선택</option></select><small>현재 컴퓨터에서는 ‘{presetLabel[recommended] ?? recommended}’을 권장합니다.</small></label>
+            <label><span>품질</span><select value={preset} onChange={(event) => setPreset(event.target.value)}><option value="auto">자동 · 엔진 설정 기본값</option><option value="fast">빠르게</option><option value="balanced">균형</option><option value="quality">고품질</option><option value="custom">직접 선택</option></select><small>자동은 모델 관리자에서 선택한 기본 모델을 사용합니다. 빠르게·균형·고품질은 명시적인 모델 크기 설정입니다.</small></label>
             <label><span>가사 언어</span><select value={language} disabled={!lyrics} onChange={(event) => setLanguage(event.target.value)}><option value="ko">한국어</option><option value="en">영어</option><option value="">자동 감지</option></select><small>가사 정렬 정확도를 높이려면 언어를 직접 지정하세요.</small></label>
             <label className="switch-field"><span>가사 인식·정렬</span><button className={`product-switch ${lyrics ? "on" : ""}`} onClick={() => setLyrics((value) => !value)} aria-pressed={lyrics}><i />{lyrics ? "포함" : "악보만"}</button><small>보컬 파트에 인식한 가사를 자동 배치합니다.</small></label>
           </div>

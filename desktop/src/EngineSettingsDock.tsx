@@ -150,7 +150,7 @@ export default function EngineSettingsDock() {
               </select>
             </label>
             <p>
-              개인 모드는 MuScriptor-large를 최우선으로 사용합니다. 상용 모드에서는 CC BY-NC weights를 자동 차단합니다.
+              개인 모드에서는 선택한 MuScriptor 모델 크기를 기본 채보에 사용합니다(초기 권장값 Large). 상용 모드에서는 CC BY-NC weights를 자동 차단합니다.
             </p>
           </div>
 

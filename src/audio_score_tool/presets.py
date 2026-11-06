@@ -35,7 +35,7 @@ PRESETS = {
         label="Quality",
         muscriptor_model="large",
         whisperx_model="large-v3",
-        description="Default: highest configured transcription/lyrics quality; substantially slower.",
+        description="Explicit highest configured transcription/lyrics quality; substantially slower.",
     ),
 }
 
@@ -61,3 +61,31 @@ def resolve_preset(key: str) -> ModelPreset:
         return PRESETS[key]
     except KeyError as exc:
         raise ValueError(f"Unknown preset: {key}") from exc
+
+
+def resolve_job_models(
+    preset: str,
+    *,
+    selected_muscriptor_model: str,
+    selected_whisperx_model: str = "small",
+    muscriptor_override: str | None = None,
+    whisperx_override: str | None = None,
+) -> tuple[str, str]:
+    """Resolve effective per-Job models, independent of model-quality evaluation.
+
+    The desktop Model Manager controls the saved default for the *auto* option.
+    Fast/balanced/quality are explicit overrides; custom requests supply named
+    model overrides with one of those valid presets as their fallback.
+    """
+
+    configured = resolve_preset(preset)
+    if preset == "auto":
+        fallback_muscriptor = selected_muscriptor_model
+        fallback_whisperx = selected_whisperx_model
+    else:
+        fallback_muscriptor = configured.muscriptor_model
+        fallback_whisperx = configured.whisperx_model
+    return (
+        muscriptor_override or fallback_muscriptor,
+        whisperx_override or fallback_whisperx,
+    )

@@ -10,6 +10,8 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from . import api as base_api
 from .job_admission import JobCapacityError, reserve_job
 from .paths import jobs_dir
+from .presets import resolve_job_models
+from .runtime_settings import runtime_settings
 from .upload_storage import UploadStorageError, persist_stream_atomic
 
 router = APIRouter(tags=["uploads-v2"])
@@ -52,12 +54,16 @@ async def create_job_v2(
     whisperx_model: str | None = Form(None),
 ) -> dict:
     try:
-        selected = base_api.resolve_preset(preset)
+        defaults = runtime_settings()
+        resolved_muscriptor, resolved_whisperx = resolve_job_models(
+            preset,
+            selected_muscriptor_model=defaults.muscriptor_model,
+            selected_whisperx_model=defaults.whisperx_model,
+            muscriptor_override=muscriptor_model,
+            whisperx_override=whisperx_model,
+        )
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
-
-    resolved_muscriptor = muscriptor_model or selected.muscriptor_model
-    resolved_whisperx = whisperx_model or selected.whisperx_model
     suffix = base_api._validate_upload(file.filename, base_api._AUDIO_EXTENSIONS, "audio")
 
     job_id = uuid.uuid4().hex
