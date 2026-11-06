@@ -16,6 +16,7 @@ type Health = {
   status: string;
   device_plan: DevicePlan;
   preflight: { ok: boolean; missing: string[]; tools: Record<string, boolean> };
+  youtube?: { ready: boolean };
   presets: { recommended: string; presets: { key: string; label: string; description: string }[] };
   data_dir: string;
   system: {
@@ -166,7 +167,8 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
   const [youtubeAuthorized, setYoutubeAuthorized] = useState(false);
   const [preset, setPreset] = useState("auto");
   const [language, setLanguage] = useState("ko");
-  const [lyrics, setLyrics] = useState(true);
+  const [lyrics, setLyrics] = useState(false);
+  const lyricsPreferenceTouched = useRef(false);
   const [muscriptorModel, setMuscriptorModel] = useState("medium");
   const [whisperxModel, setWhisperxModel] = useState("small");
   const [benchmarkFile, setBenchmarkFile] = useState<File | null>(null);
@@ -181,6 +183,13 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
   const midiRef = useRef<HTMLInputElement>(null);
 
   const showToast = (message: string, kind: "success" | "error" = "success") => setToast({ message, kind });
+  const whisperxReady = health?.preflight.tools.whisperx === true;
+
+  useEffect(() => {
+    if (!health) return;
+    if (!whisperxReady) setLyrics(false);
+    else if (!lyricsPreferenceTouched.current) setLyrics(true);
+  }, [whisperxReady, Boolean(health)]);
 
   const refreshHealth = async () => {
     try {
@@ -515,10 +524,10 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
           <div className="premium-form-grid">
             <label><span>품질</span><select value={preset} onChange={(event) => setPreset(event.target.value)}><option value="auto">자동 · 엔진 설정 기본값</option><option value="fast">빠르게</option><option value="balanced">균형</option><option value="quality">고품질</option><option value="custom">직접 선택</option></select><small>자동은 모델 관리자에서 선택한 기본 모델을 사용합니다. 빠르게·균형·고품질은 명시적인 모델 크기 설정입니다.</small></label>
             <label><span>가사 언어</span><select value={language} disabled={!lyrics} onChange={(event) => setLanguage(event.target.value)}><option value="ko">한국어</option><option value="en">영어</option><option value="">자동 감지</option></select><small>가사 정렬 정확도를 높이려면 언어를 직접 지정하세요.</small></label>
-            <label className="switch-field"><span>가사 인식·정렬</span><button className={`product-switch ${lyrics ? "on" : ""}`} onClick={() => setLyrics((value) => !value)} aria-pressed={lyrics}><i />{lyrics ? "포함" : "악보만"}</button><small>보컬 파트에 인식한 가사를 자동 배치합니다.</small></label>
+            <label className="switch-field"><span>가사 인식·정렬</span><button className={`product-switch ${lyrics ? "on" : ""}`} disabled={!whisperxReady} onClick={() => { lyricsPreferenceTouched.current = true; setLyrics((value) => !value); }} aria-pressed={lyrics}><i />{lyrics ? "포함" : "악보만"}</button><small>{whisperxReady ? "보컬 파트에 인식한 가사를 자동 배치합니다." : "WhisperX 미설치: 가사 없이 악보를 생성합니다."}</small></label>
           </div>
           {preset === "custom" && <div className="custom-model-row"><label><span>MuScriptor</span><select value={muscriptorModel} onChange={(event) => setMuscriptorModel(event.target.value)}><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></label><label><span>WhisperX</span><select value={whisperxModel} disabled={!lyrics} onChange={(event) => setWhisperxModel(event.target.value)}><option value="small">Small</option><option value="medium">Medium</option><option value="large-v3">Large v3</option></select></label></div>}
-          <div className="primary-action-row">{!health?.preflight.ok && <span className="setup-needed">일부 실행 환경을 확인해야 합니다. 설정 메뉴에서 상태를 확인하세요.</span>}<button className="primary-button large" disabled={busy || active || offline || (sourceMode === "file" ? !file : !youtubeMetadata || !youtubeAuthorized)} onClick={() => void startTranscription()}>{active ? "작업 진행 중" : "자동 채보 시작"}</button></div>
+          <div className="primary-action-row">{!health?.preflight.ok && <span className="setup-needed">일부 실행 환경을 확인해야 합니다. 설정 메뉴에서 상태를 확인하세요.</span>}<button className="primary-button large" disabled={busy || active || offline || !health?.preflight.ok || (sourceMode === "youtube" && health?.youtube?.ready === false) || (sourceMode === "file" ? !file : !youtubeMetadata || !youtubeAuthorized)} onClick={() => void startTranscription()}>{active ? "작업 진행 중" : "자동 채보 시작"}</button></div>
         </section>
         {currentJobCard}
         <section className="workflow-strip" aria-label="자동 채보 과정"><div><b>1</b><span>음원 분석</span></div><i /><div><b>2</b><span>파트별 채보</span></div><i /><div><b>3</b><span>코드·가사</span></div><i /><div><b>4</b><span>악보 편집</span></div><i /><div><b>5</b><span>PDF 내보내기</span></div></section>
