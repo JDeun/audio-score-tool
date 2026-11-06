@@ -23,7 +23,7 @@ _TOOLS = ("yt-dlp", "deno", "ffmpeg", "ffprobe")
 _TARGETS = {"windows-x86_64", "macos-aarch64"}
 _SAFE_VERSION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 _SHA256 = re.compile(r"^[a-f0-9]{64}$")
-_PLACEHOLDERS = {"", "tbd", "todo", "unknown", "latest", "unreviewed", "runtime-specific"}
+_PLACEHOLDERS = {"", "tbd", "pending", "unknown", "latest", "unreviewed", "runtime-specific"}
 _MAX_NOTICE_BYTES = 4 * 1024 * 1024
 
 
