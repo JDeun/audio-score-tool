@@ -501,16 +501,15 @@ export default function SongWorkspace() {
   const saveCredits = async () => {
     if (!song) return;
     await withBusy(async () => {
-      const meta = await fetch(`${API}/api/songs/${song.song_id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, artist }),
-      });
-      if (!meta.ok) throw new Error(await meta.text());
-      const response = await fetch(`${API}/api/songs/${song.song_id}/publication`, {
+      // First-page title, song metadata and publication credits are one
+      // canonical edit/Undo revision, never two partial PATCH requests.
+      const response = await fetch(`${API}/api/songs/${song.song_id}/credits`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          title,
+          artist,
+          expected_revision: song.revision,
           subtitle: publication.subtitle,
           composer: publication.composer,
           lyricist: publication.lyricist,
