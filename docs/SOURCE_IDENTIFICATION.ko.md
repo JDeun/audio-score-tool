@@ -65,7 +65,7 @@ AcoustID confidence가 0.90 이상일 때 후보로 선택하고, 자동 metadat
 
 설정의 `새 음원 태그 자동 식별`은 **기본 OFF인 별도 옵트인 기능**입니다. 활성화하면 새 오디오 Job이 Song 라이브러리에 최초 등록되는 시점에만 앱 내부 `mutagen`으로 embedded title/artist를 읽습니다. 이름과 아티스트가 모두 있어 신뢰도 1.0이면 SQLite Song·MusicXML 제목·출판 조판을 원자적으로 한 Revision에 반영합니다. Undo로 되돌릴 수 있습니다. 등록 후 이미 편집된 곡은 덮어쓰지 않습니다.
 
-이 등록 시점의 로컬 식별은 `ISRC` 조회, AcoustID fingerprint/`fpcalc`, MusicBrainz 또는 외부 HTTP 요청을 **절대 수행하지 않습니다**. 원본 오디오는 Job 임시파일과 별개인 Song managed asset `original-audio.*`에 보존하며, 설정을 꺼도 수동 식별이 원본을 찾을 수 있습니다. 옵션 해제는 향후 등록되는 Song에 적용됩니다.
+이 등록 시점의 로컬 식별은 `ISRC` 조회, AcoustID fingerprint/`fpcalc`, MusicBrainz 또는 외부 HTTP 요청을 **절대 수행하지 않습니다**. 원본 오디오는 Job 임시파일과 별개인 Song managed asset `original-audio.*`에 보존하며, 설정을 꺼도 수동 식별이 원본을 찾을 수 있습니다. 옵션 해제는 향후 등록되는 Song에 적용됩니다. **기존 버전에서 등록된 곡은 원본 파일이 Song asset에 없을 수 있습니다.** 수동 식별을 명시적으로 실행할 때 이전 Job의 안전한 `input.*`가 남아 있으면 앱 자산에 한 번 복구합니다. 작업 데이터 정리로 원본이 이미 없어졌다면 파일을 추정하지 않고 `no_audio`로 표시합니다.
 
 이 버튼의 '자동'은 *사용자가 실행을 시작한 이후* 로컬 태그 → ISRC → 조건부 AcoustID/MusicBrainz 후보 선택 과정을 자동 처리한다는 뜻이며, 곡 등록 직후의 무인 백그라운드 네트워크 요청을 뜻하지 않습니다.
 
