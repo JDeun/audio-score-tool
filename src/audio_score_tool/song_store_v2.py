@@ -11,6 +11,7 @@ from threading import Lock, get_ident
 from typing import Any
 
 from .paths import cache_dir, database_path, exports_dir, jobs_dir, song_assets_dir
+from .settings_store import SettingsStore
 from .sqlite_runtime import connect_sqlite
 
 
@@ -209,6 +210,43 @@ class SongStoreV2:
         shutil.copy2(path, target)
         return str(target)
 
+    def _preserve_original_audio(self, song_id: str) -> Path | None:
+        """Copy an owned Job input into Song assets for later local identification.
+
+        A completed Job may be deleted by storage cleanup. The source audio
+        must survive in the Song workspace, independently of temporary Jobs.
+        Reject symlinks and unsupported sources; never load from arbitrary
+        directories or use a caller-provided path.
+        """
+        safe_suffixes = {
+            ".wav", ".mp3", ".flac", ".m4a", ".aac", ".ogg", ".opus", ".webm",
+        }
+        root = (jobs_dir() / song_id).resolve()
+        if not root.is_dir():
+            return None
+        candidates = sorted(
+            file for file in root.glob("input.*")
+            if file.is_file() and not file.is_symlink()
+            and file.suffix.lower() in safe_suffixes
+            and file.resolve().parent == root
+        )
+        if len(candidates) != 1:
+            return None
+        original = candidates[0]
+        target = self.asset_root / song_id / f"original-audio{original.suffix.lower()}"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists():
+            return target if target.is_file() and not target.is_symlink() else None
+        temp = target.with_suffix(target.suffix + ".copying")
+        try:
+            with original.open("rb") as source, temp.open("xb") as destination:
+                shutil.copyfileobj(source, destination)
+            temp.replace(target)
+        except OSError:
+            temp.unlink(missing_ok=True)
+            return None
+        return target
+
     def _ingest_json_file(self, song_id: str, kind: str, path_value: str | None) -> None:
         if not path_value:
             return
@@ -263,11 +301,27 @@ class SongStoreV2:
             if not inserted:
                 continue
             created += 1
+            audio = None
+            if self._source_kind(job) in {"local", "youtube"}:
+                audio = self._preserve_original_audio(job_id)
             self._ingest_json_file(job_id, "automatic_chords", result.get("chord_report"))
             self._ingest_json_file(job_id, "lyrics_transcript", result.get("transcript_json"))
             work_dir = result.get("work_dir")
             if work_dir:
                 self._ingest_json_file(job_id, "lyric_alignment", str(Path(work_dir) / "alignment.json"))
+            # Local-only automatic tags are opt-in and run once per newly
+            # imported audio Song. No external services are called.
+            try:
+                enabled = (
+                    SettingsStore().read().get("auto_local_identification_enabled") == "true"
+                )
+                if enabled and audio is not None:
+                    from .local_source_identification import identify_local_on_import
+
+                    identify_local_on_import(self, job_id, audio)
+            except Exception:
+                # Optional metadata processing must not block Job -> Song ingestion.
+                pass
         return created
 
     def list(self) -> list[dict[str, Any]]:

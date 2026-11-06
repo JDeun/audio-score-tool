@@ -61,7 +61,11 @@ AcoustID confidence가 0.90 이상일 때 후보로 선택하고, 자동 metadat
 
 ## 5. 실행 시점 — 현재 구현
 
-현재 데스크톱에는 별도의 자동 실행 `SourceIdentificationController`가 없습니다. **사용자가 곡 라이브러리에서 곡을 선택한 후 `곡 정보 → 원본 음원 자동 식별` 버튼을 클릭할 때만** `POST /api/songs/{song_id}/identify-source`를 호출합니다.
+현재 데스크톱에는 별도의 자동 실행 `SourceIdentificationController`가 없습니다. **외부 서비스가 포함될 수 있는 식별은 사용자가 곡 라이브러리에서 `곡 정보 → 원본 음원 자동 식별`을 클릭할 때만** `POST /api/songs/{song_id}/identify-source`를 호출합니다.
+
+설정의 `새 음원 태그 자동 식별`은 **기본 OFF인 별도 옵트인 기능**입니다. 활성화하면 새 오디오 Job이 Song 라이브러리에 최초 등록되는 시점에만 앱 내부 `mutagen`으로 embedded title/artist를 읽습니다. 이름과 아티스트가 모두 있어 신뢰도 1.0이면 SQLite Song·MusicXML 제목·출판 조판을 원자적으로 한 Revision에 반영합니다. Undo로 되돌릴 수 있습니다. 등록 후 이미 편집된 곡은 덮어쓰지 않습니다.
+
+이 등록 시점의 로컬 식별은 `ISRC` 조회, AcoustID fingerprint/`fpcalc`, MusicBrainz 또는 외부 HTTP 요청을 **절대 수행하지 않습니다**. 원본 오디오는 Job 임시파일과 별개인 Song managed asset `original-audio.*`에 보존하며, 설정을 꺼도 수동 식별이 원본을 찾을 수 있습니다. 옵션 해제는 향후 등록되는 Song에 적용됩니다.
 
 이 버튼의 '자동'은 *사용자가 실행을 시작한 이후* 로컬 태그 → ISRC → 조건부 AcoustID/MusicBrainz 후보 선택 과정을 자동 처리한다는 뜻이며, 곡 등록 직후의 무인 백그라운드 네트워크 요청을 뜻하지 않습니다.
 
@@ -71,7 +75,7 @@ AcoustID confidence가 0.90 이상일 때 후보로 선택하고, 자동 metadat
 - 오디오 원본이 없는 OMR/MusicXML/MIDI 가져오기 곡은 `no_audio` 결과로 끝나며, 외부 조회를 하지 않습니다.
 - 식별 및 외부 조회 실패는 채보·편집·내보내기 실패로 전파되지 않습니다.
 
-**향후 자동 등록 트리거는 별도 정책 결정이 필요합니다.** [후속 이슈 #100](https://github.com/JDeun/audio-score-tool/issues/100)에서 로컬 태그만 자동 처리할지, 명시적 실행을 유지할지, 별도 동의가 필요한 외부 조회까지 선택 허용할지 결정합니다.
+로컬-only 자동 태그 식별은 사용자의 설정을 통한 opt-in으로 구현했습니다([#100](https://github.com/JDeun/audio-score-tool/issues/100)). **외부 AcoustID/MusicBrainz의 무인 백그라운드 식별은 미구현이며 동의/상용 서비스 권한 없이 자동 실행하지 않습니다.**
 
 ## Setup Center
 

@@ -86,6 +86,26 @@ _store = JobStore()
 _settings_store = SettingsStore()
 
 
+class LocalIdentificationPreference(BaseModel):
+    enabled: bool = False
+
+
+def get_local_identification_preference() -> dict:
+    enabled = _settings_store.read().get("auto_local_identification_enabled") == "true"
+    return {
+        "enabled": enabled,
+        "scope": "local_embedded_tags_only",
+        "external_requests": False,
+    }
+
+
+def update_local_identification_preference(payload: LocalIdentificationPreference) -> dict:
+    _settings_store.update({
+        "auto_local_identification_enabled": "true" if payload.enabled else "false",
+    })
+    return get_local_identification_preference()
+
+
 class ToolPathSettings(BaseModel):
     muscriptor_cmd: str | None = None
     demucs_cmd: str | None = None
