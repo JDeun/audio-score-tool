@@ -130,19 +130,26 @@ def compare_chord_predictions(
     for ann in annotators:
         if not isinstance(ann, dict) or not isinstance(ann.get("intervals"), list):
             raise ValueError("reference annotator intervals are required")
+        if not ann["intervals"]:
+            raise ValueError("reference chord annotator cannot have empty intervals")
         last = 0.0
         for interval in ann["intervals"]:
             if not isinstance(interval, dict) or not isinstance(interval.get("label"), str):
                 raise ValueError("reference chord annotation must have a label")
+            if not interval["label"].strip():
+                raise ValueError("reference chord annotation label cannot be empty")
             start, end = interval.get("start"), interval.get("end")
             if (
                 isinstance(start, bool) or isinstance(end, bool)
                 or not isinstance(start, (int, float)) or not isinstance(end, (int, float))
                 or not math.isfinite(start) or not math.isfinite(end)
-                or start < last or start < 0 or end <= start or end > duration + 1e-6
+                or abs(start - last) > 1e-5 or start < 0 or end <= start
+                or end > duration + 1e-6
             ):
-                raise ValueError("reference chords must be nonoverlapping valid intervals")
+                raise ValueError("reference chords need complete nonoverlapping intervals")
             last = float(end)
+        if abs(last - duration) > 1e-5:
+            raise ValueError("reference chords must cover the full recording duration")
 
     manual_scored = score(reference, manual)
     sheetsage_scored = score(reference, sheetsage)
