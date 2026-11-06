@@ -98,6 +98,18 @@ async def protect_local_mutations(request: Request, call_next):
 app.add_api_route("/api/health", runtime.health, methods=["GET"], tags=["system"])
 app.add_api_route("/api/setup", runtime.setup, methods=["GET"], tags=["system"])
 app.add_api_route("/api/settings", runtime.get_settings, methods=["GET"], tags=["settings"])
+app.add_api_route(
+    "/api/settings/local-identification",
+    runtime.get_local_identification_preference,
+    methods=["GET"],
+    tags=["settings"],
+)
+app.add_api_route(
+    "/api/settings/local-identification",
+    runtime.update_local_identification_preference,
+    methods=["PUT"],
+    tags=["settings"],
+)
 app.add_api_route("/api/storage", runtime.get_storage, methods=["GET"], tags=["storage"])
 app.add_api_route(
     "/api/settings/tool-paths", runtime.update_tool_paths, methods=["PUT"], tags=["settings"]
