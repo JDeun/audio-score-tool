@@ -7,6 +7,12 @@ permissions:
 # Ordinary pull requests use the fast CI/verify code gate instead.
 on:
   workflow_dispatch:
+    inputs:
+      require_managed_delivery:
+        description: "Verify published core managed components on Windows/macOS (downloads real artifacts)"
+        type: boolean
+        default: false
+        required: false
   push:
     tags:
       - "v*"
@@ -84,6 +90,16 @@ jobs:
       - name: Smoke packaged sidecar
         working-directory: desktop
         run: uv run --project .. --frozen --extra desktop python ../scripts/smoke_packaged_sidecar.py
+
+      - name: Verify approved managed runtime delivery
+        # A full release has to prove Windows/macOS runtime installation.
+        # Ordinary PRs never build packages; manual QA opts in explicitly.
+        if: >-
+          matrix.name != 'linux' &&
+          ((github.event_name == 'workflow_dispatch' && inputs.require_managed_delivery) ||
+          startsWith(github.ref, 'refs/tags/v1'))
+        working-directory: desktop
+        run: uv run --project .. --frozen --extra desktop python ../scripts/smoke_packaged_sidecar.py --require-managed-delivery
 
       - name: Build desktop package
         working-directory: desktop
