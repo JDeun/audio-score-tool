@@ -327,6 +327,10 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
             language,
             skip_lyrics: !lyrics,
             preset: preset === "custom" ? "balanced" : preset,
+            ...(preset === "custom" ? {
+              muscriptor_model: muscriptorModel,
+              whisperx_model: whisperxModel,
+            } : {}),
           }),
         });
       }
