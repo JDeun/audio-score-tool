@@ -84,6 +84,20 @@ function publicationStatus(reason?: string | null): string {
   return "배포 아티팩트 검증 필요";
 }
 
+function managedIntegrityStatus(integrity?: string): string | null {
+  if (!integrity || integrity === "not-installed" || integrity === "verified") return null;
+  if (integrity === "state-corrupt" || integrity === "state-invalid") {
+    return "설치 상태 기록 손상 · 복구 필요";
+  }
+  if (integrity === "tool-digest-mismatch" || integrity === "tool-digest-missing") {
+    return "실행 파일 무결성 불일치 · 복구 필요";
+  }
+  if (integrity.startsWith("tool-") || integrity.startsWith("root-")) {
+    return "관리형 런타임 파일 손상 · 복구 필요";
+  }
+  return "관리형 런타임 설치 상태 점검 필요";
+}
+
 export default function SetupCenter() {
   const [status, setStatus] = useState<SetupStatus | null>(null);
   const [open, setOpen] = useState(false);
@@ -330,11 +344,12 @@ export default function SetupCenter() {
                         ? "사용 가능"
                         : component.managed_status?.ready
                           ? "설치됨 · 실행 환경 점검 필요"
-                          : component.catalog && !component.catalog.published
-                            ? publicationStatus(component.catalog.publication_reason)
-                            : component.delivery === "embedded"
-                              ? "패키지 점검 필요"
-                              : "현재 비활성"}
+                          : managedIntegrityStatus(component.managed_status?.integrity)
+                            || (component.catalog && !component.catalog.published
+                              ? publicationStatus(component.catalog.publication_reason)
+                              : component.delivery === "embedded"
+                                ? "패키지 점검 필요"
+                                : "현재 비활성")}
                     </span>
                     {component.auto_install && component.catalog?.published && (
                       <button type="button" disabled={Boolean(busy)}
