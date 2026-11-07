@@ -12,9 +12,9 @@ import json
 import os
 import platform
 from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
 
 from music21 import chord, converter, harmony, note
-from pathlib import Path
 
 from audio_score_tool.sheetsage_hybrid import (
     SheetSageError,
