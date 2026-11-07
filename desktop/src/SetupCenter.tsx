@@ -23,7 +23,12 @@ type Component = {
   required_for: string[];
   note?: string | null;
   auto_install?: boolean;
-  managed_status?: { ready?: boolean; integrity?: string; version?: string } | null;
+  managed_status?: {
+    ready?: boolean;
+    integrity?: string;
+    version?: string;
+    rollback?: { available?: boolean; version?: string; integrity?: string; reason?: string };
+  } | null;
   catalog?: { published?: boolean; target?: string; version?: string; publication_reason?: string | null } | null;
 };
 
@@ -145,6 +150,40 @@ export default function SetupCenter() {
       });
     } catch (error) {
       setFeedback({ message: error instanceof Error ? error.message : "구성요소 설치 실패", error: true });
+      await refresh();
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const rollback = async (component: Component) => {
+    if (!component.managed_status?.rollback?.available || busy) return;
+    setBusy(component.key);
+    setFeedback(null);
+    try {
+      const response = await fetch(`${API}/api/setup/rollback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ component: component.key }),
+      });
+      if (!response.ok) throw new Error(await apiError(response));
+      const result = await response.json() as {
+        rolled_back: { ready?: boolean; integrity?: string; version?: string };
+        setup: SetupStatus;
+      };
+      setStatus(result.setup);
+      if (!result.rolled_back?.ready || result.rolled_back.integrity !== "verified") {
+        throw new Error("이전 버전으로 전환했으나 실행 파일 검증에 실패했습니다.");
+      }
+      setFeedback({
+        message: `${component.label}을(를) 검증된 이전 버전 ${result.rolled_back.version}으로 되돌렸습니다. 실행 준비 상태를 다시 확인하세요.`,
+        error: false,
+      });
+    } catch (error) {
+      setFeedback({
+        message: error instanceof Error ? error.message : "이전 버전 복원 실패",
+        error: true,
+      });
       await refresh();
     } finally {
       setBusy(null);
@@ -302,6 +341,13 @@ export default function SetupCenter() {
                         onClick={() => void install(component)}>
                         {busy === component.key ? "설치·검증 중…" :
                           component.managed_status?.ready ? "재설치 / 업데이트" : "앱에서 설치"}
+                      </button>
+                    )}
+                    {component.managed_status?.rollback?.available && (
+                      <button className="secondary" type="button" disabled={Boolean(busy)}
+                        onClick={() => void rollback(component)}>
+                        {busy === component.key ? "처리 중…" :
+                          `이전 버전 (${component.managed_status.rollback.version})으로 복원`}
                       </button>
                     )}
                     {component.managed_status?.ready && (
