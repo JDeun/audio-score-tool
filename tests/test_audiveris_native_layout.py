@@ -9,8 +9,8 @@ import pytest
 
 from scripts import verify_audiveris_native_layout as native
 from scripts.verify_audiveris_official_installer import (
-    DEFAULT_PINS,
     _MSI_HEADER,
+    DEFAULT_PINS,
     verify_official_installer,
 )
 
