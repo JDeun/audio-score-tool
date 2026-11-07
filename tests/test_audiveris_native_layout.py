@@ -206,3 +206,48 @@ def test_native_launch_command_has_no_path_fallback(tmp_path: Path, monkeypatch)
     assert seen["kwargs"]["env"]["PATH"] == ""
     assert seen["kwargs"]["shell"] is False
     assert seen["kwargs"]["timeout"] <= 90
+
+def test_windows_jvm_keeps_shell_folder_paths_but_has_no_path_fallback(
+    tmp_path: Path, monkeypatch,
+):
+    launcher = tmp_path / "Audiveris.exe"
+    launcher.write_bytes(b"fake")
+    monkeypatch.setenv("USERPROFILE", r"C:\Users\runneradmin")
+    monkeypatch.setenv("APPDATA", r"C:\Users\runneradmin\AppData\Roaming")
+    monkeypatch.setattr(native.platform, "system", lambda: "Windows")
+    observed = {}
+
+    def run(_argv, **kwargs):
+        observed.update(kwargs)
+        return type("Result", (), {
+            "returncode": 0, "stdout": "Audiveris Version: 5.11.0", "stderr": "",
+        })()
+
+    monkeypatch.setattr(native.subprocess, "run", run)
+    native._native_version(launcher, tmp_path, "audiveris")
+    assert observed["env"]["PATH"] == ""
+    assert observed["env"]["USERPROFILE"] == r"C:\Users\runneradmin"
+    assert observed["env"]["APPDATA"] == r"C:\Users\runneradmin\AppData\Roaming"
+    assert observed["shell"] is False
+
+
+def test_macos_uses_isolated_home_without_ambient_executables(
+    tmp_path: Path, monkeypatch,
+):
+    java = tmp_path / "java"
+    java.write_bytes(b"fake")
+    monkeypatch.setattr(native.platform, "system", lambda: "Darwin")
+    observed = {}
+
+    def run(_argv, **kwargs):
+        observed.update(kwargs)
+        return type("Result", (), {
+            "returncode": 0, "stdout": "", "stderr": 'openjdk version "25.0.2"',
+        })()
+
+    monkeypatch.setattr(native.subprocess, "run", run)
+    native._native_version(java, tmp_path, "embedded-jre")
+    assert observed["env"]["PATH"] == ""
+    assert observed["env"]["HOME"] == str(tmp_path)
+    assert observed["env"]["XDG_CONFIG_HOME"] == str(tmp_path)
+
