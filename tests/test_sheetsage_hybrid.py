@@ -236,3 +236,34 @@ def test_dense_polyphonic_voices_preserved_by_hybrid_enrichment(tmp_path):
     ]
     assert len(output_xml.findall(".//harmony")) == 4
     assert len(list(converter.parse(str(target)).recurse().getElementsByClass(harmony.ChordSymbol))) == 4
+
+
+def test_hybrid_metadata_overlay_preserves_all_multi_instrument_parts(tmp_path):
+    from scripts.run_tier2_hybrid_smoke import performed_note_signature
+
+    score = stream.Score()
+    piano = stream.Part()
+    piano.append(note.Note("C4", quarterLength=1))
+    bass = stream.Part()
+    bass.append(note.Note("C2", quarterLength=2))
+    score.insert(0, piano)
+    score.insert(0, bass)
+    source = tmp_path / "multi.musicxml"
+    score.write("musicxml", fp=str(source))
+    baseline = performed_note_signature(source)
+    assert len(baseline) == 2
+
+    events = tmp_path / "sheetsage.json"
+    events.write_text(json.dumps({
+        "schema_version": 1,
+        "model": "sheetsage2",
+        "chords": [{"time_seconds": 0.0, "label": "C:maj"}],
+        "keys": [{"time_seconds": 0.0, "label": "C:major"}],
+        "meter": "4/4",
+    }), encoding="utf-8")
+    target = tmp_path / "augmented.musicxml"
+    merged = merge_sheetsage_musicxml(source, events, target)
+    result = converter.parse(str(target))
+    assert len(result.parts) == 2
+    assert performed_note_signature(target) == baseline
+    assert merged["added"] == {"chords": 1, "keys": 1, "meter": 1}
