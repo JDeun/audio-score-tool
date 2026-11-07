@@ -73,6 +73,9 @@ def test_inventory_hashes_and_running_versions_are_bound_to_installed_files(
     monkeypatch.setattr(smoke, "run_command", execute)
     smoke._verify_youtube_cli_tools(tools, root)
     assert [item[0] for item in observed] == list(NAMES)
+    assert observed[0][1] == (
+        "--ignore-config", "--no-remote-components", "--version"
+    )
     assert all(item[2]["env"]["PATH"] == "" for item in observed)
     assert all(item[2]["timeout_seconds"] == 20 for item in observed)
 
