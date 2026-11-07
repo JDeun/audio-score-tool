@@ -168,7 +168,13 @@ def _bounded_job(client, job_id: str, *, timeout_seconds: int) -> dict:
         if status in {"done", "failed", "cancelled", "interrupted"}:
             if status != "done":
                 error = str(job.get("error") or "OMR job did not finish successfully")
-                raise AudiverisReviewError(f"Actual Audiveris OMR job {status}: {error[:1300]}")
+                # run_command() preserves a bounded tail of the real Java log.
+                # Prioritizing only its prefix hides the useful Java exception
+                # and makes headless native CI failures impossible to diagnose.
+                diagnostic = error if len(error) <= 7500 else (
+                    error[:650] + "\n[... bounded native log tail ...]\n" + error[-6000:]
+                )
+                raise AudiverisReviewError(f"Actual Audiveris OMR job {status}: {diagnostic}")
             return job
         time.sleep(1)
     client.post(f"/api/jobs/{job_id}/cancel")
@@ -211,7 +217,13 @@ def run_real_omr_product_flow(
     if not destination.parent.is_dir() or destination.exists() or destination.is_symlink():
         raise AudiverisReviewError("OMR native E2E evidence must be a new file under an existing directory.")
 
-    with tempfile.TemporaryDirectory(prefix="ast-real-omr-product-") as scratch:
+    # Windows may keep SQLite file handles open for the lifetime of the
+    # FastAPI singleton module. The OS runner owns and deletes this entire
+    # ephemeral workspace; a locked DB during teardown must not replace the
+    # actual product-E2E verdict or create a false regression.
+    with tempfile.TemporaryDirectory(
+        prefix="ast-real-omr-product-", ignore_cleanup_errors=True
+    ) as scratch:
         root = Path(scratch).resolve()
         managed = root / "components"
         app_data = root / "app-data"
@@ -252,6 +264,7 @@ def run_real_omr_product_flow(
         os.environ["PYTHONNOUSERSITE"] = "1"
 
         from fastapi.testclient import TestClient
+
         from audio_score_tool.api import app
         from audio_score_tool.managed_tool_resolver import registered_managed_tool
         from audio_score_tool.notation_backend import render_pdf
