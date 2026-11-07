@@ -181,7 +181,26 @@ def merge_sheetsage_musicxml(
         for event in score.recurse().notes
     ):
         raise SheetSageError("AMT MusicXML has no performed note events")
-    target = parts[0]
+    # Inference MusicXML may contain nonstandard multi-voice measures. Do not
+    # re-export the performed score to generate annotation XML: music21 can
+    # rebar its notes or create additional measures. Build an annotation-only
+    # overlay using original measure numbering and absolute quarter offsets.
+    source_part = parts[0]
+    source_measures = list(source_part.getElementsByClass(stream.Measure))
+    if not source_measures:
+        raise SheetSageError("AMT MusicXML has no numbered measures")
+    annotation_score = stream.Score()
+    target = stream.Part()
+    for original_measure in source_measures:
+        measure = stream.Measure(number=original_measure.number)
+        length = float(original_measure.duration.quarterLength)
+        if not math.isfinite(length) or length <= 0:
+            length = 4.0
+        # A rest fixes the measure geometry without copying any original notes.
+        # It is discarded after metadata tags are projected to the source XML.
+        measure.insert(0, note.Rest(quarterLength=length))
+        target.insert(float(original_measure.getOffsetBySite(source_part)), measure)
+    annotation_score.append(target)
     added = {"chords": 0, "keys": 0, "meter": 0}
     beats = events.get("beats", [])
     for event in events.get("chords", []):
@@ -217,8 +236,12 @@ def merge_sheetsage_musicxml(
     with tempfile.TemporaryDirectory(prefix=".sheetsage-stage-", dir=destination.parent) as stage_dir:
         staged = Path(stage_dir) / "staged.musicxml"
         lossless = Path(stage_dir) / "lossless.musicxml"
-        score.write("musicxml", fp=str(staged))
-        project_musicxml_annotations(amt_musicxml, staged, lossless)
+        annotation_score.write("musicxml", fp=str(staged))
+        project_musicxml_annotations(
+            amt_musicxml, staged, lossless,
+            include_key=bool(events.get("keys")),
+            include_meter=events.get("meter") is not None,
+        )
         lossless.replace(destination)
     if not destination.is_file():
         raise SheetSageError("MusicXML merge did not produce an output")

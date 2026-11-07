@@ -85,6 +85,7 @@ _ATTR_ORDER = {"divisions": 0, "key": 1, "time": 2, "staves": 3, "clef": 4}
 
 def project_musicxml_annotations(
     source: Path, augmented: Path, destination: Path,
+    *, include_key: bool = True, include_meter: bool = True,
 ) -> None:
     """Project staged harmony/key/time, preserving source performance XML."""
     original = _score(source)
@@ -118,12 +119,13 @@ def project_musicxml_annotations(
         harmonies, changed_attributes, annotated_divisions = _metadata_from_measure(
             other, annotated_divisions,
         )
-        # Stage may include existing harmonies. Transfer its complete harmony
-        # timeline rather than applying a possibly duplicated partial delta.
-        for item in list(measure):
-            if _name(item) == "harmony":
-                measure.remove(item)
-
+        # Stage is annotation-only. Keep any pre-existing original harmonies
+        # and append just the new annotations without touching note streams.
+        changed_attributes = [
+            item for item in changed_attributes
+            if (_name(item) == "key" and include_key)
+            or (_name(item) == "time" and include_meter)
+        ]
         if changed_attributes:
             initial = next((node for node in measure if _name(node) == "attributes"), None)
             if initial is None:
