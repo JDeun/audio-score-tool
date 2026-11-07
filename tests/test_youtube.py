@@ -167,6 +167,10 @@ def test_packaged_youtube_binds_yt_dlp_to_managed_runtime(monkeypatch, tmp_path:
     assert status["ffprobe"] == str(ffprobe)
     assert status["ffmpeg_ready"] is True
     assert status["ffprobe_ready"] is True
+    setup = TestClient(app).get("/api/setup/center")
+    assert setup.status_code == 200
+    components = {item["key"]: item for item in setup.json()["components"]}
+    assert components["youtube_runtime"]["ready"] is True
 
 
 @pytest.mark.parametrize("missing_tool", _YOUTUBE_TOOLS)
@@ -182,6 +186,10 @@ def test_packaged_youtube_is_not_ready_without_required_managed_tool(
     )
     status = youtube_tool_status(Settings())
     assert status["ready"] is False
+    setup = TestClient(app).get("/api/setup/center")
+    assert setup.status_code == 200
+    components = {item["key"]: item for item in setup.json()["components"]}
+    assert components["youtube_runtime"]["ready"] is False
     key = {
         "deno": "js_runtime_ready",
         "ffmpeg": "ffmpeg_ready",
@@ -212,6 +220,32 @@ def test_unregistered_legacy_bin_files_do_not_enable_youtube(monkeypatch, tmp_pa
     )
     with pytest.raises(YouTubeSourceError, match="incomplete or unverified"):
         inspect_youtube("https://youtu.be/abc123", settings=settings)
+
+
+def test_packaged_youtube_rechecks_integrity_after_metadata_inspection(monkeypatch, tmp_path):
+    _install_youtube_fixture(tmp_path, monkeypatch)
+    deno = registered_managed_tool("deno")
+    assert deno is not None
+    calls = []
+
+    def fake_run(command, args, **kwargs):
+        calls.append(list(args))
+        if "--dump-single-json" not in args:
+            raise AssertionError("Download was started after managed Deno tampering")
+        deno.write_bytes(b"modified-after-metadata")
+        return subprocess.CompletedProcess(
+            [], 0,
+            json.dumps({
+                "title": "Example",
+                "duration": 60,
+                "webpage_url": "https://youtu.be/abc123",
+            }),
+        )
+
+    monkeypatch.setattr("audio_score_tool.youtube.run_command", fake_run)
+    with pytest.raises(YouTubeSourceError, match="changed after inspection"):
+        download_youtube_audio("https://youtu.be/abc123", tmp_path / "output", settings=Settings())
+    assert len(calls) == 1
 
 
 def test_inspect_youtube_rejects_active_live(monkeypatch):
