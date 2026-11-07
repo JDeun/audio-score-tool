@@ -1,0 +1,157 @@
+name: Audiveris Official Installer Review (unapproved)
+
+# Isolated review ONLY. No installer, JRE binary or AGPL-controlled source is
+# redistributed as an Actions artifact or promoted to the managed catalog.
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/audiveris-official-installer-review.yml'
+      - 'release/review/audiveris-official-installer-pins-2026-11-07.json'
+      - 'scripts/verify_audiveris_official_installer.py'
+      - 'scripts/verify_audiveris_native_layout.py'
+      - 'tests/test_audiveris_official_installer.py'
+      - 'tests/test_audiveris_native_layout.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audiveris-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-official-installer:
+    name: audiveris-installer-${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: windows-x86_64
+            runner: windows-2025
+          - target: macos-aarch64
+            runner: macos-15
+    steps:
+      - name: Checkout reviewed Audiveris pins and source verifiers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup verified Python
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: 0.12.10
+          python-version: '3.12'
+
+      - name: Fetch exact official Audiveris 5.11.0 installer and verify actual bytes
+        shell: bash
+        env:
+          REVIEW_TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          uv run --no-project --python 3.12 python - <<'PY'
+          import os
+          import subprocess
+          from pathlib import Path
+          from scripts.verify_audiveris_official_installer import (
+              DEFAULT_PINS, _pin, verify_official_installer,
+          )
+
+          target = os.environ["REVIEW_TARGET"]
+          _document, asset = _pin(DEFAULT_PINS, target)
+          root = Path(os.environ["RUNNER_TEMP"]) / f"audiveris-review-{target}"
+          raw = root / "raw"
+          raw.mkdir(parents=True, exist_ok=False)
+          source_file = raw / asset["asset"]
+          # The URL is reconstructed and independently validated by _pin.
+          # No arbitrary input URL or host is accepted by this workflow.
+          subprocess.run([
+              "curl", "--fail", "--location", "--show-error", "--silent",
+              "--retry", "4", "--retry-delay", "3",
+              "--connect-timeout", "30", "--max-time", "600",
+              "--proto", "=https", "--proto-redir", "=https",
+              "--output", str(source_file), asset["url"],
+          ], check=True)
+          evidence = verify_official_installer(
+              source_file, target, output=root / "SOURCE-EVIDENCE.pending.json",
+          )
+          print(f"{target}: upstream official bytes verified "
+                f"(sha256={evidence['asset_sha256']}, AGPL redistribution=pending)")
+          PY
+
+      - name: Extract Windows MSI to temporary administrative image, not Program Files
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          REVIEW_TARGET: ${{ matrix.target }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = Join-Path $env:RUNNER_TEMP "audiveris-review-$env:REVIEW_TARGET"
+          $source = Join-Path $root "raw\Audiveris-5.11.0-windowsConsole-x86_64.msi"
+          $destination = Join-Path $root "admin-image"
+          $log = Join-Path $env:RUNNER_TEMP "audiveris-msi-admin-extract.log"
+          New-Item -ItemType Directory -Path $destination -Force | Out-Null
+          $arguments = "/a `"$source`" /qn TARGETDIR=`"$destination`" /L*v `"$log`""
+          $result = Start-Process -FilePath "msiexec.exe" -ArgumentList $arguments -Wait -PassThru
+          if ($result.ExitCode -ne 0) {
+            Get-Content -Path $log -Tail 100
+            throw "Audiveris MSI administrative extraction failed with exit $($result.ExitCode)"
+          }
+          Write-Host "MSI administrative extraction completed under $destination"
+
+      - name: Mount macOS DMG read-only for structural review
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          REVIEW_TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/audiveris-review-$REVIEW_TARGET"
+          mkdir "$root/mounted-dmg"
+          hdiutil attach "$root/raw/Audiveris-5.11.0-macosx-arm64.dmg" \
+            -readonly -nobrowse -mountpoint "$root/mounted-dmg" -quiet
+
+      - name: Verify Audiveris launcher and bundled Java on actual target OS
+        shell: bash
+        env:
+          REVIEW_TARGET: ${{ matrix.target }}
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/audiveris-review-$REVIEW_TARGET"
+          if [[ "$REVIEW_TARGET" == "windows-x86_64" ]]; then
+            installer="$root/raw/Audiveris-5.11.0-windowsConsole-x86_64.msi"
+            extracted="$root/admin-image"
+          else
+            installer="$root/raw/Audiveris-5.11.0-macosx-arm64.dmg"
+            extracted="$root/mounted-dmg"
+          fi
+          uv run --no-project --python 3.12 python -m scripts.verify_audiveris_native_layout \
+            --target "$REVIEW_TARGET" \
+            --installer "$installer" \
+            --source-receipt "$root/SOURCE-EVIDENCE.pending.json" \
+            --extracted-root "$extracted" \
+            --output "$root/NATIVE-EVIDENCE.pending.json"
+
+      - name: Detach read-only DMG after native verification
+        if: always() && runner.os == 'macOS'
+        shell: bash
+        env:
+          REVIEW_TARGET: ${{ matrix.target }}
+        run: |
+          root="$RUNNER_TEMP/audiveris-review-$REVIEW_TARGET"
+          if [[ -d "$root/mounted-dmg" ]]; then
+            hdiutil detach "$root/mounted-dmg" -quiet || true
+          fi
+
+      - name: Upload unapproved JSON proof only (never MSI/DMG, Java or music)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: audiveris-native-review-${{ matrix.target }}
+          path: |
+            ${{ runner.temp }}/audiveris-review-${{ matrix.target }}/SOURCE-EVIDENCE.pending.json
+            ${{ runner.temp }}/audiveris-review-${{ matrix.target }}/NATIVE-EVIDENCE.pending.json
+          if-no-files-found: error
+          retention-days: 14
