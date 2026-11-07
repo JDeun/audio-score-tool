@@ -12,11 +12,14 @@
 - 출처: <https://github.com/FFmpeg/FFmpeg/commit/946fcce07b6dcd0331c8cc609192aeff5e1924f8>
 - 입력: `release/review/ffmpeg-native-source-pin-2026-11-07.json`
 - 대상: `windows-2025` x86_64 (MSYS2 UCRT64), `macos-15` ARM64
-- 구성: `--disable-gpl --disable-nonfree --disable-version3 --disable-autodetect`, 내장 ffmpeg·ffprobe / static FFmpeg libs, 사전 검토한 configure flags
+- 공통 구성: `--disable-gpl --disable-nonfree --disable-version3 --disable-autodetect`, 내장 ffmpeg·ffprobe / static FFmpeg libs, 사전 검토한 configure flags
+- **Windows 추가 구성:** `--extra-ldflags=-static`. 초기 UCRT64 실행파일은 컴파일됐으나 `PATH`를 비운 상태에서 `0xC0000135`(DLL 누락)로 실행에 실패했습니다. 독립 실행 파일 요구에 맞춰 MinGW runtime 라이브러리 정적 링크를 시도하고, PE DLL 목록을 빌드 로그에 출력하도록 변경했습니다. 실제 정적 링크 및 실행 성공은 후속 Windows 워크플로 결과를 확인해야 합니다.
 - 예상 선언 라이선스 계열: `LGPL-2.1-or-later`. 이 분류는 **자동 법률 승인 또는 전체 의존성 라이선스 감사가 아닙니다.**
 - FFmpeg 공식 [라이선스](https://github.com/FFmpeg/FFmpeg/blob/master/LICENSE.md) 및 [재배포 체크리스트](https://ffmpeg.org/legal.html) 참고.
 
 OS별 컴파일러/링크 의존성, 플래그, 실행 파일 해시는 대상 러너의 실제 결과로부터 수집하며 **미리 가정한 SHA-256으로 채우지 않습니다.**
+
+사전 검토한 플랫폼별 링커 설정은 `target_configure_flags`로 분리하며, macOS에 지원되지 않는 시스템 전체 정적 링크를 가정하지 않습니다. Windows에서는 PATH 없이 실행되지 않는 DLL 의존성이 있으면 네이티브 검증이 반드시 실패합니다. 이 테스트 결과로 전체 재배포 가능성을 추정하지 않습니다.
 
 ## 검증 경계
 
