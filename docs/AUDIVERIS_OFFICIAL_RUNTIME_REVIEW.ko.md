@@ -36,6 +36,18 @@ uv run --frozen python scripts/verify_audiveris_official_installer.py \
   --output /absolute/review/SOURCE-EVIDENCE.pending.json
 ```
 
+## ZIP 기반 관리형 설치·재배치 검토
+
+[#129](https://github.com/JDeun/audio-score-tool/issues/129)의 추가 검증은 `scripts/assemble_audiveris_portable_candidate.py`에서 실행합니다. 이미 공식 SHA-256으로 검증한 MSI/DMG, `SOURCE-EVIDENCE.pending.json`, native `NATIVE-EVIDENCE.pending.json`의 **동일 원본**만 허용합니다.
+
+1. Windows MSI의 `Audiveris/` 전체 앱 이미지 또는 macOS DMG의 `Audiveris.app/` 전체 이미지(내장 JRE·JAR/리소스 포함)를 임시 ZIP으로 묶습니다. 외부 다운로드·임의 Java 설치·추가 모델 실행은 없습니다.
+2. 원본 이미지의 특수 파일·디렉터리 symlink·앱 외부로 향하는 symlink는 거부합니다. 공식 macOS app에 있는 `ADDITIONAL_LICENSE_INFO` 등 **동일 앱 트리의 regular file을 가리키는 파일 symlink만** 경계·실체·해시 확인 후 ZIP의 일반 파일로 실체화합니다. 링크를 통째로 따르거나 바깥 파일을 가져오지 않으며 실체화 개수는 보류 증거에 기록합니다. 이 변환 후에는 기존 macOS 코드 서명 검증이 유효하다고 주장할 수 없으므로 signed/notarized acceptance는 별도 유지합니다.
+3. 전체 멤버 수·압축 해제 크기에 상한을 적용하고, 실행 파일의 소유자 execute bit를 ZIP에 기록합니다. 기존 `managed_components.py`는 등록된 launcher 외에 `Contents/runtime/.../bin/java` 같은 **중첩 실행 파일의 POSIX 실행 권한을 복구하도록 수정**했습니다. 위험한 SUID/SGID/쓰기 권한은 그대로 복원하지 않습니다.
+4. **실제 제품 코드 `install_component_artifact(local_archive=...)`**를 격리된 임시 component root에 실행하여 ZIP 검사·무결성·state commit을 확인합니다. 이동된 `Audiveris`/JRE 실행 파일의 SHA-256을 공식 native receipt과 다시 비교하고, PATH를 비운 상태에서 각각 `-version` 실행해 이동 후 실행 가능성을 검증합니다.
+5. CI의 ZIP은 러너 임시 폴더에서만 존재하며 **공개 Actions artifact로 업로드하지 않습니다**. 원본 확인서 SHA, 네이티브 확인서 SHA, ZIP SHA, launcher/JRE SHA, 설치·이동 후 기동 결과를 `*.pending.json`에만 기록합니다.
+
+이 성공은 **로컬 설치 검증**일 뿐, ZIP의 공용 HTTPS 게시·재배포 승인·codesign/notarization·JVM 프로세스 트레이싱·GUI/텍스트 OCR 모델이 포함된 PDF→MusicXML→Song end-to-end 실행을 증명하지 않습니다. `audiveris.artifacts`는 계속 비워 둡니다.
+
 ## 이 검증으로 **완료되지 않는 것**
 
 - MSI/DMG를 AudioScoreTool의 **ZIP/TAR 기반 관리형 설치기**가 바로 처리할 수 있는 것은 아닙니다. 앱 소유·버전 고정·SHA 검증이 적용된 **portable archive**, 안전한 업데이트/삭제/복구 테스트가 별도로 필요합니다.
