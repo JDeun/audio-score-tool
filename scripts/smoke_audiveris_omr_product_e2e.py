@@ -148,6 +148,44 @@ def make_owned_musicxml(destination: Path) -> dict[str, Any]:
     }
 
 
+def _verovio_svg_diagnostics(source: Path) -> dict[str, Any]:
+    """Summarize only synthetically generated SVG structure for PDF bug triage."""
+    from collections import Counter
+
+    from audio_score_tool.notation_backend import _verovio_toolkit
+
+    toolkit = _verovio_toolkit()
+    toolkit.setOptions({
+        "inputFrom": "musicxml", "breaks": "encoded",
+        "svgViewBox": True, "svgFormatRaw": True,
+    })
+    if toolkit.loadFile(str(source)) is False:
+        raise AudiverisReviewError("Could not render owned score for SVG diagnostics.")
+    svg = toolkit.renderToSVG(1)
+    parsed = ET.fromstring(svg)
+    names = lambda node: node.tag.rsplit("}", 1)[-1]
+    counts = Counter(names(node) for node in parsed.iter())
+    diag = {
+        "svg_bytes": len(svg.encode("utf-8")),
+        "tag_counts": {name: counts.get(name, 0) for name in (
+            "svg", "g", "path", "use", "symbol", "line", "rect", "text", "style", "defs",
+        )},
+        "root_attributes": {name: value for name, value in parsed.attrib.items()
+                            if name in {"width", "height", "viewBox"}},
+        "first_root_children": [names(node) for node in list(parsed)[:12]],
+        "nested_svg_attributes": [
+            {name: val for name, val in node.attrib.items()
+             if name in {"width", "height", "viewBox", "x", "y"}}
+            for node in list(parsed.iter()) if names(node) == "svg" and node is not parsed
+        ][:4],
+        "first_svg_chars": svg[:950],
+    }
+    print("Original synthetic Verovio SVG structure: " + json.dumps(
+        diag, sort_keys=True
+    ), flush=True)
+    return diag
+
+
 def _raster_diagnostics(pdf: Path) -> dict[str, Any]:
     """Inspect actual black staff pixels, not just the '%PDF-' header.
 
@@ -329,6 +367,7 @@ def run_real_omr_product_flow(
         source_xml = root / "generated-original.musicxml"
         generated = make_owned_musicxml(source_xml)
         input_pdf = root / "owned-original-score.pdf"
+        svg_diagnostics = _verovio_svg_diagnostics(source_xml)
         result_pdf, renderer = render_pdf(source_xml, input_pdf)
         if (
             renderer != "verovio-fpdf2" or result_pdf != input_pdf
@@ -481,6 +520,7 @@ def run_real_omr_product_flow(
             "synthetic_source_measures": generated["synthetic_measures"],
             "synthetic_printed_pdf_sha256": pdf_sha,
             "synthetic_printed_pdf_raster": rendered_pdf_diagnostics,
+            "synthetic_verovio_svg_structure": svg_diagnostics,
             "actual_audiveris_omr_job_completed": True,
             "actual_omr_musicxml_sha256": omr_xml_sha,
             "recognized_parts": part_count, "recognized_pitched_notes": notes_count,
