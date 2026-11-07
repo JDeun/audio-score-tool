@@ -195,7 +195,7 @@ def verify_native_build(
             # tag as either nX.Y.Z (git describe) or X.Y.Z (version file).
             # This is the ONLY allowed alias, bound to the exact source SHA.
             expected_versions = {pin["version"], pin["version"].removeprefix("n")}
-            match = re.match(rf"^{name} version ([^\\s]+)(?:\\s|$)", first)
+            match = re.match(rf"^{name} version ([^\s]+)(?:\s|$)", first)
             actual_version = match.group(1) if match else ""
             if actual_version not in expected_versions:
                 observed = re.sub(r"[^A-Za-z0-9._+ -]", "_", first[:120])
