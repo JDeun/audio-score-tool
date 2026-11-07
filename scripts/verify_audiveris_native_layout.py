@@ -7,7 +7,6 @@ artifact. This proof is limited to verified launcher/JRE layout and -version.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import platform
