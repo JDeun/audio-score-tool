@@ -15,7 +15,7 @@ AudioScoreTool packaged desktop은 사용자의 시스템 PATH, Homebrew, winget
 - component archive의 절대경로, `..`, symlink/hardlink/device member를 거부합니다.
 - 압축 해제 member 수와 총 uncompressed bytes에 상한을 둡니다.
 - component executable은 managed install root 내부의 regular file만 인정합니다.
-- packaged command resolution은 등록된 managed tool 또는 기존 app-owned `components/bin`만 사용하며 system PATH로 fallback하지 않습니다.
+- packaged command resolution은 `state.json`에 등록되고 SHA-256이 검증된 managed tool만 허용합니다. 기존 `components/bin`의 미등록 파일과 system PATH는 실행할 수 없습니다.
 
 ## 설치 트랜잭션
 
@@ -26,8 +26,10 @@ AudioScoreTool packaged desktop은 사용자의 시스템 PATH, Homebrew, winget
 5. versioned install directory로 atomic rename
 6. `state.json`을 fsync 후 atomic replacement
 7. 실패 시 staged/download artifact 제거
-8. 기존 동일-version runtime을 교체 중 실패하면 backup을 복구
-9. startup/setup recovery에서 남은 `.download-*` / `.staging-*` 제거
+8. 기존 동일-version runtime 교체는 `installed/<component>/.previous-<token>`에 이전 설치를 격리한 뒤 `state.json`을 commit
+9. 프로세스 강제 종료·전원 중단 이후 startup/setup recovery는 **커밋된 state의 tool SHA-256과 이전 설치 백업 모두를 재검증**합니다. 이전 state가 가리키는 실행 파일이 사라졌거나 변조된 경우, 해시가 일치하는 백업으로 원복합니다
+10. 새 설치가 state와 일치하면 사용하지 않는 `.previous-*` 백업만 정리합니다. 백업 손상·state 손상·symlink·경로 이상은 임의 삭제하지 않고 보호하며, 관련 재설치도 차단합니다
+11. 남은 `.download-*` / `.staging-*`를 정리하되 원복할 수 있는 `.previous-*`를 지우지 않습니다
 
 `state.json`이 손상되면 앱은 component를 사용하지 않고 fail-closed 합니다.
 
@@ -105,7 +107,7 @@ Setup Center의 `catalog.published` 및 `auto_install`은 별도 릴리스 게�
 | 구성요소 상태 조회 | `GET /api/setup/center` | 상태와 대상 OS/아키텍처 표시 |
 | 설치·동일 구성요소 갱신 | `POST /api/setup/install` | 게시된 catalog artifact에만 사용자 클릭 제공, 서버에서 SHA-256·tool path 검증 |
 | 앱 관리 구성요소 제거 | `POST /api/setup/remove` | 앱이 소유한 설치 디렉터리와 등록 상태를 확인 후 제거, 실패/중단 복구 지원 |
-| 다운로드·설치 잔여물 복구 | `POST /api/setup/recover` | 임시 파일 정리 및 중단된 removal의 원복/정리 |
+| 다운로드·설치 잔여물 복구 | `POST /api/setup/recover` | 임시 파일 정리, 동일 버전 재설치 중단의 SHA-256 검증 기반 이전 설치 원복, 중단된 removal 원복 및 불명확 백업 보존 |
 
 - 설치 버튼은 trust policy에 따라 `catalog.published == true`일 때만 노출하고, 클라이언트는 주소·해시·경로를 제공하지 않습니다.
 - `managed_status.ready`는 실제 설치 파일의 무결성이 확인된 상태이며, 관련 실행 명령의 서비스 준비 상태(`component.ready`)와 구분됩니다.
