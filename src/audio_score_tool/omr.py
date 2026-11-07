@@ -200,7 +200,7 @@ def transcribe_score(
     raw_dir = output_dir / "audiveris"
     raw_dir.mkdir(parents=True, exist_ok=True)
     try:
-        run_command(
+        completed = run_command(
             command,
             ["-batch", "-transcribe", "-export", "-output", raw_dir, "--", source],
             cancel_event=cancel_event,
@@ -212,8 +212,19 @@ def transcribe_score(
 
     exported = _find_export(raw_dir)
     if exported is None:
+        # Some Audiveris versions return process status 0 even when no score
+        # reached the export step. Preserve a bounded diagnostic log tail and
+        # filename-only output listing instead of reporting a false success
+        # or losing the actual OMR recognition failure reason.
+        generated = sorted(
+            path.name for path in raw_dir.iterdir() if path.is_file() and not path.is_symlink()
+        )[:24]
+        output_tail = (completed.stdout or "")[-3500:]
         raise OMRImportError(
-            "OMR 구성요소가 MusicXML을 생성하지 않았습니다. 원본 해상도/대비 또는 악보 구조를 확인하세요."
+            "OMR 구성요소가 MusicXML을 생성하지 않았습니다. "
+            "원본 해상도/대비 또는 악보 구조를 확인하세요."
+            f"\nAudiveris files: {generated}"
+            f"\nAudiveris log tail (bounded):\n{output_tail}"
         )
     normalized = normalize_musicxml(exported, output_dir / "score.musicxml")
     return OMRArtifacts(musicxml_path=normalized, source_path=source)
