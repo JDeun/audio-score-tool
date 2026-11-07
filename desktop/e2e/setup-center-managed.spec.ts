@@ -224,6 +224,7 @@ test("verified previous version is rollbackable even when a newer catalog is unp
 
   const dialog = await openSetup(page);
   await expect(dialog.getByRole("button", { name: "앱에서 설치" })).toHaveCount(0);
+  await expect(dialog.getByText("실행 파일 무결성 불일치 · 복구 필요")).toBeVisible();
   const rollbackButton = dialog.getByRole("button", { name: "이전 버전 (1)으로 복원" });
   await expect(rollbackButton).toBeVisible();
   await rollbackButton.click();
