@@ -7,7 +7,7 @@ const DIRECT_EXTENSIONS = new Set(["musicxml", "xml", "mxl", "mid", "midi"]);
 
 type ImportJob = {
   job_id: string;
-  status: "queued" | "running" | "done" | "failed" | "cancelled" | "interrupted";
+  status: "queued" | "running" | "cancelling" | "done" | "failed" | "cancelled" | "interrupted";
   stage?: string;
   progress?: number;
   error?: string;
@@ -27,6 +27,7 @@ export default function OMRImportController() {
   const [message, setMessage] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const directImport = useMemo(() => DIRECT_EXTENSIONS.has(extensionOf(file)), [file]);
+  const activeJob = !!job && ["queued", "running", "cancelling"].includes(job.status);
 
   useEffect(() => {
     const findHost = () => setHost(document.querySelector(".new-score-page .segmented-control"));
@@ -37,7 +38,7 @@ export default function OMRImportController() {
   }, []);
 
   useEffect(() => {
-    if (!job || !["queued", "running"].includes(job.status)) return;
+    if (!job || !["queued", "running", "cancelling"].includes(job.status)) return;
     const timer = window.setInterval(async () => {
       try {
         const response = await fetch(`${API}/api/jobs/${job.job_id}`);
@@ -52,6 +53,10 @@ export default function OMRImportController() {
           );
         } else if (fresh.status === "failed") {
           setMessage(fresh.error || "악보 가져오기에 실패했습니다.");
+        } else if (fresh.status === "cancelled") {
+          setMessage("악보 가져오기가 취소되었습니다. 원본 파일을 다시 선택하거나 재시도할 수 있습니다.");
+        } else if (fresh.status === "interrupted") {
+          setMessage("중단된 가져오기입니다. 원본 파일로 재시도할 수 있습니다.");
         }
       } catch {
         // Keep the modal state while the local sidecar reconnects.
@@ -61,7 +66,7 @@ export default function OMRImportController() {
   }, [job?.job_id, job?.status, directImport]);
 
   const reset = () => {
-    if (busy || (job && ["queued", "running"].includes(job.status))) return;
+    if (busy || activeJob) return;
     setOpen(false);
     setFile(null);
     setJob(null);
@@ -70,6 +75,7 @@ export default function OMRImportController() {
 
   const chooseFile = (event: ChangeEvent<HTMLInputElement>) => {
     const next = event.target.files?.[0] ?? null;
+    if (activeJob) return;
     setFile(next);
     setJob(null);
     setMessage("");
@@ -91,6 +97,20 @@ export default function OMRImportController() {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const cancelImport = async () => {
+    if (!job || !["queued", "running"].includes(job.status)) return;
+    try {
+      const response = await fetch(`${API}/api/jobs/${job.job_id}/cancel`, { method: "POST" });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(payload?.detail ?? "가져오기 취소 요청에 실패했습니다.");
+      const updatedStatus = String(payload?.status ?? "cancelling") as ImportJob["status"];
+      setJob((current) => current?.job_id === job.job_id ? { ...current, status: updatedStatus } : current);
+      setMessage(updatedStatus === "cancelling" ? "가져오기 취소 중…" : "작업 상태가 변경됐습니다.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "가져오기 취소에 실패했습니다.");
     }
   };
 
@@ -145,7 +165,7 @@ export default function OMRImportController() {
             <button
               type="button"
               className={`omr-file-card ${file ? "selected" : ""}`}
-              disabled={!!job && ["queued", "running"].includes(job.status)}
+              disabled={activeJob}
               onClick={() => inputRef.current?.click()}
             >
               <span>{file ? "선택한 악보" : "악보 파일 선택"}</span>
@@ -163,24 +183,35 @@ export default function OMRImportController() {
 
             {job && (
               <div className="omr-progress-card">
-                <div><strong>{job.status === "done" ? "가져오기 완료" : directImport ? "악보 가져오는 중" : "악보 인식 중"}</strong><span>{job.progress ?? 0}%</span></div>
+                <div><strong>{
+                  job.status === "done" ? "가져오기 완료"
+                    : job.status === "cancelling" ? "가져오기 취소 중"
+                    : job.status === "cancelled" ? "가져오기 취소됨"
+                    : job.status === "failed" ? "가져오기 실패"
+                    : directImport ? "악보 가져오는 중" : "악보 인식 중"
+                }</strong><span>{job.progress ?? 0}%</span></div>
                 <div className="omr-progress"><span style={{ width: `${job.progress ?? 0}%` }} /></div>
               </div>
             )}
             {message && <div className={`omr-message ${job?.status === "failed" ? "error" : ""}`} role="status">{message}</div>}
 
             <footer>
-              <button type="button" className="secondary-button" onClick={reset}>닫기</button>
+              <button type="button" className="secondary-button" onClick={reset} disabled={activeJob}>닫기</button>
+              {job && ["queued", "running"].includes(job.status) && (
+                <button type="button" className="secondary-button" onClick={() => void cancelImport()}>
+                  가져오기 취소
+                </button>
+              )}
               {job?.status === "done" ? (
                 <button type="button" className="primary-button" onClick={openLibrary}>곡 라이브러리에서 검토</button>
               ) : (
                 <button
                   type="button"
                   className="primary-button"
-                  disabled={!file || busy || !!job && ["queued", "running"].includes(job.status)}
+                  disabled={!file || busy || activeJob}
                   onClick={() => void startImport()}
                 >
-                  {job && ["queued", "running"].includes(job.status) ? "가져오는 중…" : "악보 가져오기"}
+                  {activeJob ? (job?.status === "cancelling" ? "취소 중…" : "가져오는 중…") : job?.status === "cancelled" ? "다시 가져오기" : "악보 가져오기"}
                 </button>
               )}
             </footer>
