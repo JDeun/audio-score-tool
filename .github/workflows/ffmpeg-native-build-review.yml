@@ -84,11 +84,16 @@ jobs:
             --disable-shared \
             --enable-static \
             --enable-ffmpeg \
-            --enable-ffprobe
-          # The default make target selects .exe output names on MinGW/UCRT64.
+            --enable-ffprobe \
+            --extra-ldflags=-static
+          # Linking must not require MSYS2 runtime DLLs via PATH at launch.
           make -j 3
           test -f ffmpeg.exe
           test -f ffprobe.exe
+          echo 'Windows FFmpeg native DLL dependencies:'
+          objdump -p ffmpeg.exe | grep 'DLL Name:' || true
+          echo 'Windows ffprobe native DLL dependencies:'
+          objdump -p ffprobe.exe | grep 'DLL Name:' || true
 
       - name: Compile official FFmpeg/ffprobe source (macOS arm64)
         if: runner.os == 'macOS'
