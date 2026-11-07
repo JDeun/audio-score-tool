@@ -142,3 +142,49 @@ test("incomplete tool mappings are not advertised as installable", async ({ page
   await expect(dialog.getByText("필수 실행 도구 구성 누락")).toBeVisible();
   await expect(dialog.getByRole("button", { name: "앱에서 설치" })).toHaveCount(0);
 });
+
+
+test("interrupted same-version install reports verified backup recovery", async ({ page }) => {
+  const { status } = fixture(false);
+  await page.route("**/api/setup/center", route => route.fulfill({ json: status }));
+  await page.route("**/api/setup/recover", route => route.fulfill({
+    json: {
+      recovery: {
+        removed_component_staging: 1,
+        restored_component_removal: 0,
+        restored_previous_install: 1,
+        removed_previous_install_backup: 2,
+        pending_previous_install_backup: 0,
+      },
+      setup: status,
+    },
+  }));
+
+  const dialog = await openSetup(page);
+  await dialog.getByRole("button", { name: "중단된 설치 복구" }).click();
+  const feedback = dialog.getByRole("status");
+  await expect(feedback).toContainText("임시 설치 파일 1개");
+  await expect(feedback).toContainText("이전 정상 버전으로 복구했습니다");
+  await expect(feedback).toContainText("이전 설치 백업 2개");
+});
+
+test("unverifiable managed backup is preserved and warned, not called success", async ({ page }) => {
+  const { status } = fixture(false);
+  await page.route("**/api/setup/center", route => route.fulfill({ json: status }));
+  await page.route("**/api/setup/recover", route => route.fulfill({
+    json: {
+      recovery: {
+        removed_component_staging: 0,
+        restored_previous_install: 0,
+        removed_previous_install_backup: 0,
+        pending_previous_install_backup: 1,
+      },
+      setup: status,
+    },
+  }));
+  const dialog = await openSetup(page);
+  await dialog.getByRole("button", { name: "중단된 설치 복구" }).click();
+  const warning = dialog.getByRole("alert");
+  await expect(warning).toContainText("검증할 수 없는 이전 설치 백업 1개");
+  await expect(warning).toContainText("자동 재설치를 중단");
+});

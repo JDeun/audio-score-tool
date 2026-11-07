@@ -197,8 +197,115 @@ def _removal_stage(root: Path, component: str, version: str) -> Path:
     return root / f".removing-{component}-{digest}"
 
 
+def _install_backup(root: Path, component: str, version: str) -> Path:
+    """Deterministic backup path for an interrupted same-version replacement."""
+    token = hashlib.sha256(f"{component}:{version}".encode()).hexdigest()[:16]
+    return root / "installed" / component / f".previous-{token}"
+
+
+def _tree_matches_state(path: Path, entry: dict, root: Path) -> bool:
+    """Verify an installation against committed tool identities, not directory names."""
+    if path.is_symlink() or not path.is_dir():
+        return False
+    tools = entry.get("tools")
+    digests = entry.get("tool_sha256")
+    if not isinstance(tools, dict) or not tools or not isinstance(digests, dict):
+        return False
+    try:
+        real = path.resolve()
+        real.relative_to(root.resolve())
+        for name, relative in tools.items():
+            digest = digests.get(name)
+            if (
+                not _safe_identifier(str(name))
+                or not isinstance(relative, str)
+                or not _safe_relative_path(relative)
+                or not isinstance(digest, str)
+                or re.fullmatch(r"[a-f0-9]{64}", digest) is None
+            ):
+                return False
+            tool = path.joinpath(*PurePosixPath(relative.replace("\\", "/")).parts)
+            if tool.is_symlink() or not tool.is_file():
+                return False
+            tool.resolve().relative_to(real)
+            if _file_sha256(tool) != digest:
+                return False
+    except (OSError, ValueError, RuntimeError):
+        return False
+    return True
+
+
+def _recover_install_backups(root: Path, state: dict | None) -> dict[str, int]:
+    """Reconcile crashed replacements with the last *committed* state.
+
+    A backup is never trusted on its name alone. If the committed active
+    executable bytes still match, the backup is obsolete. Otherwise restore
+    only if the backup matches every committed tool checksum. Ambiguous,
+    symlinked or corrupt data stays untouched for explicit manual recovery.
+    """
+    report = {
+        "restored_previous_install": 0,
+        "removed_previous_install_backup": 0,
+        "pending_previous_install_backup": 0,
+    }
+    installed = root / "installed"
+    if installed.is_symlink() or not installed.is_dir():
+        return report
+    for component_root in installed.iterdir():
+        if component_root.is_symlink() or not component_root.is_dir():
+            continue
+        component = component_root.name
+        for backup in component_root.glob(".previous-*"):
+            entry = (
+                state.get("components", {}).get(component)
+                if state is not None and _safe_identifier(component)
+                else None
+            )
+            version = entry.get("version") if isinstance(entry, dict) else None
+            expected_root = (
+                (PurePosixPath("installed") / component / version).as_posix()
+                if isinstance(version, str) and _safe_identifier(version)
+                else None
+            )
+            if (
+                backup.is_symlink()
+                or not backup.is_dir()
+                or expected_root is None
+                or entry.get("root") != expected_root
+                or backup != _install_backup(root, component, version)
+            ):
+                report["pending_previous_install_backup"] += 1
+                continue
+            current = component_root / version
+            if _tree_matches_state(current, entry, root):
+                try:
+                    shutil.rmtree(backup)
+                    report["removed_previous_install_backup"] += 1
+                except OSError:
+                    report["pending_previous_install_backup"] += 1
+                continue
+            if not _tree_matches_state(backup, entry, root):
+                report["pending_previous_install_backup"] += 1
+                continue
+            # The old committed binary is recoverable. Never follow a
+            # non-regular or symlinked replacement at the active path.
+            if current.is_symlink() or (current.exists() and not current.is_dir()):
+                report["pending_previous_install_backup"] += 1
+                continue
+            try:
+                if current.exists():
+                    shutil.rmtree(current)
+                # A crash between these two operations leaves the verified
+                # backup intact for the next recovery pass.
+                backup.replace(current)
+                report["restored_previous_install"] += 1
+            except OSError:
+                report["pending_previous_install_backup"] += 1
+    return report
+
+
 def recover_component_staging(root: Path | None = None) -> dict[str, int]:
-    """Restore interrupted removals or purge artifacts no longer in committed state."""
+    """Restore interrupted installs/removals and clear abandoned staging files."""
     root = (root or _root()).resolve()
     removed = 0
     restored = 0
@@ -209,6 +316,7 @@ def recover_component_staging(root: Path | None = None) -> dict[str, int]:
             state = _load_state(root)
         except ComponentIntegrityError:
             state = None
+        backup_recovery = _recover_install_backups(root, state)
         for path in root.glob(".removing-*"):
             if state is None:
                 continue
@@ -252,7 +360,11 @@ def recover_component_staging(root: Path | None = None) -> dict[str, int]:
                     removed += 1
                 except OSError:
                     continue
-    return {"removed_component_staging": removed, "restored_component_removal": restored}
+    return {
+        "removed_component_staging": removed,
+        "restored_component_removal": restored,
+        **backup_recovery,
+    }
 
 
 def _copy_stream(source: BinaryIO, target: Path, *, max_bytes: int) -> str:
@@ -451,7 +563,14 @@ def install_component_artifact(
         staged = root / f".staging-{artifact.component}-{token}"
         install_root = root / "installed" / artifact.component
         final = install_root / artifact.version
-        backup = install_root / f".previous-{token}"
+        backup = _install_backup(root, artifact.component, artifact.version)
+        # A previous failed recovery may have left the sole verified copy
+        # behind. Never delete it just to start another installation.
+        if backup.exists() or backup.is_symlink():
+            raise ComponentIntegrityError(
+                "Managed component has an unresolved previous installation; "
+                "repair it before reinstalling."
+            )
         state_committed = False
         final_activated = False
         try:
@@ -474,8 +593,6 @@ def install_component_artifact(
                     raise ComponentIntegrityError(
                         "Existing managed component installation root is unsafe."
                     )
-                if backup.exists():
-                    shutil.rmtree(backup, ignore_errors=True)
                 final.replace(backup)
             try:
                 staged.replace(final)
