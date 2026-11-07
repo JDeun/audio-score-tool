@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "component": "youtube_runtime.ffmpeg",
+  "purpose": "review-only native build; no redistribution or release artifact approval",
+  "repository": "FFmpeg/FFmpeg",
+  "tag": "n9.0.2",
+  "source_commit": "946fcce07b6dcd0331c8cc609192aeff5e1924f8",
+  "source_url": "https://github.com/FFmpeg/FFmpeg/commit/946fcce07b6dcd0331c8cc609192aeff5e1924f8",
+  "version": "n9.0.2",
+  "targets": [
+    "windows-x86_64",
+    "macos-aarch64"
+  ],
+  "configure_flags": [
+    "--disable-autodetect",
+    "--disable-gpl",
+    "--disable-nonfree",
+    "--disable-version3",
+    "--disable-doc",
+    "--disable-debug",
+    "--disable-ffplay",
+    "--disable-x86asm",
+    "--disable-shared",
+    "--enable-static",
+    "--enable-ffmpeg",
+    "--enable-ffprobe"
+  ],
+  "license_family_review": "LGPL-2.1-or-later",
+  "external_libraries": {},
+  "redistribution_status": "pending",
+  "legal_review_status": "pending",
+  "source_signature_verified": false,
+  "reproducible_rebuild_verified": false,
+  "notices_and_source_delivery_approved": false,
+  "catalog_published": false,
+  "target_configure_flags": {
+    "windows-x86_64": [
+      "--extra-ldflags=-static"
+    ],
+    "macos-aarch64": []
+  }
+}
