@@ -198,6 +198,18 @@ def test_packaged_youtube_is_not_ready_without_required_managed_tool(
         inspect_youtube("https://youtu.be/abc123", settings=Settings())
 
 
+@pytest.mark.parametrize("missing_tool", ["ffmpeg", "ffprobe"])
+def test_development_youtube_readiness_requires_media_tools(monkeypatch, missing_tool):
+    from audio_score_tool import youtube
+
+    monkeypatch.delenv("AST_PACKAGED", raising=False)
+    available = {"yt-dlp", "ffmpeg", "ffprobe"} - {missing_tool}
+    monkeypatch.setattr(youtube, "command_exists", lambda cmd: cmd in available)
+    status = youtube_tool_status(Settings(yt_dlp_cmd="yt-dlp", ffmpeg_cmd="ffmpeg"))
+    assert status["ready"] is False
+    assert status[f"{missing_tool}_ready"] is False
+
+
 def test_unregistered_legacy_bin_files_do_not_enable_youtube(monkeypatch, tmp_path: Path):
     root = tmp_path / "components"
     legacy = root / "bin"
