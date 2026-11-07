@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "purpose": "Unapproved Audiveris native installer provenance review only; NOT an app-managed ZIP",
+  "repository": "Audiveris/audiveris",
+  "tag": "5.11.0",
+  "source_commit": "9e1e55cd2746037d059345881c53e6a6754bffbd",
+  "source_url": "https://github.com/Audiveris/audiveris/commit/9e1e55cd2746037d059345881c53e6a6754bffbd",
+  "license_family": "AGPL-3.0",
+  "redistribution_status": "pending",
+  "legal_review_status": "pending",
+  "java_runtime_embedded_claim": "upstream-installed-jpackage-jlink-runtime; actual runtime layout must be verified",
+  "java_runtime_verified": false,
+  "bundled_ocr_languages_claim": "No pretrained OCR languages in the installer; languages acquired separately via Audiveris UI",
+  "bundled_ocr_languages_verified": false,
+  "commercial_redistribution_approved": false,
+  "portable_managed_archive_available": false,
+  "packaged_omr_recognition_verified": false,
+  "sources": {
+    "windows-x86_64": {
+      "asset": "Audiveris-5.11.0-windowsConsole-x86_64.msi",
+      "url": "https://github.com/Audiveris/audiveris/releases/download/5.11.0/Audiveris-5.11.0-windowsConsole-x86_64.msi",
+      "bytes": 85062430,
+      "sha256": "5f1b4e96a12c53c7da426814b76e599363c4181e291855996e0a6878dda95f71",
+      "archive_kind": "msi",
+      "runner": "windows-2025",
+      "expected_launcher": "Audiveris.exe",
+      "expected_jre_binary": "java.exe"
+    },
+    "macos-aarch64": {
+      "asset": "Audiveris-5.11.0-macosx-arm64.dmg",
+      "url": "https://github.com/Audiveris/audiveris/releases/download/5.11.0/Audiveris-5.11.0-macosx-arm64.dmg",
+      "bytes": 84929243,
+      "sha256": "17491af8b6d40153b031dd1f0815e37213f0999ef23f10586af46706e59b2eb6",
+      "archive_kind": "dmg",
+      "runner": "macos-15",
+      "expected_launcher": "Audiveris",
+      "expected_jre_binary": "java"
+    }
+  }
+}
