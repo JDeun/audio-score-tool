@@ -326,7 +326,9 @@ def test_incomplete_license_or_provenance_fails_closed(tmp_path: Path, mutation,
 def test_source_binary_architecture_mismatch_is_rejected(tmp_path: Path):
     manifest = _input(tmp_path)
     other = _macho_arm64_binary("deno")
-    path = tmp_path / "deno.exe"
+    # Mutate the actual selected source under the reviewed extraction tree,
+    # not the pre-review fixture that the assembler no longer consumes.
+    path = Path(manifest["tools"]["deno"]["file"])
     path.write_bytes(other)
     manifest["tools"]["deno"]["sha256"] = _sha(other)
     with pytest.raises(ValueError, match="format/CPU"):
