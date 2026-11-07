@@ -147,6 +147,12 @@ _inference_lock = Lock()
 def _register_cancel_event(job_id: str) -> Event:
     cancel_event = Event()
     with _runtime_lock:
+        # The user may cancel a queued Job before its Thread is scheduled.
+        # Serialize registration with cancel_job's persisted status update so
+        # that an early cancellation is never lost.
+        job = _store.get(job_id)
+        if job is not None and job["status"] == "cancelling":
+            cancel_event.set()
         _cancel_events[job_id] = cancel_event
     return cancel_event
 
@@ -705,10 +711,16 @@ def cancel_job(job_id: str) -> dict:
         return {"job_id": job_id, "status": job["status"], "cancelled": False}
 
     with _runtime_lock:
+        # Check again under the same lock used for worker registration.
+        current = _store.get(job_id)
+        if current is None:
+            raise HTTPException(404, "Job not found")
+        if current["status"] not in {"queued", "running", "cancelling"}:
+            return {"job_id": job_id, "status": current["status"], "cancelled": False}
+        _store.update(job_id, status="cancelling", stage="cancelling")
         event = _cancel_events.get(job_id)
         if event is not None:
             event.set()
-    _store.update(job_id, status="cancelling", stage="cancelling")
     return {"job_id": job_id, "status": "cancelling", "cancelled": True}
 
 
