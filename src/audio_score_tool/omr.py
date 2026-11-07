@@ -22,7 +22,7 @@ _MAX_MXL_COMPRESSION_RATIO = 200
 # MusicXML/MXL still rejects *all* DOCTYPE declarations.
 _AUDIVERIS_MUSICXML_DTD = re.compile(
     r'<!DOCTYPE\s+(?P<root>score-(?:partwise|timewise))\s+PUBLIC\s+'
-    r'(?P<quote>["\'])-//Recordare//DTD MusicXML [1-4]\.\d+ '
+    r'(?P<quote>["\'])-//Recordare//DTD MusicXML [1-4](?:\.\d+){1,2} '
     r'(?P<kind>Partwise|Timewise)//EN(?P=quote)\s+'
     r'(?P<url_quote>["\'])https?://(?:www\.)?musicxml\.org/dtds/'
     r'(?P<url_kind>partwise|timewise)\.dtd(?P=url_quote)\s*>',

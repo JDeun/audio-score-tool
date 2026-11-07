@@ -59,7 +59,7 @@ uv run --frozen python scripts/verify_audiveris_official_installer.py \
 3. 실제 FastAPI의 `GET /api/omr/status`를 조회해 관리형 SHA 검증 `audiveris` 경로만 선택했는지 확인하고, 잘못된 API token은 401을 받는지 확인합니다.
 4. `POST /api/import/score`에 생성한 PDF를 업로드하고 Job 완료를 최대 420초 동안 기다립니다. 실패·취소·중단·timeout은 검증 실패이며, 실패를 성공으로 대체하는 XML fixture나 모델 모킹은 사용하지 않습니다.
 5. 실제 Audiveris가 만든 MXL/MusicXML을 기존 안전한 `omr.normalize_musicxml` 경로로 읽고, 유효한 MusicXML·파트·최소 4개 pitched notes를 검증합니다.
-   - Audiveris의 표준 `score-partwise`/`score-timewise` PUBLIC MusicXML DTD는 **오직 실제 OMR 생성물**에 한해 허용 목록으로 검증한 뒤 XML 파서에 전달하기 전에 제거합니다. ENTITY·내부 DTD subset·변조된 외부 식별자·문서 중간 DOCTYPE은 실패 처리합니다. 사용자가 직접 올린 MusicXML/MXL은 기존처럼 모든 DOCTYPE을 거부합니다. 검증된 XML만 SQLite에 기록합니다. `GET /api/songs`의 Job→Song 동기화로 SQLite canonical Song이 정확히 하나 등록됐고, `source_kind=omr` 및 원본 PDF managed asset이 존재하는지 확인합니다.
+   - Audiveris의 표준 `score-partwise`/`score-timewise` PUBLIC MusicXML DTD(실측 출력 버전 `4.0.3` 포함)는 **오직 실제 OMR 생성물**에 한해 허용 목록으로 검증한 뒤 XML 파서에 전달하기 전에 제거합니다. ENTITY·내부 DTD subset·변조된 외부 식별자·문서 중간 DOCTYPE은 실패 처리합니다. 사용자가 직접 올린 MusicXML/MXL은 기존처럼 모든 DOCTYPE을 거부합니다. 검증된 XML만 SQLite에 기록합니다. `GET /api/songs`의 Job→Song 동기화로 SQLite canonical Song이 정확히 하나 등록됐고, `source_kind=omr` 및 원본 PDF managed asset이 존재하는지 확인합니다.
 6. `GET /api/songs/{id}/notes`의 Inspector note ID로 실제 음정을 한 번 수정하고, `PATCH /api/songs/{id}/credits`로 제목·크레딧을 CAS 기반 한 Revision에 저장합니다. 현재 MusicXML의 영속 저장과 revision 증가를 확인합니다.
 7. `POST /api/songs/{id}/export-to`에서 **MusicXML/PDF/MIDI/파트 악보**를 실제 생성하고, PDF/MIDI 바이트 및 파트 XML/PDF 쌍을 확인합니다.
 8. 임시 PDF/MXL/ZIP/원본/DB는 러너 수명 내에서 정리하고, 공식 원본 후보 SHA 및 처리·편집·출력 성공 여부를 담은 **`OMR-PRODUCT-E2E.pending.json`만** Actions artifact에 추가합니다.

@@ -65,7 +65,7 @@ def test_mxl_rejects_excessive_member_count(tmp_path: Path):
 
 
 _AUDIVERIS_DTD = (
-    '<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" '
+    '<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0.3 Partwise//EN" '
     '"http://www.musicxml.org/dtds/partwise.dtd">'
 )
 
@@ -79,11 +79,15 @@ def _write_audiveris_mxl(destination: Path, score: str) -> None:
         archive.writestr("score.xml", score)
 
 
+@pytest.mark.parametrize("version", ["4.0", "4.0.3"])
 @pytest.mark.parametrize("suffix", [".musicxml", ".mxl"])
 def test_only_native_omr_results_strip_known_musicxml_public_dtd(
-    tmp_path: Path, suffix: str,
+    tmp_path: Path, suffix: str, version: str,
 ):
-    score = SCORE.replace("<score-partwise", _AUDIVERIS_DTD + "\n<score-partwise")
+    score = SCORE.replace(
+        "<score-partwise",
+        _AUDIVERIS_DTD.replace("4.0.3", version) + "\n<score-partwise",
+    )
     source = tmp_path / f"audiveris{suffix}"
     if suffix == ".mxl":
         _write_audiveris_mxl(source, score)

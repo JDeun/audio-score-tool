@@ -396,34 +396,7 @@ def run_real_omr_product_flow(
             if created.get("kind") != "omr" or not created.get("job_id"):
                 raise AudiverisReviewError("OMR import did not register an actual Job.")
             job_id = str(created["job_id"])
-            try:
-                job = _bounded_job(client, job_id, timeout_seconds=job_timeout)
-            except AudiverisReviewError:
-                # This CLI always submits a freshly generated original score.
-                # Emit only the DTD declaration (never note/lyric content) to
-                # diagnose an upstream header variant rejected by the importer.
-                from zipfile import ZipFile
-
-                from audio_score_tool.paths import jobs_dir
-
-                generated_mxl = jobs_dir() / job_id / "outputs" / "audiveris" / "source-score.mxl"
-                if generated_mxl.is_file():
-                    with ZipFile(generated_mxl) as container:
-                        member = next(
-                            (name for name in container.namelist()
-                             if name.lower().endswith(".xml") and not name.startswith("META-INF/")),
-                            None,
-                        )
-                        if member:
-                            with container.open(member) as stream:
-                                prefix = stream.read(1024).decode("utf-8-sig", errors="replace")
-                            header = re.search(r"<!DOCTYPE\b[^>]{0,400}>", prefix, re.IGNORECASE | re.DOTALL)
-                            print(
-                                "Owned synthetic OMR DTD (review-only): "
-                                + (repr(header.group(0)) if header else "<absent/complex>"),
-                                flush=True,
-                            )
-                raise
+            job = _bounded_job(client, job_id, timeout_seconds=job_timeout)
             if job.get("kind") != "omr":
                 raise AudiverisReviewError("Completed OMR Job has the wrong kind.")
             result = job.get("result") or {}
