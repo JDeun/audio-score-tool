@@ -1,0 +1,145 @@
+name: FFmpeg Native Source Build Review (unapproved)
+
+# Review-only FFmpeg/ffprobe compilation. Intentionally separate from fast
+# UI/code CI and all 3-OS installers, model experiments and signing workflows.
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/ffmpeg-native-build-review.yml'
+      - 'release/review/ffmpeg-native-source-pin-2026-11-07.json'
+      - 'scripts/verify_ffmpeg_native_build.py'
+      - 'tests/test_ffmpeg_native_build.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ffmpeg-native-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-probe:
+    name: ffmpeg-build-${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2025
+            target: windows-x86_64
+          - runner: macos-15
+            target: macos-aarch64
+    steps:
+      - name: Checkout AudioScoreTool verification scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Checkout fixed official FFmpeg source tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: FFmpeg/FFmpeg
+          ref: n9.0.2
+          path: upstream/ffmpeg
+          fetch-depth: 1
+          fetch-tags: true
+          persist-credentials: false
+
+      - name: Verify exact official upstream source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git -C upstream/ffmpeg rev-parse HEAD)"
+          test "$actual" = "946fcce07b6dcd0331c8cc609192aeff5e1924f8"
+          echo "Checked out FFmpeg n9.0.2 commit $actual"
+
+      - name: Install pinned MSYS2 UCRT64 build toolchain (Windows)
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2.33.0
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            base-devel
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-pkgconf
+
+      - name: Compile official FFmpeg/ffprobe source (Windows x64)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: |
+          set -euo pipefail
+          cd upstream/ffmpeg
+          ./configure \
+            --disable-autodetect \
+            --disable-gpl \
+            --disable-nonfree \
+            --disable-version3 \
+            --disable-doc \
+            --disable-debug \
+            --disable-ffplay \
+            --disable-x86asm \
+            --disable-shared \
+            --enable-static \
+            --enable-ffmpeg \
+            --enable-ffprobe
+          make -j 3 ffmpeg ffprobe
+          test -f ffmpeg.exe
+          test -f ffprobe.exe
+
+      - name: Compile official FFmpeg/ffprobe source (macOS arm64)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd upstream/ffmpeg
+          ./configure \
+            --disable-autodetect \
+            --disable-gpl \
+            --disable-nonfree \
+            --disable-version3 \
+            --disable-doc \
+            --disable-debug \
+            --disable-ffplay \
+            --disable-x86asm \
+            --disable-shared \
+            --enable-static \
+            --enable-ffmpeg \
+            --enable-ffprobe
+          make -j 3 ffmpeg ffprobe
+          test -f ffmpeg
+          test -f ffprobe
+
+      - name: Setup Python for native binary review
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: 0.12.10
+          python-version: '3.12'
+
+      - name: Probe native tool identity and deterministic PCM/WAV round-trip
+        shell: bash
+        env:
+          BUILD_TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          uv run --no-project --python 3.12 python scripts/verify_ffmpeg_native_build.py \
+            --source upstream/ffmpeg \
+            --target "$BUILD_TARGET" \
+            --output-dir "$RUNNER_TEMP/ffmpeg-review-$BUILD_TARGET"
+
+      # NO executable or source archive is distributed here. The pending
+      # review records do not authorize reuse of a binary by a release job.
+      - name: Upload metadata-only FFmpeg provenance evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ffmpeg-native-review-${{ matrix.target }}
+          path: |
+            ${{ runner.temp }}/ffmpeg-review-${{ matrix.target }}/NATIVE-FFMPEG-EVIDENCE.pending.json
+            ${{ runner.temp }}/ffmpeg-review-${{ matrix.target }}/FFMPEG-BUILD-REVIEW.pending.json
+            ${{ runner.temp }}/ffmpeg-review-${{ matrix.target }}/ffmpeg-version.txt
+            ${{ runner.temp }}/ffmpeg-review-${{ matrix.target }}/ffprobe-version.txt
+            ${{ runner.temp }}/ffmpeg-review-${{ matrix.target }}/build-record.txt
+          if-no-files-found: error
+          retention-days: 14
