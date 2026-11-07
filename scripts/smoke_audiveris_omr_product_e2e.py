@@ -157,14 +157,18 @@ def _raster_diagnostics(pdf: Path) -> dict[str, Any]:
     """
     import pypdfium2
 
-    with pypdfium2.PdfDocument(str(pdf)) as document:
+    document = pypdfium2.PdfDocument(str(pdf))
+    try:
         if len(document) != 1:
             raise AudiverisReviewError(
                 "Synthetic CI fixture must be one printable score page for bounded inspection."
             )
-        with document[0] as page:
+        page = document[0]
+        try:
             bitmap = page.render(scale=300 / 72)
             image = bitmap.to_pil().convert("L")
+        finally:
+            page.close()
         width, height = image.size
         raw = image.tobytes()
         rows = [
@@ -191,6 +195,8 @@ def _raster_diagnostics(pdf: Path) -> dict[str, Any]:
             result, sort_keys=True
         ), flush=True)
         return result
+    finally:
+        document.close()
 
 
 def _response_ok(response, label: str, *, status: int = 200) -> Any:
