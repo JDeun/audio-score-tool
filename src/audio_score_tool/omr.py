@@ -175,6 +175,49 @@ def _find_export(root: Path) -> Path | None:
     return None
 
 
+def _invalid_mxl_diagnostics(root: Path) -> list[dict[str, object]]:
+    """Describe rejected Audiveris XML metadata, never store user score text.
+
+    Some upstream Audiveris outputs are syntactically valid MXL archives but
+    use a MusicXML header variant rejected by the strict importer. Diagnose
+    that precisely without bypassing the XML/DOCTYPE/ENTITY safety boundary.
+    """
+    details: list[dict[str, object]] = []
+    for source in sorted(root.rglob("*.mxl"))[:3]:
+        if source.is_symlink() or not source.is_file():
+            continue
+        try:
+            with zipfile.ZipFile(source) as archive:
+                for info in archive.infolist()[:80]:
+                    if not info.filename.lower().endswith((".xml", ".musicxml")):
+                        continue
+                    diagnostic: dict[str, object] = {
+                        "member_basename": Path(info.filename).name[:90],
+                        "member_bytes": info.file_size,
+                        "compressed_bytes": info.compress_size,
+                        "ratio": round(info.file_size / max(info.compress_size, 1), 1),
+                    }
+                    try:
+                        xml = _read_zip_member(
+                            archive, info.filename, max_bytes=_MAX_MUSICXML_BYTES
+                        ).decode("utf-8-sig")
+                        diagnostic["has_doctype"] = "<!DOCTYPE" in xml.upper()
+                        diagnostic["has_entity"] = "<!ENTITY" in xml.upper()
+                        if not diagnostic["has_doctype"] and not diagnostic["has_entity"]:
+                            try:
+                                candidate = ET.fromstring(xml)
+                                diagnostic["root"] = candidate.tag.rsplit("}", 1)[-1][:60]
+                            except ET.ParseError:
+                                diagnostic["xml_parse_failed"] = True
+                    except (OSError, UnicodeError, RuntimeError, OMRImportError) as exc:
+                        diagnostic["rejected"] = type(exc).__name__
+                        diagnostic["reason"] = str(exc)[:170]
+                    details.append(diagnostic)
+        except (OSError, zipfile.BadZipFile):
+            details.append({"archive": source.name[:90], "rejected": "malformed-zip"})
+    return details
+
+
 def audiveris_status(command: str) -> dict[str, object]:
     return {
         "provider": "audiveris",
@@ -220,10 +263,12 @@ def transcribe_score(
             path.name for path in raw_dir.iterdir() if path.is_file() and not path.is_symlink()
         )[:24]
         output_tail = (completed.stdout or "")[-3500:]
+        candidate_diagnostics = _invalid_mxl_diagnostics(raw_dir)
         raise OMRImportError(
             "OMR 구성요소가 MusicXML을 생성하지 않았습니다. "
             "원본 해상도/대비 또는 악보 구조를 확인하세요."
             f"\nAudiveris files: {generated}"
+            f"\nAudiveris MXL validation diagnostics: {candidate_diagnostics}"
             f"\nAudiveris log tail (bounded):\n{output_tail}"
         )
     normalized = normalize_musicxml(exported, output_dir / "score.musicxml")
