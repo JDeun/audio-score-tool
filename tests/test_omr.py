@@ -62,3 +62,94 @@ def test_mxl_rejects_excessive_member_count(tmp_path: Path):
 
     with pytest.raises(OMRImportError):
         normalize_musicxml(source, tmp_path / "normalized.musicxml")
+
+
+_AUDIVERIS_DTD = (
+    '<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" '
+    '"http://www.musicxml.org/dtds/partwise.dtd">'
+)
+
+
+def _write_audiveris_mxl(destination: Path, score: str) -> None:
+    with ZipFile(destination, "w", ZIP_DEFLATED) as archive:
+        archive.writestr(
+            "META-INF/container.xml",
+            '<container><rootfiles><rootfile full-path="score.xml"/></rootfiles></container>',
+        )
+        archive.writestr("score.xml", score)
+
+
+@pytest.mark.parametrize("suffix", [".musicxml", ".mxl"])
+def test_only_native_omr_results_strip_known_musicxml_public_dtd(
+    tmp_path: Path, suffix: str,
+):
+    score = SCORE.replace("<score-partwise", _AUDIVERIS_DTD + "\n<score-partwise")
+    source = tmp_path / f"audiveris{suffix}"
+    if suffix == ".mxl":
+        _write_audiveris_mxl(source, score)
+    else:
+        source.write_text(score, encoding="utf-8")
+
+    # Direct notation imports remain strict even for an apparently standard DTD.
+    with pytest.raises(OMRImportError):
+        normalize_musicxml(source, tmp_path / "direct.musicxml")
+
+    normalized = tmp_path / "omr.musicxml"
+    assert normalize_musicxml(source, normalized, audiveris_output=True) == normalized
+    data = normalized.read_text(encoding="utf-8")
+    assert "<!DOCTYPE" not in data
+    assert "<!ENTITY" not in data
+    assert "<score-partwise" in data
+    assert "<part-name>Piano</part-name>" in data
+
+
+@pytest.mark.parametrize(
+    "declaration",
+    [
+        '<!DOCTYPE score-partwise SYSTEM "file:///etc/passwd">',
+        '<!DOCTYPE score-partwise [<!ENTITY boom SYSTEM "file:///etc/passwd">]>',
+        _AUDIVERIS_DTD.replace("http://www.musicxml.org", "file:///etc"),
+        _AUDIVERIS_DTD.replace("partwise.dtd", "timewise.dtd"),
+        _AUDIVERIS_DTD.replace("MusicXML 4.0 Partwise", "MusicXML 4.0 Timewise"),
+        _AUDIVERIS_DTD + "\n" + _AUDIVERIS_DTD,
+        "<!-- injected comment -->\n" + _AUDIVERIS_DTD,
+        _AUDIVERIS_DTD + '\n<!ENTITY extra "boom">',
+    ],
+)
+@pytest.mark.parametrize("suffix", [".musicxml", ".mxl"])
+def test_native_omr_rejects_unsafe_or_nonheader_doctype(
+    tmp_path: Path, suffix: str, declaration: str,
+):
+    score = SCORE.replace("<score-partwise", declaration + "\n<score-partwise")
+    source = tmp_path / f"invalid{suffix}"
+    if suffix == ".mxl":
+        _write_audiveris_mxl(source, score)
+    else:
+        source.write_text(score, encoding="utf-8")
+    target = tmp_path / "normalized.musicxml"
+    with pytest.raises(OMRImportError):
+        normalize_musicxml(source, target, audiveris_output=True)
+    assert not target.exists()
+
+
+def test_audiveris_export_is_discovered_and_normalized_before_job_completion(
+    tmp_path: Path, monkeypatch,
+):
+    from types import SimpleNamespace
+
+    from audio_score_tool import omr
+
+    score = SCORE.replace("<score-partwise", _AUDIVERIS_DTD + "\n<score-partwise")
+    monkeypatch.setattr(omr, "command_exists", lambda _command: True)
+
+    def mock_native_omr(_command, args, **_kwargs):
+        output_dir = Path(args[args.index("-output") + 1])
+        _write_audiveris_mxl(output_dir / "source-score.mxl", score)
+        return SimpleNamespace(stdout="Exported native MusicXML")
+
+    monkeypatch.setattr(omr, "run_command", mock_native_omr)
+    result = omr.transcribe_score(
+        tmp_path / "score.pdf", tmp_path / "outputs", command="managed-audiveris"
+    )
+    assert result.musicxml_path.read_text(encoding="utf-8").count("<!DOCTYPE") == 0
+    assert "<score-partwise" in result.musicxml_path.read_text(encoding="utf-8")
