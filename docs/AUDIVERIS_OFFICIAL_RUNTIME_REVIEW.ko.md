@@ -23,7 +23,7 @@ Audiveris upstream [설치 문서](https://github.com/Audiveris/audiveris/blob/5
 
 1. `scripts/verify_audiveris_official_installer.py`가 원본 MSI/DMG의 **파일 이름·크기·SHA-256·MSI OLE / DMG UDIF 매직**을 정확히 고정값과 비교합니다. 네트워크 다운로드/바이너리 실행은 하지 않습니다.
 2. 별도 `.github/workflows/audiveris-official-installer-review.yml`은 Windows 2025 x64와 macOS 15 ARM64 러너에서 공식 URL의 파일을 임시 내려받고 첫 번째 검증기를 실행합니다.
-3. Windows에서는 MSI administrative image를 **임시 폴더**에 추출하고, macOS에서는 DMG를 **읽기 전용** 마운트합니다. macOS 이미지에는 GNU AGPL 안내가 포함되어 있어 CI의 비대화형 읽기 전용 검토에서는 `hdiutil -agree-to-license`를 사용합니다. 이는 upstream 라이선스 안내를 검토 작업에 한해 처리하는 것이며, **앱·JRE·OCR 파일의 제3자 상용 재배포 승인이나 소스 제공 의무 완료를 뜻하지 않습니다.** 사용자의 Program Files/Applications로 자동 설치하거나, 이 출력물을 임의로 재패키징하지 않습니다.
+3. Windows에서는 MSI administrative image를 **임시 폴더**에 추출하고, macOS에서는 DMG를 **읽기 전용** 마운트합니다. macOS 이미지에는 GNU AGPL 안내가 포함되어 있어 CI의 비대화형 읽기 전용 검토에서는 `echo Y | PAGER=cat hdiutil attach`로 표시된 안내에 한 번 응답합니다. `-agree-to-license`는 이 macOS의 `hdiutil`에서 유효한 옵션이 아닙니다. 이는 upstream 라이선스 안내를 검토 작업에 한해 처리하는 것이며, **앱·JRE·OCR 파일의 제3자 상용 재배포 승인이나 소스 제공 의무 완료를 뜻하지 않습니다.** 사용자의 Program Files/Applications로 자동 설치하거나, 이 출력물을 임의로 재패키징하지 않습니다.
 4. `scripts/verify_audiveris_native_layout.py`에서 본체 launcher, 내장 `java[.exe]`, JRE의 `release` 정보를 확인한 후 절대 경로·빈 PATH로 각각 `-version`을 실행해 출시 후보 버전을 확인합니다. Windows에서 Java Swing이 참조하는 사용자 `USERPROFILE`/`APPDATA`는 정상 OS 경로를 유지합니다. 이를 임의 추출 폴더로 덮어쓰면 Windows `FileSystemView` 초기화 오류로 종료할 수 있으며, 빈 PATH의 외부 명령 차단과는 별개입니다. 이 검증이 성공하더라도 실행 중인 Audiveris 프로세스가 **반드시 해당 JRE를 사용했는지** 별도 프로세스 추적 없이 단정하지 않으며 해당 메타데이터는 false로 유지합니다.
 5. CI에는 `SOURCE-EVIDENCE.pending.json` 및 `NATIVE-EVIDENCE.pending.json`만 공개 artifact로 보존합니다. 다운로드된 설치 파일·JRE·실행 파일·악보 이미지는 업로드하지 않습니다.
 
