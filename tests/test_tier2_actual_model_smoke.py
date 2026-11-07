@@ -8,7 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from music21 import instrument, note, stream
+from music21 import harmony, instrument, note, stream
 
 from scripts import run_tier2_model_smoke as smoke
 
@@ -49,6 +49,18 @@ def test_parseable_but_empty_note_outputs_must_fail(
     selected = midi if format_name == "midi" else musicxml
     _score_file(selected, format_name, notes=False)
     with pytest.raises(RuntimeError, match=f"{label} model output (contains no notes|cannot be parsed)"):
+        smoke.verify_model_outputs(midi, musicxml)
+
+
+def test_chord_symbol_only_musicxml_does_not_masquerade_as_note_inference(tmp_path: Path):
+    midi, musicxml = _outputs(tmp_path)
+    score = stream.Score()
+    part = stream.Part()
+    part.append(harmony.ChordSymbol("C"))
+    part.append(note.Rest(quarterLength=1))
+    score.append(part)
+    score.write("musicxml", fp=str(musicxml))
+    with pytest.raises(RuntimeError, match="MusicXML model output contains no notes"):
         smoke.verify_model_outputs(midi, musicxml)
 
 
