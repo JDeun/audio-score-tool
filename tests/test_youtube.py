@@ -25,8 +25,6 @@ from audio_score_tool.youtube import (
 )
 
 
-
-
 _YOUTUBE_TOOLS = ("yt-dlp", "deno", "ffmpeg", "ffprobe")
 
 
