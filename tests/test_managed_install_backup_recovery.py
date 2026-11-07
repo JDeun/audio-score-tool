@@ -11,7 +11,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from audio_score_tool import setup_center_api
+from audio_score_tool import api as api_module
+from audio_score_tool import job_ingestion, setup_center_api
 from audio_score_tool.api import app
 from audio_score_tool.managed_components import (
     ComponentArtifact,
@@ -184,3 +185,71 @@ def test_report_does_not_fabricate_verified_runtime_after_bad_backup(tmp_path: P
     assert recovery["pending_previous_install_backup"] == 1
     assert backup.is_dir() and not current.exists()
     assert component_status("fixture", root=root)["ready"] is False
+
+
+def _mock_product_startup(monkeypatch):
+    monkeypatch.setattr(
+        api_module, "recover_startup_state",
+        lambda **_kwargs: {"recovery_errors": 0},
+    )
+    monkeypatch.setattr(
+        job_ingestion, "full_reconcile_completed_jobs",
+        lambda **_kwargs: {"ingested": 0},
+    )
+    calls = []
+    monkeypatch.setattr(
+        api_module.uvicorn, "run",
+        lambda *_args, **_kwargs: calls.append(api_module.startup_diagnostics()),
+    )
+    return calls
+
+
+def test_packaged_backend_startup_recovers_crashed_managed_install_before_serving(
+    tmp_path: Path, monkeypatch,
+):
+    root, current, backup = _installed(tmp_path)
+    current.replace(backup)
+    monkeypatch.setenv("AST_COMPONENT_DIR", str(root))
+    calls = _mock_product_startup(monkeypatch)
+
+    with api_module._startup_lock:
+        previous = dict(api_module._startup_diagnostics)
+    try:
+        api_module.run()
+        assert len(calls) == 1
+        before_serving = calls[0]
+        assert before_serving["recovery_completed"] is True
+        managed = before_serving["recovery"]["managed_components"]
+        assert managed["restored_previous_install"] == 1
+        assert managed["pending_previous_install_backup"] == 0
+        assert component_status("fixture", root=root)["ready"] is True
+        assert not backup.exists()
+    finally:
+        with api_module._startup_lock:
+            api_module._startup_diagnostics.clear()
+            api_module._startup_diagnostics.update(previous)
+
+
+def test_packaged_backend_reports_managed_recovery_failure_without_blocking_core(
+    monkeypatch,
+):
+    def fail_recovery():
+        raise ComponentIntegrityError("synthetic protected state failure")
+
+    monkeypatch.setattr(api_module, "recover_component_staging", fail_recovery)
+    calls = _mock_product_startup(monkeypatch)
+    with api_module._startup_lock:
+        previous = dict(api_module._startup_diagnostics)
+    try:
+        api_module.run()
+        assert len(calls) == 1
+        diagnostics = calls[0]
+        assert diagnostics["recovery_completed"] is True
+        assert diagnostics["recovery"]["managed_components"] == {
+            "recovery_failed": True, "error_type": "ComponentIntegrityError",
+        }
+        assert diagnostics["recovery"]["recovery_errors"] == 1
+    finally:
+        with api_module._startup_lock:
+            api_module._startup_diagnostics.clear()
+            api_module._startup_diagnostics.update(previous)
