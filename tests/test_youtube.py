@@ -152,6 +152,10 @@ def test_packaged_youtube_binds_yt_dlp_to_managed_runtime(monkeypatch, tmp_path:
     assert metadata.title == "Example"
     assert captured
     args = [str(value) for value in captured[0]]
+    assert args[:2] == ["--ignore-config", "--no-remote-components"]
+    assert args.count("--ignore-config") == 1
+    assert args.count("--no-remote-components") == 1
+    assert "--remote-components" not in args
     js_index = args.index("--js-runtimes")
     assert args[js_index + 1] == f"deno:{deno}"
     ffmpeg_index = args.index("--ffmpeg-location")
