@@ -134,8 +134,14 @@ def youtube_tool_status(settings: Settings | None = None) -> dict:
     ffprobe_path = managed_executable_path("ffprobe") if packaged else None
     # A loose binary in components/bin is not a verified managed installation.
     deno_ready = registered_managed_tool("deno") is not None if packaged else True
-    ffmpeg_ready = registered_managed_tool("ffmpeg") is not None if packaged else True
-    ffprobe_ready = registered_managed_tool("ffprobe") is not None if packaged else True
+    ffmpeg_ready = (
+        registered_managed_tool("ffmpeg") is not None
+        if packaged else command_exists(settings.ffmpeg_cmd)
+    )
+    ffprobe_ready = (
+        registered_managed_tool("ffprobe") is not None
+        if packaged else command_exists("ffprobe")
+    )
     return {
         "ready": (
             command_exists(settings.yt_dlp_cmd)
