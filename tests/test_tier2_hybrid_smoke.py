@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 
 import pytest
-from music21 import instrument, note, stream
+from music21 import chord, instrument, note, stream
 
 from scripts import run_tier2_hybrid_smoke as handoff
 
@@ -141,3 +141,59 @@ def test_untrusted_events_model_identity_is_not_accepted(tmp_path: Path):
             audio, root, model="yourmt3", events_file=events,
             destination=tmp_path / "hybrid.musicxml",
         )
+
+
+def test_pitch_signature_survives_chord_vs_separate_note_notation(tmp_path: Path):
+    first = stream.Score()
+    first_part = stream.Part()
+    first_part.insert(0, instrument.Piano())
+    first_part.append(chord.Chord(["C4", "E4", "G4"], quarterLength=1))
+    first.append(first_part)
+    first_path = tmp_path / "chord.musicxml"
+    first.write("musicxml", fp=str(first_path))
+
+    second = stream.Score()
+    second_part = stream.Part()
+    second_part.insert(0, instrument.Piano())
+    for pitch in ("G4", "C4", "E4"):
+        second_part.insert(0, note.Note(pitch, quarterLength=1))
+    second.append(second_part)
+    second_path = tmp_path / "simultaneous.musicxml"
+    second.write("musicxml", fp=str(second_path))
+    assert handoff.performed_note_signature(first_path) == handoff.performed_note_signature(
+        second_path
+    )
+
+
+def test_pitch_signature_detects_lost_pitch_or_changed_onset(tmp_path: Path):
+    score = stream.Score()
+    part = stream.Part()
+    part.append(chord.Chord(["C4", "E4", "G4"], quarterLength=1))
+    score.append(part)
+    original = tmp_path / "original.musicxml"
+    score.write("musicxml", fp=str(original))
+    original_signature = handoff.performed_note_signature(original)
+    assert len(original_signature) == 3
+
+    part.remove(part.notes[0])
+    part.append(chord.Chord(["C4", "E4"], quarterLength=1))
+    changed = tmp_path / "changed.musicxml"
+    score.write("musicxml", fp=str(changed))
+    assert handoff.performed_note_signature(changed) != original_signature
+
+
+def test_musical_chords_not_counted_when_only_harmony_metadata_changes(tmp_path: Path):
+    from music21 import harmony
+
+    score = stream.Score()
+    part = stream.Part()
+    part.append(note.Note("C4", quarterLength=1))
+    score.append(part)
+    first = tmp_path / "before.musicxml"
+    score.write("musicxml", fp=str(first))
+
+    part.insert(0, harmony.ChordSymbol("C"))
+    second = tmp_path / "after.musicxml"
+    score.write("musicxml", fp=str(second))
+
+    assert handoff.performed_note_signature(first) == handoff.performed_note_signature(second)
