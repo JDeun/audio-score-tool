@@ -9,7 +9,12 @@ type Component = {
   role: string;
   required_for: string[];
   auto_install: boolean;
-  managed_status?: { ready: boolean; integrity: string };
+  managed_status?: {
+    ready: boolean;
+    integrity: string;
+    version?: string;
+    rollback?: { available: boolean; version?: string; integrity?: string; reason?: string };
+  };
   catalog?: { published: boolean; target: string; version: string; publication_reason?: string | null };
 };
 
@@ -187,4 +192,78 @@ test("unverifiable managed backup is preserved and warned, not called success", 
   const warning = dialog.getByRole("alert");
   await expect(warning).toContainText("검증할 수 없는 이전 설치 백업 1개");
   await expect(warning).toContainText("자동 재설치를 중단");
+});
+
+
+test("verified previous version is rollbackable even when a newer catalog is unpublished", async ({ page }) => {
+  const { status, component } = fixture(false);
+  component.managed_status = {
+    ready: false,
+    integrity: "tool-digest-mismatch",
+    version: "2",
+    rollback: { available: true, version: "1", integrity: "verified" },
+  };
+  await page.route("**/api/setup/center", route => route.fulfill({ json: status }));
+  const calls: string[] = [];
+  await page.route("**/api/setup/rollback", route => {
+    calls.push(route.request().postData() || "");
+    component.ready = true;
+    component.managed_status = {
+      ready: true,
+      integrity: "verified",
+      version: "1",
+      rollback: { available: false, reason: "no-previous-version" },
+    };
+    return route.fulfill({
+      json: {
+        rolled_back: { ready: true, integrity: "verified", version: "1" },
+        setup: status,
+      },
+    });
+  });
+
+  const dialog = await openSetup(page);
+  await expect(dialog.getByRole("button", { name: "앱에서 설치" })).toHaveCount(0);
+  await expect(dialog.getByText("실행 파일 무결성 불일치 · 복구 필요")).toBeVisible();
+  const rollbackButton = dialog.getByRole("button", { name: "이전 버전 (1)으로 복원" });
+  await expect(rollbackButton).toBeVisible();
+  await rollbackButton.click();
+  await expect(dialog.getByRole("status")).toContainText("검증된 이전 버전 1으로 되돌렸습니다");
+  await expect(dialog.getByRole("button", { name: "이전 버전 (1)으로 복원" })).toHaveCount(0);
+  expect(calls.map(call => JSON.parse(call))).toEqual([{ component: "audiveris" }]);
+});
+
+test("unverified previous generation never exposes rollback, even if old bytes remain", async ({ page }) => {
+  const { status, component } = fixture(true);
+  component.managed_status = {
+    ready: false, integrity: "tool-digest-mismatch",
+    rollback: { available: false, reason: "previous-version-unverified" },
+  };
+  await page.route("**/api/setup/center", route => route.fulfill({ json: status }));
+  let rollbackCalls = 0;
+  await page.route("**/api/setup/rollback", route => {
+    rollbackCalls += 1;
+    return route.fulfill({ status: 409, json: { detail: "previous version corrupt" } });
+  });
+  const dialog = await openSetup(page);
+  await expect(dialog.getByRole("button", { name: /이전 버전.*복원/ })).toHaveCount(0);
+  expect(rollbackCalls).toBe(0);
+});
+
+test("rollback 409 failure remains an error, does not claim a restored runtime", async ({ page }) => {
+  const { status, component } = fixture(false);
+  component.managed_status = {
+    ready: false, integrity: "tool-digest-mismatch",
+    rollback: { available: true, version: "1", integrity: "verified" },
+  };
+  await page.route("**/api/setup/center", route => route.fulfill({ json: status }));
+  await page.route("**/api/setup/rollback", route => route.fulfill({
+    status: 409,
+    json: { detail: "Previous managed runtime is missing or not verified" },
+  }));
+  const dialog = await openSetup(page);
+  await dialog.getByRole("button", { name: "이전 버전 (1)으로 복원" }).click();
+  await expect(dialog.getByRole("alert")).toContainText("not verified");
+  await expect(dialog.getByRole("status")).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "이전 버전 (1)으로 복원" })).toBeVisible();
 });

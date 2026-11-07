@@ -9,10 +9,12 @@ from .managed_component_catalog import artifact_for, catalog_summary, platform_k
 from .managed_components import (
     ComponentError,
     ComponentUnavailable,
+    component_rollback_status,
     component_status,
     install_component_artifact,
     recover_component_staging,
     remove_component_artifact,
+    rollback_component_artifact,
 )
 from .managed_publication_readiness import check_publication
 from .preflight_v2 import preflight
@@ -47,6 +49,7 @@ def _platform_key() -> str:
 
 def _managed_detail(key: str) -> tuple[dict, dict]:
     status = component_status(key)
+    status["rollback"] = component_rollback_status(key)
     catalog = catalog_summary(key)
     return status, catalog
 
@@ -239,6 +242,18 @@ def install_setup_component(payload: InstallRequest) -> dict:
 @router.post("/api/setup/recover")
 def recover_setup_components() -> dict:
     return {"recovery": recover_component_staging(), "setup": setup_center_status()}
+
+
+@router.post("/api/setup/rollback")
+def rollback_setup_component(payload: InstallRequest) -> dict:
+    component = payload.component.strip()
+    if component not in _MANAGED_COMPONENTS:
+        raise HTTPException(409, f"{component}: 앱 관리 롤백 대상이 아닙니다.")
+    try:
+        result = rollback_component_artifact(component)
+    except ComponentError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return {"rolled_back": result, "setup": setup_center_status()}
 
 
 @router.post("/api/setup/remove")

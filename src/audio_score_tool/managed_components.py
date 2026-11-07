@@ -251,6 +251,98 @@ def _tree_matches_state(path: Path, entry: dict, root: Path) -> bool:
     return True
 
 
+
+_ROLLBACK_IDENTITY_FIELDS = (
+    "version", "root", "tools", "tool_sha256",
+    "archive_sha256", "license", "provenance",
+)
+
+
+def _verified_install_snapshot(root: Path, component: str, entry: object) -> dict | None:
+    """Only a previously committed, owned version may be offered for rollback.
+
+    The snapshot deliberately excludes nested rollback history. Old state.json
+    entries remain readable; they simply have no rollback until a verified
+    cross-version upgrade has occurred.
+    """
+    if not _safe_identifier(component) or not isinstance(entry, dict):
+        return None
+    version = entry.get("version")
+    if not isinstance(version, str) or not _safe_identifier(version):
+        return None
+    expected = (PurePosixPath("installed") / component / version).as_posix()
+    archive_digest = entry.get("archive_sha256")
+    if (
+        entry.get("root") != expected
+        or not isinstance(archive_digest, str)
+        or re.fullmatch(r"[a-f0-9]{64}", archive_digest) is None
+    ):
+        return None
+    installed_root = root / "installed"
+    component_root = installed_root / component
+    if installed_root.is_symlink() or component_root.is_symlink():
+        return None
+    version_root = component_root / version
+    if not _tree_matches_state(version_root, entry, root):
+        return None
+    return {field: entry.get(field) for field in _ROLLBACK_IDENTITY_FIELDS}
+
+
+def component_rollback_status(component: str, *, root: Path | None = None) -> dict:
+    """Expose prior-version availability without trusting a directory name."""
+    root = (root or _root()).resolve()
+    if not _safe_identifier(component):
+        return {"available": False, "reason": "invalid-name"}
+    try:
+        state = _load_state(root)
+    except ComponentIntegrityError:
+        return {"available": False, "reason": "state-corrupt"}
+    active = state["components"].get(component)
+    if not isinstance(active, dict):
+        return {"available": False, "reason": "not-installed"}
+    previous = active.get("rollback")
+    if previous is None:
+        return {"available": False, "reason": "no-previous-version"}
+    snapshot = _verified_install_snapshot(root, component, previous)
+    if snapshot is None or snapshot["version"] == active.get("version"):
+        return {"available": False, "reason": "previous-version-unverified"}
+    return {
+        "available": True,
+        "version": snapshot["version"],
+        "integrity": "verified",
+    }
+
+
+def rollback_component_artifact(component: str, *, root: Path | None = None) -> dict:
+    """Atomically reactivate the SHA-verified previous version, without a download.
+
+    The current version stays on disk until a separately reviewed cleanup; it
+    stops being executable through the managed registry as soon as state.json
+    switches. Never delete the only verified rollback copy during this action.
+    """
+    if not _safe_identifier(component):
+        raise ComponentIntegrityError("Managed component name is unsafe.")
+    root = (root or _root()).resolve()
+    with _INSTALL_LOCK:
+        state = _load_state(root)
+        current = state["components"].get(component)
+        if not isinstance(current, dict):
+            raise ComponentUnavailable("No installed managed component to roll back.")
+        previous = _verified_install_snapshot(root, component, current.get("rollback"))
+        if previous is None or previous["version"] == current.get("version"):
+            raise ComponentIntegrityError(
+                "Previous managed runtime is missing, damaged or not verified; "
+                "rollback was not performed."
+            )
+        components = dict(state["components"])
+        components[component] = previous
+        _atomic_write_json(
+            _state_path(root),
+            {"schema": _SCHEMA_VERSION, "components": components},
+        )
+        return component_status(component, root=root)
+
+
 def _recover_install_backups(root: Path, state: dict | None) -> dict[str, int]:
     """Reconcile crashed replacements with the last *committed* state.
 
@@ -633,6 +725,26 @@ def install_component_artifact(
                 raise ComponentIntegrityError("Managed component checksum mismatch.")
             _extract(artifact, download, staged)
             tools, tool_sha256 = _verify_tools(artifact, staged)
+
+            # For cross-version upgrades, save the identity of the *currently
+            # verified* runtime before the state pointer changes. Keep the
+            # previous verified generation on disk for explicit rollback.
+            # Unverified/tampered old bytes must never become a rollback target.
+            state = _load_state(root)
+            previous = state["components"].get(artifact.component)
+            rollback_entry = None
+            if isinstance(previous, dict):
+                if previous.get("version") != artifact.version:
+                    rollback_entry = _verified_install_snapshot(
+                        root, artifact.component, previous,
+                    )
+                else:
+                    prior = previous.get("rollback")
+                    if isinstance(prior, dict) and prior.get("version") != artifact.version:
+                        rollback_entry = _verified_install_snapshot(
+                            root, artifact.component, prior,
+                        )
+
             install_root.mkdir(parents=True, exist_ok=True)
             if final.exists():
                 if final.is_symlink() or not final.is_dir():
@@ -648,9 +760,8 @@ def install_component_artifact(
                     backup.replace(final)
                 raise
 
-            state = _load_state(root)
             components = dict(state["components"])
-            components[artifact.component] = {
+            updated = {
                 "version": artifact.version,
                 "root": str(final.relative_to(root).as_posix()),
                 "tools": tools,
@@ -659,6 +770,9 @@ def install_component_artifact(
                 "license": artifact.license,
                 "provenance": artifact.provenance,
             }
+            if rollback_entry is not None:
+                updated["rollback"] = rollback_entry
+            components[artifact.component] = updated
             _atomic_write_json(
                 _state_path(root),
                 {"schema": _SCHEMA_VERSION, "components": components},

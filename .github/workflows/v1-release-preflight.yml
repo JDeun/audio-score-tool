@@ -49,6 +49,7 @@ jobs:
             tests/test_release_quality_approval.py \
             tests/test_managed_component_catalog.py \
             tests/test_managed_component_tamper.py \
+            tests/test_managed_version_rollback.py \
             tests/test_managed_publication_readiness.py \
             tests/test_managed_artifact_candidate_preparation.py \
             tests/test_managed_artifact_publication_evidence.py \
