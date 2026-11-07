@@ -97,7 +97,11 @@ def project_musicxml_annotations(
     source_measures = [m for m in source_parts[0] if _name(m) == "measure"]
     augmented_measures = [m for m in added_parts[0] if _name(m) == "measure"]
     if not source_measures or len(source_measures) != len(augmented_measures):
-        raise AnnotationProjectionError("Annotation changed measure mapping")
+        raise AnnotationProjectionError(
+            "Annotation changed measure mapping: "
+            f"source={[m.get('number') for m in source_measures]}, "
+            f"stage={[m.get('number') for m in augmented_measures]}"
+        )
     input_divisions = 1
     annotated_divisions = 1
     for measure, other in zip(source_measures, augmented_measures):
