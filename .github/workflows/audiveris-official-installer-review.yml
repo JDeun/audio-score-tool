@@ -115,7 +115,7 @@ jobs:
           # Pipe one explicit Y to agree to this ephemeral, read-only QA run.
           # PAGER=cat avoids requiring a terminal; neither operation approves
           # commercial redistribution, licensing of our app or user installs.
-          printf 'Y\\n' | PAGER=cat hdiutil attach "$root/raw/Audiveris-5.11.0-macosx-arm64.dmg" \
+          echo Y | PAGER=cat hdiutil attach "$root/raw/Audiveris-5.11.0-macosx-arm64.dmg" \
             -readonly -nobrowse -mountpoint "$root/mounted-dmg"
 
       - name: Verify Audiveris launcher and bundled Java on actual target OS
