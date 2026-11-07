@@ -1,14 +1,36 @@
 """Native Audiveris launcher/JRE contract tests use fake bytes and mocked subprocess."""
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
 import pytest
 
 from scripts import verify_audiveris_native_layout as native
-from tests.test_audiveris_official_installer import _fake_asset
-from scripts.verify_audiveris_official_installer import verify_official_installer
+from scripts.verify_audiveris_official_installer import (
+    DEFAULT_PINS,
+    _MSI_HEADER,
+    verify_official_installer,
+)
+
+
+def _fake_asset(tmp_path: Path, target: str) -> tuple[Path, Path]:
+    # Independent fixture: no tests/ package imports or externally downloaded bytes.
+    pin = json.loads(DEFAULT_PINS.read_text(encoding="utf-8"))
+    item = pin["sources"][target]
+    source = tmp_path / item["asset"]
+    payload = (
+        _MSI_HEADER + b"\0" * 700
+        if target == "windows-x86_64"
+        else b"fixture-DMG-padding" * 40 + b"koly" + b"\0" * 508
+    )
+    source.write_bytes(payload)
+    item["bytes"] = len(payload)
+    item["sha256"] = hashlib.sha256(payload).hexdigest()
+    pin_file = tmp_path / "pins.json"
+    pin_file.write_text(json.dumps(pin), encoding="utf-8")
+    return source, pin_file
 
 
 def _fixture(tmp_path: Path, monkeypatch, target: str = "windows-x86_64"):
