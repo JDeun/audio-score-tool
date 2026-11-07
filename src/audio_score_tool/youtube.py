@@ -64,7 +64,12 @@ def _youtube_ffmpeg_args() -> list[str]:
 
 
 def _youtube_runtime_args() -> list[str]:
-    return [*_youtube_js_runtime_args(), *_youtube_ffmpeg_args()]
+    # A packaged app must not execute flags supplied by the user's yt-dlp
+    # configuration (e.g. post-processing --exec) or silently fetch a new EJS
+    # solver from GitHub/npm. Official yt-dlp standalone binaries include
+    # their own EJS scripts; only the explicitly pinned Deno is external.
+    isolation = ["--ignore-config", "--no-remote-components"] if packaged_runtime() else []
+    return [*isolation, *_youtube_js_runtime_args(), *_youtube_ffmpeg_args()]
 
 
 @dataclass(slots=True)
