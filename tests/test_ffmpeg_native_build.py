@@ -305,3 +305,43 @@ def test_macos_rejects_unreviewed_fully_static_linker_setting(tmp_path: Path, mo
             destination=tmp_path / "unsafe", pin_file=pin_file,
         )
     assert calls == []
+
+
+def test_exact_numeric_version_alias_is_allowed_for_pinned_n_tag(tmp_path: Path, monkeypatch):
+    pin, pin_file, source, _calls = _fixture(tmp_path, monkeypatch)
+    original = native._run
+
+    def source_version_alias(argv, **kwargs):
+        result = original(argv, **kwargs)
+        if kwargs["label"] in {"ffmpeg-version", "ffprobe-version"}:
+            return result.replace(f"version {pin['version']} ", "version 9.0.2 ", 1)
+        return result
+
+    monkeypatch.setattr(native, "_run", source_version_alias)
+    evidence = native.verify_native_build(
+        source=source, target="windows-x86_64",
+        destination=tmp_path / "evidence", pin_file=pin_file,
+    )
+    assert evidence["source_tag"] == "n9.0.2"
+    assert {item["native_version"] for item in evidence["tools"].values()} == {"9.0.2"}
+    offline = json.loads((tmp_path / "evidence/FFMPEG-BUILD-REVIEW.pending.json").read_text())
+    assert offline["version"] == "9.0.2"
+
+
+def test_ffmpeg_and_ffprobe_native_versions_must_match(tmp_path: Path, monkeypatch):
+    pin, pin_file, source, _calls = _fixture(tmp_path, monkeypatch)
+    original = native._run
+
+    def mismatched_version(argv, **kwargs):
+        result = original(argv, **kwargs)
+        if kwargs["label"] == "ffprobe-version":
+            return result.replace(f"version {pin['version']} ", "version 9.0.2 ", 1)
+        return result
+
+    monkeypatch.setattr(native, "_run", mismatched_version)
+    with pytest.raises(native.FFmpegNativeReviewError, match="inconsistent native versions"):
+        native.verify_native_build(
+            source=source, target="windows-x86_64",
+            destination=tmp_path / "rejected", pin_file=pin_file,
+        )
+    assert not (tmp_path / "rejected").exists()
