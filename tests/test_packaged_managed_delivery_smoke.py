@@ -199,7 +199,10 @@ def test_youtube_cli_smoke_uses_only_absolute_managed_paths_and_bounded_versions
     assert len(calls) == 4
     selected = next(call for call in calls if Path(call[0]).name == tool)
     assert selected[0] == binary_map[tool]
-    assert selected[1] == (expected_flag,)
+    assert selected[1] == (
+        ("--ignore-config", "--no-remote-components", "--version")
+        if tool == "yt-dlp" else (expected_flag,)
+    )
     assert selected[2]["env"]["PATH"] == ""
     assert selected[2]["timeout_seconds"] <= 20
     assert selected[2]["max_output_bytes"] <= 16 * 1024
