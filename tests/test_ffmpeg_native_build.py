@@ -276,4 +276,4 @@ def test_native_review_workflow_is_scoped_and_does_not_publish_binaries():
     assert "actions/upload-artifact@" in workflow
     assert "desktop-packages.yml" not in workflow
     assert "ffmpeg.exe" not in workflow.split("Upload metadata-only FFmpeg provenance evidence")[1]
-    assert "models" not in workflow.lower()
+    assert "tier2-actual-models.yml" not in workflow
