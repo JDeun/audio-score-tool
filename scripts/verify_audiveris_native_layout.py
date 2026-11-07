@@ -16,7 +16,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from verify_audiveris_official_installer import (
+from scripts.verify_audiveris_official_installer import (
     DEFAULT_PINS,
     AudiverisReviewError,
     _pin,
