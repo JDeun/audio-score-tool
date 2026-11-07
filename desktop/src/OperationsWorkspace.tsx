@@ -392,7 +392,18 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
 
   const cancelJob = async () => {
     if (!job) return;
-    await fetch(`${API}/api/jobs/${job.job_id}/cancel`, { method: "POST" });
+    const targetId = job.job_id;
+    try {
+      const response = await fetch(`${API}/api/jobs/${targetId}/cancel`, { method: "POST" });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(payload?.detail ?? "작업을 취소하지 못했습니다.");
+      setJob((current) =>
+        current?.job_id === targetId ? { ...current, status: payload.status } : current,
+      );
+      await refreshJobs();
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : String(error), "error");
+    }
   };
 
   const retryJob = async (target: Job) => {
