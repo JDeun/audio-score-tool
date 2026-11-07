@@ -110,8 +110,10 @@ jobs:
           set -euo pipefail
           root="$RUNNER_TEMP/audiveris-review-$REVIEW_TARGET"
           mkdir "$root/mounted-dmg"
+          # Leave hdiutil's diagnostic visible; APFS/DiskImages may refuse
+          # a fixed mountpoint or a runner sandbox without explaining why.
           hdiutil attach "$root/raw/Audiveris-5.11.0-macosx-arm64.dmg" \
-            -readonly -nobrowse -mountpoint "$root/mounted-dmg" -quiet
+            -readonly -nobrowse -mountpoint "$root/mounted-dmg"
 
       - name: Verify Audiveris launcher and bundled Java on actual target OS
         shell: bash
