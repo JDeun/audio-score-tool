@@ -92,8 +92,10 @@ def project_musicxml_annotations(
     added = _score(augmented)
     source_parts = [part for part in original if _name(part) == "part"]
     added_parts = [part for part in added if _name(part) == "part"]
-    if not source_parts or len(source_parts) != len(added_parts):
-        raise AnnotationProjectionError("Annotation changed part mapping")
+    # Annotation overlay intentionally contains only the first source Part.
+    # Keep every other AMT instrument Part unmodified in the canonical score.
+    if not source_parts or len(added_parts) != 1:
+        raise AnnotationProjectionError("Annotation overlay must contain exactly one part")
 
     source_measures = [m for m in source_parts[0] if _name(m) == "measure"]
     augmented_measures = [m for m in added_parts[0] if _name(m) == "measure"]
