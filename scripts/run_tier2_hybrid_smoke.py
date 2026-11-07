@@ -97,7 +97,10 @@ def performed_note_signature(musicxml: Path) -> list[tuple]:
     Note events. The number of parsed events is not necessarily a number of
     performed pitches. Never count ChordSymbol harmony as performed music.
     """
-    score = converter.parse(str(musicxml))
+    # The MusicXML engraver may split notes crossing barlines into tied
+    # fragments. Compare sounding notes (tie chains folded), not raw <note>
+    # elements. Otherwise legal notation changes appear to add performance.
+    score = converter.parse(str(musicxml)).stripTies(inPlace=False)
     events: list[tuple] = []
     for part_index, part in enumerate(score.parts):
         for event in part.recurse().notes:
