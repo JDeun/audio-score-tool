@@ -9,6 +9,17 @@ on:
       - 'scripts/generate_tier2_smoke_audio.py'
       - 'src/audio_score_tool/sheetsage_hybrid.py'
       - 'tests/test_sheetsage_hybrid.py'
+  pull_request:
+    paths:
+      - '.github/workflows/tier2-actual-models.yml'
+      - 'scripts/run_tier2_model_smoke.py'
+      - 'scripts/run_tier2_hybrid_smoke.py'
+      - 'scripts/sheetsage2_infer_adapter.py'
+      - 'scripts/generate_tier2_smoke_audio.py'
+      - 'src/audio_score_tool/transcription_engine.py'
+      - 'src/audio_score_tool/sheetsage_hybrid.py'
+      - 'tests/test_tier2_actual_model_smoke.py'
+      - 'tests/test_tier2_hybrid_smoke.py'
   workflow_dispatch:
     inputs:
       youtube_url:
@@ -50,6 +61,9 @@ jobs:
           sudo apt-get install -y ffmpeg
           python -m pip install --upgrade pip
           python -m pip install 'mt3-infer[torch]==0.2.0' 'music21>=9.7,<11'
+          python -m pip install --no-deps -e .
+          python -c 'import audio_score_tool, scripts.run_tier2_model_smoke; print("AudioScoreTool installed for real inference")'
+          mt3-infer transcribe --help
           # The two upstream adapters need incompatible Transformers T5 APIs.
           if [ "${{ matrix.model }}" = "mr_mt3" ]; then
             python -m pip install 'transformers==4.57.6'
@@ -120,6 +134,8 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y ffmpeg
           python -m pip install 'sheetsage-infer @ git+https://github.com/openmirlab/sheetsage-infer.git@8f31ada34494ac24ee02f0d7e96edcb33a3e997b' music21
+          python -m pip install --no-deps -e .
+          python -c 'import audio_score_tool, scripts.run_tier2_hybrid_smoke; from sheetsage import SheetSageTranscriber; print("Hybrid providers importable")'
       - name: Recreate original AMT test audio for hybrid comparison
         if: inputs.youtube_url == ''
         run: python scripts/generate_tier2_smoke_audio.py out/chords.wav
@@ -131,20 +147,19 @@ jobs:
         env:
           BENCHMARK_URL: ${{ inputs.youtube_url }}
         run: python scripts/download_youtube_benchmark.py "$BENCHMARK_URL" out/chords.wav
-      - name: Run SheetSage2 and merge base transcription
+      - name: Validate identical audio and actual AMT artifacts before fusion
         run: |
-          test -s out/${{ matrix.model }}/score.musicxml
+          python -m scripts.run_tier2_hybrid_smoke out/chords.wav out/${{ matrix.model }} \
+            --model ${{ matrix.model }} --phase verify-base
+      - name: Run actual SheetSage2 inference and verified score fusion
+        env:
+          SHEETSAGE_RUNTIME_REVISION: 8f31ada34494ac24ee02f0d7e96edcb33a3e997b
+        run: |
           python scripts/sheetsage2_infer_adapter.py out/chords.wav out/sheetsage2.json --device cpu
-          python - <<'PY'
-          from pathlib import Path
-          from audio_score_tool.sheetsage_hybrid import merge_sheetsage_musicxml
-          model = "${{ matrix.model }}"
-          print(merge_sheetsage_musicxml(
-              Path(f"out/{model}/score.musicxml"),
-              Path("out/sheetsage2.json"),
-              Path(f"out/{model}+sheetsage2.musicxml"),
-          ))
-          PY
+          python -m scripts.run_tier2_hybrid_smoke out/chords.wav out/${{ matrix.model }} \
+            --model ${{ matrix.model }} --phase merge \
+            --events out/sheetsage2.json \
+            --merged out/${{ matrix.model }}+sheetsage2.musicxml
       - name: Upload fusion evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -153,6 +168,7 @@ jobs:
           path: |
             out/**/*.mid
             out/**/*.musicxml
+            out/*.musicxml
             out/**/*.json
           if-no-files-found: warn
           retention-days: 7
