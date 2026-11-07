@@ -145,10 +145,17 @@ def _validated_origin(
     }
 
 
-def _tree_files(root: Path) -> list[tuple[Path, str, int]]:
-    """Inventory every regular file; reject unsupported links and special nodes."""
-    files: list[tuple[Path, str, int]] = []
+def _tree_files(root: Path) -> list[tuple[Path, str, int, bool]]:
+    """Inventory a full app image without following unsafe links or devices.
+
+    Some Apple jpackage images have *file* symlinks for internal license
+    notices. Resolve only internal regular-file links, then copy their bytes
+    as ordinary ZIP members (the production installer forbids links).
+    Never traverse a directory symlink or read any link outside the app.
+    """
+    files: list[tuple[Path, str, int, bool]] = []
     total = 0
+    canonical = root.resolve()
     for directory, dirnames, filenames in os.walk(root, topdown=True, followlinks=False):
         base = Path(directory)
         for dirname in sorted(dirnames):
@@ -160,8 +167,25 @@ def _tree_files(root: Path) -> list[tuple[Path, str, int]]:
                 )
         for filename in sorted(filenames):
             path = base / filename
-            info = path.lstat()
-            if not stat.S_ISREG(info.st_mode) or path.is_symlink():
+            was_link = path.is_symlink()
+            source = path
+            if was_link:
+                try:
+                    source = path.resolve(strict=True)
+                except (OSError, RuntimeError) as exc:
+                    raise AudiverisReviewError(
+                        f"Audiveris image contains a missing/looped file symlink: {path.name}"
+                    ) from exc
+                if (
+                    not source.is_relative_to(canonical)
+                    or source.is_symlink()
+                    or not source.is_file()
+                ):
+                    raise AudiverisReviewError(
+                        f"Audiveris image contains an external/non-regular file symlink: {path.name}"
+                    )
+            info = source.lstat()
+            if not stat.S_ISREG(info.st_mode):
                 raise AudiverisReviewError(
                     f"Audiveris image contains an unsupported file link/type: {path.name}"
                 )
@@ -173,7 +197,7 @@ def _tree_files(root: Path) -> list[tuple[Path, str, int]]:
             total += info.st_size
             if total > _MAX_UNCOMPRESSED or len(files) + 4 > _MAX_FILES:
                 raise AudiverisReviewError("Audiveris image exceeds managed ZIP member or expanded size limits.")
-            files.append((path, rel, info.st_mode))
+            files.append((source, rel, info.st_mode, was_link))
     if not files:
         raise AudiverisReviewError("Audiveris application image is empty.")
     files.sort(key=lambda row: row[1])
@@ -235,7 +259,7 @@ def assemble_portable_candidate(
             tmp_archive = Path(output.name)
         members: dict[str, str] = {}
         with zipfile.ZipFile(tmp_archive, "w", allowZip64=True) as bundle:
-            for path, rel, mode in files:
+            for path, rel, mode, _was_link in files:
                 members[rel] = _write_file(bundle, rel, path, mode=mode)
             # Same provenance as the original MSI/DMG, not a synthetic legal approval.
             _write_evidence(bundle, "provenance/SOURCE-EVIDENCE.pending.json", _receipt(source_receipt, "source"))
@@ -268,7 +292,9 @@ def assemble_portable_candidate(
             )
             if installed.get("ready") is not True or installed.get("integrity") != "verified":
                 raise AudiverisReviewError("Managed installer did not accept the local Audiveris ZIP.")
-            installed_root = root / "installed" / "audiveris" / _VERSION
+            # Normalize NTFS 8.3 RUNNER~1 versus long-profile path aliases
+            # before deriving paths from separately resolved native binaries.
+            installed_root = (root / "installed" / "audiveris" / _VERSION).resolve()
             launcher, java, release = _find_runtime(installed_root, target)
             if any([
                 launcher.relative_to(installed_root).as_posix() != relative_tool,
@@ -299,6 +325,8 @@ def assemble_portable_candidate(
             "launcher_sha256": origin["native"]["launcher_sha256"],
             "java_sha256": origin["native"]["jre_sha256"],
             "member_count": len(files),
+            "internal_file_symlinks_materialized": sum(1 for row in files if row[3]),
+            "external_symlinks_followed": False,
             "archive_members_sha256": hashlib.sha256(
                 json.dumps(members, sort_keys=True).encode("utf-8")
             ).hexdigest(),
