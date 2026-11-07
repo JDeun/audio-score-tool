@@ -12,6 +12,8 @@ from collections.abc import Iterable
 from pathlib import Path
 from threading import Event
 
+from .managed_tool_resolver import is_registered_managed_executable
+
 
 class CommandError(RuntimeError):
     pass
@@ -79,6 +81,9 @@ def command_exists(command: str) -> bool:
     parts = split_command(command)
     if not parts:
         return False
+    if os.getenv("AST_PACKAGED", "").strip() == "1":
+        # No PATH, loose components/bin, or shell-wrapper fallback in releases.
+        return len(parts) == 1 and is_registered_managed_executable(parts[0])
     return resolve_executable(parts[0]) is not None
 
 
@@ -147,9 +152,18 @@ def run_command(
     parts = split_command(command)
     if not parts:
         raise CommandError("Command is empty.")
-    resolved = resolve_executable(parts[0])
-    if resolved:
-        parts[0] = resolved
+    if os.getenv("AST_PACKAGED", "").strip() == "1":
+        # Check immediately before spawning: command_exists() can be stale
+        # after a component is removed, modified, or replaced.
+        if len(parts) != 1 or not is_registered_managed_executable(parts[0]):
+            raise CommandError(
+                "Packaged executable is not a verified app-managed component. "
+                "Reinstall or repair it in Setup Center."
+            )
+    else:
+        resolved = resolve_executable(parts[0])
+        if resolved:
+            parts[0] = resolved
 
     argv = [*parts, *(str(a) for a in args)]
     merged_env = os.environ.copy()
