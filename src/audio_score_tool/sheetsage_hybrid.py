@@ -7,10 +7,13 @@ import os
 import re
 import shlex
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
 
 from music21 import chord, converter, harmony, key, meter, note, stream, tempo
+
+from .musicxml_metadata_projection import project_musicxml_annotations
 
 
 class SheetSageError(ValueError):
@@ -178,7 +181,28 @@ def merge_sheetsage_musicxml(
         for event in score.recurse().notes
     ):
         raise SheetSageError("AMT MusicXML has no performed note events")
-    target = parts[0]
+    # Inference MusicXML may contain nonstandard multi-voice measures. Do not
+    # re-export the performed score to generate annotation XML: music21 can
+    # rebar its notes or create additional measures. Build an annotation-only
+    # overlay using original measure numbering and absolute quarter offsets.
+    source_part = parts[0]
+    source_measures = list(source_part.getElementsByClass(stream.Measure))
+    if not source_measures:
+        raise SheetSageError("AMT MusicXML has no numbered measures")
+    annotation_score = stream.Score()
+    target = stream.Part()
+    for original_measure in source_measures:
+        measure = stream.Measure(number=original_measure.number)
+        # Use a short placeholder rest instead of the original performed
+        # measure length: a sustained polyphonic note can extend beyond a
+        # barline, which causes music21 to rebar an overlay into measure N+1.
+        # Placeholder rests are never projected to the canonical MusicXML.
+        length = float(original_measure.duration.quarterLength)
+        if not math.isfinite(length) or length <= 0:
+            raise SheetSageError("AMT MusicXML contains an invalid measure duration")
+        measure.insert(0, note.Rest(quarterLength=min(1.0, length)))
+        target.insert(float(original_measure.getOffsetBySite(source_part)), measure)
+    annotation_score.append(target)
     added = {"chords": 0, "keys": 0, "meter": 0}
     beats = events.get("beats", [])
     for event in events.get("chords", []):
@@ -209,7 +233,18 @@ def merge_sheetsage_musicxml(
         _insert_score_element(target, 0, meter.TimeSignature(signature))
         added["meter"] += 1
     destination.parent.mkdir(parents=True, exist_ok=True)
-    score.write("musicxml", fp=str(destination))
+    # music21 renders chord/key/meter XML, but is not allowed to rewrite the
+    # source AMT polyphonic performance. Project metadata onto original notes.
+    with tempfile.TemporaryDirectory(prefix=".sheetsage-stage-", dir=destination.parent) as stage_dir:
+        staged = Path(stage_dir) / "staged.musicxml"
+        lossless = Path(stage_dir) / "lossless.musicxml"
+        annotation_score.write("musicxml", fp=str(staged))
+        project_musicxml_annotations(
+            amt_musicxml, staged, lossless,
+            include_key=bool(events.get("keys")),
+            include_meter=events.get("meter") is not None,
+        )
+        lossless.replace(destination)
     if not destination.is_file():
         raise SheetSageError("MusicXML merge did not produce an output")
     return {"schema_version": 1, "added": added, "source": str(amt_musicxml),
