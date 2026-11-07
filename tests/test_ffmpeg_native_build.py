@@ -58,7 +58,9 @@ def _fixture(tmp_path: Path, monkeypatch, target: str = "windows-x86_64"):
             return (
                 f"{name} version {pin['version']} Copyright (c) CI-owned-fixture\n"
                 "built with owned-test-compiler 1.0\n"
-                "configuration: " + " ".join(pin["configure_flags"]) + "\n"
+                "configuration: " + " ".join(
+                    [*pin["configure_flags"], *pin["target_configure_flags"][target]]
+                ) + "\n"
                 "libavutil 1.0.0 / 1.0.0\n"
             )
         if label == "synthetic-PCM-generation":
@@ -89,7 +91,9 @@ def test_local_native_review_binds_real_bytes_versions_and_offline_attestation(
         "synthetic-PCM-generation", "synthetic-PCM-probe",
     ]
     assert evidence["source_commit"] == pin["source_commit"]
-    assert evidence["configure_flags"] == pin["configure_flags"]
+    assert evidence["configure_flags"] == [
+        *pin["configure_flags"], *pin["target_configure_flags"][target]
+    ]
     assert evidence["binary_execution_verified"] is True
     assert evidence["synthetic_pcm_wav_produced"] is True
     assert evidence["synthetic_audio_codec"] == "pcm_s16le"
@@ -277,3 +281,27 @@ def test_native_review_workflow_is_scoped_and_does_not_publish_binaries():
     assert "desktop-packages.yml" not in workflow
     assert "ffmpeg.exe" not in workflow.split("Upload metadata-only FFmpeg provenance evidence")[1]
     assert "tier2-actual-models.yml" not in workflow
+
+
+def test_windows_dynamic_runtime_dependency_must_fail_preflight(tmp_path: Path, monkeypatch):
+    pin, pin_file, source, calls = _fixture(tmp_path, monkeypatch)
+    pin["target_configure_flags"]["windows-x86_64"] = []
+    pin_file.write_text(json.dumps(pin), encoding="utf-8")
+    with pytest.raises(native.FFmpegNativeReviewError, match="statically link MinGW"):
+        native.verify_native_build(
+            source=source, target="windows-x86_64",
+            destination=tmp_path / "unsafe", pin_file=pin_file,
+        )
+    assert calls == []
+
+
+def test_macos_rejects_unreviewed_fully_static_linker_setting(tmp_path: Path, monkeypatch):
+    pin, pin_file, source, calls = _fixture(tmp_path, monkeypatch, "macos-aarch64")
+    pin["target_configure_flags"]["macos-aarch64"] = ["--extra-ldflags=-static"]
+    pin_file.write_text(json.dumps(pin), encoding="utf-8")
+    with pytest.raises(native.FFmpegNativeReviewError, match="macOS must not claim"):
+        native.verify_native_build(
+            source=source, target="macos-aarch64",
+            destination=tmp_path / "unsafe", pin_file=pin_file,
+        )
+    assert calls == []
