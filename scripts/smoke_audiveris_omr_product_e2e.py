@@ -148,6 +148,51 @@ def make_owned_musicxml(destination: Path) -> dict[str, Any]:
     }
 
 
+def _raster_diagnostics(pdf: Path) -> dict[str, Any]:
+    """Inspect actual black staff pixels, not just the '%PDF-' header.
+
+    A PDF can be parseable yet completely blank if a notation-SVG converter
+    silently drops staff paths. This read-only CI investigation is performed
+    at Audiveris' observed ~300 dpi. No user image or score bytes are uploaded.
+    """
+    import pypdfium2
+
+    with pypdfium2.PdfDocument(str(pdf)) as document:
+        if len(document) != 1:
+            raise AudiverisReviewError(
+                "Synthetic CI fixture must be one printable score page for bounded inspection."
+            )
+        with document[0] as page:
+            bitmap = page.render(scale=300 / 72)
+            image = bitmap.to_pil().convert("L")
+        width, height = image.size
+        raw = image.tobytes()
+        rows = [
+            sum(pixel < 160 for pixel in raw[index * width : (index + 1) * width])
+            for index in range(height)
+        ]
+        long_rows = [i for i, dark in enumerate(rows) if dark >= width * 0.22]
+        dense_bands = []
+        for index in long_rows:
+            if not dense_bands or index > dense_bands[-1][-1] + 1:
+                dense_bands.append([index])
+            else:
+                dense_bands[-1].append(index)
+        result = {
+            "raster_width_pixels": width,
+            "raster_height_pixels": height,
+            "dark_pixels": sum(rows),
+            "max_black_pixels_on_single_row": max(rows, default=0),
+            "staff_like_long_dark_row_bands": len(dense_bands),
+            "first_staff_like_y_pixels": [band[0] for band in dense_bands[:18]],
+            "raster_tool": "pdfium300dpi",
+        }
+        print("Synthetic Verovio/fpdf2 PDF raster preflight: " + json.dumps(
+            result, sort_keys=True
+        ), flush=True)
+        return result
+
+
 def _response_ok(response, label: str, *, status: int = 200) -> Any:
     if response.status_code != status:
         detail = response.text[:1400]
@@ -286,6 +331,7 @@ def run_real_omr_product_flow(
         ):
             raise AudiverisReviewError("Product's embedded notation renderer did not create a bounded PDF.")
         pdf_sha = _sha256(input_pdf)
+        rendered_pdf_diagnostics = _raster_diagnostics(input_pdf)
 
         # Actual REST ingress/worker/reconciliation/edits/export, NOT private
         # calls that bypass app validation, JobStore or SongStore.
@@ -428,6 +474,7 @@ def run_real_omr_product_flow(
             "synthetic_source_sha256": generated["synthetic_score_sha256"],
             "synthetic_source_measures": generated["synthetic_measures"],
             "synthetic_printed_pdf_sha256": pdf_sha,
+            "synthetic_printed_pdf_raster": rendered_pdf_diagnostics,
             "actual_audiveris_omr_job_completed": True,
             "actual_omr_musicxml_sha256": omr_xml_sha,
             "recognized_parts": part_count, "recognized_pitched_notes": notes_count,
