@@ -94,6 +94,12 @@ OMR 결과의 part/staff 구조는 MusicXML part-list와 staff/clef/voice 정보
 
 예를 들어 `lyrics + monophonic treble staff`는 vocal candidate가 될 수 있지만, 자동으로 Vocal이라고 확정하지는 않습니다.
 
+## 공식 Audiveris/JRE 릴리스 실물 검증
+
+Audiveris 5.11.0의 공식 Windows Console MSI와 macOS ARM64 DMG는 [별도 런타임 후보 리뷰](AUDIVERIS_OFFICIAL_RUNTIME_REVIEW.ko.md)에서 원본 SHA·파일 구조·앱 내장 JRE 및 네이티브 CLI 확인 절차를 추적합니다. **MSI/DMG 원본 파일은 AudioScoreTool의 관리형 ZIP/TAR 아티팩트가 아닙니다.** 따라서 독립적인 임시 추출/실행 검증에 성공하더라도 Setup Center에 게시하거나 정상 설치된 것으로 표시하지 않습니다.
+
+공식 설치 파일에는 필요한 JRE가 포함되는 구조이지만, Tesseract OCR 언어 데이터는 별도 공급되므로 글자·가사 인식 가능성을 그대로 보장하지 않습니다. 또한 AGPL, JRE 및 제3자 구성요소의 재배포 의무 확인이 필요합니다. 실제 PDF/이미지 → MusicXML → Song 통합과 승인된 설치·복구는 #29의 별도 인수시험으로 유지합니다.
+
 ## 라이선스 경계
 
 Audiveris는 GNU AGPL v3로 배포됩니다. AudioScoreTool은 현재 Audiveris를 Python package로 링크하지 않고 별도 설치된 외부 실행 프로그램으로 호출합니다.
