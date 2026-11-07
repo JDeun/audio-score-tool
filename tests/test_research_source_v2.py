@@ -46,7 +46,11 @@ def test_new_source_requires_scope_and_benchmark_comparability(
     assert "Scope: AMT-public-paper-metadata" in content
     assert "Benchmark comparability: not-comparable" in content
     assert "Evidence: external-reported" in content
-    assert not [x for x in audit(root, as_of=date(2026, 11, 6))
+    # Registration uses today's UTC date; an earlier hardcoded audit date
+    # started producing false failures the following calendar day.
+    accessed = next(line.split(": ", 1)[1] for line in content.splitlines()
+                    if line.startswith("Accessed: "))
+    assert not [x for x in audit(root, as_of=date.fromisoformat(accessed))
                 if x.severity == "error"]
     before = record.read_bytes()
     with pytest.raises(FileExistsError):
