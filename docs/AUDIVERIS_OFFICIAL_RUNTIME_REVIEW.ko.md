@@ -48,6 +48,23 @@ uv run --frozen python scripts/verify_audiveris_official_installer.py \
 
 이 성공은 **로컬 설치 검증**일 뿐, ZIP의 공용 HTTPS 게시·재배포 승인·codesign/notarization·JVM 프로세스 트레이싱·GUI/텍스트 OCR 모델이 포함된 PDF→MusicXML→Song end-to-end 실행을 증명하지 않습니다. `audiveris.artifacts`는 계속 비워 둡니다.
 
+## 실제 OMR → SQLite Song → 편집·출력 제품 인수시험
+
+[#131](https://github.com/JDeun/audio-score-tool/issues/131)은 **실제 Audiveris 5.11.0이 MusicXML을 생성하는지** 확인하기 위한 독립적인 네이티브 인수시험입니다. 이전의 launcher `-version`/ZIP 설치 성공만으로는 OMR이 된다고 선언할 수 없기 때문입니다.
+
+`.github/workflows/audiveris-official-installer-review.yml`의 Windows/macOS 러너에서 공식 SHA가 검증된 로컬 ZIP을 다시 실제 `install_component_artifact()`로 임시 설치합니다. `scripts/smoke_audiveris_omr_product_e2e.py`는 원본 저작권 악보나 테스트 코퍼스를 다운로드하지 않습니다.
+
+1. 앱이 소유한 독창적인 12마디/48개 4분음표의 간단한 MusicXML을 코드로 생성합니다. **제품 내장 Verovio→fpdf2**를 사용해 이 MusicXML을 인쇄형 PDF로 만듭니다.
+2. 임시 앱 데이터/SQLite와 `AST_PACKAGED=1`, 검증된 `AST_COMPONENT_DIR`, 빈 `PATH`, 테스트 전용 `AST_API_TOKEN`을 설정합니다. 운영체제의 등록된 사용자 폴더와 내장 Java는 그대로 사용합니다.
+3. 실제 FastAPI의 `GET /api/omr/status`를 조회해 관리형 SHA 검증 `audiveris` 경로만 선택했는지 확인하고, 잘못된 API token은 401을 받는지 확인합니다.
+4. `POST /api/import/score`에 생성한 PDF를 업로드하고 Job 완료를 최대 420초 동안 기다립니다. 실패·취소·중단·timeout은 검증 실패이며, 실패를 성공으로 대체하는 XML fixture나 모델 모킹은 사용하지 않습니다.
+5. 실제 Audiveris가 만든 MXL/MusicXML을 기존 안전한 `omr.normalize_musicxml` 경로로 읽고, 유효한 MusicXML·파트·최소 4개 pitched notes를 검증합니다. `GET /api/songs`의 Job→Song 동기화로 SQLite canonical Song이 정확히 하나 등록됐고, `source_kind=omr` 및 원본 PDF managed asset이 존재하는지 확인합니다.
+6. `GET /api/songs/{id}/notes`의 Inspector note ID로 실제 음정을 한 번 수정하고, `PATCH /api/songs/{id}/credits`로 제목·크레딧을 CAS 기반 한 Revision에 저장합니다. 현재 MusicXML의 영속 저장과 revision 증가를 확인합니다.
+7. `POST /api/songs/{id}/export-to`에서 **MusicXML/PDF/MIDI/파트 악보**를 실제 생성하고, PDF/MIDI 바이트 및 파트 XML/PDF 쌍을 확인합니다.
+8. 임시 PDF/MXL/ZIP/원본/DB는 러너 수명 내에서 정리하고, 공식 원본 후보 SHA 및 처리·편집·출력 성공 여부를 담은 **`OMR-PRODUCT-E2E.pending.json`만** Actions artifact에 추가합니다.
+
+이 인수시험은 synthetic 음표를 많이 맞혔는지 측정하는 모델 벤치마크가 아닙니다. 실제 손글씨/스캔 악보·복잡한 레이아웃·언어별 OCR 품질과 성능은 평가하지 않으며, **AGPL/JRE/Tesseract 언어팩의 배포 승인, 공용 URL 게시, 정식 설치본에서의 OS codesigning/notarization/클린 머신 테스트**는 계속 별개입니다. `audiveris.artifacts={}` 및 `redistribution_status=pending`을 유지합니다.
+
 ## 이 검증으로 **완료되지 않는 것**
 
 - MSI/DMG를 AudioScoreTool의 **ZIP/TAR 기반 관리형 설치기**가 바로 처리할 수 있는 것은 아닙니다. 앱 소유·버전 고정·SHA 검증이 적용된 **portable archive**, 안전한 업데이트/삭제/복구 테스트가 별도로 필요합니다.
