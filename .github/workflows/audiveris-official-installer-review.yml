@@ -110,12 +110,13 @@ jobs:
           set -euo pipefail
           root="$RUNNER_TEMP/audiveris-review-$REVIEW_TARGET"
           mkdir "$root/mounted-dmg"
-          # The official DMG displays the upstream GNU AGPL text and
-          # hdiutil cancels a non-interactive mount without this flag. Accept
-          # the included open-source notice for this ephemeral review only;
-          # this NEVER marks commercial redistribution approved.
-          hdiutil attach "$root/raw/Audiveris-5.11.0-macosx-arm64.dmg" \
-            -agree-to-license -readonly -nobrowse -mountpoint "$root/mounted-dmg"
+          # The verified DMG displays GNU AGPL via hdiutil's interactive
+          # license prompt; it cannot mount unattended without an answer.
+          # Pipe one explicit Y to agree to this ephemeral, read-only QA run.
+          # PAGER=cat avoids requiring a terminal; neither operation approves
+          # commercial redistribution, licensing of our app or user installs.
+          printf 'Y\\n' | PAGER=cat hdiutil attach "$root/raw/Audiveris-5.11.0-macosx-arm64.dmg" \
+            -readonly -nobrowse -mountpoint "$root/mounted-dmg"
 
       - name: Verify Audiveris launcher and bundled Java on actual target OS
         shell: bash
