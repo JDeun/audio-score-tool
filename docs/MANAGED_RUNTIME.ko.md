@@ -115,3 +115,12 @@ Setup Center의 `catalog.published` 및 `auto_install`은 별도 릴리스 게�
 - `managed_status.ready`는 실제 설치 파일의 무결성이 확인된 상태이며, 관련 실행 명령의 서비스 준비 상태(`component.ready`)와 구분됩니다.
 - 데스크톱 Playwright 테스트는 공개 catalog의 설치 가능 여부를 모의 응답으로 확인합니다. 이 테스트가 실제 배포 파일을 발행하거나 라이선스를 승인하지는 않습니다.
 - **현시점 번들 catalog의 다섯 component 모두 `artifacts: {}`** 입니다. 따라서 Windows/macOS의 실사용 AMT/YouTube/OMR 런타임을 준비했다고 선언할 수 없습니다. 게시 아티팩트의 라이선스·checksum·패키징을 확인하는 #29와 정식 서명/업데이트 인수시험 #22는 별도로 필요합니다.
+
+
+## 2026-11-08 — 이름이 겹치는 실행 도구의 소유 컴포넌트 분리 (#29)
+
+`youtube_runtime`과 `audio_validation`은 모두 FFmpeg를 포함할 수 있습니다. 기존 상태 파일 순회 순서에 의존하면 YouTube가 `audio_validation`의 FFmpeg를 선택하여 `yt-dlp`·`deno`·`ffmpeg`·`ffprobe`의 동일 번들 계약을 깨뜨릴 수 있었습니다.
+
+이제 packaged YouTube 실행 경로는 네 도구를 모두 **`youtube_runtime`이 소유한, 현재 SHA-256 검증된 경로**로 조회합니다. 다른 컴포넌트의 실행 파일은 빠진 YouTube 도구를 대체할 수 없습니다. 일반적인 FFmpeg 조회도 YouTube 번들을 우선 선택하지만, 명시적으로 지정된 별도 컴포넌트의 정상 실행 경로까지 차단하지 않습니다. 관리 상태의 `root`는 `installed/<component>/<version>`과 일치해야 하고, 다른 컴포넌트의 경로를 소유물로 위장한 기록은 거부합니다.
+
+검증은 로컬 합성 ZIP과 Setup Center/YouTube API 회귀 테스트로 수행합니다. 실제 배포 가능한 아티팩트가 카탈로그에 게시됐다는 뜻이 아니므로, `managed-component-catalog.json`의 비어 있는 `artifacts`는 그대로 두며 배포 승인·라이선스 게이트는 #29에 남습니다.
