@@ -114,7 +114,7 @@ def test_only_native_omr_results_strip_known_musicxml_public_dtd(
         '<!DOCTYPE score-partwise [<!ENTITY boom SYSTEM "file:///etc/passwd">]>',
         _AUDIVERIS_DTD.replace("http://www.musicxml.org", "file:///etc"),
         _AUDIVERIS_DTD.replace("partwise.dtd", "timewise.dtd"),
-        _AUDIVERIS_DTD.replace("MusicXML 4.0 Partwise", "MusicXML 4.0 Timewise"),
+        _AUDIVERIS_DTD.replace("MusicXML 4.0.3 Partwise", "MusicXML 4.0.3 Timewise"),
         _AUDIVERIS_DTD + "\n" + _AUDIVERIS_DTD,
         "<!-- injected comment -->\n" + _AUDIVERIS_DTD,
         _AUDIVERIS_DTD + '\n<!ENTITY extra "boom">',
