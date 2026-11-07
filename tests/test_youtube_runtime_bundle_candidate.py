@@ -414,3 +414,96 @@ def test_ffmpeg_manifest_config_drift_after_review_fails(tmp_path: Path):
     manifest["ffmpeg_build"]["configure_flags"].append("--disable-doc")
     with pytest.raises(ValueError, match="provenance/configuration differs"):
         _assemble(manifest, tmp_path / "config-drift.zip")
+
+
+def test_missing_official_source_evidence_blocks_bundle(tmp_path: Path):
+    manifest = _input(tmp_path)
+    manifest.pop("official_sources_evidence")
+    with pytest.raises(ValueError, match="official_sources_evidence"):
+        _assemble(manifest, tmp_path / "unverified.zip")
+    assert not (tmp_path / "unverified.zip").exists()
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        (lambda m: m["tools"]["yt-dlp"].update(version="2026.08.19"), "version differs"),
+        (lambda m: m["tools"]["deno"].update(upstream_revision="v2.9.7"), "upstream revision differs"),
+        (
+            lambda m: m["tools"]["yt-dlp"].update(
+                upstream_url="https://github.com/yt-dlp/yt-dlp/releases/tag/2026.08.19"
+            ),
+            "upstream URL differs",
+        ),
+    ],
+)
+def test_official_source_tag_and_provenance_must_match_committed_pins(
+    tmp_path: Path, mutation, message,
+):
+    manifest = _input(tmp_path)
+    mutation(manifest)
+    with pytest.raises(ValueError, match=message):
+        _assemble(manifest, tmp_path / "untrusted.zip")
+    assert not (tmp_path / "untrusted.zip").exists()
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("target", "macos-aarch64"),
+        ("local_bytes_verified", False),
+        ("upstream_signature_verified", True),
+        ("remote_archive_published", True),
+        ("redistribution_status", "approved"),
+    ],
+)
+def test_evidence_cannot_claim_wrong_target_or_release_approval(
+    tmp_path: Path, field: str, value,
+):
+    manifest = _input(tmp_path)
+    evidence_path = Path(manifest["official_sources_evidence"])
+    evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+    evidence[field] = value
+    evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+    with pytest.raises(ValueError, match="unapproved locally verified report"):
+        _assemble(manifest, tmp_path / "untrusted.zip")
+
+
+def test_relocation_of_verified_tool_bytes_cannot_reuse_original_receipt(tmp_path: Path):
+    manifest = _input(tmp_path)
+    old = Path(manifest["tools"]["deno"]["file"])
+    relocated = tmp_path / old.name
+    relocated.write_bytes(old.read_bytes())
+    manifest["tools"]["deno"]["file"] = str(relocated)
+    with pytest.raises(ValueError, match="does not belong to the verified official extraction"):
+        _assemble(manifest, tmp_path / "relocated.zip")
+
+
+def test_official_source_digest_forgery_cannot_pass_committed_pin(tmp_path: Path):
+    manifest = _input(tmp_path)
+    evidence_path = Path(manifest["official_sources_evidence"])
+    evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+    evidence["inputs"]["deno"]["source_sha256"] = "0" * 64
+    evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+    with pytest.raises(ValueError, match="differs from committed official release pins"):
+        _assemble(manifest, tmp_path / "forged.zip")
+
+
+def test_official_extracted_tool_hash_must_match_candidate_source(tmp_path: Path):
+    manifest = _input(tmp_path)
+    evidence_path = Path(manifest["official_sources_evidence"])
+    evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+    evidence["inputs"]["deno"]["tool_sha256"] = "f" * 64
+    evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+    with pytest.raises(ValueError, match="official extracted tool digest"):
+        _assemble(manifest, tmp_path / "forged-tool.zip")
+
+
+def test_pins_changed_after_official_source_verification_are_detected(tmp_path: Path):
+    manifest = _input(tmp_path)
+    pins_file = Path(manifest["_fixture_official_pins"])
+    pins = json.loads(pins_file.read_text(encoding="utf-8"))
+    pins["targets"]["windows-x86_64"]["yt-dlp"]["sha256"] = "0" * 64
+    pins_file.write_text(json.dumps(pins), encoding="utf-8")
+    with pytest.raises(ValueError, match="differs from committed official release pins"):
+        _assemble(manifest, tmp_path / "modified-pins.zip")
