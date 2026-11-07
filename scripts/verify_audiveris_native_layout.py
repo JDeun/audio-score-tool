@@ -112,7 +112,12 @@ def _native_version(executable: Path, root: Path, label: str) -> str:
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise AudiverisReviewError(f"{label}: bundled native -version command could not run.") from exc
     if finished.returncode != 0:
-        raise AudiverisReviewError(f"{label}: bundled native -version exited unsuccessfully ({finished.returncode}).")
+        diagnostic = (finished.stdout + "\n" + finished.stderr).strip()
+        diagnostic = re.sub(r"[\r\n\x00-\x1f]+", " ", diagnostic[:1800])
+        raise AudiverisReviewError(
+            f"{label}: bundled native -version exited unsuccessfully "
+            f"({finished.returncode}); diagnostic: {diagnostic or 'no output'}"
+        )
     stdout = finished.stdout + "\n" + finished.stderr
     if not stdout.strip() or len(stdout.encode("utf-8")) > _MAX_CAPTURE:
         raise AudiverisReviewError(f"{label}: native -version output is empty or unbounded.")
