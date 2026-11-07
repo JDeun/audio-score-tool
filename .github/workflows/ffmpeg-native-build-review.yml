@@ -85,7 +85,8 @@ jobs:
             --enable-static \
             --enable-ffmpeg \
             --enable-ffprobe
-          make -j 3 ffmpeg ffprobe
+          # The default make target selects .exe output names on MinGW/UCRT64.
+          make -j 3
           test -f ffmpeg.exe
           test -f ffprobe.exe
 
@@ -122,6 +123,9 @@ jobs:
         shell: bash
         env:
           BUILD_TARGET: ${{ matrix.target }}
+          # --no-project runs a standalone verifier from scripts/. Make both
+          # that package and src/audio_score_tool importable on each host.
+          PYTHONPATH: ${{ github.workspace }}${{ runner.os == 'Windows' && ';' || ':' }}${{ github.workspace }}/src
         run: |
           set -euo pipefail
           uv run --no-project --python 3.12 python scripts/verify_ffmpeg_native_build.py \
