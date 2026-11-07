@@ -10,7 +10,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from music21 import converter, harmony, key, meter, stream, tempo
+from music21 import chord, converter, harmony, key, meter, note, stream, tempo
 
 
 class SheetSageError(ValueError):
@@ -169,6 +169,15 @@ def merge_sheetsage_musicxml(
     parts = list(score.parts)
     if not parts:
         raise SheetSageError("AMT MusicXML has no parts")
+    # ChordSymbol is exposed by music21's .notes iterator, but it is not
+    # transcribed performance. A chord-only/rest-only source must not be
+    # promoted into a successful hybrid transcription.
+    if not any(
+        isinstance(event, (note.Note, note.Unpitched))
+        or (isinstance(event, chord.Chord) and not isinstance(event, harmony.ChordSymbol))
+        for event in score.recurse().notes
+    ):
+        raise SheetSageError("AMT MusicXML has no performed note events")
     target = parts[0]
     added = {"chords": 0, "keys": 0, "meter": 0}
     beats = events.get("beats", [])
