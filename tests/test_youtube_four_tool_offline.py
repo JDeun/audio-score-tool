@@ -5,7 +5,6 @@ import hashlib
 import json
 import struct
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
