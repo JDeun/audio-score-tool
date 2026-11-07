@@ -218,7 +218,7 @@ def _verify_youtube_cli_tools(tools: dict[str, str], managed_root: Path) -> None
     """Prove installed four-tool binary identity AND native startup offline."""
     versions = _youtube_inventory(tools, managed_root)
     probes = {
-        "yt-dlp": ("--version",),
+        "yt-dlp": ("--ignore-config", "--no-remote-components", "--version"),
         "deno": ("--version",),
         "ffmpeg": ("-version",),
         "ffprobe": ("-version",),
