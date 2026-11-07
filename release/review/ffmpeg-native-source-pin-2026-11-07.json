@@ -32,5 +32,11 @@
   "source_signature_verified": false,
   "reproducible_rebuild_verified": false,
   "notices_and_source_delivery_approved": false,
-  "catalog_published": false
+  "catalog_published": false,
+  "target_configure_flags": {
+    "windows-x86_64": [
+      "--extra-ldflags=-static"
+    ],
+    "macos-aarch64": []
+  }
 }
