@@ -328,3 +328,28 @@ def test_multi_file_fetch_is_idempotent_without_re_downloading_shards(
     assert first["recording_count"] == second["recording_count"] == 1
     assert count == 2
     assert not list(root.glob(".hf-subset-staging-*"))
+
+
+
+def test_bad_metadata_report_target_fails_before_any_fetch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+):
+    import sys
+
+    plan_path = tmp_path / "owned-plan.json"
+    plan_path.write_text(json.dumps(_plan()), encoding="utf-8")
+    monkeypatch.setattr(hub, "ROOT", tmp_path)
+    monkeypatch.setattr(
+        hub, "_remote_size",
+        lambda _item: (_ for _ in ()).throw(AssertionError("no network is permitted")),
+    )
+    private_root = tmp_path / "private"
+    monkeypatch.setattr(
+        sys, "argv",
+        ["ingest_hf_dataset_subset.py", str(plan_path),
+         "--private-root", str(private_root), "--fetch",
+         "--report", str(tmp_path / "accidental-repo-report.json")],
+    )
+    with pytest.raises(ValueError, match="receipt must stay outside"):
+        hub.main()
+    assert not private_root.exists()
