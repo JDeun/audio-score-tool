@@ -7,6 +7,7 @@ from threading import Thread
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
+from . import runtime_services as runtime
 from .config import Settings
 from .job_admission import JobCapacityError, reserve_job
 from .job_store import JobStore
@@ -22,35 +23,59 @@ _MAX_OMR_SOURCE_BYTES = 256 * 1024 * 1024
 
 
 def _worker(job_id: str, source: Path, settings: Settings) -> None:
-    _store.update(job_id, status="running", stage="omr:recognizing", progress=15)
+    # The public /api/jobs/{id}/cancel route owns this shared registry.
+    # Register before touching the Job so queued cancellations are not lost.
+    cancel_event = runtime._register_cancel_event(job_id)
     try:
+        if cancel_event.is_set():
+            _store.update(job_id, status="cancelled", stage="cancelled")
+            return
+        _store.update(job_id, status="running", stage="omr:recognizing", progress=15)
+        if cancel_event.is_set():
+            _store.update(job_id, status="cancelled", stage="cancelled")
+            return
         artifacts = transcribe_score(
             source,
             jobs_dir() / job_id / "outputs",
             command=settings.audiveris_cmd,
+            cancel_event=cancel_event,
         )
+        if cancel_event.is_set():
+            _store.update(job_id, status="cancelled", stage="cancelled")
+            return
         asset = song_assets_dir() / job_id / f"original-score{source.suffix.lower()}"
         asset.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, asset)
-        _store.update(
-            job_id,
-            status="done",
-            stage="complete",
-            progress=100,
-            result={
-                "musicxml": str(artifacts.musicxml_path),
-                "source_score": str(asset),
-                "omr_provider": artifacts.provider,
-                "warnings": [
-                    "OMR 결과는 원본 악보와 대조 검토하는 것을 권장합니다. 검증 메뉴에서 구조적 오류를 확인하세요."
-                ],
-            },
-        )
+        # Serialize the final commit with /cancel. If cancellation wins,
+        # the job must never transition back to done.
+        with runtime._runtime_lock:
+            if cancel_event.is_set():
+                asset.unlink(missing_ok=True)
+                _store.update(job_id, status="cancelled", stage="cancelled")
+                return
+            _store.update(
+                job_id,
+                status="done",
+                stage="complete",
+                progress=100,
+                result={
+                    "musicxml": str(artifacts.musicxml_path),
+                    "source_score": str(asset),
+                    "omr_provider": artifacts.provider,
+                    "warnings": [
+                        "OMR 결과는 원본 악보와 대조 검토하는 것을 권장합니다. 검증 메뉴에서 구조적 오류를 확인하세요."
+                    ],
+                },
+            )
     except OMRImportCancelled:
         _store.update(job_id, status="cancelled", stage="cancelled")
     except Exception as exc:
-        _store.update(job_id, status="failed", stage="failed", error=str(exc))
-
+        if cancel_event.is_set():
+            _store.update(job_id, status="cancelled", stage="cancelled")
+        else:
+            _store.update(job_id, status="failed", stage="failed", error=str(exc))
+    finally:
+        runtime._unregister_cancel_event(job_id)
 
 def _cleanup_reservation(job_id: str, job_dir: Path) -> None:
     shutil.rmtree(job_dir, ignore_errors=True)

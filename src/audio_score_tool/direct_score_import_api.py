@@ -9,6 +9,7 @@ from threading import Thread
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
+from . import runtime_services as runtime
 from .job_admission import JobCapacityError, reserve_job
 from .job_store import JobStore
 from .notation_backend import NotationBackendError, midi_to_musicxml, musicxml_to_midi
@@ -75,26 +76,43 @@ def _cleanup_reservation(job_id: str, job_dir: Path) -> None:
     _store.delete(job_id)
 
 
+class _ImportCancelled(Exception):
+    """A queued or in-progress notation conversion was cancelled."""
+
+
 def _worker(job_id: str, source: Path, suffix: str) -> None:
-    output_dir = jobs_dir() / job_id / "outputs"
-    output_dir.mkdir(parents=True, exist_ok=True)
-    _store.update(job_id, status="running", stage="notation:import", progress=20)
-    warnings: list[str] = []
+    cancel_event = runtime._register_cancel_event(job_id)
+
+    def check_cancelled() -> None:
+        if cancel_event.is_set():
+            raise _ImportCancelled()
+
     try:
+        check_cancelled()
+        output_dir = jobs_dir() / job_id / "outputs"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        _store.update(job_id, status="running", stage="notation:import", progress=20)
+        check_cancelled()
+        warnings: list[str] = []
         musicxml = output_dir / "score.musicxml"
         midi: Path | None = None
         if suffix in _MIDI_EXTENSIONS:
             midi = output_dir / "score.mid"
             shutil.copy2(source, midi)
+            check_cancelled()
             midi_to_musicxml(midi, musicxml)
+            check_cancelled()
             _normalize_generated_musicxml(musicxml)
         else:
             if suffix == ".mxl":
                 normalize_musicxml(source, musicxml)
+                check_cancelled()
                 _validate_musicxml_file(musicxml)
             else:
                 _validate_musicxml_file(source)
+                check_cancelled()
                 shutil.copy2(source, musicxml)
+            check_cancelled()
             midi = output_dir / "score.mid"
             try:
                 musicxml_to_midi(musicxml, midi)
@@ -102,6 +120,9 @@ def _worker(job_id: str, source: Path, suffix: str) -> None:
                 midi = None
                 warnings.append(f"MusicXML은 가져왔지만 MIDI 보조 자산 생성은 건너뛰었습니다: {exc}")
 
+        # Converters are synchronous; their output must never become a
+        # successful canonical Song if the user cancelled while they ran.
+        check_cancelled()
         result = {
             "musicxml": str(musicxml),
             "warnings": warnings,
@@ -109,12 +130,24 @@ def _worker(job_id: str, source: Path, suffix: str) -> None:
         }
         if midi is not None and midi.is_file():
             result["midi"] = str(midi)
-        _store.update(job_id, status="done", stage="complete", progress=100, result=result)
+        # No cancel can race between the final check and the done commit.
+        with runtime._runtime_lock:
+            check_cancelled()
+            _store.update(job_id, status="done", stage="complete", progress=100, result=result)
+    except _ImportCancelled:
+        _store.update(job_id, status="cancelled", stage="cancelled")
     except (OSError, ValueError, NotationBackendError, OMRImportError) as exc:
-        _store.update(job_id, status="failed", stage="failed", error=str(exc))
+        if cancel_event.is_set():
+            _store.update(job_id, status="cancelled", stage="cancelled")
+        else:
+            _store.update(job_id, status="failed", stage="failed", error=str(exc))
     except Exception as exc:
-        _store.update(job_id, status="failed", stage="failed", error=f"악보 가져오기 실패: {exc}")
-
+        if cancel_event.is_set():
+            _store.update(job_id, status="cancelled", stage="cancelled")
+        else:
+            _store.update(job_id, status="failed", stage="failed", error=f"악보 가져오기 실패: {exc}")
+    finally:
+        runtime._unregister_cancel_event(job_id)
 
 @router.post("/api/import/notation", status_code=202)
 async def import_notation(file: UploadFile = File(...)) -> dict:
