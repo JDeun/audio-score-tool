@@ -191,3 +191,48 @@ def test_merge_accepts_harte_key_and_chord_from_sheet_sage(tmp_path):
     assert result["added"]["chords"] == 1
     assert result["added"]["keys"] == 1
     assert target.is_file()
+
+
+
+def test_dense_polyphonic_voices_preserved_by_hybrid_enrichment(tmp_path):
+    """SheetSage metadata must not multiply notes in a multivoice model score."""
+    import xml.etree.ElementTree as ET
+
+    from music21 import chord, instrument, meter
+
+    score = stream.Score()
+    part = stream.Part()
+    part.insert(0, instrument.Piano())
+    part.insert(0, meter.TimeSignature("4/4"))
+    for number in range(1, 5):
+        measure = stream.Measure(number=number)
+        lead = stream.Voice()
+        for pitch in ("C4", "E4", "G4", "C5"):
+            lead.append(note.Note(pitch, quarterLength=1))
+        bass = stream.Voice()
+        bass.append(chord.Chord(["C3", "G3"], quarterLength=4))
+        measure.insert(0, lead)
+        measure.insert(0, bass)
+        part.append(measure)
+    score.append(part)
+    original = tmp_path / "complex.musicxml"
+    score.write("musicxml", fp=str(original))
+
+    analysis = tmp_path / "sheetsage.json"
+    analysis.write_text(json.dumps({
+        "schema_version": 1,
+        "chords": [{"time_seconds": i * 2.0, "label": "C:maj"} for i in range(4)],
+        "keys": [{"time_seconds": 0.0, "label": "C:major"}],
+        "meter": "4/4",
+        "beats": [{"time_seconds": i * 0.5} for i in range(17)],
+    }), encoding="utf-8")
+    target = tmp_path / "complex-hybrid.musicxml"
+    merge_sheetsage_musicxml(original, analysis, target)
+
+    orig_xml = ET.parse(original).getroot()
+    output_xml = ET.parse(target).getroot()
+    assert [ET.tostring(n) for n in orig_xml.findall(".//note")] == [
+        ET.tostring(n) for n in output_xml.findall(".//note")
+    ]
+    assert len(output_xml.findall(".//harmony")) == 4
+    assert len(list(converter.parse(str(target)).recurse().getElementsByClass(harmony.ChordSymbol))) == 4

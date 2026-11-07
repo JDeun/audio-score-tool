@@ -6,11 +6,14 @@ import math
 import os
 import re
 import shlex
+import tempfile
 import subprocess
 from pathlib import Path
 from typing import Any
 
 from music21 import chord, converter, harmony, key, meter, note, stream, tempo
+
+from .musicxml_metadata_projection import project_musicxml_annotations
 
 
 class SheetSageError(ValueError):
@@ -209,7 +212,14 @@ def merge_sheetsage_musicxml(
         _insert_score_element(target, 0, meter.TimeSignature(signature))
         added["meter"] += 1
     destination.parent.mkdir(parents=True, exist_ok=True)
-    score.write("musicxml", fp=str(destination))
+    # music21 renders chord/key/meter XML, but is not allowed to rewrite the
+    # source AMT polyphonic performance. Project metadata onto original notes.
+    with tempfile.TemporaryDirectory(prefix=".sheetsage-stage-", dir=destination.parent) as stage_dir:
+        staged = Path(stage_dir) / "staged.musicxml"
+        lossless = Path(stage_dir) / "lossless.musicxml"
+        score.write("musicxml", fp=str(staged))
+        project_musicxml_annotations(amt_musicxml, staged, lossless)
+        lossless.replace(destination)
     if not destination.is_file():
         raise SheetSageError("MusicXML merge did not produce an output")
     return {"schema_version": 1, "added": added, "source": str(amt_musicxml),
