@@ -455,6 +455,20 @@ def _extract_zip(archive_path: Path, destination: Path, *, max_uncompressed_byte
                     raise ComponentIntegrityError(
                         "Managed component archive member ended before its declared size."
                     )
+            # Nested bundled runtimes (e.g. Audiveris' jlink Java binary)
+            # also need their executable bit after a ZIP install. Preserve
+            # only the author's owner-execute bit on POSIX, never arbitrary
+            # setuid/setgid, group/world write or other archive permissions.
+            # Tool entries are independently verified and chmod'd by
+            # _verify_tools; this restores safe permissions for non-tool
+            # executables without weakening symlink/path rejection.
+            if (
+                os.name != "nt"
+                and info.create_system == 3
+                and stat.S_ISREG(mode)
+                and mode & stat.S_IXUSR
+            ):
+                target.chmod(target.stat().st_mode | stat.S_IXUSR)
 
 
 def _extract_tar(archive_path: Path, destination: Path, *, max_uncompressed_bytes: int) -> None:
