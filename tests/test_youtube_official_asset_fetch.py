@@ -218,7 +218,8 @@ def test_native_cli_probes_version_from_matching_pinned_executables_only(
         called.append((cmd, kwargs))
         assert Path(cmd[0]).is_absolute()
         assert kwargs["env"]["PATH"] == ""
-        assert kwargs["cwd"] == output
+        assert kwargs["cwd"].name == "verified"
+        assert kwargs["cwd"].parent.name.startswith(".official-source-fetch-")
         if Path(cmd[0]).name == "yt-dlp.exe":
             assert cmd[1:] == ["--ignore-config", "--no-remote-components", "--version"]
             return SimpleNamespace(returncode=0, stdout="2026.10.26\n")
@@ -256,8 +257,9 @@ def test_native_probe_wrong_version_refuses_output_and_approval(tmp_path: Path, 
     assert not (tmp_path / "failed").exists()
 
 
-def test_native_probe_refuses_wrong_host_even_with_hash_pinned_inputs(tmp_path: Path):
+def test_native_probe_refuses_wrong_host_even_with_hash_pinned_inputs(tmp_path: Path, monkeypatch):
     pins, _, _, opener = _setup(tmp_path, "macos-aarch64")
+    monkeypatch.setattr(fetcher, "_host_target", lambda: "windows-x86_64")
     with pytest.raises(ValueError, match="different target architecture"):
         fetcher.fetch_reviewed_sources(
             target="macos-aarch64", pin_file=pins, output_dir=tmp_path / "rejected",
