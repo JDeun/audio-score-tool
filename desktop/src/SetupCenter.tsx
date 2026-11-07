@@ -189,13 +189,31 @@ export default function SetupCenter() {
       const response = await fetch(`${API}/api/setup/recover`, { method: "POST" });
       if (!response.ok) throw new Error(await apiError(response));
       const result = await response.json() as {
-        recovery: { removed_component_staging?: number };
+        recovery: {
+          removed_component_staging?: number;
+          restored_component_removal?: number;
+          restored_previous_install?: number;
+          removed_previous_install_backup?: number;
+          pending_previous_install_backup?: number;
+        };
         setup: SetupStatus;
       };
       setStatus(result.setup);
+      const recovered = result.recovery.restored_previous_install ?? 0;
+      const pending = result.recovery.pending_previous_install_backup ?? 0;
       setFeedback({
-        message: `임시 설치 파일 ${result.recovery.removed_component_staging ?? 0}개를 정리했습니다.`,
-        error: false,
+        message: [
+          `임시 설치 파일 ${result.recovery.removed_component_staging ?? 0}개를 정리했습니다.`,
+          recovered > 0 ? `중단된 런타임 설치 ${recovered}개를 이전 정상 버전으로 복구했습니다.` : "",
+          (result.recovery.removed_previous_install_backup ?? 0) > 0
+            ? `확인된 이전 설치 백업 ${result.recovery.removed_previous_install_backup}개를 정리했습니다.` : "",
+          (result.recovery.restored_component_removal ?? 0) > 0
+            ? `중단된 삭제 ${result.recovery.restored_component_removal}건을 되돌렸습니다.` : "",
+          pending > 0
+            ? `검증할 수 없는 이전 설치 백업 ${pending}개는 보호했습니다. 자동 재설치를 중단하고 설치 상태를 점검하세요.`
+            : "",
+        ].filter(Boolean).join(" "),
+        error: pending > 0,
       });
     } catch (error) {
       setFeedback({ message: error instanceof Error ? error.message : "복구 작업 실패", error: true });
