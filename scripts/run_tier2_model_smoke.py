@@ -9,7 +9,7 @@ import platform
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
-from music21 import converter
+from music21 import chord, converter, harmony, note
 
 from audio_score_tool.config import Settings
 from audio_score_tool.transcription_engine import MT3InferEngine
@@ -44,7 +44,12 @@ def verify_model_outputs(midi_path: Path, musicxml_path: Path) -> dict[str, int]
             raise RuntimeError(f"{label} model output is missing or empty: {path}")
         try:
             score = converter.parse(str(path))
-            count = len(list(score.recurse().notes))
+            count = sum(
+                1
+                for event in score.recurse().notes
+                if isinstance(event, (note.Note, note.Unpitched))
+                or (isinstance(event, chord.Chord) and not isinstance(event, harmony.ChordSymbol))
+            )
         except Exception as exc:
             raise RuntimeError(f"{label} model output cannot be parsed: {path}") from exc
         if count == 0:
