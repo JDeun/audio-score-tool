@@ -52,13 +52,13 @@ async function exerciseCancelledImport(
   await modal.getByRole("button", { name: "악보 가져오기", exact: true }).click();
   await expect.poll(() => submissions).toEqual(["POST"]);
   await expect(modal.getByRole("button", { name: "가져오기 취소" })).toBeVisible();
-  await expect(modal.getByRole("button", { name: "닫기" })).toBeDisabled();
+  await expect(modal.locator("footer .secondary-button")).toBeDisabled();
   await modal.getByRole("button", { name: "가져오기 취소" }).click();
   await expect.poll(() => cancelCalls).toBe(1);
   await expect(modal.getByText(/취소되었습니다/)).toBeVisible();
   await expect(modal.getByRole("button", { name: "다시 가져오기" })).toBeEnabled();
   await expect(modal.getByRole("button", { name: "곡 라이브러리에서 검토" })).toHaveCount(0);
-  await modal.getByRole("button", { name: "닫기" }).click();
+  await modal.locator("footer .secondary-button").click();
   await expect(modal).toHaveCount(0);
 }
 
