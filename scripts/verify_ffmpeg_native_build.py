@@ -183,14 +183,27 @@ def verify_native_build(
     try:
         stage = Path(tempfile.mkdtemp(prefix=".ffmpeg-review-", dir=destination.parent))
         versions: dict[str, str] = {}
+        native_versions: dict[str, str] = {}
         compilers: set[str] = set()
         for name, binary in binaries.items():
             output = _run(
                 [str(binary), "-version"],
                 cwd=src, env=env, timeout=20, label=f"{name}-version",
             )
-            if not output.startswith(f"{name} version {pin['version']} "):
-                raise FFmpegNativeReviewError(f"{name}: native version differs from official release pin.")
+            first = output.splitlines()[0].strip() if output.splitlines() else ""
+            # FFmpeg's source checkout can identify an annotated nX.Y.Z Git
+            # tag as either nX.Y.Z (git describe) or X.Y.Z (version file).
+            # This is the ONLY allowed alias, bound to the exact source SHA.
+            expected_versions = {pin["version"], pin["version"].removeprefix("n")}
+            match = re.match(rf"^{name} version ([^\\s]+)(?:\\s|$)", first)
+            actual_version = match.group(1) if match else ""
+            if actual_version not in expected_versions:
+                observed = re.sub(r"[^A-Za-z0-9._+ -]", "_", first[:120])
+                raise FFmpegNativeReviewError(
+                    f"{name}: native version differs from official release pin "
+                    f"(observed {observed!r})."
+                )
+            native_versions[name] = actual_version
             compiler = [
                 line.strip().removeprefix("built with ").strip()
                 for line in output.splitlines() if line.startswith("built with ")
@@ -200,7 +213,7 @@ def verify_native_build(
             compilers.add(compiler[0])
             report = stage / f"{name}-version.txt"
             report.write_text(output, encoding="utf-8")
-            actual_flags = _configuration(report, name, pin["version"])
+            actual_flags = _configuration(report, name, actual_version)
             if set(actual_flags) != set(expected_flags):
                 raise FFmpegNativeReviewError(f"{name}: actual configure flags differ from pinned review build.")
             if _sha(binary) != hashes[name]:
@@ -208,6 +221,8 @@ def verify_native_build(
             versions[name] = output
         if len(compilers) != 1:
             raise FFmpegNativeReviewError("FFmpeg/ffprobe reported different compiler toolchains.")
+        if len(set(native_versions.values())) != 1:
+            raise FFmpegNativeReviewError("FFmpeg/ffprobe reported inconsistent native versions.")
 
         with tempfile.TemporaryDirectory(prefix="ast-ffmpeg-synth-") as temp:
             wave = Path(temp) / "original-generated.wav"
@@ -263,7 +278,7 @@ def verify_native_build(
             encoding="utf-8",
         )
         manifest = {
-            "schema": 1, "target": target, "version": pin["version"],
+            "schema": 1, "target": target, "version": native_versions["ffmpeg"],
             "source_revision": pin["source_commit"], "source_url": pin["source_url"],
             "toolchain": toolchain,
             "license_notice": str(src / "LICENSE.md"),
@@ -296,7 +311,7 @@ def verify_native_build(
                 name: {
                     "binary_sha256": hashes[name],
                     "version_report_sha256": _sha(stage / f"{name}-version.txt"),
-                    "native_version": pin["version"],
+                    "native_version": native_versions[name],
                     "native_executed": True,
                 }
                 for name in binaries
