@@ -50,6 +50,8 @@ jobs:
             tests/test_managed_component_catalog.py \
             tests/test_managed_component_tamper.py \
             tests/test_managed_publication_readiness.py \
+            tests/test_managed_artifact_candidate_preparation.py \
+            tests/test_managed_artifact_publication_evidence.py \
             tests/test_packaged_runtime_dependencies.py \
             tests/test_youtube.py \
             tests/test_engine_release_policy.py \
@@ -59,6 +61,9 @@ jobs:
             tests/test_tier2_compare.py \
             tests/test_benchmark_edit_telemetry.py \
             tests/test_tier2_prediction.py
+
+      - name: Verify pending remote publication proof CLI stays optional
+        run: uv run --frozen python scripts/verify_managed_artifact_publication.py --help
 
       - name: Report managed publication readiness
         run: |

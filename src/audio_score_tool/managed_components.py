@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import json
 import os
 import re
@@ -52,16 +53,31 @@ def _safe_relative_path(value: str) -> bool:
 
 def _validated_download_url(url: str) -> urllib.parse.SplitResult:
     parsed = urllib.parse.urlsplit(url)
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise ComponentIntegrityError("Managed component HTTPS URL has an invalid port.") from exc
     if (
         parsed.scheme.lower() != "https"
         or parsed.username
         or parsed.password
         or not parsed.hostname
         or parsed.fragment
+        or port not in {None, 443}
     ):
         raise ComponentIntegrityError(
             "Managed component downloads must use credential-free HTTPS URLs without fragments."
         )
+    hostname = parsed.hostname.lower().rstrip(".")
+    if hostname == "localhost" or hostname.endswith(".localhost"):
+        raise ComponentIntegrityError("Managed component download host must not be local.")
+    try:
+        address = ipaddress.ip_address(hostname)
+    except ValueError:
+        pass
+    else:
+        if not address.is_global:
+            raise ComponentIntegrityError("Managed component download host must be public.")
     return parsed
 
 
@@ -387,6 +403,22 @@ def _copy_stream(source: BinaryIO, target: Path, *, max_bytes: int) -> str:
     return digest.hexdigest()
 
 
+class _VerifiedHTTPSRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Validate each redirect destination *before* urllib opens its connection."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        _validated_download_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _open_trusted_download(request: urllib.request.Request):
+    # urlopen() follows redirects before returning a final response, which is
+    # too late to reject a downgrade to HTTP/loopback. A per-request opener
+    # rejects each hop while keeping normal GitHub release HTTPS redirects.
+    opener = urllib.request.build_opener(_VerifiedHTTPSRedirectHandler)
+    return opener.open(request, timeout=60)
+
+
 def _download(artifact: ComponentArtifact, target: Path) -> str:
     _validated_download_url(artifact.url)
     request = urllib.request.Request(
@@ -395,7 +427,7 @@ def _download(artifact: ComponentArtifact, target: Path) -> str:
         method="GET",
     )
     try:
-        with urllib.request.urlopen(request, timeout=60) as response:
+        with _open_trusted_download(request) as response:
             _validated_download_url(str(response.geturl()))
             return _copy_stream(response, target, max_bytes=artifact.max_download_bytes)
     except ComponentError:
