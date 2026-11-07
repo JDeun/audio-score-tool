@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -34,6 +35,7 @@ def _base(tmp_path: Path, *, model: str = "yourmt3") -> tuple[Path, Path]:
     counts = verify_model_outputs(midi, xml)
     receipt = {
         "model": model,
+        "source_commit": os.environ.get("GITHUB_SHA"),
         "note_events_detected": True,
         "audio_sha256": _sha(audio),
         "midi_sha256": _sha(midi),
