@@ -11,6 +11,10 @@ on:
       - 'scripts/verify_audiveris_native_layout.py'
       - 'tests/test_audiveris_official_installer.py'
       - 'tests/test_audiveris_native_layout.py'
+      - 'scripts/assemble_audiveris_portable_candidate.py'
+      - 'tests/test_audiveris_portable_candidate.py'
+      - 'tests/test_managed_nested_runtime_executable.py'
+      - 'src/audio_score_tool/managed_components.py'
   workflow_dispatch:
 
 permissions:
@@ -140,6 +144,32 @@ jobs:
             --extracted-root "$extracted" \
             --output "$root/NATIVE-EVIDENCE.pending.json"
 
+      - name: Assemble complete app-owned ZIP and verify relocated launcher/JRE
+        shell: bash
+        env:
+          REVIEW_TARGET: ${{ matrix.target }}
+          PYTHONPATH: ${{ github.workspace }}${{ runner.os == 'Windows' && ';' || ':' }}${{ github.workspace }}/src
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/audiveris-review-$REVIEW_TARGET"
+          if [[ "$REVIEW_TARGET" == "windows-x86_64" ]]; then
+            installer="$root/raw/Audiveris-5.11.0-windowsConsole-x86_64.msi"
+            extracted="$root/admin-image"
+          else
+            installer="$root/raw/Audiveris-5.11.0-macosx-arm64.dmg"
+            extracted="$root/mounted-dmg"
+          fi
+          # The ZIP remains in RUNNER_TEMP and is *never* uploaded.
+          # This executes the real install_component_artifact() against a local
+          # temporary root and runs the relocated JRE/launcher under empty PATH.
+          uv run --no-project --python 3.12 python -m scripts.assemble_audiveris_portable_candidate \
+            --target "$REVIEW_TARGET" \
+            --installer "$installer" \
+            --source-receipt "$root/SOURCE-EVIDENCE.pending.json" \
+            --native-receipt "$root/NATIVE-EVIDENCE.pending.json" \
+            --extracted-root "$extracted" \
+            --output "$root/AUDIVERIS-LOCAL-REVIEW-ONLY.zip"
+
       - name: Detach read-only DMG after native verification
         if: always() && runner.os == 'macOS'
         shell: bash
@@ -158,5 +188,6 @@ jobs:
           path: |
             ${{ runner.temp }}/audiveris-review-${{ matrix.target }}/SOURCE-EVIDENCE.pending.json
             ${{ runner.temp }}/audiveris-review-${{ matrix.target }}/NATIVE-EVIDENCE.pending.json
+            ${{ runner.temp }}/audiveris-review-${{ matrix.target }}/AUDIVERIS-LOCAL-REVIEW-ONLY.zip.pending.json
           if-no-files-found: error
           retention-days: 14
