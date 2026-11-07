@@ -152,7 +152,7 @@ export default function OMRImportController() {
                 <h2 id="omr-title">기존 악보 가져오기</h2>
                 <p>PDF/스캔 이미지는 OMR로 인식하고, MusicXML/MXL/MIDI는 직접 가져와 동일한 편집·검증 파이프라인에 넣습니다.</p>
               </div>
-              <button className="omr-close" type="button" onClick={reset} aria-label="닫기">×</button>
+              <button className="omr-close" type="button" disabled={activeJob} onClick={reset} aria-label="닫기">×</button>
             </header>
 
             <input
