@@ -41,3 +41,16 @@ jobs:
         run: uv run --frozen pytest -q tests/test_hf_dataset_subset.py tests/test_validate_dataset_registry.py
       - name: Verify CLI
         run: uv run --frozen python scripts/ingest_hf_dataset_subset.py --help
+      - name: Example manifest must fail closed without accessing Hub
+        shell: bash
+        run: |
+          set -euo pipefail
+          if uv run --frozen python scripts/ingest_hf_dataset_subset.py \
+            benchmarks/tier2/hf-subset.example.json \
+            --private-root "$RUNNER_TEMP/owned-shards" \
+            --report "$RUNNER_TEMP/subset-preflight.json"; then
+            echo "Unreviewed example manifest was unexpectedly accepted" >&2
+            exit 1
+          fi
+          test ! -e "$RUNNER_TEMP/owned-shards"
+          test ! -e "$RUNNER_TEMP/subset-preflight.json"
