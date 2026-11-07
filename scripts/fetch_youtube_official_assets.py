@@ -11,7 +11,6 @@ import json
 import os
 import platform
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -163,10 +162,11 @@ def _host_target() -> str:
 def _probe_native_tools(
     target: str, path: Path, pins: dict[str, dict],
     *,
-    run: Callable = subprocess.run,
+    run: Callable | None = None,
 ) -> dict:
     if target != _host_target():
         raise ValueError("Refusing to execute an executable on a different target architecture.")
+    run = run or subprocess.run
     suffix = ".exe" if target == "windows-x86_64" else ""
     expected = {
         "yt-dlp": pins["yt-dlp"]["tag"],
