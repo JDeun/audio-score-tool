@@ -94,14 +94,15 @@ def _find_runtime(root: Path, target: str) -> tuple[Path, Path, Path]:
 
 def _native_version(executable: Path, root: Path, label: str) -> str:
     env = os.environ.copy()
-    env.update({
-        "PATH": "",
-        "PYTHONNOUSERSITE": "1",
-        "HOME": str(root),
-        "USERPROFILE": str(root),
-        "APPDATA": str(root),
-        "XDG_CONFIG_HOME": str(root),
-    })
+    # No command may be discovered from PATH. However, Windows Java Swing
+    # FileSystemView needs genuine registered USERPROFILE/APPDATA shell folders:
+    # rewriting them to an arbitrary MSI extraction path causes
+    # ExceptionInInitializerError on a clean Windows runner.
+    env["PATH"] = ""
+    env["PYTHONNOUSERSITE"] = "1"
+    if platform.system() != "Windows":
+        env["HOME"] = str(root)
+        env["XDG_CONFIG_HOME"] = str(root)
     try:
         finished = subprocess.run(
             [str(executable), "-version"],
