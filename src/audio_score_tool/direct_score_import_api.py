@@ -130,7 +130,10 @@ def _worker(job_id: str, source: Path, suffix: str) -> None:
         }
         if midi is not None and midi.is_file():
             result["midi"] = str(midi)
-        _store.update(job_id, status="done", stage="complete", progress=100, result=result)
+        # No cancel can race between the final check and the done commit.
+        with runtime._runtime_lock:
+            check_cancelled()
+            _store.update(job_id, status="done", stage="complete", progress=100, result=result)
     except _ImportCancelled:
         _store.update(job_id, status="cancelled", stage="cancelled")
     except (OSError, ValueError, NotationBackendError, OMRImportError) as exc:
