@@ -390,9 +390,8 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
     }
   };
 
-  const cancelJob = async () => {
-    if (!job) return;
-    const targetId = job.job_id;
+  const cancelJob = async (target: Job) => {
+    const targetId = target.job_id;
     try {
       const response = await fetch(`${API}/api/jobs/${targetId}/cancel`, { method: "POST" });
       const payload = await response.json().catch(() => null);
@@ -531,7 +530,7 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
       {job.error && <div className="inline-error"><strong>작업을 완료하지 못했습니다.</strong><p>{job.error}</p></div>}
       {job.result?.warnings?.map((warning) => <div className="inline-warning" key={warning}>{warning}</div>)}
       <div className="job-card-actions">
-        {active && job.status !== "cancelling" && <button className="secondary-button danger-text" onClick={() => void cancelJob()}>작업 취소</button>}
+        {active && job.status !== "cancelling" && <button className="secondary-button danger-text" onClick={() => void cancelJob(job)}>작업 취소</button>}
         {job.status === "done" && job.kind !== "benchmark" && <button className="primary-button" onClick={onOpenSongs}>곡 라이브러리에서 편집</button>}
         {renderArtifacts(job)}
       </div>
@@ -583,7 +582,7 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
       <div className="operations-page">
         <section className="work-card history-panel">
           <div className="section-title-row"><div><span className="card-kicker">로컬 작업 기록</span><h2>최근 작업</h2><p>채보와 성능 비교 작업은 이 컴퓨터에만 저장됩니다.</p></div><button className="secondary-button" onClick={() => void refreshJobs()}>새로고침</button></div>
-          {jobs.length === 0 ? <div className="premium-empty"><div>⌁</div><h3>아직 작업 내역이 없습니다</h3><p>새 악보에서 첫 번째 음원을 채보해 보세요.</p></div> : <div className="premium-job-list">{jobs.map((item) => <article key={item.job_id} className="premium-job-row"><div className="job-type-icon">{item.kind === "benchmark" ? "⌁" : "♫"}</div><div className="job-row-main"><strong>{item.filename ?? (item.kind === "benchmark" ? "성능 비교" : "이름 없는 음원")}</strong><span>{item.kind === "benchmark" ? `성능 비교 · ${item.preset ?? "전체"}` : `${item.muscriptor_model ?? "자동"} · ${item.whisperx_model ?? "자동"} · ${item.language || "언어 자동"}`}</span><small>{item.created_at ? new Date(item.created_at).toLocaleString() : ""}</small></div><StatusPill status={item.status} /><div className="job-row-actions">{item.status === "done" && renderArtifacts(item)}{!["queued", "running", "cancelling"].includes(item.status) && <button className="text-action" onClick={() => void retryJob(item)}>다시 실행</button>}{!["queued", "running", "cancelling"].includes(item.status) && <button className="text-action danger" onClick={() => deleteJob(item)}>삭제</button>}</div></article>)}</div>}
+          {jobs.length === 0 ? <div className="premium-empty"><div>⌁</div><h3>아직 작업 내역이 없습니다</h3><p>새 악보에서 첫 번째 음원을 채보해 보세요.</p></div> : <div className="premium-job-list">{jobs.map((item) => <article key={item.job_id} className="premium-job-row"><div className="job-type-icon">{item.kind === "benchmark" ? "⌁" : "♫"}</div><div className="job-row-main"><strong>{item.filename ?? (item.kind === "benchmark" ? "성능 비교" : "이름 없는 음원")}</strong><span>{item.kind === "benchmark" ? `성능 비교 · ${item.preset ?? "전체"}` : `${item.muscriptor_model ?? "자동"} · ${item.whisperx_model ?? "자동"} · ${item.language || "언어 자동"}`}</span><small>{item.created_at ? new Date(item.created_at).toLocaleString() : ""}</small></div><StatusPill status={item.status} /><div className="job-row-actions">{item.status === "done" && renderArtifacts(item)}{["queued", "running"].includes(item.status) && <button className="text-action danger" onClick={() => void cancelJob(item)}>작업 취소</button>}{!["queued", "running", "cancelling"].includes(item.status) && <button className="text-action" onClick={() => void retryJob(item)}>다시 실행</button>}{!["queued", "running", "cancelling"].includes(item.status) && <button className="text-action danger" onClick={() => deleteJob(item)}>삭제</button>}</div></article>)}</div>}
         </section>
       </div>
     );
