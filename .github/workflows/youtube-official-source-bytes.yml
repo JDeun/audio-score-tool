@@ -1,4 +1,4 @@
-name: YouTube Official Source Bytes (review only)
+name: YouTube Official Source Bytes and Native CLI (review only)
 
 # Separate from fast CI, Tauri packaging and all model experiments.
 # PRs touching the upstream source contract run the exact pinned downloads;
@@ -23,18 +23,28 @@ concurrency:
 
 jobs:
   verify-official-source-bytes:
-    name: official-bytes-${{ matrix.target }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    name: native-official-bytes-${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        target: [windows-x86_64, macos-aarch64]
+        include:
+          - target: windows-x86_64
+            runner: windows-2025
+          - target: macos-aarch64
+            runner: macos-15
     steps:
       - name: Checkout fixed official review pins
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Setup Python 3.12 through pinned uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: 0.12.10
+          python-version: '3.12'
 
       - name: Download official release assets and verify exact downloaded bytes
         shell: bash
@@ -42,7 +52,7 @@ jobs:
           SOURCE_TARGET: ${{ matrix.target }}
         run: |
           set -euo pipefail
-          python - <<'PY'
+          uv run --no-project --python 3.12 python - <<'PY'
           import json
           import os
           import subprocess
@@ -105,12 +115,24 @@ jobs:
               }, sort_keys=True))
           PY
 
+      - name: Execute only verified native CLIs (PATH empty; no YouTube access)
+        shell: bash
+        env:
+          SOURCE_TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          uv run --no-project --python 3.12 python scripts/verify_youtube_native_cli.py \
+            --target "$SOURCE_TARGET" \
+            --source-dir "$RUNNER_TEMP/verified-$SOURCE_TARGET"
+
       # Source executables and Deno ZIP are deliberately NOT uploaded. This
       # public CI artifact contains only SHA/provenance and pending-review flags.
       - name: Upload metadata-only evidence (never binary artifacts)
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: official-source-evidence-${{ matrix.target }}
-          path: ${{ runner.temp }}/verified-${{ matrix.target }}/SOURCE-EVIDENCE.pending.json
+          path: |
+            ${{ runner.temp }}/verified-${{ matrix.target }}/SOURCE-EVIDENCE.pending.json
+            ${{ runner.temp }}/verified-${{ matrix.target }}/NATIVE-CLI-EVIDENCE.pending.json
           if-no-files-found: error
           retention-days: 14
