@@ -11,8 +11,8 @@ import pytest
 
 from audio_score_tool.managed_components import ComponentArtifact, install_component_artifact
 from scripts import assemble_youtube_runtime_candidate as assembler
-from scripts import verify_youtube_official_sources as official_verifier
 from scripts import verify_ffmpeg_build_provenance as ffmpeg_review
+from scripts import verify_youtube_official_sources as official_verifier
 
 _TOOLS = ("yt-dlp", "deno", "ffmpeg", "ffprobe")
 
