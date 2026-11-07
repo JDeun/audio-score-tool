@@ -33,6 +33,8 @@ AudioScoreTool packaged desktop은 사용자의 시스템 PATH, Homebrew, winget
 
 `state.json`이 손상되면 앱은 component를 사용하지 않고 fail-closed 합니다.
 
+패키지된 백엔드의 실제 진입점은 `scripts/backend_entry.py → audio_score_tool.api.run()`입니다. 이 시작 함수는 Song/Job 복구에 이어 `recover_component_staging()`을 **서버 수신 시작 전** 실행하고, 결과를 `GET /api/startup-diagnostics`의 `recovery.managed_components`에 기록합니다. 복구에 실패하면 오류 유형을 진단에 보존하되 MusicXML/MIDI/PDF 내장 편집 기능은 계속 제공하며, 등록되지 않거나 checksum이 맞지 않는 외부 런타임 실행은 계속 차단합니다. Setup Center의 `POST /api/setup/recover`는 사용자가 요청하는 독립적인 재시도 경로입니다.
+
 ## Catalog publication
 
 catalog의 component entry는 platform/architecture 별 artifact를 명시합니다.
