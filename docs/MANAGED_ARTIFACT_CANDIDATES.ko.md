@@ -39,7 +39,36 @@ uv run --frozen python scripts/prepare_managed_artifact_candidate.py \
 - CLI는 **네트워크 다운로드나 도구 실행을 하지 않습니다.** `remote_artifact_verified`, `tools_executed`, `clean_machine_verified`는 항상 `false`입니다.
 - 번들 `src/audio_score_tool/managed-component-catalog.json`을 자동 갱신·덮어쓰지 않습니다.
 
-## 3. 실제 게시 이전 필수 검토
+## 3. HTTPS 배포 파일의 실제 바이트 확인 (승인 대기 증빙)
+
+로컬 후보를 생성했다고 해서 해당 URL에 **실제로 같은 ZIP/실행 파일이 게시됐다는 뜻은 아닙니다.** 배포 담당자가 출처·저작권 조건을 검토하여 업로드한 아티팩트에만 아래 명령을 사용합니다.
+
+```bash
+# 기본값: 후보 메타데이터만 확인, 네트워크 없음
+uv run --frozen python scripts/verify_managed_artifact_publication.py \
+  /private/youtube-windows-candidate.json
+
+# 명시적 --fetch 지정 시에만 해당 HTTPS URL에서 배포 바이트를 수신
+uv run --frozen python scripts/verify_managed_artifact_publication.py \
+  /private/youtube-windows-candidate.json \
+  --fetch \
+  --local-archive /private/youtube-windows-reviewed.zip \
+  --output /private/youtube-windows-remote.pending.json
+```
+
+검증기는 다음 모두를 실제 설치 루틴과 공유합니다.
+
+- 후보의 component·platform·tool mapping, upstream revision, operator-reviewed license 문자열, local SHA-256과 미승인(`pending`) 상태를 먼저 검사합니다.
+- 지정된 공개 HTTPS 아티팩트를 크기 제한 내에서 스트리밍 수신하고 원래 로컬 후보의 archive SHA-256와 재대조합니다. `--local-archive`를 지정하면 해당 파일도 다시 해시합니다.
+- 실제 다운로드 바이트를 별도의 임시 앱 관리 루트에 설치하여 안전한 압축 해제와 **모든 도구 SHA-256**를 검증합니다.
+- 완료된 보고서에는 URL 원문/바이너리/임시 경로를 넣지 않고 URL의 해시, archive SHA-256/크기, 도구별 SHA-256와 확인 시각을 기록합니다.
+- 다운로드/아카이브/도구가 서로 다르거나 검증이 실패하면 성공 보고서가 생성되지 않습니다.
+- 보고서는 반드시 `redistribution_status=pending`, `approval_required=true`, `tools_executed=false`, `clean_machine_verified=false`로 유지됩니다. **재배포 승인, 서명, 원격 URL 불변성, 상용 모델 사용권, clean-machine 실동작은 별도의 검토 단계입니다.**
+- `managed-component-catalog.json`에 자동으로 아티팩트를 추가하거나 배포 상태를 승인으로 전환하지 않습니다.
+
+로컬 체크섬은 후보 생성기에서, 실제 URL 바이트 체크섬은 이 검증기에서 별도로 획득하고 두 증거를 연결해야 카탈로그 검토 단계로 진행합니다. HTTP 리다이렉트나 잘못된 출처 정책을 우회해 임의 시스템 파일을 설치하는 도구가 아닙니다.
+
+## 4. 실제 게시 이전 필수 검토
 
 - [ ] 정확한 upstream version·commit·모델 weight revision·포함 라이브러리 목록/해시 확정
 - [ ] Windows/macOS용 실행 파일과 runtime/JRE/FFmpeg build flags 검토, 권리 증거 저장
