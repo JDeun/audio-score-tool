@@ -57,6 +57,8 @@ macOS arm64의 경우 `--target macos-aarch64`, `yt-dlp_macos`, `deno-aarch64-ap
 
 이 검증은 GitHub 릴리스 checksum/signature의 독립 검증, 실행 파일 서명/공증, 재배포 법률 검토를 완료한 것으로 간주할 수 없습니다.
 
+공식 자산 검증기를 수동 다운로드에 의존하지 않고 실행하려면 [공식 파일 직접 수신 및 Windows/macOS 네이티브 버전 검증](YOUTUBE_UPSTREAM_RELEASE_EVIDENCE.ko.md#공식-파일-직접-수신네이티브-실행-검토-117) 절차를 사용합니다. 해당 절차는 정확한 파일 해시와 실행 시 버전만 검증하며 YouTube 실영상 추출 성공, FFmpeg 통합, 법적 배포 승인이나 전체 clean-machine 설치 검증을 주장하지 않습니다.
+
 ## 매니페스트 형식
 
 아래 파일을 `youtube-review-input.json` 같은 외부 작업 경로에 작성합니다. 실제 시스템에 있는 바이너리/라이선스 고지/빌드 기록의 **절대 경로**와 업스트림에서 확인한 SHA-256로 채웁니다. 자리표시자를 그대로 실행하지 않습니다.

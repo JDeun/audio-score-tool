@@ -76,3 +76,23 @@ def test_registry_and_lock_audits_have_independent_triggers():
     assert "uv.lock" in python_events
     assert ".github/workflows/ci.yml" not in python_events
     assert "pip-audit --strict" in python
+
+
+def test_official_youtube_source_review_is_separate_and_never_redistributes_binaries():
+    review = _read("youtube-official-native-review.yml")
+    events = _events(review)
+    assert "workflow_dispatch:" in events
+    assert "review/youtube-official-native-smoke" in events
+    assert "pull_request:" not in events
+    assert "windows-2025" in review
+    assert "macos-15" in review
+    assert "--execute-native" in review
+    assert "fetch_youtube_official_assets.py" in review
+    assert "DOWNLOAD-EVIDENCE.pending.json" in review
+    assert "SOURCE-EVIDENCE.pending.json" in review
+    assert "upload-artifact" in review
+    assert "Desktop Packages" not in review
+    assert "tauri build" not in review
+    assert "desktop-packages.yml" not in review
+    assert "verified/*.exe" not in review
+    assert "verified/*.zip" not in review

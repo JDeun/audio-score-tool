@@ -44,6 +44,28 @@ uv run --frozen python scripts/collect_youtube_upstream_release_evidence.py \
 
 네트워크가 체크섬 파일을 제공하지 않을 때는 `--metadata-only`로 API 메타데이터만 수집할 수 있으나 `checksum_file_verified=false`를 명시하여 확정 증거로 사용하지 않습니다.
 
+## 공식 파일 직접 수신·네이티브 실행 검토 (#117)
+
+수동 다운로드 대신 `scripts/fetch_youtube_official_assets.py`로 위 **고정 핀 파일**의 공식 Windows/macOS 배포 파일 두 개를 직접 가져와 바이트 단위로 대조할 수 있습니다. 정확한 upstream 태그·자산명·URL·크기·SHA-256만 허용하고, 리디렉션은 GitHub 소유 HTTPS 다운로드 도메인에서만 추적합니다. 잘못된 크기/해시·압축 파일·CPU 아키텍처에서 실패하면 완성된 출력 폴더를 만들지 않습니다.
+
+```bash
+python scripts/fetch_youtube_official_assets.py \
+  --target windows-x86_64 \
+  --output-dir /absolute/work/windows-official-reviewed
+
+# 일치하는 대상 OS의 격리된 검증 환경에서만:
+python scripts/fetch_youtube_official_assets.py \
+  --target macos-aarch64 \
+  --output-dir /absolute/work/macos-official-reviewed \
+  --execute-native
+```
+
+- `--execute-native`는 해당 OS/아키텍처에서만 `yt-dlp --ignore-config --no-remote-components --version`과 `deno --version`을 실행하고, 고정된 태그 버전과 실제 출력을 비교합니다. 일반 검증은 바이너리를 실행하지 않습니다.
+- 출력에는 `SOURCE-EVIDENCE.pending.json`과 `DOWNLOAD-EVIDENCE.pending.json`이 들어갑니다. 공식 파일을 가져왔고 SHA-256이 일치한 것과, **실제 영상 다운로드가 성공한 것**은 분명히 다릅니다.
+- `yt-dlp.exe` 및 `yt-dlp_macos` 같은 공식 PyInstaller 독립 실행 파일에는 upstream의 `yt-dlp-ejs`가 포함됩니다(https://github.com/yt-dlp/yt-dlp/wiki/EJS). 이 후보는 외부 Deno를 명시적으로 연결하되 실행 중 `--no-remote-components`를 사용합니다. EJS 관련 별도 원격 다운로드 승인을 암묵적으로 허용하지 않습니다.
+- [검토 전용 GitHub Actions](../.github/workflows/youtube-official-native-review.yml)은 Windows x86_64/macOS ARM64 호스팅 러너에서 각 버전을 검증합니다. 일반 PR의 필수 CI, Windows/macOS/Linux 데스크톱 패키지 빌드와 분리됩니다. CI 아티팩트는 `*.pending.json` 증빙만 올리며, 라이선스 승인 전 **실행 파일/ZIP을 업로드하거나 공개하지 않습니다**.
+- SHA-256가 공식 release API/체크섬 정보와 같다는 증거는 바이너리 서명·GPG 서명 검증이나 제3자 라이선스 승인을 대체하지 않습니다. FFmpeg/ffprobe는 별도 빌드/검토가 필요하고 `managed-component-catalog.json`의 `artifacts`는 계속 비어 있습니다.
+
 ## 이후 실제 배포까지 남는 단계
 
 1. 위 보고서로 공식 파일을 내려받고 **실제 바이트의 SHA-256**과 비교합니다.
