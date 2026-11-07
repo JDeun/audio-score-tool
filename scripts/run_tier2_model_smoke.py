@@ -42,6 +42,12 @@ def verify_model_outputs(midi_path: Path, musicxml_path: Path) -> dict[str, int]
     for label, path in (("MIDI", midi_path), ("MusicXML", musicxml_path)):
         if not path.is_file() or path.stat().st_size == 0:
             raise RuntimeError(f"{label} model output is missing or empty: {path}")
+        # music21 leaves an open file handle on some malformed MIDI inputs.
+        # Reject a missing Standard MIDI header before delegating to the parser.
+        if label == "MIDI":
+            with path.open("rb") as handle:
+                if handle.read(4) != b"MThd":
+                    raise RuntimeError(f"MIDI model output cannot be parsed: {path}")
         try:
             score = converter.parse(str(path))
             count = sum(
