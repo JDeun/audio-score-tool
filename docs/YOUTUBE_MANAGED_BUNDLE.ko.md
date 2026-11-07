@@ -62,6 +62,20 @@ macOS arm64의 경우 `--target macos-aarch64`, `yt-dlp_macos`, `deno-aarch64-ap
 
 공식 자산 검증기를 수동 다운로드에 의존하지 않고 실행하려면 [공식 파일 직접 수신 및 Windows/macOS 네이티브 버전 검증](YOUTUBE_UPSTREAM_RELEASE_EVIDENCE.ko.md#공식-파일-직접-수신네이티브-실행-검토-117) 절차를 사용합니다. 해당 절차는 정확한 파일 해시와 실행 시 버전만 검증하며 YouTube 실영상 추출 성공, FFmpeg 통합, 법적 배포 승인이나 전체 clean-machine 설치 검증을 주장하지 않습니다.
 
+## 네 도구 로컬 통합 인수시험 — 실제 네이티브 런타임, 승인 전
+
+이제 `.github/workflows/ffmpeg-native-build-review.yml`의 별도 Windows x64/macOS ARM64 검토 단계는 공식 pinned FFmpeg n9.0.2를 실제 빌드·실행한 후, 독립적으로 해시 검증된 공식 yt-dlp 2026.10.26 및 Deno v2.9.8을 같은 러너에서 다시 내려받습니다. `scripts/smoke_youtube_four_tool_offline.py`는 각 원본 확인서·빌드 확인서의 SHA-256을 대조해 네 실행 파일을 임시 `bin/` 폴더에 격리하고 다음 흐름을 점검합니다.
+
+1. 네 도구의 출처·로컬 바이너리 SHA 확인 및 앱 관리형 폴더를 모방한 단일 실행 디렉터리 구성
+2. `PATH=""`, 절대 경로, `--ignore-config` 및 `--no-remote-components`, 고정 `--js-runtimes deno:<절대경로>` / `--ffmpeg-location <절대 bin 디렉터리>`로 yt-dlp 실행
+3. **앱에서 생성한 440Hz 합성 WAV** 하나만 `127.0.0.1` 임시 HTTP 서버에서 제공
+4. yt-dlp 일반 URL 추출기 → 동일 디렉터리의 FFmpeg로 FLAC 변환 → 앱 관리형 ffprobe로 FLAC 코덱 및 44.1 kHz 검사
+5. 작업 후 네 실행 파일 해시 재검증, 합성 입력·FLAC 출력·임시 바이너리 삭제 및 `FOUR-TOOL-OFFLINE-EVIDENCE.pending.json` **메타데이터만** 보관
+
+테스트 서버는 공개 인터넷에 개방되지 않습니다. 이 흐름이 성공해도 **실제 YouTube extractor/JS challenge에서 Deno 실행이 필요할 때의 호환성, YouTube 서버로부터 권한 있는 오디오 다운로드, 모델 채보, Windows/macOS Tauri 클린 머신 설치**를 증명하지 않습니다. yt-dlp·Deno·FFmpeg·ffprobe 네 도구를 함께 쓸 수 있다는 *로컬 media handoff* 증거이며 `deno_youtube_js_challenge_verified=false`와 `real_youtube_download_verified=false`로 결과에 명시합니다.
+
+본 검토에서는 재배포 승인/원격 ZIP 게시/catalog 수정/동영상 권리 판단을 수행하지 않습니다. 모든 게시 상태는 `pending`이고 [#29](https://github.com/JDeun/audio-score-tool/issues/29)는 유지합니다.
+
 ## 매니페스트 형식
 
 아래 파일을 `youtube-review-input.json` 같은 외부 작업 경로에 작성합니다. 실제 시스템에 있는 바이너리/라이선스 고지/빌드 기록의 **절대 경로**와 업스트림에서 확인한 SHA-256로 채웁니다. 자리표시자를 그대로 실행하지 않습니다.

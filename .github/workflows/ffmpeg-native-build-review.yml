@@ -9,6 +9,8 @@ on:
       - 'release/review/ffmpeg-native-source-pin-2026-11-07.json'
       - 'scripts/verify_ffmpeg_native_build.py'
       - 'tests/test_ffmpeg_native_build.py'
+      - 'scripts/smoke_youtube_four_tool_offline.py'
+      - 'tests/test_youtube_four_tool_offline.py'
   workflow_dispatch:
 
 permissions:
@@ -140,6 +142,31 @@ jobs:
 
       # NO executable or source archive is distributed here. The pending
       # review records do not authorize reuse of a binary by a release job.
+      - name: Fetch exact pinned official yt-dlp/Deno bytes for this native host
+        shell: bash
+        env:
+          REVIEW_TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          uv run --no-project --python 3.12 python scripts/fetch_youtube_official_assets.py \
+            --target "$REVIEW_TARGET" \
+            --output-dir "$RUNNER_TEMP/youtube-sources-$REVIEW_TARGET" \
+            --execute-native
+
+      - name: Verify all four binaries in one offline yt-dlp to FFmpeg handoff
+        shell: bash
+        env:
+          REVIEW_TARGET: ${{ matrix.target }}
+          PYTHONPATH: ${{ github.workspace }}${{ runner.os == 'Windows' && ';' || ':' }}${{ github.workspace }}/src
+        run: |
+          set -euo pipefail
+          uv run --no-project --python 3.12 python scripts/smoke_youtube_four_tool_offline.py \
+            --target "$REVIEW_TARGET" \
+            --youtube-dir "$RUNNER_TEMP/youtube-sources-$REVIEW_TARGET" \
+            --ffmpeg-dir upstream/ffmpeg \
+            --ffmpeg-receipt "$RUNNER_TEMP/ffmpeg-review-$REVIEW_TARGET/NATIVE-FFMPEG-EVIDENCE.pending.json" \
+            --output "$RUNNER_TEMP/ffmpeg-review-$REVIEW_TARGET/FOUR-TOOL-OFFLINE-EVIDENCE.pending.json"
+
       - name: Upload metadata-only FFmpeg provenance evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -150,5 +177,8 @@ jobs:
             ${{ runner.temp }}/ffmpeg-review-${{ matrix.target }}/ffmpeg-version.txt
             ${{ runner.temp }}/ffmpeg-review-${{ matrix.target }}/ffprobe-version.txt
             ${{ runner.temp }}/ffmpeg-review-${{ matrix.target }}/build-record.txt
+            ${{ runner.temp }}/ffmpeg-review-${{ matrix.target }}/FOUR-TOOL-OFFLINE-EVIDENCE.pending.json
+            ${{ runner.temp }}/youtube-sources-${{ matrix.target }}/SOURCE-EVIDENCE.pending.json
+            ${{ runner.temp }}/youtube-sources-${{ matrix.target }}/DOWNLOAD-EVIDENCE.pending.json
           if-no-files-found: error
           retention-days: 14
