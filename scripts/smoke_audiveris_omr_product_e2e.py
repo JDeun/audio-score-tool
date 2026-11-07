@@ -163,7 +163,8 @@ def _verovio_svg_diagnostics(source: Path) -> dict[str, Any]:
         raise AudiverisReviewError("Could not render owned score for SVG diagnostics.")
     svg = toolkit.renderToSVG(1)
     parsed = ET.fromstring(svg)
-    names = lambda node: node.tag.rsplit("}", 1)[-1]
+    def names(node):
+        return node.tag.rsplit("}", 1)[-1]
     counts = Counter(names(node) for node in parsed.iter())
     diag = {
         "svg_bytes": len(svg.encode("utf-8")),
