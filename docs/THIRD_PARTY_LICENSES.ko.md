@@ -123,6 +123,8 @@ OSMD와 Verovio는 역할을 분리합니다. OSMD는 interactive desktop previe
 - 역할: YouTube metadata/audio ingest
 - Python package와 standalone binary의 포함물/license profile이 다를 수 있으므로 실제 delivery artifact 기준으로 검토
 - 현재 YouTube 지원은 yt-dlp 외에 FFmpeg/ffprobe 및 JavaScript challenge runtime/ejs가 필요할 수 있음
+- 공식 PyInstaller 독립 실행 파일(`yt-dlp.exe`, `yt-dlp_macos`)에는 `yt-dlp-ejs`가 포함된다고 upstream이 문서화함(https://github.com/yt-dlp/yt-dlp/wiki/EJS). 그러나 **그 포함 사실은 PyInstaller 통합물의 라이선스·제3자 고지 검토가 완료됐다는 의미가 아님**
+- packaged YouTube는 `--ignore-config --no-remote-components`로 사용자 yt-dlp 설정·원격 EJS 다운로드를 차단하고 검증된 app-managed Deno에 명시적으로 바인딩
 
 stable 지원에서는 이 전체를 하나의 app-managed component stack으로 취급합니다. 사용자가 Python/Node/Deno/FFmpeg를 각각 설치하게 하지 않습니다.
 
