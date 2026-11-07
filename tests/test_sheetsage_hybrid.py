@@ -37,6 +37,27 @@ def test_merger_preserves_notes_and_adds_chords(tmp_path):
     assert report["added"]["chords"] == 2
 
 
+def test_hybrid_rejects_rest_only_amt_even_with_valid_harmony(tmp_path):
+    source = tmp_path / "rest-only.musicxml"
+    score = stream.Score()
+    part = stream.Part()
+    part.append(note.Rest(quarterLength=1))
+    part.append(harmony.ChordSymbol("C"))
+    score.append(part)
+    score.write("musicxml", fp=str(source))
+    events = tmp_path / "sheetsage.json"
+    events.write_text(
+        json.dumps({"schema_version": 1, "chords": [
+            {"time_seconds": 0.0, "label": "C:maj"},
+        ]}),
+        encoding="utf-8",
+    )
+    output = tmp_path / "hybrid.musicxml"
+    with pytest.raises(SheetSageError, match="no performed note events"):
+        merge_sheetsage_musicxml(source, events, output)
+    assert not output.exists()
+
+
 def test_adapter_rejects_unsorted_events(tmp_path):
     events = tmp_path / "bad.json"
     events.write_text(json.dumps({
