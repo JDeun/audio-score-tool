@@ -29,6 +29,10 @@ _SAFE_VERSION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 _SHA256 = re.compile(r"^[a-f0-9]{64}$")
 _PLACEHOLDERS = {"", "tbd", "pending", "unknown", "latest", "unreviewed", "runtime-specific"}
 _MAX_NOTICE_BYTES = 4 * 1024 * 1024
+_OFFICIAL_PINS = (
+    Path(__file__).resolve().parents[1]
+    / "release/review/youtube-official-source-pins-2026-11-06.json"
+)
 
 
 def _nonplaceholder(value: object, field: str) -> str:
@@ -142,6 +146,108 @@ def _manifest_source(value: Any, *, tool: str, target: str) -> dict[str, Any]:
     }
 
 
+def _official_source_binding(
+    manifest: dict[str, Any],
+    sources: dict[str, dict[str, Any]],
+    target: str,
+    *,
+    official_pins: Path,
+) -> dict[str, Any]:
+    """Bind BOTH official tools to reviewed upstream asset bytes.
+
+    Verified input files and their SOURCE-EVIDENCE must come from the same
+    extraction directory. The evidence must match the independently committed
+    release pin, not only a mutable self-declared bundle manifest. This
+    verifies local file hashes, NOT upstream signatures or redistribution.
+    """
+    evidence_path = _read_local(
+        manifest.get("official_sources_evidence"),
+        label="official_sources_evidence",
+        limit=_MAX_NOTICE_BYTES,
+    )
+    try:
+        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+        pins = json.loads(official_pins.read_text(encoding="utf-8"))
+    except (OSError, ValueError, UnicodeError) as exc:
+        raise ValueError("Official yt-dlp/Deno evidence or reviewed pins are unreadable.") from exc
+    if (
+        not isinstance(evidence, dict)
+        or evidence.get("schema") != 1
+        or evidence.get("component") != "youtube_runtime"
+        or evidence.get("target") != target
+        or evidence.get("redistribution_status") != "pending"
+        or evidence.get("local_bytes_verified") is not True
+        or evidence.get("upstream_signature_verified") is not False
+        or evidence.get("binaries_executed") is not False
+        or evidence.get("remote_archive_published") is not False
+        or evidence.get("approval_required") is not True
+    ):
+        raise ValueError("Official source evidence is not an unapproved locally verified report for this target.")
+    if (
+        not isinstance(pins, dict)
+        or pins.get("schema") != 1
+        or pins.get("approval_status") != "pending"
+        or not isinstance(pins.get("targets"), dict)
+        or not isinstance(pins["targets"].get(target), dict)
+    ):
+        raise ValueError("Official release review pins are invalid or not pending.")
+    pinned = pins["targets"][target]
+    records = evidence.get("inputs")
+    if (
+        not isinstance(records, dict)
+        or set(records) != {"yt-dlp", "deno"}
+        or set(pinned) != {"yt-dlp", "deno"}
+    ):
+        raise ValueError("Official source evidence must contain exactly yt-dlp and Deno.")
+    for tool in ("yt-dlp", "deno"):
+        item = records[tool]
+        reviewed = pinned[tool]
+        if not isinstance(item, dict) or not isinstance(reviewed, dict):
+            raise ValueError(f"{tool}: official source review entry is invalid.")
+        pinned_fields = {
+            "repository": "repository",
+            "tag": "tag",
+            "asset": "asset",
+            "upstream_url": "url",
+            "source_sha256": "sha256",
+            "source_bytes": "bytes",
+            "license_review": "license_review",
+        }
+        if any(item.get(actual) != reviewed.get(expected) for actual, expected in pinned_fields.items()):
+            raise ValueError(f"{tool}: evidence differs from committed official release pins.")
+        if item.get("tool_sha256") != sources[tool]["sha256"]:
+            raise ValueError(f"{tool}: official extracted tool digest differs from bundle source.")
+        official_name = reviewed.get("extracted_tool")
+        if not isinstance(official_name, str) or official_name not in {
+            ("yt-dlp.exe" if tool == "yt-dlp" else "deno.exe")
+            if target == "windows-x86_64"
+            else ("yt-dlp" if tool == "yt-dlp" else "deno")
+        }:
+            raise ValueError(f"{tool}: reviewed extracted tool name is invalid.")
+        # The review tool emits the file beside the evidence. A copied or
+        # substituted binary elsewhere must not inherit that review receipt.
+        expected_path = evidence_path.parent / official_name
+        if sources[tool]["path"].resolve() != expected_path.resolve():
+            raise ValueError(f"{tool}: source file does not belong to the verified official extraction.")
+        expected_version = str(reviewed.get("tag", ""))
+        if tool == "deno":
+            expected_version = expected_version.removeprefix("v")
+        if sources[tool]["version"] != expected_version:
+            raise ValueError(f"{tool}: version differs from official release pin.")
+        if sources[tool]["upstream_revision"] != reviewed.get("tag"):
+            raise ValueError(f"{tool}: upstream revision differs from official release pin.")
+        official_url = reviewed.get("url")
+        tag_url = f"https://github.com/{reviewed.get('repository')}/releases/tag/{reviewed.get('tag')}"
+        if sources[tool]["upstream_url"] not in {official_url, tag_url}:
+            raise ValueError(f"{tool}: upstream URL differs from official release pin.")
+    return {
+        "evidence": evidence_path,
+        "evidence_sha256": _digest(evidence_path),
+        "pins_sha256": _digest(official_pins),
+        "upstream_signature_verified": False,
+    }
+
+
 def _ffmpeg_build(
     value: Any, sources: dict[str, dict[str, Any]], target: str
 ) -> dict[str, Any]:
@@ -252,7 +358,9 @@ def _zip_text(archive: zipfile.ZipFile, name: str, payload: dict[str, Any]) -> N
     archive.writestr(info, json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2) + "\n")
 
 
-def assemble_youtube_candidate(manifest: dict[str, Any], destination: Path) -> dict[str, Any]:
+def assemble_youtube_candidate(
+    manifest: dict[str, Any], destination: Path, *, official_pins: Path = _OFFICIAL_PINS
+) -> dict[str, Any]:
     """Produce an immutable local ZIP + pending evidence without publishing it."""
     if not isinstance(manifest, dict) or manifest.get("schema") != 1:
         raise ValueError("Expected YouTube bundle manifest schema 1.")
@@ -270,6 +378,9 @@ def assemble_youtube_candidate(manifest: dict[str, Any], destination: Path) -> d
         name: _manifest_source(raw_sources[name], tool=name, target=target)
         for name in _TOOLS
     }
+    official = _official_source_binding(
+        manifest, sources, target, official_pins=official_pins
+    )
     ffmpeg = _ffmpeg_build(manifest.get("ffmpeg_build"), sources, target)
     license_summary = _nonplaceholder(manifest.get("bundle_license"), "bundle_license")
     provenance = _nonplaceholder(manifest.get("bundle_provenance"), "bundle_provenance")
@@ -294,6 +405,11 @@ def assemble_youtube_candidate(manifest: dict[str, Any], destination: Path) -> d
             "license_notice_sha256": sources[name]["notice_sha256"],
         }
         for name in _TOOLS
+    }
+    inventory["official-sources"] = {
+        "evidence_sha256": official["evidence_sha256"],
+        "pins_sha256": official["pins_sha256"],
+        "upstream_signature_verified": False,
     }
     inventory["ffmpeg-build"] = {
         "configure_flags": ffmpeg["configure_flags"],
@@ -321,6 +437,11 @@ def assemble_youtube_candidate(manifest: dict[str, Any], destination: Path) -> d
                     sources[name]["notice"], executable=False,
                     expected_sha256=sources[name]["notice_sha256"],
                 )
+            _zip_entry(
+                archive, "provenance/official-sources.pending.json",
+                official["evidence"], executable=False,
+                expected_sha256=official["evidence_sha256"],
+            )
             _zip_entry(
                 archive, "provenance/ffmpeg-build.txt",
                 ffmpeg["build_record"], executable=False,
@@ -356,6 +477,10 @@ def assemble_youtube_candidate(manifest: dict[str, Any], destination: Path) -> d
             "archive_filename": destination.name,
             "bundle_license": license_summary,
             "bundle_provenance": provenance,
+            "official_source_evidence_sha256": official["evidence_sha256"],
+            "official_release_pins_sha256": official["pins_sha256"],
+            "official_source_bytes_verified": True,
+            "upstream_signature_verified": False,
             "tools": inventory,
             "tool_paths": paths,
             "redistribution_status": "pending",
