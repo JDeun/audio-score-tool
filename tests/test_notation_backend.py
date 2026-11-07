@@ -1,6 +1,11 @@
 from pathlib import Path
+import xml.etree.ElementTree as ET
+
+import pytest
 
 from audio_score_tool.notation_backend import (
+    NotationBackendError,
+    _normalize_verovio_svg_for_fpdf2,
     backend_status,
     render_pdf,
 )
@@ -80,3 +85,59 @@ def test_music21_export_skips_same_file_with_relative_target(tmp_path: Path, mon
         target = Path("out") / f"score.{suffix}"
         assert export(source, target) == target
         assert target.read_text(encoding="utf-8")
+
+
+
+def test_verovio_nested_svg_is_flattened_preserving_vector_paths_and_glyph_links():
+    original = """<svg viewBox="0 0 2100 2970"
+        xmlns="http://www.w3.org/2000/svg"
+        xmlns:xlink="http://www.w3.org/1999/xlink">
+        <defs><g id="owned-glyph"><path d="M 0 0 L 100 0" /></g></defs>
+        <style>path { fill: #000; }</style>
+        <svg viewBox="0 0 21000 29700">
+          <g><path d="M 100 200 L 20000 200" stroke="black"/>
+          <use xlink:href="#owned-glyph"/></g>
+        </svg>
+      </svg>"""
+    converted = _normalize_verovio_svg_for_fpdf2(original)
+    root = ET.fromstring(converted)
+    namespace = "{http://www.w3.org/2000/svg}"
+    assert root.tag == namespace + "svg"
+    assert len(root.findall(f".//{namespace}svg")) == 0
+    groups = root.findall(f"./{namespace}g")
+    assert len(groups) == 1
+    assert groups[0].get("transform") == "matrix(0.1 0 0 0.1 0 0)"
+    assert len(root.findall(f".//{namespace}path")) == 2
+    assert len(root.findall(f".//{namespace}use")) == 1
+    assert root.find(f"./{namespace}defs") is not None
+
+
+def test_verovio_simple_svg_is_left_unmodified():
+    original = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">'
+                '<path d="M 0 0 L 10 10"/></svg>')
+    assert _normalize_verovio_svg_for_fpdf2(original) == original
+
+
+@pytest.mark.parametrize("nested_svg", [
+    '<svg viewBox="0 0 20000 29700"><path d="M 0 0 L 1 1"/></svg>',
+    '<svg viewBox="0 0 0 0"><path d="M 0 0 L 1 1"/></svg>',
+    '<svg x="5" viewBox="0 0 21000 29700"><path d="M 0 0 L 1 1"/></svg>',
+    '<svg viewBox="0 0 21000 29700"><svg viewBox="0 0 21000 29700"/></svg>',
+])
+def test_verovio_unsupported_nested_viewport_fails_instead_of_blank_pdf(nested_svg: str):
+    source = (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2100 2970">'
+        + nested_svg + "</svg>"
+    )
+    with pytest.raises(NotationBackendError, match="중첩 SVG|Verovio SVG"):
+        _normalize_verovio_svg_for_fpdf2(source)
+
+
+def test_verovio_nested_viewbox_offset_translation_is_not_discarded():
+    original = (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="2 3 2100 2970">'
+        '<svg viewBox="100 200 21000 29700"><path d="M 0 0"/></svg></svg>'
+    )
+    root = ET.fromstring(_normalize_verovio_svg_for_fpdf2(original))
+    converted = list(root)[0]
+    assert converted.get("transform") == "matrix(0.1 0 0 0.1 -8 -17)"
