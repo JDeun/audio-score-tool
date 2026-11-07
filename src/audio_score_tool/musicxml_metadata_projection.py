@@ -97,12 +97,20 @@ def project_musicxml_annotations(
 
     source_measures = [m for m in source_parts[0] if _name(m) == "measure"]
     augmented_measures = [m for m in added_parts[0] if _name(m) == "measure"]
-    if not source_measures or len(source_measures) != len(augmented_measures):
-        raise AnnotationProjectionError(
-            "Annotation changed measure mapping: "
-            f"source={[m.get('number') for m in source_measures]}, "
-            f"stage={[m.get('number') for m in augmented_measures]}"
-        )
+    if not source_measures or len(augmented_measures) < len(source_measures):
+        raise AnnotationProjectionError("Annotation lost source measures")
+    # music21 can append one trailing rest-only measure to an explicit overlay
+    # even though all model annotations belong to the original measures.
+    # Discard those synthetic overflow measures only if they carry no harmony,
+    # key or time data; otherwise fail instead of dropping annotations.
+    extras = augmented_measures[len(source_measures):]
+    for extra in extras:
+        for node in extra.iter():
+            if _name(node) in {"harmony", "key", "time"}:
+                raise AnnotationProjectionError(
+                    "Annotation overflowed the original score's last measure"
+                )
+    augmented_measures = augmented_measures[:len(source_measures)]
     input_divisions = 1
     annotated_divisions = 1
     for measure, other in zip(source_measures, augmented_measures):
