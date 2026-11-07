@@ -193,12 +193,14 @@ def merge_sheetsage_musicxml(
     target = stream.Part()
     for original_measure in source_measures:
         measure = stream.Measure(number=original_measure.number)
+        # Use a short placeholder rest instead of the original performed
+        # measure length: a sustained polyphonic note can extend beyond a
+        # barline, which causes music21 to rebar an overlay into measure N+1.
+        # Placeholder rests are never projected to the canonical MusicXML.
         length = float(original_measure.duration.quarterLength)
         if not math.isfinite(length) or length <= 0:
-            length = 4.0
-        # A rest fixes the measure geometry without copying any original notes.
-        # It is discarded after metadata tags are projected to the source XML.
-        measure.insert(0, note.Rest(quarterLength=length))
+            raise SheetSageError("AMT MusicXML contains an invalid measure duration")
+        measure.insert(0, note.Rest(quarterLength=min(1.0, length)))
         target.insert(float(original_measure.getOffsetBySite(source_part)), measure)
     annotation_score.append(target)
     added = {"chords": 0, "keys": 0, "meter": 0}
