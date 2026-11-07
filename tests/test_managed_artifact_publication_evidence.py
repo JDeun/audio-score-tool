@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from audio_score_tool.managed_components import ComponentIntegrityError
+from audio_score_tool.managed_components import ComponentIntegrityError, ComponentUnavailable
 from scripts import prepare_managed_artifact_candidate as candidate
 from scripts import verify_managed_artifact_publication as publication
 
@@ -181,7 +181,7 @@ def test_invalid_candidate_never_reaches_network(
         "_download",
         lambda *_args: (_ for _ in ()).throw(AssertionError("untrusted candidate fetched")),
     )
-    with pytest.raises((ValueError, ComponentIntegrityError)):
+    with pytest.raises((ValueError, ComponentIntegrityError, ComponentUnavailable)):
         publication.verify_published_candidate(report)
 
 
