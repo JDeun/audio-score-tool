@@ -220,3 +220,22 @@ def test_existing_native_receipt_is_not_overwritten(tmp_path: Path, monkeypatch)
     with pytest.raises(FileExistsError, match="Refusing"):
         native.verify_native_startup(root, "windows-x86_64")
     assert dest.read_text(encoding="utf-8") == "existing user evidence"
+
+
+def test_native_source_workflow_uses_real_os_runners_without_binary_uploads():
+    workflow = (
+        Path(__file__).resolve().parents[1]
+        / ".github/workflows/youtube-official-source-bytes.yml"
+    ).read_text(encoding="utf-8")
+    assert "runner: windows-2025" in workflow
+    assert "runner: macos-15" in workflow
+    assert "scripts/verify_youtube_official_sources" in workflow
+    assert "scripts/verify_youtube_native_cli.py" in workflow
+    assert "--target \"$SOURCE_TARGET\"" in workflow
+    assert "NATIVE-CLI-EVIDENCE.pending.json" in workflow
+    assert "SOURCE-EVIDENCE.pending.json" in workflow
+    assert "upload-artifact@" in workflow
+    assert "run: npx" not in workflow
+    assert "scripts/build_sidecar.py" not in workflow
+    assert "bin/*.exe" not in workflow
+    assert "bin/*" not in workflow
