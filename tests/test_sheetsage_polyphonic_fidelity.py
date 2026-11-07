@@ -21,7 +21,8 @@ _FIXTURE = Path(__file__).parent / "fixtures" / "tier2-mrmt3-owned-score.zlib.b6
 def test_owned_polyphonic_mrmt3_harmony_merge_preserves_every_note(tmp_path: Path):
     source = tmp_path / "mr-score.musicxml"
     source.write_bytes(zlib.decompress(base64.b64decode(_FIXTURE.read_text().strip())))
-    assert len(performed_note_signature(source)) == 56
+    # Four score-level tie continuations are one sounding note each.
+    assert len(performed_note_signature(source)) == 52
 
     events_file = tmp_path / "sheetsage2.json"
     roots = ["C:maj", "F:maj", "G:maj", "C:maj", "A:min", "F:maj", "G:maj", "C:maj"]
