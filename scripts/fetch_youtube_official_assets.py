@@ -14,10 +14,10 @@ import re
 import subprocess
 import sys
 import tempfile
-import zipfile
 import urllib.error
 import urllib.parse
 import urllib.request
+import zipfile
 from pathlib import Path
 from typing import BinaryIO, Callable
 
