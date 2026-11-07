@@ -165,10 +165,32 @@ def test_symlink_or_unusual_file_in_app_tree_is_a_blocker_not_an_escape(
         link.symlink_to(outside)
     except OSError:
         pytest.skip("Symlink unavailable on this runner")
-    with pytest.raises(official.AudiverisReviewError, match="unsupported .* link/type"):
+    with pytest.raises(official.AudiverisReviewError, match="external/non-regular file symlink"):
         _assemble(a)
     assert not a["destination"].exists()
     assert outside.read_bytes() == b"secret"
+
+
+def test_internal_file_link_is_safely_materialized_without_any_zip_symlinks(
+    tmp_path: Path, monkeypatch,
+):
+    a = _fixture(tmp_path, monkeypatch, "macos-aarch64")
+    link = a["extra"].parent / "ADDITIONAL_LICENSE_INFO"
+    try:
+        link.symlink_to(a["extra"].name)
+    except OSError:
+        pytest.skip("Symlinks unavailable on this runner")
+    result = _assemble(a)
+    assert result["internal_file_symlinks_materialized"] == 1
+    assert result["external_symlinks_followed"] is False
+    with zipfile.ZipFile(a["destination"]) as archive:
+        name = "Audiveris.app/Contents/app/ADDITIONAL_LICENSE_INFO"
+        assert archive.read(name) == a["extra"].read_bytes()
+        assert stat.S_ISREG(archive.getinfo(name).external_attr >> 16)
+        assert all(
+            not stat.S_ISLNK(info.external_attr >> 16)
+            for info in archive.infolist()
+        )
 
 
 def test_pending_receipt_cannot_claim_agpl_approval(tmp_path: Path, monkeypatch):
