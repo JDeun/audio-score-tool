@@ -24,9 +24,9 @@ from audio_score_tool.managed_components import (
     install_component_artifact,
 )
 from audio_score_tool.managed_publication_readiness import (
+    _REQUIRED_TOOLS,
     CORE_COMPONENTS,
     OPTIONAL_COMPONENTS,
-    _REQUIRED_TOOLS,
 )
 
 _ROOT = Path(__file__).resolve().parents[1]
