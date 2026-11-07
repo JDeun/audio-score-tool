@@ -126,6 +126,21 @@ def _pin(pin_file: Path, target: str) -> dict:
         or pin.get("license_family_review") != "LGPL-2.1-or-later"
     ):
         raise FFmpegNativeReviewError("FFmpeg official source revision/flags/license review contract is invalid.")
+    per_target = pin.get("target_configure_flags")
+    if not isinstance(per_target, dict) or set(per_target) != _TARGETS:
+        raise FFmpegNativeReviewError("Missing explicit per-platform FFmpeg runtime linkage contract.")
+    for os_target, extra in per_target.items():
+        if (
+            not isinstance(extra, list)
+            or any(not isinstance(flag, str) or not flag.startswith("--") for flag in extra)
+            or len(extra) != len(set(extra))
+            or set(extra) & set(flags)
+        ):
+            raise FFmpegNativeReviewError("Invalid per-platform FFmpeg linker flags.")
+        if os_target == "windows-x86_64" and extra != ["--extra-ldflags=-static"]:
+            raise FFmpegNativeReviewError("Windows FFmpeg must statically link MinGW runtime dependencies.")
+        if os_target == "macos-aarch64" and extra:
+            raise FFmpegNativeReviewError("macOS must not claim unsupported static system linkage.")
     return pin
 
 
@@ -137,6 +152,7 @@ def verify_native_build(
     pin_file: Path = DEFAULT_PIN,
 ) -> dict:
     pin = _pin(pin_file, target)
+    expected_flags = [*pin["configure_flags"], *pin["target_configure_flags"][target]]
     if source.is_symlink() or not source.is_dir():
         raise FFmpegNativeReviewError("FFmpeg source checkout is missing or symlinked.")
     src = source.resolve()
@@ -185,7 +201,7 @@ def verify_native_build(
             report = stage / f"{name}-version.txt"
             report.write_text(output, encoding="utf-8")
             actual_flags = _configuration(report, name, pin["version"])
-            if set(actual_flags) != set(pin["configure_flags"]):
+            if set(actual_flags) != set(expected_flags):
                 raise FFmpegNativeReviewError(f"{name}: actual configure flags differ from pinned review build.")
             if _sha(binary) != hashes[name]:
                 raise FFmpegNativeReviewError(f"{name}: binary changed during native version probe.")
@@ -240,7 +256,7 @@ def verify_native_build(
             f"source_tag={pin['tag']}\n"
             f"target={target}\n"
             f"toolchain={toolchain}\n"
-            f"flags={' '.join(pin['configure_flags'])}\n"
+            f"flags={' '.join(expected_flags)}\n"
             f"ffmpeg_sha256={hashes['ffmpeg']}\n"
             f"ffprobe_sha256={hashes['ffprobe']}\n"
             "review_status=pending\n",
@@ -252,7 +268,7 @@ def verify_native_build(
             "toolchain": toolchain,
             "license_notice": str(src / "LICENSE.md"),
             "build_record": str(build_record),
-            "configure_flags": pin["configure_flags"],
+            "configure_flags": expected_flags,
             "external_libraries": {},
             "tools": {
                 name: {
@@ -275,7 +291,7 @@ def verify_native_build(
             "source_url": pin["source_url"],
             "source_pin_sha256": _sha(pin_file),
             "compiler": toolchain,
-            "configure_flags": pin["configure_flags"],
+            "configure_flags": expected_flags,
             "tools": {
                 name: {
                     "binary_sha256": hashes[name],
