@@ -50,7 +50,7 @@ def _youtube_js_runtime_args() -> list[str]:
 
     if not packaged_runtime():
         return []
-    deno = managed_executable_path("deno")
+    deno = managed_executable_path("deno", component="youtube_runtime")
     return ["--js-runtimes", f"deno:{deno}"]
 
 
@@ -59,7 +59,7 @@ def _youtube_ffmpeg_args() -> list[str]:
 
     if not packaged_runtime():
         return []
-    ffmpeg = managed_executable_path("ffmpeg")
+    ffmpeg = managed_executable_path("ffmpeg", component="youtube_runtime")
     return ["--ffmpeg-location", str(ffmpeg.parent)]
 
 
@@ -134,22 +134,35 @@ def validate_youtube_url(value: str) -> str:
 def youtube_tool_status(settings: Settings | None = None) -> dict:
     settings = settings or Settings()
     packaged = packaged_runtime()
-    deno_path = managed_executable_path("deno") if packaged else None
-    ffmpeg_path = managed_executable_path("ffmpeg") if packaged else None
-    ffprobe_path = managed_executable_path("ffprobe") if packaged else None
-    # A loose binary in components/bin is not a verified managed installation.
-    deno_ready = registered_managed_tool("deno") is not None if packaged else True
+    deno_path = managed_executable_path("deno", component="youtube_runtime") if packaged else None
+    ffmpeg_path = (
+        managed_executable_path("ffmpeg", component="youtube_runtime") if packaged else None
+    )
+    ffprobe_path = (
+        managed_executable_path("ffprobe", component="youtube_runtime") if packaged else None
+    )
+    # A matching name under an unrelated component is not the YouTube bundle.
+    yt_dlp = registered_managed_tool("yt-dlp", component="youtube_runtime") if packaged else None
+    deno_ready = (
+        registered_managed_tool("deno", component="youtube_runtime") is not None
+        if packaged else True
+    )
     ffmpeg_ready = (
-        registered_managed_tool("ffmpeg") is not None
+        registered_managed_tool("ffmpeg", component="youtube_runtime") is not None
         if packaged else command_exists(settings.ffmpeg_cmd)
     )
     ffprobe_ready = (
-        registered_managed_tool("ffprobe") is not None
+        registered_managed_tool("ffprobe", component="youtube_runtime") is not None
         if packaged else command_exists("ffprobe")
     )
+    yt_dlp_ready = (
+        yt_dlp is not None
+        and Path(settings.yt_dlp_cmd) == yt_dlp
+        and command_exists(settings.yt_dlp_cmd)
+    ) if packaged else command_exists(settings.yt_dlp_cmd)
     return {
         "ready": (
-            command_exists(settings.yt_dlp_cmd)
+            yt_dlp_ready
             and deno_ready
             and ffmpeg_ready
             and ffprobe_ready

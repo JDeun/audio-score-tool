@@ -1,3 +1,9 @@
+"""Resolve only app-owned, pinned executables.
+
+Some managed bundles contain tools with identical names. The YouTube toolchain
+must use its own yt-dlp, Deno, FFmpeg and ffprobe as one verified provider,
+rather than silently selecting FFmpeg from an unrelated validation package.
+"""
 from __future__ import annotations
 
 import hashlib
@@ -9,6 +15,17 @@ from pathlib import Path, PurePosixPath
 from .paths import app_data_dir
 
 _SAFE_IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+# Defaults prioritize the corresponding provider, but other verified owners
+# can still serve unrelated callers when that provider is not installed.
+_PREFERRED_OWNERS = {
+    "yt-dlp": "youtube_runtime",
+    "deno": "youtube_runtime",
+    "ffmpeg": "youtube_runtime",
+    "ffprobe": "youtube_runtime",
+    "mt3-infer": "transcription_engine",
+    "audiveris": "audiveris",
+    "whisperx": "whisperx",
+}
 
 
 def managed_root() -> Path:
@@ -17,10 +34,10 @@ def managed_root() -> Path:
 
 
 def _safe_relative(value: str) -> bool:
-    path = PurePosixPath(value.replace("\\", "/"))
-    return bool(path.parts) and not path.is_absolute() and all(
-        part not in {"", ".", ".."} for part in path.parts
-    )
+    if not isinstance(value, str) or not value or "\\" in value:
+        return False
+    parts = value.split("/")
+    return all(part not in {"", ".", ".."} for part in parts) and not value.startswith("/")
 
 
 def _safe_identifier(value: str) -> bool:
@@ -38,10 +55,68 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def registered_managed_tool(name: str) -> Path | None:
-    if not _safe_identifier(name):
+def _component_order(components: dict, name: str, *, owner: str | None) -> list[str]:
+    """Order explicitly pinned owners before any generic fallback."""
+    if owner is not None:
+        return [owner] if _safe_identifier(owner) and owner in components else []
+    preferred = _PREFERRED_OWNERS.get(name)
+    if preferred in components:
+        return [preferred, *(component for component in components if component != preferred)]
+    return list(components)
+
+
+def _validated_tool(
+    root: Path, component: str, entry: object, name: str,
+) -> Path | None:
+    if not _safe_identifier(component) or not isinstance(entry, dict):
         return None
-    root = managed_root()
+    version = entry.get("version")
+    relative_root = entry.get("root")
+    tools = entry.get("tools")
+    digests = entry.get("tool_sha256")
+    if (
+        not isinstance(version, str)
+        or not _safe_identifier(version)
+        or not isinstance(relative_root, str)
+        or not isinstance(tools, dict)
+        or not isinstance(digests, dict)
+    ):
+        return None
+    expected_root = (PurePosixPath("installed") / component / version).as_posix()
+    if relative_root != expected_root:
+        return None
+    relative_tool = tools.get(name)
+    digest = digests.get(name)
+    if (
+        not isinstance(relative_tool, str)
+        or not _safe_relative(relative_tool)
+        or not isinstance(digest, str)
+        or re.fullmatch(r"[a-f0-9]{64}", digest) is None
+    ):
+        return None
+    installed = root.joinpath(*PurePosixPath(relative_root).parts)
+    tool = installed.joinpath(*PurePosixPath(relative_tool).parts)
+    if installed.is_symlink() or tool.is_symlink() or not installed.is_dir() or not tool.is_file():
+        return None
+    # Even an in-root symlinked ancestor must not masquerade as the owner of
+    # another bundle's binary; bind every path component to physical storage.
+    current = tool.parent
+    while current != root and current.is_relative_to(root):
+        if current.is_symlink():
+            return None
+        current = current.parent
+    try:
+        installed_real = installed.resolve()
+        installed_real.relative_to(root)
+        tool.resolve().relative_to(installed_real)
+        if _sha256(tool) != digest:
+            return None
+    except (OSError, ValueError):
+        return None
+    return tool
+
+
+def _registered_state(root: Path) -> dict | None:
     state_path = root / "state.json"
     if state_path.is_symlink():
         return None
@@ -52,53 +127,29 @@ def registered_managed_tool(name: str) -> Path | None:
     if not isinstance(payload, dict) or payload.get("schema") != 1:
         return None
     components = payload.get("components")
-    if not isinstance(components, dict):
+    return components if isinstance(components, dict) else None
+
+
+def registered_managed_tool(name: str, *, component: str | None = None) -> Path | None:
+    """Get a verified executable, optionally confined to a specific owner."""
+    if not _safe_identifier(name):
         return None
-    for component_name, entry in components.items():
-        if not _safe_identifier(str(component_name)) or not isinstance(entry, dict):
-            continue
-        relative_root = entry.get("root")
-        tools = entry.get("tools")
-        digests = entry.get("tool_sha256")
-        if (
-            not isinstance(relative_root, str)
-            or not _safe_relative(relative_root)
-            or not isinstance(tools, dict)
-            or not isinstance(digests, dict)
-        ):
-            continue
-        relative_tool = tools.get(name)
-        expected_digest = digests.get(name)
-        if (
-            not isinstance(relative_tool, str)
-            or not _safe_relative(relative_tool)
-            or not isinstance(expected_digest, str)
-            or len(expected_digest) != 64
-            or any(ch not in "0123456789abcdef" for ch in expected_digest)
-        ):
-            continue
-        installed = root.joinpath(*PurePosixPath(relative_root).parts)
-        tool = installed.joinpath(*PurePosixPath(relative_tool).parts)
-        if installed.is_symlink() or tool.is_symlink() or not installed.is_dir() or not tool.is_file():
-            continue
-        try:
-            installed_real = installed.resolve()
-            installed_real.relative_to(root)
-            tool.resolve().relative_to(installed_real)
-            if _sha256(tool) != expected_digest:
-                continue
-        except (OSError, ValueError):
-            continue
-        return tool
+    root = managed_root()
+    components = _registered_state(root)
+    if components is None:
+        return None
+    for owner in _component_order(components, name, owner=component):
+        resolved = _validated_tool(root, owner, components[owner], name)
+        if resolved is not None:
+            return resolved
     return None
 
 
 def is_registered_managed_executable(command: str | Path) -> bool:
-    """Require the exact installed, SHA-256-verified executable path.
+    """Accept any genuine SHA-256-verified owner, never generic PATH entries.
 
-    A file placed in the legacy components/bin fallback (or a path on PATH)
-    must not become executable merely because it exists in packaged mode.
-    Reuse the registry resolver so post-install tampering is also rejected.
+    An explicit absolute tool path from audio_validation remains executable
+    even when the default FFmpeg provider is youtube_runtime.
     """
     candidate = Path(command).expanduser()
     if not candidate.is_absolute() or candidate.is_symlink():
@@ -108,34 +159,18 @@ def is_registered_managed_executable(command: str | Path) -> bool:
         candidate.relative_to(root)
     except ValueError:
         return False
-    state_path = root / "state.json"
-    if state_path.is_symlink():
-        return False
-    try:
-        payload = json.loads(state_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return False
-    if not isinstance(payload, dict) or payload.get("schema") != 1:
-        return False
-    components = payload.get("components")
-    if not isinstance(components, dict):
+    components = _registered_state(root)
+    if components is None:
         return False
     for component, entry in components.items():
         if not _safe_identifier(str(component)) or not isinstance(entry, dict):
             continue
-        relative_root = entry.get("root")
         tools = entry.get("tools")
-        if not isinstance(relative_root, str) or not _safe_relative(relative_root):
-            continue
         if not isinstance(tools, dict):
             continue
-        installed = root.joinpath(*PurePosixPath(relative_root).parts)
-        for name, relative_tool in tools.items():
+        for name in tools:
             if not _safe_identifier(str(name)):
                 continue
-            if not isinstance(relative_tool, str) or not _safe_relative(relative_tool):
-                continue
-            expected = installed.joinpath(*PurePosixPath(relative_tool).parts)
-            if candidate == expected:
-                return registered_managed_tool(str(name)) == candidate
+            if _validated_tool(root, str(component), entry, str(name)) == candidate:
+                return True
     return False

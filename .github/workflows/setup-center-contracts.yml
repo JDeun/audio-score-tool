@@ -6,6 +6,10 @@ on:
       - '.github/workflows/setup-center-contracts.yml'
       - 'src/audio_score_tool/setup_center_api.py'
       - 'src/audio_score_tool/managed_components.py'
+      - 'src/audio_score_tool/managed_tool_resolver.py'
+      - 'src/audio_score_tool/youtube.py'
+      - 'src/audio_score_tool/config.py'
+      - 'tests/test_managed_tool_provider_binding.py'
       - 'src/audio_score_tool/managed_component_catalog.py'
       - 'desktop/src/SetupCenter.tsx'
       - 'desktop/src/setup-center.css'
@@ -48,7 +52,7 @@ jobs:
       - name: Install Python test dependencies
         run: uv sync --frozen --extra dev
       - name: Verify managed component integrity, install, removal, recovery and API
-        run: uv run --frozen pytest -q tests/test_managed_components.py tests/test_setup_center_managed_runtime.py tests/test_model_manager_wiring.py tests/test_desktop_api_wiring.py
+        run: uv run --frozen pytest -q tests/test_managed_components.py tests/test_managed_tool_provider_binding.py tests/test_youtube.py tests/test_setup_center_managed_runtime.py tests/test_model_manager_wiring.py tests/test_desktop_api_wiring.py
       - name: Install frontend
         working-directory: desktop
         run: npm ci --ignore-scripts

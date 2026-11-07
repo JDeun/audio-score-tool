@@ -730,11 +730,18 @@ def component_status(component: str, *, root: Path | None = None) -> dict:
     if not isinstance(entry, dict):
         return {"component": component, "ready": False, "integrity": "not-installed"}
     relative_root = entry.get("root")
+    version = entry.get("version")
     tools = entry.get("tools")
     tool_sha256 = entry.get("tool_sha256")
+    expected_root = (
+        (PurePosixPath("installed") / component / version).as_posix()
+        if isinstance(version, str) and _safe_identifier(version)
+        else None
+    )
     if (
         not isinstance(relative_root, str)
         or not _safe_relative_path(relative_root)
+        or relative_root != expected_root
         or not isinstance(tools, dict)
         or not isinstance(tool_sha256, dict)
     ):
@@ -799,7 +806,10 @@ def component_status(component: str, *, root: Path | None = None) -> dict:
     }
 
 
-def resolve_managed_tool(name: str, *, root: Path | None = None) -> Path | None:
+def resolve_managed_tool(
+    name: str, *, root: Path | None = None, component: str | None = None,
+) -> Path | None:
+    """Expose the same provider priority as packaged executable resolution."""
     root = (root or _root()).resolve()
     if not _safe_identifier(name):
         return None
@@ -807,8 +817,11 @@ def resolve_managed_tool(name: str, *, root: Path | None = None) -> Path | None:
         state = _load_state(root)
     except ComponentIntegrityError:
         return None
-    for component in state["components"]:
-        status = component_status(component, root=root)
+    from .managed_tool_resolver import _component_order
+
+    owners = _component_order(state["components"], name, owner=component)
+    for owner in owners:
+        status = component_status(owner, root=root)
         if status.get("ready") and name in status.get("tools", {}):
             return Path(status["tools"][name])
     return None

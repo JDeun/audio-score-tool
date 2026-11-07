@@ -24,8 +24,8 @@ def component_dir() -> Path:
     return app_data_dir() / "components"
 
 
-def managed_executable_path(name: str) -> Path:
-    registered = registered_managed_tool(name)
+def managed_executable_path(name: str, *, component: str | None = None) -> Path:
+    registered = registered_managed_tool(name, component=component)
     if registered is not None:
         return registered
     suffix = ".exe" if platform.system() == "Windows" else ""
