@@ -46,24 +46,27 @@ def _worker(job_id: str, source: Path, settings: Settings) -> None:
         asset = song_assets_dir() / job_id / f"original-score{source.suffix.lower()}"
         asset.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, asset)
-        if cancel_event.is_set():
-            asset.unlink(missing_ok=True)
-            _store.update(job_id, status="cancelled", stage="cancelled")
-            return
-        _store.update(
-            job_id,
-            status="done",
-            stage="complete",
-            progress=100,
-            result={
-                "musicxml": str(artifacts.musicxml_path),
-                "source_score": str(asset),
-                "omr_provider": artifacts.provider,
-                "warnings": [
-                    "OMR 결과는 원본 악보와 대조 검토하는 것을 권장합니다. 검증 메뉴에서 구조적 오류를 확인하세요."
-                ],
-            },
-        )
+        # Serialize the final commit with /cancel. If cancellation wins,
+        # the job must never transition back to done.
+        with runtime._runtime_lock:
+            if cancel_event.is_set():
+                asset.unlink(missing_ok=True)
+                _store.update(job_id, status="cancelled", stage="cancelled")
+                return
+            _store.update(
+                job_id,
+                status="done",
+                stage="complete",
+                progress=100,
+                result={
+                    "musicxml": str(artifacts.musicxml_path),
+                    "source_score": str(asset),
+                    "omr_provider": artifacts.provider,
+                    "warnings": [
+                        "OMR 결과는 원본 악보와 대조 검토하는 것을 권장합니다. 검증 메뉴에서 구조적 오류를 확인하세요."
+                    ],
+                },
+            )
     except OMRImportCancelled:
         _store.update(job_id, status="cancelled", stage="cancelled")
     except Exception as exc:
