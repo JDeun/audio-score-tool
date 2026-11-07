@@ -19,6 +19,7 @@ from .preflight_v2 import preflight
 from .runner import command_exists
 from .runtime_settings import runtime_settings
 from .system_status import huggingface_authenticated
+from .youtube import youtube_tool_status
 
 router = APIRouter(tags=["setup-center"])
 
@@ -94,6 +95,7 @@ def setup_center_status() -> dict:
     hf_ready = huggingface_authenticated()
     engine_ready = bool(tools.get("transcription_engine"))
     embedded_pdf_ready = bool(tools.get("embedded_pdf"))
+    youtube_ready = bool(youtube_tool_status(settings)["ready"])
 
     components = [
         _component(
@@ -142,7 +144,7 @@ def setup_center_status() -> dict:
         _component(
             "youtube_runtime",
             "YouTube 가져오기 런타임",
-            command_exists(settings.yt_dlp_cmd) and command_exists(settings.ffmpeg_cmd),
+            youtube_ready,
             tier="optional",
             delivery="managed-component",
             role="YouTube URL에서 오디오를 가져오고 미디어를 변환합니다.",
