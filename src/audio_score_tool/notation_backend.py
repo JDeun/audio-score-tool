@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import math
 import shutil
 import tempfile
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Event
+from xml.dom import minidom
 
 from .config import Settings
 
@@ -149,6 +151,75 @@ def _svg_dimensions_mm(svg_text: str) -> tuple[float, float]:
     return 210.0, 297.0
 
 
+def _normalize_verovio_svg_for_fpdf2(svg_text: str) -> str:
+    """Flatten Verovio's full-page nested SVG without rasterizing its paths.
+
+    Verovio 6.3 emits an outer page SVG (viewBox 2100x2970) with a second,
+    child SVG (viewBox 21000x29700). fpdf2 does not support nested <svg>:
+    it silently drops ALL inner music content, yielding a valid but blank
+    score PDF. Replace that single nested viewport with an ordinary SVG
+    group carrying its exact viewBox coordinate transform, preserving
+    original vector paths, glyph <defs>/<use>, styles and stroke widths.
+
+    Fail closed if a future Verovio release changes this structure rather
+    than silently issuing another blank PDF.
+    """
+    try:
+        document = minidom.parseString(svg_text)
+    except Exception as exc:
+        raise NotationBackendError("Verovio SVG 구조를 읽지 못했습니다.") from exc
+    root = document.documentElement
+    if root.localName != "svg" or not root.namespaceURI:
+        raise NotationBackendError("Verovio SVG root가 유효하지 않습니다.")
+    embedded = [
+        node
+        for node in document.getElementsByTagNameNS(root.namespaceURI, "svg")
+        if node is not root
+    ]
+    if not embedded:
+        return svg_text
+    if len(embedded) != 1 or embedded[0].parentNode is not root:
+        raise NotationBackendError("지원되지 않는 중첩 Verovio SVG 구조입니다.")
+    inner = embedded[0]
+    # A nested 100%-size viewport without offsets is the only known
+    # Verovio page output. Unsupported viewport layout is NOT guessed.
+    if any(inner.hasAttribute(key) for key in ("x", "y", "width", "height")):
+        raise NotationBackendError("지원되지 않는 중첩 SVG 위치·크기 속성입니다.")
+
+    def parse_view_box(node) -> tuple[float, float, float, float]:
+        try:
+            values = [
+                float(part)
+                for part in node.getAttribute("viewBox").replace(",", " ").split()
+            ]
+        except ValueError as exc:
+            raise NotationBackendError("Verovio SVG viewBox 값이 유효하지 않습니다.") from exc
+        if (
+            len(values) != 4
+            or any(not math.isfinite(item) for item in values)
+            or values[2] <= 0 or values[3] <= 0
+        ):
+            raise NotationBackendError("Verovio SVG viewBox의 크기가 유효하지 않습니다.")
+        return values[0], values[1], values[2], values[3]
+
+    outer_x, outer_y, outer_width, outer_height = parse_view_box(root)
+    inner_x, inner_y, inner_width, inner_height = parse_view_box(inner)
+    sx = outer_width / inner_width
+    sy = outer_height / inner_height
+    if not math.isclose(sx, sy, rel_tol=1e-7, abs_tol=1e-10):
+        raise NotationBackendError(
+            "중첩 SVG의 가로·세로 확대 비율이 달라 벡터 악보를 안전하게 변환할 수 없습니다."
+        )
+    tx = outer_x - inner_x * sx
+    ty = outer_y - inner_y * sy
+    group = document.createElementNS(root.namespaceURI, "g")
+    group.setAttribute("transform", f"matrix({sx:.12g} 0 0 {sy:.12g} {tx:.12g} {ty:.12g})")
+    while inner.firstChild is not None:
+        group.appendChild(inner.firstChild)
+    root.replaceChild(group, inner)
+    return document.toxml()
+
+
 def _verovio_toolkit():
     import verovio
 
@@ -209,6 +280,7 @@ def musicxml_to_pdf_embedded(
                     raise NotationBackendError(
                         f"Verovio가 {page_number}페이지 SVG를 생성하지 않았습니다."
                     )
+                svg_text = _normalize_verovio_svg_for_fpdf2(svg_text)
                 width_mm, height_mm = _svg_dimensions_mm(svg_text)
                 svg_path = work / f"page-{page_number}.svg"
                 svg_path.write_text(svg_text, encoding="utf-8")

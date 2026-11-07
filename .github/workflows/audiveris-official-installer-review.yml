@@ -14,6 +14,8 @@ on:
       - 'scripts/assemble_audiveris_portable_candidate.py'
       - 'tests/test_audiveris_portable_candidate.py'
       - 'tests/test_managed_nested_runtime_executable.py'
+      - 'scripts/smoke_audiveris_omr_product_e2e.py'
+      - 'tests/test_audiveris_omr_product_e2e.py'
       - 'src/audio_score_tool/managed_components.py'
   workflow_dispatch:
 
@@ -170,6 +172,26 @@ jobs:
             --extracted-root "$extracted" \
             --output "$root/AUDIVERIS-LOCAL-REVIEW-ONLY.zip"
 
+      - name: Exercise real original score PDF to managed OMR Song, edit and export
+        shell: bash
+        env:
+          REVIEW_TARGET: ${{ matrix.target }}
+          PYTHONPATH: ${{ github.workspace }}${{ runner.os == 'Windows' && ';' || ':' }}${{ github.workspace }}/src
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/audiveris-review-$REVIEW_TARGET"
+          # One original MusicXML/PDF is synthesized by our own notation stack.
+          # The exact reviewed MSI/DMG-derived local ZIP is reinstalled using
+          # the production managed installer, then product FastAPI is called
+          # with AST_PACKAGED=1, real JobStore/SQLite and an API token.
+          # No user score, OMR media, model, JRE or ZIP is uploaded.
+          uv run --frozen --extra dev --with 'pypdfium2>=4,<6' python -m scripts.smoke_audiveris_omr_product_e2e \
+            --target "$REVIEW_TARGET" \
+            --archive "$root/AUDIVERIS-LOCAL-REVIEW-ONLY.zip" \
+            --candidate-receipt "$root/AUDIVERIS-LOCAL-REVIEW-ONLY.zip.pending.json" \
+            --output "$root/OMR-PRODUCT-E2E.pending.json" \
+            --job-timeout 420
+
       - name: Detach read-only DMG after native verification
         if: always() && runner.os == 'macOS'
         shell: bash
@@ -189,5 +211,6 @@ jobs:
             ${{ runner.temp }}/audiveris-review-${{ matrix.target }}/SOURCE-EVIDENCE.pending.json
             ${{ runner.temp }}/audiveris-review-${{ matrix.target }}/NATIVE-EVIDENCE.pending.json
             ${{ runner.temp }}/audiveris-review-${{ matrix.target }}/AUDIVERIS-LOCAL-REVIEW-ONLY.zip.pending.json
+            ${{ runner.temp }}/audiveris-review-${{ matrix.target }}/OMR-PRODUCT-E2E.pending.json
           if-no-files-found: error
           retention-days: 14

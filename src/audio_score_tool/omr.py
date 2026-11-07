@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import shutil
 import xml.etree.ElementTree as ET
 import zipfile
@@ -14,6 +15,19 @@ _MAX_CONTAINER_BYTES = 1024 * 1024
 _MAX_MUSICXML_BYTES = 64 * 1024 * 1024
 _MAX_MXL_TOTAL_UNCOMPRESSED = 256 * 1024 * 1024
 _MAX_MXL_COMPRESSION_RATIO = 200
+
+# Audiveris emits an ordinary MusicXML PUBLIC DTD in its exported MXL. The
+# internal renderer/parser never needs it: strip only this known header and
+# never let a DTD or entity declaration reach ElementTree. A directly uploaded
+# MusicXML/MXL still rejects *all* DOCTYPE declarations.
+_AUDIVERIS_MUSICXML_DTD = re.compile(
+    r'<!DOCTYPE\s+(?P<root>score-(?:partwise|timewise))\s+PUBLIC\s+'
+    r'(?P<quote>["\'])-//Recordare//DTD MusicXML [1-4](?:\.\d+){1,2} '
+    r'(?P<kind>Partwise|Timewise)//EN(?P=quote)\s+'
+    r'(?P<url_quote>["\'])https?://(?:www\.)?musicxml\.org/dtds/'
+    r'(?P<url_kind>partwise|timewise)\.dtd(?P=url_quote)\s*>',
+    re.IGNORECASE,
+)
 
 
 class OMRImportError(RuntimeError):
@@ -42,6 +56,35 @@ def _xml_safety_check(text: str) -> None:
     probe = text.upper()
     if "<!DOCTYPE" in probe or "<!ENTITY" in probe:
         raise OMRImportError("DOCTYPE/ENTITY가 포함된 XML은 안전을 위해 처리하지 않습니다.")
+
+
+def _strip_audiveris_musicxml_dtd(text: str) -> str:
+    """Remove only Audiveris's conventional top-level public MusicXML DTD.
+
+    Even an otherwise valid DTD is never parsed or resolved. Internal subsets,
+    entity declarations, altered external identifiers, and non-header DTDs are
+    rejected, including when the source is a managed native executable.
+    """
+    upper = text.upper()
+    if "<!DOCTYPE" not in upper:
+        _xml_safety_check(text)
+        return text
+    if "<!ENTITY" in upper:
+        raise OMRImportError("ENTITY 선언이 포함된 OMR 결과는 처리하지 않습니다.")
+
+    matches = list(_AUDIVERIS_MUSICXML_DTD.finditer(text))
+    if len(matches) != 1:
+        raise OMRImportError("OMR 결과의 DOCTYPE이 지원하는 MusicXML PUBLIC DTD가 아닙니다.")
+    declaration = matches[0]
+    kind = declaration.group("root").rsplit("-", 1)[-1].lower()
+    if kind != declaration.group("kind").lower() or kind != declaration.group("url_kind").lower():
+        raise OMRImportError("OMR 결과의 MusicXML DTD 유형이 일치하지 않습니다.")
+    if re.fullmatch(r"\s*(?:<\?xml\s+[^>]*\?>\s*)?", text[:declaration.start()]) is None:
+        raise OMRImportError("OMR MusicXML DTD는 문서 헤더에서만 허용합니다.")
+
+    cleaned = text[:declaration.start()] + text[declaration.end():]
+    _xml_safety_check(cleaned)
+    return cleaned
 
 
 def _parse_bounded_xml(payload: bytes, *, context: str) -> ET.Element:
@@ -80,7 +123,7 @@ def _read_zip_member(archive: zipfile.ZipFile, name: str, *, max_bytes: int) -> 
     return payload
 
 
-def _musicxml_from_mxl(path: Path) -> str:
+def _musicxml_from_mxl(path: Path, *, audiveris_output: bool = False) -> str:
     try:
         with zipfile.ZipFile(path) as archive:
             infos = archive.infolist()
@@ -124,6 +167,11 @@ def _musicxml_from_mxl(path: Path) -> str:
                     ).decode("utf-8-sig")
                 except (KeyError, UnicodeDecodeError, OMRImportError, RuntimeError):
                     continue
+                if audiveris_output:
+                    try:
+                        text = _strip_audiveris_musicxml_dtd(text)
+                    except OMRImportError:
+                        continue
                 if _is_musicxml(text):
                     return text
     except OMRImportError:
@@ -133,9 +181,11 @@ def _musicxml_from_mxl(path: Path) -> str:
     raise OMRImportError("MXL 안에서 유효한 MusicXML score를 찾지 못했습니다.")
 
 
-def normalize_musicxml(source: Path, target: Path) -> Path:
+def normalize_musicxml(
+    source: Path, target: Path, *, audiveris_output: bool = False
+) -> Path:
     if source.suffix.lower() == ".mxl":
-        text = _musicxml_from_mxl(source)
+        text = _musicxml_from_mxl(source, audiveris_output=audiveris_output)
     else:
         try:
             if source.stat().st_size > _MAX_MUSICXML_BYTES:
@@ -145,6 +195,8 @@ def normalize_musicxml(source: Path, target: Path) -> Path:
             raise
         except (OSError, UnicodeDecodeError) as exc:
             raise OMRImportError(f"MusicXML을 읽지 못했습니다: {exc}") from exc
+        if audiveris_output:
+            text = _strip_audiveris_musicxml_dtd(text)
         if not _is_musicxml(text):
             raise OMRImportError(f"OMR 결과가 유효한 MusicXML이 아닙니다: {source.name}")
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -164,15 +216,60 @@ def _find_export(root: Path) -> Path | None:
             continue
         try:
             if candidate.suffix.lower() == ".mxl":
-                _musicxml_from_mxl(candidate)
+                _musicxml_from_mxl(candidate, audiveris_output=True)
                 return candidate
-            if candidate.stat().st_size <= _MAX_MUSICXML_BYTES and _is_musicxml(
-                candidate.read_text(encoding="utf-8-sig")
-            ):
-                return candidate
+            if candidate.stat().st_size <= _MAX_MUSICXML_BYTES:
+                text = _strip_audiveris_musicxml_dtd(
+                    candidate.read_text(encoding="utf-8-sig")
+                )
+                if _is_musicxml(text):
+                    return candidate
         except (OSError, UnicodeDecodeError, OMRImportError):
             continue
     return None
+
+
+def _invalid_mxl_diagnostics(root: Path) -> list[dict[str, object]]:
+    """Describe rejected Audiveris XML metadata, never store user score text.
+
+    Some upstream Audiveris outputs are syntactically valid MXL archives but
+    use a MusicXML header variant rejected by the strict importer. Diagnose
+    that precisely without bypassing the XML/DOCTYPE/ENTITY safety boundary.
+    """
+    details: list[dict[str, object]] = []
+    for source in sorted(root.rglob("*.mxl"))[:3]:
+        if source.is_symlink() or not source.is_file():
+            continue
+        try:
+            with zipfile.ZipFile(source) as archive:
+                for info in archive.infolist()[:80]:
+                    if not info.filename.lower().endswith((".xml", ".musicxml")):
+                        continue
+                    diagnostic: dict[str, object] = {
+                        "member_basename": Path(info.filename).name[:90],
+                        "member_bytes": info.file_size,
+                        "compressed_bytes": info.compress_size,
+                        "ratio": round(info.file_size / max(info.compress_size, 1), 1),
+                    }
+                    try:
+                        xml = _read_zip_member(
+                            archive, info.filename, max_bytes=_MAX_MUSICXML_BYTES
+                        ).decode("utf-8-sig")
+                        diagnostic["has_doctype"] = "<!DOCTYPE" in xml.upper()
+                        diagnostic["has_entity"] = "<!ENTITY" in xml.upper()
+                        if not diagnostic["has_doctype"] and not diagnostic["has_entity"]:
+                            try:
+                                candidate = ET.fromstring(xml)
+                                diagnostic["root"] = candidate.tag.rsplit("}", 1)[-1][:60]
+                            except ET.ParseError:
+                                diagnostic["xml_parse_failed"] = True
+                    except (OSError, UnicodeError, RuntimeError, OMRImportError) as exc:
+                        diagnostic["rejected"] = type(exc).__name__
+                        diagnostic["reason"] = str(exc)[:170]
+                    details.append(diagnostic)
+        except (OSError, zipfile.BadZipFile):
+            details.append({"archive": source.name[:90], "rejected": "malformed-zip"})
+    return details
 
 
 def audiveris_status(command: str) -> dict[str, object]:
@@ -200,7 +297,7 @@ def transcribe_score(
     raw_dir = output_dir / "audiveris"
     raw_dir.mkdir(parents=True, exist_ok=True)
     try:
-        run_command(
+        completed = run_command(
             command,
             ["-batch", "-transcribe", "-export", "-output", raw_dir, "--", source],
             cancel_event=cancel_event,
@@ -212,10 +309,25 @@ def transcribe_score(
 
     exported = _find_export(raw_dir)
     if exported is None:
+        # Some Audiveris versions return process status 0 even when no score
+        # reached the export step. Preserve a bounded diagnostic log tail and
+        # filename-only output listing instead of reporting a false success
+        # or losing the actual OMR recognition failure reason.
+        generated = sorted(
+            path.name for path in raw_dir.iterdir() if path.is_file() and not path.is_symlink()
+        )[:24]
+        output_tail = (completed.stdout or "")[-3500:]
+        candidate_diagnostics = _invalid_mxl_diagnostics(raw_dir)
         raise OMRImportError(
-            "OMR 구성요소가 MusicXML을 생성하지 않았습니다. 원본 해상도/대비 또는 악보 구조를 확인하세요."
+            "OMR 구성요소에서 유효하게 정규화할 수 있는 MusicXML 결과를 찾지 못했습니다. "
+            "원본 악보 및 결과 XML 형식/보안 선언을 확인하세요."
+            f"\nAudiveris files: {generated}"
+            f"\nAudiveris MXL validation diagnostics: {candidate_diagnostics}"
+            f"\nAudiveris log tail (bounded):\n{output_tail}"
         )
-    normalized = normalize_musicxml(exported, output_dir / "score.musicxml")
+    normalized = normalize_musicxml(
+        exported, output_dir / "score.musicxml", audiveris_output=True
+    )
     return OMRArtifacts(musicxml_path=normalized, source_path=source)
 
 

@@ -15,6 +15,12 @@ on:
       - 'desktop/src/ModelManager.tsx'
       - 'tests/test_model_manager_wiring.py'
       - 'tests/test_desktop_api_wiring.py'
+      # OMR integration also depends on registered managed-component state.
+      - 'src/audio_score_tool/omr.py'
+      - 'src/audio_score_tool/omr_api.py'
+      - 'scripts/smoke_audiveris_omr_product_e2e.py'
+      - 'tests/test_omr.py'
+      - 'tests/test_audiveris_omr_product_e2e.py'
   workflow_dispatch:
 
 permissions:
