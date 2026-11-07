@@ -13,6 +13,7 @@ YouTube 가져오기 기능은 `yt-dlp`, `deno`, `ffmpeg`, `ffprobe` 네 개의 
 - 원본 도구의 license notice 네 개와 FFmpeg의 빌드 설정 증빙을 아카이브에 함께 기록합니다.
 - FFmpeg `--enable-nonfree`는 거부합니다. `--enable-gpl` 사용 시 FFmpeg/ffprobe의 라이선스를 GPL로 명시해야 합니다. **플래그 검사 자체가 재배포 적법성을 승인하지는 않습니다.**
 - CLI는 바이너리를 실행·다운로드하지 않고, 공식 `managed_components.py`를 격리된 임시 경로에서 호출해 ZIP 설치·무결성 검사만 리허설합니다.
+- **yt-dlp/Deno 공식 원본 확인서도 필수**입니다. `verify_youtube_official_sources.py`가 생성한 `SOURCE-EVIDENCE.pending.json`을 조립 입력에 지정하며, 해당 파일이 보관된 디렉터리의 두 실행 파일, commit-tracked 릴리스 자산 pin(태그/URL/크기/SHA), 실제 추출 파일 해시가 모두 일치해야 합니다. 조립기는 확인서 원본을 `provenance/official-sources.pending.json`으로 ZIP에 포함합니다.
 - **FFmpeg/ffprobe 검증 보고서가 필수**입니다. `scripts/verify_ffmpeg_build_provenance.py`가 만든 `*.pending.json`의 소스 커밋·SHA-256·license family·configure 플래그·빌드 기록이 입력 매니페스트와 정확하게 일치하지 않으면 통합 ZIP을 만들지 않습니다. 이 보고서를 아카이브의 `provenance/ffmpeg-attestation.pending.json`에도 넣습니다.
 - 생성물은 언제나 `redistribution_status=pending`. 공식 `managed-component-catalog.json`을 자동 변경하지 않습니다.
 
@@ -39,6 +40,8 @@ FFmpeg/ffprobe의 로컬 바이너리와 버전 출력에서 실제 configure �
 
 이 SHA-256는 공식 GitHub 릴리스 API의 **배포 자산 메타데이터**에서 확인한 것이며, 원본 파일 자체를 아직 다운로드/검증했다는 뜻이 아닙니다.
 
+현재 리포지토리에는 별도 `YouTube Official Source Bytes (review only)` GitHub Actions 워크플로가 있습니다(`.github/workflows/youtube-official-source-bytes.yml`). 공식 GitHub 릴리스의 **실제 Windows/macOS 대상 원본 파일**을 임시 CI 환경에서 내려받아 위 검증기와 고정된 SHA-256·파일 크기로 대조합니다. 일반 PR의 데스크톱 패키지 빌드와 무관하게 관련 소스/핀을 변경한 PR 또는 수동 요청에만 실행됩니다. 저장소에 실행 파일을 커밋하거나 공개 Actions 아티팩트로 업로드하지 않고 **pending JSON 메타데이터만** 업로드합니다. 이 실행 결과는 별도 확인해야 하며, GitHub Actions에서 검증됐더라도 라이선스·서명·클린 머신 실행이 승인된 것은 아닙니다.
+
 Windows 원본 파일을 별도로 확보한 뒤:
 
 ```bash
@@ -53,7 +56,7 @@ macOS arm64의 경우 `--target macos-aarch64`, `yt-dlp_macos`, `deno-aarch64-ap
 
 실행 결과에는 원본 SHA-256·크기·ZIP 내부의 Deno 추출 파일 해시가 기록됩니다. Deno ZIP은 루트의 단일 `deno`/`deno.exe` 파일 외의 항목, 심볼릭 링크 및 비정상적으로 큰 압축 해제 결과를 거부합니다. **원본 파일을 실행하지 않고 네트워크를 사용하지 않습니다.**
 
-산출 디렉터리의 `yt-dlp[.exe]`와 `deno[.exe]`는 아래 조립 매니페스트의 `tools[].file`로 사용할 수 있으며, `SOURCE-EVIDENCE.pending.json`의 개별 파일 해시를 입력해야 합니다. FFmpeg/ffprobe는 아직 승인된 소스·빌드가 없으므로 별도 제공·검증이 필요합니다.
+산출 디렉터리의 `yt-dlp[.exe]`와 `deno[.exe]`는 아래 조립 매니페스트의 `tools[].file`로 사용합니다. `SOURCE-EVIDENCE.pending.json`도 `official_sources_evidence`로 반드시 지정합니다. 조립기는 이 문서와 파일을 신뢰하는 대신 실제 로컬 바이트와 commit-tracked 핀을 다시 대조합니다. 임의 폴더로 실행 파일을 복사했거나 태그/URL/버전을 바꾼 경우 검증에 실패합니다. FFmpeg/ffprobe는 아직 승인된 소스·빌드가 없으므로 별도 제공·검증이 필요합니다.
 
 이 검증은 GitHub 릴리스 checksum/signature의 독립 검증, 실행 파일 서명/공증, 재배포 법률 검토를 완료한 것으로 간주할 수 없습니다.
 
@@ -66,11 +69,12 @@ macOS arm64의 경우 `--target macos-aarch64`, `yt-dlp_macos`, `deno-aarch64-ap
   "schema": 1,
   "target": "windows-x86_64",
   "version": "youtube-reviewed-candidate-1",
+  "official_sources_evidence": "/absolute/work/verified-windows/SOURCE-EVIDENCE.pending.json",
   "bundle_license": "Multiple: GPL-3.0-or-later / MIT / FFmpeg-reviewed-license",
   "bundle_provenance": "Pinned upstream releases and reviewed FFmpeg build records",
   "tools": {
     "yt-dlp": {
-      "file": "/absolute/work/yt-dlp.exe",
+      "file": "/absolute/work/verified-windows/yt-dlp.exe",
       "sha256": "REPLACE_WITH_UPSTREAM_VERIFIED_SHA256",
       "version": "2026.10.26",
       "upstream_revision": "2026.10.26",
@@ -79,7 +83,7 @@ macOS arm64의 경우 `--target macos-aarch64`, `yt-dlp_macos`, `deno-aarch64-ap
       "license_notice": "/absolute/work/notices/yt-dlp.txt"
     },
     "deno": {
-      "file": "/absolute/work/deno.exe",
+      "file": "/absolute/work/verified-windows/deno.exe",
       "sha256": "REPLACE_WITH_UPSTREAM_VERIFIED_SHA256",
       "version": "2.9.8",
       "upstream_revision": "v2.9.8",
@@ -127,11 +131,11 @@ uv run --frozen python scripts/assemble_youtube_runtime_candidate.py \
 
 출력:
 
-- `youtube-runtime-windows.zip`: `bin/{yt-dlp,deno,ffmpeg,ffprobe}.exe`, 4개 license notice, FFmpeg 빌드 기록, `BUNDLE-INVENTORY.json`.
+- `youtube-runtime-windows.zip`: `bin/{yt-dlp,deno,ffmpeg,ffprobe}.exe`, 4개 license notice, **공식 원본 확인서**, FFmpeg 빌드 기록/attestation, `BUNDLE-INVENTORY.json`.
 - `youtube-runtime-windows.zip.pending.json`: 각 원본·최종 ZIP SHA-256, revision, 로컬 설치 검증 결과, **승인 대기** 상태.
 - 기존 아티팩트/증빙 파일이 있으면 덮어쓰지 않습니다.
 
-**선행 조건:** FFmpeg의 동일 파일·버전·소스 revision·configure/라이선스에 대한 `verify_ffmpeg_build_provenance.py` 보고서를 먼저 생성해야 ZIP 조립을 시작할 수 있습니다. 
+**선행 조건:** ① `verify_youtube_official_sources.py`의 공식 yt-dlp/Deno 자산 검증 결과 및 commit-tracked pin 일치, ② FFmpeg의 동일 파일·버전·소스 revision·configure/라이선스에 대한 `verify_ffmpeg_build_provenance.py` 보고서가 모두 준비돼야 ZIP 조립을 시작할 수 있습니다. 
 
 후속 승인 순서는 [로컬 아티팩트 후보 관리](MANAGED_ARTIFACT_CANDIDATES.ko.md)의 URL·SHA-256 확인 → 라이선스/재배포 승인 → 배포 카탈로그 작성 → Windows/macOS `Desktop Packages` 수동 `require_managed_delivery` → 실제 YouTube 처리·복구·클린 머신 smoke입니다.
 
