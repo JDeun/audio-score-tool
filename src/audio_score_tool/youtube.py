@@ -9,6 +9,7 @@ from threading import Event
 from urllib.parse import parse_qs, urlparse
 
 from .config import Settings, managed_executable_path, packaged_runtime
+from .managed_tool_resolver import registered_managed_tool
 from .runner import CommandCancelled, CommandError, command_exists, run_command
 
 
@@ -131,9 +132,16 @@ def youtube_tool_status(settings: Settings | None = None) -> dict:
     deno_path = managed_executable_path("deno") if packaged else None
     ffmpeg_path = managed_executable_path("ffmpeg") if packaged else None
     ffprobe_path = managed_executable_path("ffprobe") if packaged else None
-    deno_ready = deno_path.is_file() if deno_path is not None else True
-    ffmpeg_ready = ffmpeg_path.is_file() if ffmpeg_path is not None else True
-    ffprobe_ready = ffprobe_path.is_file() if ffprobe_path is not None else True
+    # A loose binary in components/bin is not a verified managed installation.
+    deno_ready = registered_managed_tool("deno") is not None if packaged else True
+    ffmpeg_ready = (
+        registered_managed_tool("ffmpeg") is not None
+        if packaged else command_exists(settings.ffmpeg_cmd)
+    )
+    ffprobe_ready = (
+        registered_managed_tool("ffprobe") is not None
+        if packaged else command_exists("ffprobe")
+    )
     return {
         "ready": (
             command_exists(settings.yt_dlp_cmd)
@@ -165,6 +173,11 @@ def inspect_youtube(
 ) -> YouTubeMetadata:
     settings = settings or Settings()
     url = validate_youtube_url(url)
+    if packaged_runtime() and not youtube_tool_status(settings)["ready"]:
+        raise YouTubeSourceError(
+            "Managed YouTube runtime is incomplete or unverified. "
+            "Install or repair yt-dlp, Deno, FFmpeg and FFprobe in Setup Center."
+        )
     try:
         completed = run_command(
             settings.yt_dlp_cmd,
@@ -235,6 +248,13 @@ def download_youtube_audio(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     metadata = inspect_youtube(url, settings=settings, cancel_event=cancel_event)
+    # Recheck after metadata inspection; the component may have been removed
+    # or tampered with before yt-dlp starts its download/FFmpeg child tools.
+    if packaged_runtime() and not youtube_tool_status(settings)["ready"]:
+        raise YouTubeSourceError(
+            "Managed YouTube runtime changed after inspection. "
+            "Repair the verified yt-dlp, Deno, FFmpeg and FFprobe bundle in Setup Center."
+        )
     template = output_dir / "input.%(ext)s"
     try:
         run_command(

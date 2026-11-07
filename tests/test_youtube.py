@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import os
+import stat
 import subprocess
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -9,6 +13,9 @@ from fastapi.testclient import TestClient
 
 from audio_score_tool.api_ext import app
 from audio_score_tool.config import Settings
+from audio_score_tool.managed_components import ComponentArtifact, install_component_artifact
+from audio_score_tool.managed_tool_resolver import registered_managed_tool
+from audio_score_tool.runner import command_exists
 from audio_score_tool.youtube import (
     YouTubeSourceError,
     download_youtube_audio,
@@ -16,6 +23,35 @@ from audio_score_tool.youtube import (
     validate_youtube_url,
     youtube_tool_status,
 )
+
+_YOUTUBE_TOOLS = ("yt-dlp", "deno", "ffmpeg", "ffprobe")
+
+
+def _install_youtube_fixture(tmp_path: Path, monkeypatch, *, missing: str | None = None):
+    """Use the real installer and SHA-verified registry, never loose bin files."""
+    root = tmp_path / "components"
+    archive_path = tmp_path / "youtube-fixture.zip"
+    suffix = ".exe" if os.name == "nt" else ""
+    tools = {
+        name: f"bin/{name}{suffix}" for name in _YOUTUBE_TOOLS if name != missing
+    }
+    with zipfile.ZipFile(archive_path, "w") as archive:
+        for name, relative in tools.items():
+            info = zipfile.ZipInfo(relative)
+            info.external_attr = (stat.S_IFREG | 0o755) << 16
+            archive.writestr(info, f"synthetic-{name}".encode())
+    artifact = ComponentArtifact(
+        component="youtube_runtime",
+        version="fixture-1",
+        url="https://example.invalid/ci-fixture.zip",
+        sha256=hashlib.sha256(archive_path.read_bytes()).hexdigest(),
+        archive="zip",
+        tools=tools,
+    )
+    install_component_artifact(artifact, root=root, local_archive=archive_path)
+    monkeypatch.setenv("AST_PACKAGED", "1")
+    monkeypatch.setenv("AST_COMPONENT_DIR", str(root))
+    return root
 
 
 def test_validate_youtube_url_accepts_standard_hosts():
@@ -92,18 +128,11 @@ def test_inspect_youtube_parses_metadata(monkeypatch):
 
 
 def test_packaged_youtube_binds_yt_dlp_to_managed_runtime(monkeypatch, tmp_path: Path):
-    component_dir = tmp_path / "components"
-    bin_dir = component_dir / "bin"
-    bin_dir.mkdir(parents=True)
-    deno = bin_dir / "deno"
-    ffmpeg = bin_dir / "ffmpeg"
-    ffprobe = bin_dir / "ffprobe"
-    yt_dlp = bin_dir / "yt-dlp"
-    for path in (deno, ffmpeg, ffprobe, yt_dlp):
-        path.write_bytes(path.name.encode("utf-8"))
-
-    monkeypatch.setenv("AST_PACKAGED", "1")
-    monkeypatch.setenv("AST_COMPONENT_DIR", str(component_dir))
+    _install_youtube_fixture(tmp_path, monkeypatch)
+    deno = registered_managed_tool("deno")
+    ffmpeg = registered_managed_tool("ffmpeg")
+    ffprobe = registered_managed_tool("ffprobe")
+    assert deno and ffmpeg and ffprobe
     captured: list[list[object]] = []
 
     def fake_run_command(command, args, **kwargs):
@@ -112,11 +141,7 @@ def test_packaged_youtube_binds_yt_dlp_to_managed_runtime(monkeypatch, tmp_path:
             [],
             0,
             json.dumps(
-                {
-                    "title": "Example",
-                    "duration": 60,
-                    "webpage_url": "https://youtu.be/abc123",
-                }
+                {"title": "Example", "duration": 60, "webpage_url": "https://youtu.be/abc123"}
             ),
         )
 
@@ -130,7 +155,7 @@ def test_packaged_youtube_binds_yt_dlp_to_managed_runtime(monkeypatch, tmp_path:
     js_index = args.index("--js-runtimes")
     assert args[js_index + 1] == f"deno:{deno}"
     ffmpeg_index = args.index("--ffmpeg-location")
-    assert args[ffmpeg_index + 1] == str(bin_dir)
+    assert args[ffmpeg_index + 1] == str(ffmpeg.parent)
 
     status = youtube_tool_status(settings)
     assert status["ready"] is True
@@ -139,31 +164,97 @@ def test_packaged_youtube_binds_yt_dlp_to_managed_runtime(monkeypatch, tmp_path:
     assert status["ffprobe"] == str(ffprobe)
     assert status["ffmpeg_ready"] is True
     assert status["ffprobe_ready"] is True
+    setup = TestClient(app).get("/api/setup/center")
+    assert setup.status_code == 200
+    components = {item["key"]: item for item in setup.json()["components"]}
+    assert components["youtube_runtime"]["ready"] is True
 
 
-@pytest.mark.parametrize("missing_tool", ["deno", "ffmpeg", "ffprobe"])
+@pytest.mark.parametrize("missing_tool", _YOUTUBE_TOOLS)
 def test_packaged_youtube_is_not_ready_without_required_managed_tool(
-    monkeypatch,
-    tmp_path: Path,
-    missing_tool: str,
+    monkeypatch, tmp_path: Path, missing_tool: str,
 ):
-    component_dir = tmp_path / "components"
-    bin_dir = component_dir / "bin"
-    bin_dir.mkdir(parents=True)
-    for name in ("yt-dlp", "deno", "ffmpeg", "ffprobe"):
-        if name != missing_tool:
-            (bin_dir / name).write_bytes(name.encode("utf-8"))
-    monkeypatch.setenv("AST_PACKAGED", "1")
-    monkeypatch.setenv("AST_COMPONENT_DIR", str(component_dir))
-
+    _install_youtube_fixture(tmp_path, monkeypatch, missing=missing_tool)
+    monkeypatch.setattr(
+        "audio_score_tool.youtube.run_command",
+        lambda *_a, **_kw: (_ for _ in ()).throw(
+            AssertionError("Unverified YouTube runtime must not execute")
+        ),
+    )
     status = youtube_tool_status(Settings())
     assert status["ready"] is False
-    readiness_key = {
+    setup = TestClient(app).get("/api/setup/center")
+    assert setup.status_code == 200
+    components = {item["key"]: item for item in setup.json()["components"]}
+    assert components["youtube_runtime"]["ready"] is False
+    key = {
         "deno": "js_runtime_ready",
         "ffmpeg": "ffmpeg_ready",
         "ffprobe": "ffprobe_ready",
-    }[missing_tool]
-    assert status[readiness_key] is False
+    }.get(missing_tool)
+    if key:
+        assert status[key] is False
+    with pytest.raises(YouTubeSourceError, match="incomplete or unverified"):
+        inspect_youtube("https://youtu.be/abc123", settings=Settings())
+
+
+@pytest.mark.parametrize("missing_tool", ["ffmpeg", "ffprobe"])
+def test_development_youtube_readiness_requires_media_tools(monkeypatch, missing_tool):
+    from audio_score_tool import youtube
+
+    monkeypatch.delenv("AST_PACKAGED", raising=False)
+    available = {"yt-dlp", "ffmpeg", "ffprobe"} - {missing_tool}
+    monkeypatch.setattr(youtube, "command_exists", lambda cmd: cmd in available)
+    status = youtube_tool_status(Settings(yt_dlp_cmd="yt-dlp", ffmpeg_cmd="ffmpeg"))
+    assert status["ready"] is False
+    assert status[f"{missing_tool}_ready"] is False
+
+
+def test_unregistered_legacy_bin_files_do_not_enable_youtube(monkeypatch, tmp_path: Path):
+    root = tmp_path / "components"
+    legacy = root / "bin"
+    legacy.mkdir(parents=True)
+    for name in _YOUTUBE_TOOLS:
+        (legacy / (name + (".exe" if os.name == "nt" else ""))).write_bytes(b"unverified")
+    monkeypatch.setenv("AST_PACKAGED", "1")
+    monkeypatch.setenv("AST_COMPONENT_DIR", str(root))
+    settings = Settings()
+    assert not command_exists(settings.yt_dlp_cmd)
+    assert youtube_tool_status(settings)["ready"] is False
+    monkeypatch.setattr(
+        "audio_score_tool.youtube.run_command",
+        lambda *_a, **_kw: (_ for _ in ()).throw(
+            AssertionError("Loose unregistered executable must never execute")
+        ),
+    )
+    with pytest.raises(YouTubeSourceError, match="incomplete or unverified"):
+        inspect_youtube("https://youtu.be/abc123", settings=settings)
+
+
+def test_packaged_youtube_rechecks_integrity_after_metadata_inspection(monkeypatch, tmp_path):
+    _install_youtube_fixture(tmp_path, monkeypatch)
+    deno = registered_managed_tool("deno")
+    assert deno is not None
+    calls = []
+
+    def fake_run(command, args, **kwargs):
+        calls.append(list(args))
+        if "--dump-single-json" not in args:
+            raise AssertionError("Download was started after managed Deno tampering")
+        deno.write_bytes(b"modified-after-metadata")
+        return subprocess.CompletedProcess(
+            [], 0,
+            json.dumps({
+                "title": "Example",
+                "duration": 60,
+                "webpage_url": "https://youtu.be/abc123",
+            }),
+        )
+
+    monkeypatch.setattr("audio_score_tool.youtube.run_command", fake_run)
+    with pytest.raises(YouTubeSourceError, match="changed after inspection"):
+        download_youtube_audio("https://youtu.be/abc123", tmp_path / "output", settings=Settings())
+    assert len(calls) == 1
 
 
 def test_inspect_youtube_rejects_active_live(monkeypatch):

@@ -91,3 +91,51 @@ def registered_managed_tool(name: str) -> Path | None:
             continue
         return tool
     return None
+
+
+def is_registered_managed_executable(command: str | Path) -> bool:
+    """Require the exact installed, SHA-256-verified executable path.
+
+    A file placed in the legacy components/bin fallback (or a path on PATH)
+    must not become executable merely because it exists in packaged mode.
+    Reuse the registry resolver so post-install tampering is also rejected.
+    """
+    candidate = Path(command).expanduser()
+    if not candidate.is_absolute() or candidate.is_symlink():
+        return False
+    root = managed_root()
+    try:
+        candidate.relative_to(root)
+    except ValueError:
+        return False
+    state_path = root / "state.json"
+    if state_path.is_symlink():
+        return False
+    try:
+        payload = json.loads(state_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    if not isinstance(payload, dict) or payload.get("schema") != 1:
+        return False
+    components = payload.get("components")
+    if not isinstance(components, dict):
+        return False
+    for component, entry in components.items():
+        if not _safe_identifier(str(component)) or not isinstance(entry, dict):
+            continue
+        relative_root = entry.get("root")
+        tools = entry.get("tools")
+        if not isinstance(relative_root, str) or not _safe_relative(relative_root):
+            continue
+        if not isinstance(tools, dict):
+            continue
+        installed = root.joinpath(*PurePosixPath(relative_root).parts)
+        for name, relative_tool in tools.items():
+            if not _safe_identifier(str(name)):
+                continue
+            if not isinstance(relative_tool, str) or not _safe_relative(relative_tool):
+                continue
+            expected = installed.joinpath(*PurePosixPath(relative_tool).parts)
+            if candidate == expected:
+                return registered_managed_tool(str(name)) == candidate
+    return False
