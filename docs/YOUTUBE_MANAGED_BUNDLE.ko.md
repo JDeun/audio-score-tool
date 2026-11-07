@@ -40,7 +40,7 @@ FFmpeg/ffprobe의 로컬 바이너리와 버전 출력에서 실제 configure �
 
 이 SHA-256는 공식 GitHub 릴리스 API의 **배포 자산 메타데이터**에서 확인한 것이며, 원본 파일 자체를 아직 다운로드/검증했다는 뜻이 아닙니다.
 
-현재 리포지토리에는 별도 `YouTube Official Source Bytes (review only)` GitHub Actions 워크플로가 있습니다(`.github/workflows/youtube-official-source-bytes.yml`). 공식 GitHub 릴리스의 **실제 Windows/macOS 대상 원본 파일**을 임시 CI 환경에서 내려받아 위 검증기와 고정된 SHA-256·파일 크기로 대조합니다. 일반 PR의 데스크톱 패키지 빌드와 무관하게 관련 소스/핀을 변경한 PR 또는 수동 요청에만 실행됩니다. 저장소에 실행 파일을 커밋하거나 공개 Actions 아티팩트로 업로드하지 않고 **pending JSON 메타데이터만** 업로드합니다. 이 실행 결과는 별도 확인해야 하며, GitHub Actions에서 검증됐더라도 라이선스·서명·클린 머신 실행이 승인된 것은 아닙니다.
+현재 리포지토리에는 별도 `YouTube Official Source Bytes and Native CLI (review only)` GitHub Actions 워크플로가 있습니다(`.github/workflows/youtube-official-source-bytes.yml`). 공식 GitHub 릴리스의 **실제 Windows/macOS 대상 원본 파일**을 각각 **Windows x86_64(`windows-2025`), macOS ARM64(`macos-15`) 러너**에 내려받아 위 검증기와 고정된 SHA-256·파일 크기로 대조합니다. 검증된 원본에서 추출한 yt-dlp·Deno만 **절대 경로·PATH 비움·shell 비활성화**로 `--version` 실행하여 고정한 릴리스 버전과 비교합니다(`scripts/verify_youtube_native_cli.py`). 결과는 `SOURCE-EVIDENCE.pending.json`과 그 해시에 연결된 `NATIVE-CLI-EVIDENCE.pending.json`으로 기록합니다. 일반 PR의 데스크톱 패키지 빌드와 무관하게 관련 소스/핀을 변경한 PR 또는 수동 요청에만 실행됩니다. 저장소에 실행 파일을 커밋하거나 공개 Actions 아티팩트로 업로드하지 않고 **pending JSON 메타데이터만** 업로드합니다. `--version` 성공은 정상 다운로드·JS challenge·FFmpeg·서명/공증·Windows/macOS 클린 머신 설치·재배포 권리를 증명하지 않습니다.
 
 Windows 원본 파일을 별도로 확보한 뒤:
 
