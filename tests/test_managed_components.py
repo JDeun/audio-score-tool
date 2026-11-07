@@ -192,7 +192,7 @@ def test_redirect_to_non_https_is_rejected_before_body_read(tmp_path: Path, monk
         def read(self, _size=-1):
             raise AssertionError("redirected body must not be read")
 
-    monkeypatch.setattr(components.urllib.request, "urlopen", lambda *_a, **_k: RedirectedResponse())
+    monkeypatch.setattr(components, "_open_trusted_download", lambda *_a, **_k: RedirectedResponse())
     with pytest.raises(ComponentIntegrityError, match="credential-free HTTPS"):
         install_component_artifact(artifact, root=tmp_path / "components")
 
@@ -376,3 +376,33 @@ def test_removal_refuses_state_paths_outside_owned_component(tmp_path: Path):
     )
     with pytest.raises(ComponentIntegrityError, match="not owned"):
         remove_component_artifact("fixture", root=root)
+
+
+
+@pytest.mark.parametrize("url", [
+    "http://127.0.0.1/internal.zip",
+    "https://localhost/private.zip",
+    "https://127.0.0.1/private.zip",
+    "https://[::1]/private.zip",
+    "https://user:password@example.invalid/archive.zip",
+])
+def test_unsafe_managed_download_redirect_rejected_before_request(url: str):
+    """The redirect handler must inspect the next hop before performing I/O."""
+    from urllib.request import Request
+
+    with pytest.raises(ComponentIntegrityError, match="HTTPS|local|public"):
+        components._VerifiedHTTPSRedirectHandler().redirect_request(
+            Request("https://example.invalid/original.zip"),
+            None, 302, "Found", {}, url,
+        )
+
+
+@pytest.mark.parametrize("url", [
+    "https://127.0.0.1/managed.zip",
+    "https://localhost/managed.zip",
+    "https://[::1]/managed.zip",
+    "https://example.invalid:8443/runtime.zip",
+])
+def test_local_or_nonstandard_managed_download_target_rejected(url: str):
+    with pytest.raises(ComponentIntegrityError):
+        components._validated_download_url(url)
