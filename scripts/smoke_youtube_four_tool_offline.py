@@ -24,9 +24,9 @@ import wave
 from pathlib import Path
 from typing import Any
 
-from scripts.verify_youtube_native_cli import PINS as YOUTUBE_PINS
-from scripts.verify_ffmpeg_native_build import DEFAULT_PIN as FFMPEG_PIN
 from scripts.assemble_youtube_runtime_candidate import _ensure_binary_architecture
+from scripts.verify_ffmpeg_native_build import DEFAULT_PIN as FFMPEG_PIN
+from scripts.verify_youtube_native_cli import PINS as YOUTUBE_PINS
 
 _TOOLS = ("yt-dlp", "deno", "ffmpeg", "ffprobe")
 _MAX_TOOL_STDOUT = 128 * 1024
