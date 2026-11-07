@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 
 from . import runtime_services as runtime
 from .api_token import ApiTokenMiddleware
+from .managed_components import ComponentError, recover_component_staging
 from .request_limits import RequestSizeLimitMiddleware
 from .song_mutation_lock import SongMutationSerializationMiddleware
 from .sqlite_runtime import configure_sqlite
@@ -267,6 +268,23 @@ def run() -> None:
     from .song_routes import _song_store, _tombstones
 
     recovery = recover_startup_state(job_store=runtime._store)
+    # Restoring Songs/Jobs is separate from verifying app-owned runtime tools.
+    # A clean restart must also reconcile interrupted same-version installs;
+    # requiring a user to manually open Setup Center leaves known-good tools
+    # unavailable until they happen to attempt another install.
+    try:
+        managed_recovery: dict = recover_component_staging()
+    except (ComponentError, OSError) as exc:
+        # Runtime recovery is best effort. Preserve the rest of the desktop
+        # (MusicXML/MIDI/PDF editing) if optional external tools cannot recover.
+        # Command execution still fails closed on invalid tool SHA/state.
+        managed_recovery = {
+            "recovery_failed": True,
+            "error_type": type(exc).__name__,
+        }
+    recovery["managed_components"] = managed_recovery
+    if managed_recovery.get("recovery_failed"):
+        recovery["recovery_errors"] = int(recovery.get("recovery_errors", 0)) + 1
     recovery["job_ingestion"] = full_reconcile_completed_jobs(
         job_store=runtime._store,
         song_store=_song_store,
