@@ -6,14 +6,13 @@ from pathlib import Path
 
 import pytest
 
+from audio_score_tool.config import Settings, managed_executable_path
 from audio_score_tool.managed_components import ComponentArtifact, install_component_artifact
 from audio_score_tool.managed_tool_resolver import (
     is_registered_managed_executable,
     registered_managed_tool,
 )
 from audio_score_tool.runner import CommandError, command_exists, run_command
-
-from audio_score_tool.config import Settings, managed_executable_path
 
 
 def test_packaged_runtime_uses_only_app_managed_command_paths(monkeypatch, tmp_path: Path):
