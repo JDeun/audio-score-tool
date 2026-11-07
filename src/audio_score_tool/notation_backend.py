@@ -4,10 +4,10 @@ import math
 import shutil
 import tempfile
 import xml.etree.ElementTree as ET
-from xml.dom import minidom
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Event
+from xml.dom import minidom
 
 from .config import Settings
 
