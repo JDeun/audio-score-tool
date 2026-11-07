@@ -12,6 +12,8 @@ import json
 import os
 import platform
 from importlib.metadata import PackageNotFoundError, version
+
+from music21 import chord, converter, harmony, note
 from pathlib import Path
 
 from audio_score_tool.sheetsage_hybrid import (
@@ -88,6 +90,37 @@ def verify_base(audio: Path, base_dir: Path, *, model: str) -> dict:
     return payload
 
 
+def performed_note_signature(musicxml: Path) -> list[tuple]:
+    """Compare every performed pitch and onset, independent of chord grouping.
+
+    music21 may serialize a simultaneous chord as one Chord event or multiple
+    Note events. The number of parsed events is not necessarily a number of
+    performed pitches. Never count ChordSymbol harmony as performed music.
+    """
+    score = converter.parse(str(musicxml))
+    events: list[tuple] = []
+    for part_index, part in enumerate(score.parts):
+        for event in part.recurse().notes:
+            if isinstance(event, harmony.ChordSymbol):
+                continue
+            onset = round(float(event.getOffsetInHierarchy(part)), 6)
+            duration = round(float(event.quarterLength), 6)
+            if isinstance(event, chord.Chord):
+                for pitch in event.pitches:
+                    events.append((part_index, onset, duration, "pitched", pitch.midi))
+            elif isinstance(event, note.Note):
+                events.append((part_index, onset, duration, "pitched", event.pitch.midi))
+            elif isinstance(event, note.Unpitched):
+                events.append((part_index, onset, duration, "unpitched"))
+    return sorted(events)
+
+
+def _signature_hash(events: list[tuple]) -> str:
+    return hashlib.sha256(
+        json.dumps(events, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
 def merge_verified(
     audio: Path, base_dir: Path, *,
     model: str, events_file: Path, destination: Path,
@@ -108,17 +141,23 @@ def merge_verified(
     if destination.exists() or destination.is_symlink():
         raise ValueError("Hybrid MusicXML destination must not preexist")
 
+    baseline_signature = performed_note_signature(base_dir / "score.musicxml")
+    if not baseline_signature:
+        raise ValueError("AMT score has no performed pitches to preserve")
     try:
         report = merge_sheetsage_musicxml(
             base_dir / "score.musicxml", events_file, destination,
         )
         counts = verify_model_outputs(base_dir / "score.mid", destination)
+        merged_signature = performed_note_signature(destination)
+        if merged_signature != baseline_signature:
+            raise ValueError(
+                "Hybrid conversion changed AMT performed pitches or timing: "
+                f"before={len(baseline_signature)}, after={len(merged_signature)}"
+            )
     except Exception:
         destination.unlink(missing_ok=True)
         raise
-    if counts["notes"] != base["notes"]:
-        destination.unlink(missing_ok=True)
-        raise ValueError("Hybrid conversion changed AMT performed-note count")
     if not any(report["added"].values()):
         destination.unlink(missing_ok=True)
         raise SheetSageError("No SheetSage2 annotations were merged")
@@ -137,7 +176,9 @@ def merge_verified(
         "amt_musicxml_sha256": base["musicxml_sha256"],
         "sheetsage_events_sha256": _sha256_file(events_file),
         "hybrid_musicxml_sha256": _sha256_file(destination),
-        "performed_notes_preserved": counts["notes"],
+        "performed_notes_preserved": len(baseline_signature),
+        "performed_note_signature_sha256": _signature_hash(baseline_signature),
+        "notation_event_count_after": counts["notes"],
         "added": report["added"],
         "alignment": report["alignment"],
         "runtime": {
