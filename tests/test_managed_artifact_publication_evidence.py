@@ -56,7 +56,7 @@ def _fake_transport(
         received.append(request.full_url)
         return _PublishedResponse(data, url=url or request.full_url)
 
-    monkeypatch.setattr(managed_components.urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr(managed_components, "_open_trusted_download", urlopen)
     return received
 
 
