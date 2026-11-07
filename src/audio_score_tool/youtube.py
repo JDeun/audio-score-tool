@@ -242,6 +242,13 @@ def download_youtube_audio(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     metadata = inspect_youtube(url, settings=settings, cancel_event=cancel_event)
+    # Recheck after metadata inspection; the component may have been removed
+    # or tampered with before yt-dlp starts its download/FFmpeg child tools.
+    if packaged_runtime() and not youtube_tool_status(settings)["ready"]:
+        raise YouTubeSourceError(
+            "Managed YouTube runtime changed after inspection. "
+            "Repair the verified yt-dlp, Deno, FFmpeg and FFprobe bundle in Setup Center."
+        )
     template = output_dir / "input.%(ext)s"
     try:
         run_command(
