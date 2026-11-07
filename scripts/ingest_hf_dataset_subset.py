@@ -315,15 +315,19 @@ def main() -> int:
     parser.add_argument("--commercial", action="store_true", help="Reject noncommercial licenses")
     parser.add_argument("--report", type=Path, help="Optional metadata-only result file")
     args = parser.parse_args()
-    input_data = json.loads(args.manifest.read_text(encoding="utf-8"))
-    output = ingest(input_data, args.private_root, fetch=args.fetch, commercial=args.commercial)
-    text = json.dumps(output, ensure_ascii=False, indent=2) + "\n"
+    report_path: Path | None = None
+    # Validate the metadata destination before --fetch can touch the network
+    # or publish any dataset bytes. Invalid report targets are not a late error.
     if args.report:
         if args.report.is_symlink():
             raise ValueError("private dataset receipt must not replace a symlink")
         report_path = args.report.expanduser().resolve()
         if report_path == ROOT or report_path.is_relative_to(ROOT):
             raise ValueError("private dataset receipt must stay outside the repository")
+    input_data = json.loads(args.manifest.read_text(encoding="utf-8"))
+    output = ingest(input_data, args.private_root, fetch=args.fetch, commercial=args.commercial)
+    text = json.dumps(output, ensure_ascii=False, indent=2) + "\n"
+    if report_path is not None:
         report_path.parent.mkdir(parents=True, exist_ok=True)
         report_path.write_text(text, encoding="utf-8")
     print(text)
