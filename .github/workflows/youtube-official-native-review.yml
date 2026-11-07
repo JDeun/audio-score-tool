@@ -1,0 +1,64 @@
+name: YouTube Official Native Review (pending)
+
+permissions:
+  contents: read
+
+# This review fetches and executes *only* the exact sha256-pinned official
+# yt-dlp/Deno releases. It is not a desktop package, legal approval, or a
+# workflow that uploads third-party executables to public artifacts.
+on:
+  workflow_dispatch:
+  push:
+    branches: ["review/youtube-official-native-smoke"]
+    paths:
+      - ".github/workflows/youtube-official-native-review.yml"
+      - "scripts/fetch_youtube_official_assets.py"
+      - "scripts/verify_youtube_official_sources.py"
+      - "scripts/assemble_youtube_runtime_candidate.py"
+      - "release/review/youtube-official-source-pins-2026-11-06.json"
+
+concurrency:
+  group: youtube-official-native-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-official-source-bytes:
+    name: ${{ matrix.target }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2025
+            target: windows-x86_64
+          - os: macos-15
+            target: macos-aarch64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout reviewed source and immutable asset pins
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up reviewed Python toolchain
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: 0.12.10
+
+      - name: Fetch, hash, extract, check architecture and probe native versions
+        shell: bash
+        env:
+          REVIEW_OUTPUT: ${{ runner.temp }}/youtube-official-reviewed
+        run: |
+          set -euo pipefail
+          uv run --no-project --python 3.12 python             scripts/fetch_youtube_official_assets.py             --target "${{ matrix.target }}"             --output-dir "$REVIEW_OUTPUT"             --execute-native
+
+      - name: Upload *only* unapproved JSON evidence; never redistribute executables
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: youtube-official-native-${{ matrix.target }}-pending-review
+          path: |
+            ${{ runner.temp }}/youtube-official-reviewed/SOURCE-EVIDENCE.pending.json
+            ${{ runner.temp }}/youtube-official-reviewed/DOWNLOAD-EVIDENCE.pending.json
+          if-no-files-found: error
+          retention-days: 14
