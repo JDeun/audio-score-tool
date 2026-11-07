@@ -1,0 +1,116 @@
+name: YouTube Official Source Bytes (review only)
+
+# Separate from fast CI, Tauri packaging and all model experiments.
+# PRs touching the upstream source contract run the exact pinned downloads;
+# maintainers can rerun explicitly without changing the bundled catalog.
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/youtube-official-source-bytes.yml'
+      - 'scripts/verify_youtube_official_sources.py'
+      - 'scripts/assemble_youtube_runtime_candidate.py'
+      - 'release/review/youtube-official-source-pins-2026-11-06.json'
+      - 'tests/test_youtube_runtime_bundle_candidate.py'
+      - 'tests/test_youtube_official_source_verification.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: youtube-official-sources-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-official-source-bytes:
+    name: official-bytes-${{ matrix.target }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [windows-x86_64, macos-aarch64]
+    steps:
+      - name: Checkout fixed official review pins
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download official release assets and verify exact downloaded bytes
+        shell: bash
+        env:
+          SOURCE_TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          import tempfile
+          from pathlib import Path
+
+          from scripts.verify_youtube_official_sources import (
+              DEFAULT_PINS, extract_reviewed_sources,
+          )
+
+          target = os.environ["SOURCE_TARGET"]
+          pinned = json.loads(DEFAULT_PINS.read_text(encoding="utf-8"))
+          assert pinned["approval_status"] == "pending"
+          records = pinned["targets"][target]
+          expected_repos = {"yt-dlp": "yt-dlp/yt-dlp", "deno": "denoland/deno"}
+          root = Path(os.environ["RUNNER_TEMP"])
+          verified = root / f"verified-{target}"
+
+          with tempfile.TemporaryDirectory(prefix="official-source-download-") as tmp:
+              files = {}
+              for name, repo in expected_repos.items():
+                  entry = records[name]
+                  tag, asset = entry["tag"], entry["asset"]
+                  canonical = f"https://github.com/{repo}/releases/download/{tag}/{asset}"
+                  if entry["repository"] != repo or entry["url"] != canonical:
+                      raise ValueError(f"{name}: review pin is not the exact official release asset URL")
+                  dest = Path(tmp) / ("yt-dlp-asset" if name == "yt-dlp" else "deno.zip")
+                  subprocess.run(
+                      [
+                          "curl", "--fail", "--location", "--show-error", "--silent",
+                          "--retry", "4", "--retry-delay", "3",
+                          "--connect-timeout", "30", "--max-time", "600",
+                          "--proto", "=https", "--proto-redir", "=https",
+                          "--output", str(dest), canonical,
+                      ],
+                      check=True,
+                  )
+                  files[name] = dest
+              result = extract_reviewed_sources(
+                  pin_file=DEFAULT_PINS, target=target,
+                  yt_dlp_asset=files["yt-dlp"], deno_zip=files["deno"],
+                  output_directory=verified,
+              )
+              if not result["local_bytes_verified"]:
+                  raise RuntimeError("The official source-byte verifier reported unverified bytes")
+              if result["redistribution_status"] != "pending":
+                  raise RuntimeError("The official source verifier must never approve redistribution")
+              print(json.dumps({
+                  "target": target, "local_bytes_verified": True,
+                  "upstream_signature_verified": result["upstream_signature_verified"],
+                  "redistribution_status": result["redistribution_status"],
+                  "inputs": {
+                      name: {
+                          "tag": result["inputs"][name]["tag"],
+                          "source_sha256": result["inputs"][name]["source_sha256"],
+                          "tool_sha256": result["inputs"][name]["tool_sha256"],
+                      }
+                      for name in expected_repos
+                  },
+              }, sort_keys=True))
+          PY
+
+      # Source executables and Deno ZIP are deliberately NOT uploaded. This
+      # public CI artifact contains only SHA/provenance and pending-review flags.
+      - name: Upload metadata-only evidence (never binary artifacts)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: official-source-evidence-${{ matrix.target }}
+          path: ${{ runner.temp }}/verified-${{ matrix.target }}/SOURCE-EVIDENCE.pending.json
+          if-no-files-found: error
+          retention-days: 14
