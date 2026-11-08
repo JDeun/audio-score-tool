@@ -88,7 +88,7 @@ def _fixture(tmp_path: Path) -> Path:
             "engine": {
                 "id": "mt3_infer",
                 "model_revision": f"sha256:{CHECKPOINT_SHA256}",
-                "runtime_revision": "mt3-infer-0.2.0-transformers-4.57.6",
+                "runtime_revision": "mt3-infer-0.2.0-transformers-4.57.6-ast-program-preserving-v1",
                 "artifact_sha256": CHECKPOINT_SHA256,
             },
             "cases": [{
