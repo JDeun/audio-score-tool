@@ -29,7 +29,7 @@ TRACKS = (
     "woodwind_track097010",
     "random_track145011",
 )
-_EXPECTED_RUNTIME = "mt3-infer-0.2.0-transformers-4.57.6"
+_EXPECTED_RUNTIME = "mt3-infer-0.2.0-transformers-4.57.6-ast-program-preserving-v1"
 _METRICS = (
     "note_onset_f1", "note_onset_offset_f1",
     "instrument_onset_offset_f1",

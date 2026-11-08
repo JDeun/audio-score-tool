@@ -16,6 +16,8 @@ on:
       - 'scripts/fetch_pinned_mrmt3_checkpoint.py'
       - 'src/audio_score_tool/tier2_prediction.py'
       - 'src/audio_score_tool/transcription_engine.py'
+      - 'src/audio_score_tool/mt3_program_midi.py'
+      - 'tests/test_mt3_program_midi.py'
   workflow_dispatch:
 
 permissions:
@@ -106,6 +108,7 @@ jobs:
           TRANSFORMERS_OFFLINE: '1'
           HF_DATASETS_OFFLINE: '1'
           PYTHONIOENCODING: utf-8
+          AST_MT3_INFER_CMD: audio-score-mt3
         run: |
           set -euo pipefail
           for track in string_track001010 brass_track049013 woodwind_track097010 random_track145011; do
@@ -116,7 +119,7 @@ jobs:
               --predictions-root "$RUNNER_TEMP/coco-private-predictions-$track" \
               --engine mt3_infer --model mr_mt3 \
               --model-revision 'sha256:b8a3807ed265059abd25ad7f68142c06c35e8f6144dcaa45bd55946a3745398f' \
-              --runtime-revision 'mt3-infer-0.2.0-transformers-4.57.6' \
+              --runtime-revision 'mt3-infer-0.2.0-transformers-4.57.6-ast-program-preserving-v1' \
               --artifact-sha256 'b8a3807ed265059abd25ad7f68142c06c35e8f6144dcaa45bd55946a3745398f' \
               --device cpu
             python -m scripts.score_cocochorales_tiny \

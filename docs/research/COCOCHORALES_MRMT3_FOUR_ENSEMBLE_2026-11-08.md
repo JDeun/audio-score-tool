@@ -56,3 +56,7 @@ Original authors and copyright: Yusong Wu, Josh Gardner, Ethan Manilow, Ian Simo
 ## Remaining acceptance
 
 Real held-out `test`-split paired data with independently checked official shard signatures/checksums, wider realistic/popular-music and genre-specific references, legitimate model redistribution rights, human editing time-to-publish, correction counts and cross-platform packaged runtime acceptance remain open. #154 and #34 are **not** closed or quality-approved by this four-sample research run.
+
+## Program-preserving bridge experiment — pending independent new run
+
+The pinned [upstream mt3-infer v0.2.0 `MRMT3Adapter.decode`](https://github.com/openmirlab/mt3-infer/blob/2d20ee5bb6ca727968bd23c6100fd2a35154166b/mt3_infer/adapters/mr_mt3.py) writes all decoded pitched note events on channel 0 without emitting `program_change`. Its earlier `vocab_utils` state machine does retain `Note.program`. The repository's optional `audio-score-mt3` CLI and native PyInstaller entrypoint now preserve those **model-decoded** programs as separate MIDI tracks/channels without reference-label injection. Any new measurement must use a distinct runtime revision `mt3-infer-0.2.0-transformers-4.57.6-ast-program-preserving-v1`. The preceding four-ensemble results above are the **unmodified upstream baseline** and must remain unchanged. This is an experiment and **not** evidence that the model internally decoded meaningful programs until actual post-bridge MIDI/score evidence arrives.

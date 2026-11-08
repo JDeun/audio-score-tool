@@ -7,6 +7,8 @@ on:
     paths:
       - '.github/workflows/mt3-frozen-native-review.yml'
       - 'scripts/mt3_frozen_entry.py'
+      - 'src/audio_score_tool/mt3_program_midi.py'
+      - 'tests/test_mt3_program_midi.py'
       - 'scripts/verify_mt3_frozen_native.py'
       - 'scripts/fetch_pinned_mrmt3_checkpoint.py'
       - 'tests/test_pinned_mrmt3_checkpoint_fetch.py'

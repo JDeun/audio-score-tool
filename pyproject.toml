@@ -49,6 +49,7 @@ native = [
 audio-score = "audio_score_tool.cli:app"
 audio-score-api = "audio_score_tool.api_ext:run"
 audio-score-native = "audio_score_tool.native_cli:app"
+audio-score-mt3 = "audio_score_tool.mt3_program_midi:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/audio_score_tool"]
