@@ -109,7 +109,14 @@ def midi_from_program_notes(
                 occupied = set(active_channel.values())
                 free = [
                     ch for ch in PITCHED_MIDI_CHANNELS
-                    if ch not in occupied and released_at[ch] < tick
+                    if ch not in occupied
+                    and (
+                        released_at[ch] < tick
+                        # A note-off and retrigger on the SAME instrument,
+                        # channel and tick are serialized off-before-on in
+                        # that program's single track, without program change.
+                        or last_program.get(ch) == program
+                    )
                 ]
                 if not free:
                     raise ValueError(
