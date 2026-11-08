@@ -383,3 +383,64 @@ def test_wheel_path_hint_cannot_assign_uninstalled_or_mismatched_package():
     with pytest.raises(triage.MT3LicenseTriageError, match="missing or duplicated"):
         triage.analyze_native_proof(proof)
 
+
+
+
+def test_real_native_byte_evidence_is_checked_against_source_record_metadata():
+    proof = _proof_with_wheel_path_owner_hints("windows-x86_64")
+    snap = proof["frozen_dependency_inventory"]["snapshot"]
+    matches = snap["native_file_record_hints"]["native_file_review_queue"]
+    records = []
+    for row in matches:
+        record = row["wheel_record_matches"]
+        if record:
+            record[0]["wheel_record_sha256"] = "a" * 64
+        records.append({
+            "archive_path": row["archive_path"],
+            "uncompressed_bytes": next(
+                entry["uncompressed_bytes"] for entry in snap["frozen_archive"]["archive_entries"]
+                if entry["name"] == row["archive_path"]
+            ),
+            "embedded_sha256": "a" * 64 if record else "b" * 64,
+            "record_sha256": "a" * 64 if record else None,
+            "record_distribution_hint": "torch" if record else None,
+            "comparison": "exact_record_sha256_match" if record else "unmatched",
+        })
+    counts = {
+        "exact_record_sha256_match": 1, "wheel_record_sha256_mismatch": 0,
+        "wheel_record_sha256_missing": 0, "ambiguous": 0,
+        "unmatched": 1, "size_limit_not_hashed": 0,
+    }
+    snap["native_file_byte_evidence"] = {
+        "schema_version": "1",
+        "basis": "actual-PyInstaller-CArchive-member-sha256-vs-builder-wheel-RECORD",
+        "target": "windows-x86_64",
+        "native_filename_candidate_count": 2,
+        "uncompressed_bytes_read": sum(x["uncompressed_bytes"] for x in records),
+        "counts": counts,
+        "entries": records,
+        "all_native_library_bytes_hashed": True,
+        "source_owner_independently_verified": False,
+        "native_loader_dependency_closure_verified": False,
+        "complete_sbom_verified": False,
+        "license_independently_approved": False,
+        "redistribution_status": "pending",
+    }
+    proof["frozen_dependency_inventory"]["inventory_sha256"] = _canonical_sha(snap)
+    report = triage.analyze_native_proof(proof)
+    assert report["native_byte_evidence_available"] is True
+    assert report["native_byte_comparison_counts"]["exact_record_sha256_match"] == 1
+    assert report["native_byte_comparison_counts"]["unmatched"] == 1
+    assert report["native_byte_record_identity_verified"] is False
+
+    snap["native_file_byte_evidence"]["entries"][0]["comparison"] = "unmatched"
+    proof["frozen_dependency_inventory"]["inventory_sha256"] = _canonical_sha(snap)
+    with pytest.raises(triage.MT3LicenseTriageError, match="contradicts"):
+        triage.analyze_native_proof(proof)
+
+
+def test_historical_receipt_has_no_false_byte_verification():
+    old = triage.analyze_native_proof(_proof("macos-aarch64"))
+    assert old["native_byte_evidence_available"] is False
+    assert old["native_byte_comparison_counts"] is None
+    assert old["native_byte_record_identity_verified"] is False

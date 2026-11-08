@@ -206,6 +206,120 @@ def _native_record_hint_summary(
     }
 
 
+def _native_byte_evidence_summary(
+    snapshot: dict[str, Any], *, target: str, actual_native: list[str],
+    entries: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Recompute the byte comparison labels from SHA-256 and RECORD hints.
+
+    Older receipts without byte evidence remain explicitly unverified.
+    Canonical inventory hashing binds this metadata to its reported frozen
+    executable; it is not an independent signature or a complete license SBOM.
+    """
+    evidence = snapshot.get("native_file_byte_evidence")
+    if evidence is None:
+        return {
+            "native_byte_evidence_available": False,
+            "native_byte_comparison_counts": None,
+            "native_byte_review_queue": None,
+            "native_byte_record_identity_verified": False,
+        }
+    hints = snapshot.get("native_file_record_hints")
+    _require(isinstance(evidence, dict) and isinstance(hints, dict),
+             "Native byte evidence requires paired wheel RECORD hints")
+    claims = evidence.get("entries")
+    source_rows = hints.get("native_file_review_queue")
+    counts = evidence.get("counts")
+    permitted = {
+        "exact_record_sha256_match", "wheel_record_sha256_mismatch",
+        "wheel_record_sha256_missing", "ambiguous", "unmatched", "size_limit_not_hashed",
+    }
+    _require(
+        evidence.get("schema_version") == "1"
+        and evidence.get("basis") == "actual-PyInstaller-CArchive-member-sha256-vs-builder-wheel-RECORD"
+        and evidence.get("target") == target
+        and isinstance(claims, list)
+        and isinstance(source_rows, list)
+        and isinstance(counts, dict)
+        and set(counts) == permitted
+        and evidence.get("source_owner_independently_verified") is False
+        and evidence.get("native_loader_dependency_closure_verified") is False
+        and evidence.get("complete_sbom_verified") is False
+        and evidence.get("license_independently_approved") is False
+        and evidence.get("redistribution_status") == "pending",
+        "Native byte evidence schema or release approval status is invalid",
+    )
+    source_by_path = {
+        row["archive_path"]: row
+        for row in source_rows
+        if isinstance(row, dict) and isinstance(row.get("archive_path"), str)
+    }
+    sizes = {
+        row["name"]: row["uncompressed_bytes"]
+        for row in entries if row["typecode"] == "b" and _candidate_native_library(row["name"])
+    }
+    _require(
+        len(claims) == len(actual_native) == len(source_by_path)
+        and evidence.get("native_filename_candidate_count") == len(actual_native)
+        and set(sizes) == set(actual_native),
+        "Native byte evidence file list is incomplete",
+    )
+    observed = Counter()
+    bytes_read = 0
+    seen: set[str] = set()
+    for item in claims:
+        _require(isinstance(item, dict), "Native byte evidence row is malformed")
+        path = item.get("archive_path")
+        _require(
+            isinstance(path, str) and path in sizes and path not in seen
+            and item.get("uncompressed_bytes") == sizes[path],
+            "Native byte evidence filename, size, or uniqueness drifted",
+        )
+        seen.add(path)
+        recorded = source_by_path[path]["wheel_record_matches"]
+        pinned = recorded[0].get("wheel_record_sha256") if len(recorded) == 1 else None
+        distribution = recorded[0].get("distribution") if len(recorded) == 1 else None
+        _require(
+            item.get("record_sha256") == pinned
+            and item.get("record_distribution_hint") == distribution,
+            "Native byte evidence does not match audited wheel RECORD source",
+        )
+        actual = item.get("embedded_sha256")
+        comparison = item.get("comparison")
+        _require(comparison in permitted, "Native byte comparison status is invalid")
+        if actual is None:
+            expected = "size_limit_not_hashed"
+        else:
+            _require(_is_sha(actual), "Native embedded byte SHA-256 is invalid")
+            bytes_read += sizes[path]
+            expected = (
+                "unmatched" if len(recorded) == 0 else
+                "ambiguous" if len(recorded) > 1 else
+                "wheel_record_sha256_missing" if pinned is None else
+                "exact_record_sha256_match" if actual == pinned else
+                "wheel_record_sha256_mismatch"
+            )
+        _require(expected == comparison, "Native byte/RECORD comparison contradicts hashes")
+        observed[comparison] += 1
+    _require(
+        seen == set(actual_native)
+        and all(type(value) is int and value >= 0 for value in counts.values())
+        and all(counts[key] == observed[key] for key in permitted)
+        and evidence.get("uncompressed_bytes_read") == bytes_read
+        and evidence.get("all_native_library_bytes_hashed")
+        is (observed["size_limit_not_hashed"] == 0),
+        "Native byte/RECORD evidence counts or coverage are inconsistent",
+    )
+    return {
+        "native_byte_evidence_available": True,
+        "native_byte_comparison_counts": dict(sorted(observed.items())),
+        "native_byte_review_queue": claims,
+        # Per-file SHA equality to a build-environment wheel RECORD is NOT
+        # independent ownership or sign-off, and some files may be unresolved.
+        "native_byte_record_identity_verified": False,
+    }
+
+
 def analyze_native_proof(proof: dict[str, Any]) -> dict[str, Any]:
     """One platform: verify the snapshot, then build a conservative review queue."""
     _require(isinstance(proof, dict) and proof.get("schema") == 1,
@@ -312,6 +426,9 @@ def analyze_native_proof(proof: dict[str, Any]) -> dict[str, Any]:
         frozen, snapshot, target=target,
         distributions=dists, actual_native=actual_native,
     )
+    byte_evidence = _native_byte_evidence_summary(
+        snapshot, target=target, actual_native=actual_native, entries=entries,
+    )
     # Keep actual recorded metadata and notice hashes in the report so legal
     # reviewers can identify each distribution requiring primary-source review.
     # Never treat labels/classifiers as a license grant or bundled file mapping.
@@ -348,6 +465,7 @@ def analyze_native_proof(proof: dict[str, Any]) -> dict[str, Any]:
         "path_scope_is_verified_source_owner": False,
         "native_library_scope_counts": dict(sorted(scopes.items())),
         **owner_hints,
+        **byte_evidence,
         "builder_distribution_count": len(dists),
         "builder_distribution_license_review_queue": distribution_review_queue,
         "builder_distribution_names_and_versions": {
