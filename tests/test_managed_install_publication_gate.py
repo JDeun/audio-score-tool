@@ -109,9 +109,15 @@ def test_empty_bundled_catalog_does_not_advertise_unavailable_installer(monkeypa
 
 
 @pytest.mark.parametrize("component", ["transcription_engine", "youtube_runtime", "audiveris"])
-def test_approved_complete_metadata_advertises_install_and_calls_pinned_artifact_only(
+def test_approved_complete_metadata_with_review_stub_calls_pinned_artifact_only(
     tmp_path: Path, monkeypatch, component: str,
 ):
+    # The separate release-signoff enforcement is exercised end-to-end in
+    # test_managed_release_approval.py. This test isolates install URL pinning.
+    monkeypatch.setattr(
+        "audio_score_tool.managed_publication_readiness.check_release_approval",
+        lambda *_args: None,
+    )
     _write_catalog(tmp_path, monkeypatch, component, _approved_entry(component))
     assert check_publication(component, platform_key()).ready is True
     summary = catalog_summary(component)

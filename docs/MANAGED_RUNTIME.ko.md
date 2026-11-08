@@ -149,3 +149,10 @@ Setup Center의 `catalog.published` 및 `auto_install`은 별도 릴리스 게�
 - 대용량 모델을 매 요청마다 다시 읽지 않도록, 최초 SHA-256 대조에 성공한 **현재 프로세스 안에서만** 각 파일의 경로·장치·inode·크기·mode·mtime·ctime을 검사하여 변화가 없는 경우 이전 검증을 재사용합니다. 파일 변화·새 파일·삭제·프로세스 재시작 시에는 재검증합니다. 파일 변경 정보가 바뀌지 않는 특권적 조작이나 검사 시점 이후 변경까지 방지하는 코드 서명 기능은 아닙니다.
 - 검증 범위는 **설치된 component 디렉터리의 일반 파일 전체**입니다. 실행 중 앱이 해당 디렉터리를 임의 변경하면 검증 실패가 발생하므로 모델 캐시·로그 등의 가변 데이터는 별도 app-data 디렉터리로 분리해야 합니다.
 - 이는 실제 게시 파일의 법적 승인, 가중치의 상업용 사용권, 깨끗한 Windows/macOS 설치 성공, 코드 서명 및 런타임 정상 작동을 대신하지 않습니다. 승인 전 `artifacts: {}` 상태를 유지하고 #29는 미완료로 둡니다.
+
+
+## 별도 원격 바이트·제3자 라이선스 승인 기록 (#29, 2026-11-08)
+
+카탈로그에 `redistribution_status=approved`와 정상 형태의 HTTPS URL·SHA-256이 있어도 **이것만으로는 설치할 수 없습니다**. 동일한 sidecar에 번들된 `managed-release-approvals.json`에서 정확한 플랫폼·전체 항목 해시와 다운로드 검증 보고서, 별도의 사람에 의한 라이선스/소스 제공 위치 검토가 확인돼야 Setup Center와 API에 설치가 허용됩니다. 기록 누락은 `approval-receipt-missing`, 변경된 카탈로그는 `approval-catalog-drift`, 실제 게시 바이트 증빙 누락·불일치는 `remote-evidence-missing` / `remote-evidence-mismatch`, 라이선스 검토 누락은 `license-review-missing` 등으로 fail-closed 처리합니다.
+
+이 승인 기록은 패키지의 로컬 메타데이터이므로 독립된 암호학적 서명을 대체하지 않습니다. 브랜치 보호 및 실제 검토자의 승인, 모델 상업 사용권 판단, Windows/macOS 클린 머신 인수시험은 별도입니다. 자세한 절차는 [MANAGED_RELEASE_APPROVALS.ko.md](MANAGED_RELEASE_APPROVALS.ko.md)를 참조하세요.

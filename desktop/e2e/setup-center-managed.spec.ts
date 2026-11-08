@@ -293,3 +293,26 @@ test("legacy managed status is not marked ready without a full payload manifest"
   await expect(dialog.getByText("전체 런타임 검증 정보 없음 · 재설치 필요")).toBeVisible();
   await expect(dialog.getByRole("button", { name: "앱에서 설치" })).toBeVisible();
 });
+
+
+test("metadata-only approval cannot expose install without independent release receipt", async ({ page }) => {
+  const { status } = fixture(false, "approval-receipt-missing");
+  await page.route("**/api/setup/center", route => route.fulfill({ json: status }));
+  let attempted = 0;
+  await page.route("**/api/setup/install", route => {
+    attempted += 1;
+    return route.fulfill({ status: 409, json: { detail: "approval-receipt-missing" } });
+  });
+  const dialog = await openSetup(page);
+  await expect(dialog.getByText("별도 배포·라이선스 승인 기록 없음")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "앱에서 설치" })).toHaveCount(0);
+  expect(attempted).toBe(0);
+});
+
+test("catalog hash drift is surfaced distinctly from unpublished platform assets", async ({ page }) => {
+  const { status } = fixture(false, "approval-catalog-drift");
+  await page.route("**/api/setup/center", route => route.fulfill({ json: status }));
+  const dialog = await openSetup(page);
+  await expect(dialog.getByText("배포 승인 기록과 실제 아티팩트 불일치")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "앱에서 설치" })).toHaveCount(0);
+});
