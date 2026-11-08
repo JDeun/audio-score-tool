@@ -119,6 +119,14 @@ def verify_packaged_youtube_ingest(
     """Real approved managed yt-dlp/Deno/FFmpeg→audio→MT3→Song via frozen API."""
     if not isinstance(reviewed, dict) or not isinstance(reviewed.get("source_url"), str):
         _fail("YouTube QA rights receipt was not validated before starting")
+    if (
+        not isinstance(reviewed.get("rights_receipt_sha256"), str)
+        or re.fullmatch(r"[a-f0-9]{64}", reviewed["rights_receipt_sha256"]) is None
+        or reviewed.get("authorization_is_operator_claim_not_independent_legal_proof") is not True
+        or type(reviewed.get("duration_limit_seconds")) is not int
+        or not 5 <= reviewed["duration_limit_seconds"] <= _MAX_DURATION_SECONDS
+    ):
+        _fail("YouTube QA rights receipt is incomplete or falsely attested")
     source_url = reviewed["source_url"]
     video_id = reviewed.get("video_id")
     if video_id != _canonical_video_id(source_url):
