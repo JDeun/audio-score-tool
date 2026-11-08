@@ -34,7 +34,7 @@ def verify_release_model_binding(quality: dict[str, Any]) -> dict[str, Any]:
         payload = _artifact_payload("transcription_engine", target)
         identity = payload.get("model_identity") if isinstance(payload, dict) else None
         if not isinstance(identity, dict):
-            raise RuntimeError(f"v1 approved model identity missing: {target}")
+            raise RuntimeError(f"v1 model identity missing: {target}")
         for name, value in expected.items():
             if identity.get(name) != value:
                 raise RuntimeError(f"v1 model mismatch: {target}.{name}")
