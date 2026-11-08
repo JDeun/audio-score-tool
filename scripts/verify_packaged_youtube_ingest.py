@@ -18,7 +18,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-from audio_score_tool.youtube import validate_youtube_url
+from audio_score_tool.youtube import YouTubeSourceError, validate_youtube_url
 from scripts import verify_packaged_managed_features as packaged
 
 _VIDEO_ID = re.compile(r"[A-Za-z0-9_-]{11}\Z")
@@ -36,7 +36,7 @@ def _canonical_video_id(url: str) -> str:
     """Require an exact canonical video URL, not a playlist/redirect/short."""
     try:
         validated = validate_youtube_url(url)
-    except ValueError as exc:
+    except (YouTubeSourceError, ValueError) as exc:
         raise packaged.PackagedFeatureAcceptanceError("YouTube QA source URL is invalid") from exc
     parsed = urlparse(validated)
     values = parse_qs(parsed.query, keep_blank_values=True)
