@@ -100,3 +100,41 @@ uv run --frozen python scripts/verify_managed_artifact_publication.py \
 Windows/macOS frozen MR-MT3의 실제 모델 추론은 CI에서 검증됐지만, 이전 실행은 모델/실행 ZIP을 항상 삭제했습니다. 운영자가 **명시적으로 로컬 사설 폴더를 지정하는 경우에만** `verify_mt3_frozen_native.py --checkpoint-dir ... --private-candidate-dir ...`가 모델 포함 검증 완료 ZIP을 보존합니다. 저장 위치는 Git 저장소 밖이어야 하고, Github Actions에서는 이 옵션 자체를 거부합니다. 이름: `MT3-MRMT3-<target>-UNAPPROVED.zip`.
 
 다음 단계의 후보 준비 명령(`prepare_managed_artifact_candidate.py`)에 이 ZIP을 입력할 수 있지만, 플랫폼별 실제 URL, 정확한 라이선스/서드파티 notice, upstream revision 및 별도 리뷰 증빙이 확정되기 전에는 배포 파일을 공개하지 않습니다. 사설 ZIP 내부의 `pending` metadata는 법률적 승인 또는 clean-machine acceptance가 아닙니다. 운영자는 바이너리/체크포인트 아카이브를 GitHub Actions public artifact에 추가하거나 이 단계에서 `managed-component-catalog.json` 또는 승인 JSON을 변경하지 않습니다.
+
+## 6. MR-MT3 사설 ZIP과 실제 모델 추론 증빙의 오프라인 결속 (#29)
+
+사설 폴더에 네이티브 모델 ZIP을 보존해도, 해당 파일이 **정확히** Windows/macOS에서 검증한 파일인지와 포함된 실행 파일·모델 weight 바이트가 일치하는지는 별도 검토해야 합니다.
+
+새로운 `scripts/audit_mt3_private_candidate.py`는 네트워크 접근 없이 사설 ZIP의 SHA-256, 정확히 3개의 허용된 ZIP 멤버(플랫폼별 `bin/mt3-infer[.exe]`, `checkpoints/mr_mt3/mt3.pth`, `provenance/frozen-native-qa.pending.json`), 각 멤버의 SHA-256, 무압축/일반 파일 속성 및 내부 pending provenance를 확인합니다. 앞서 `verify_mt3_frozen_native.py --private-candidate-dir`가 같은 실행에서 작성한 **`--output`의 실제-model QA 영수증**과 아카이브 전체/실행 바이너리/체크포인트/플랫폼/실제 추론 결과를 대조합니다. 체크포인트를 `torch.load`하지 않으며 실행 파일을 추출·실행하지 않습니다.
+
+```bash
+uv run --frozen python -m scripts.audit_mt3_private_candidate \
+  --archive /private/release-review/MT3-MRMT3-macos-aarch64-UNAPPROVED.zip \
+  --native-proof /private/release-review/mt3-native.pending.json \
+  --output /private/release-review/mt3-model-audit.pending.json
+```
+
+이 감사 영수증을 얻기 전에는 **Windows/macOS의 `transcription_engine` 출고 후보를 새로 만들 수 없습니다**. 후보 준비 시에는 다음처럼 `--native-audit`가 필수이며, 실물 ZIP SHA-256와 설치된 CLI SHA-256를 다시 대조합니다. 현재 확인된 MR-MT3 모델 한 종류만 지원하고, 다른 모델은 별도 QA 규격/리뷰를 구현해야 합니다.
+
+```bash
+uv run --frozen python -m scripts.prepare_managed_artifact_candidate \
+  --component transcription_engine \
+  --target macos-aarch64 \
+  --version ACTUALLY-REVIEWED-RELEASE-VERSION \
+  --archive /private/release-review/MT3-MRMT3-macos-aarch64-UNAPPROVED.zip \
+  --archive-format zip \
+  --url https://REVIEWED-ARTIFACT-ORIGIN/REVIEWED-FILENAME.zip \
+  --tool mt3-infer=bin/mt3-infer \
+  --license ACTUALLY-REVIEWED-LICENSE-IDENTIFIER \
+  --provenance ACTUALLY-REVIEWED-SOURCE-AND-BUILD-EVIDENCE \
+  --upstream-revision ACTUALLY-PINNED-SOURCE-COMMIT \
+  --native-audit /private/release-review/mt3-model-audit.pending.json \
+  --output /private/release-review/mt3-publication-candidate.pending.json
+```
+
+Windows에서는 `--target windows-x86_64` 및 `--tool mt3-infer=bin/mt3-infer.exe`를 지정합니다. 위 `REVIEWED` 표기는 **실제 배포가 가능한 값이 없음을 설명하는 예시**일 뿐이며, 지금 이 명령을 그대로 실행해 승인·게시하면 안 됩니다. 정확한 원본 Git commit/revision, 라이선스, 대응 소스 및 고지 위치는 별도 사람이 독립 검토해야 합니다.
+
+감사 보고서에는 확인된 SHA-256·빌더 버전/실제 추론 계수와 아래 **미해결 blocker**가 포함됩니다: 모델의 상용 재배포 권한, 고정 upstream 소스, frozen 의존성의 완전한 SBOM, transitive licenses/third-party notices/소스 제공, 실제 HTTPS 게시 및 독립 승인, clean-machine 설치, Tier 2 baseline 및 서명·공증·업데이트. 빌더 패키지 몇 개의 고정 버전만으로 완전한 frozen SBOM을 증명했다고 표시하지 않습니다. 모든 결과는 `redistribution_status=pending`, `publication_ready=false`이며 **독립적인 서명·법적 승인 증명서가 아닙니다**.
+
+모델 ZIP, 실제 음원/악보 및 민감한 경로는 결과 JSON에 포함하지 않으며, CLI는 기존 파일을 덮어쓰거나 저장소 내 경로로 감사 보고서를 기록하지 않습니다. GitHub Actions에는 synthetic fixture 테스트만 실행하며 실제 모델/실행 파일은 그대로 업로드하지 않습니다.
+
