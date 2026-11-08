@@ -92,6 +92,11 @@ function managedIntegrityStatus(integrity?: string): string | null {
   if (integrity === "tool-digest-mismatch" || integrity === "tool-digest-missing") {
     return "실행 파일 무결성 불일치 · 복구 필요";
   }
+  if (integrity.startsWith("payload-")) {
+    return integrity === "payload-manifest-missing"
+      ? "전체 런타임 검증 정보 없음 · 재설치 필요"
+      : "내장 JRE·모델·리소스 무결성 실패 · 재설치 또는 복원 필요";
+  }
   if (integrity.startsWith("tool-") || integrity.startsWith("root-")) {
     return "관리형 런타임 파일 손상 · 복구 필요";
   }
