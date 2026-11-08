@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "dataset_id": "cocochorales",
+  "official_source": "https://magenta.tensorflow.org/datasets/cocochorales",
+  "source_release_revision": "REPLACE-WITH-REVIEWED-OFFICIAL-TINY-RELEASE",
+  "license": "CC-BY-4.0",
+  "rights_reviewed": false,
+  "tracks": [
+    {
+      "track_id": "string_track000001",
+      "split": "train"
+    }
+  ]
+}
