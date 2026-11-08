@@ -537,7 +537,7 @@ def create_youtube_job(payload: YouTubeJobRequest) -> dict:
         # Personal offline practice is not a public redistribution workflow.
         # Commercial mode retains an explicit rights confirmation; automated
         # release QA has a separate, stricter reviewed-source contract.
-        if defaults.usage_mode != "personal" and not payload.authorized:
+        if getattr(defaults, "usage_mode", None) != "personal" and not payload.authorized:
             raise HTTPException(
                 422,
                 "Confirm that you are authorized to process this content before importing it.",
