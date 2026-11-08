@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import shutil
 import tempfile
+import time
 from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
@@ -81,6 +82,7 @@ def generate_tier2_predictions(
         raise RuntimeError(f"Tier 2 engine is not ready: {engine.describe()}")
 
     generated: list[dict[str, str]] = []
+    inference_seconds: dict[str, float] = {}
     for case in cases:
         if case.audio_locator is None:
             raise ValueError(f"Tier 2 case has no audio locator: {case.id}")
@@ -92,11 +94,13 @@ def generate_tier2_predictions(
             prefix=f".{case.id}-",
             dir=predictions_root,
         ) as raw_work:
+            started = time.perf_counter()
             artifacts = engine.transcribe(
                 audio_path,
                 Path(raw_work),
                 device=device,
             )
+            inference_seconds[case.id] = round(time.perf_counter() - started, 6)
             midi_target = predictions_root / f"{case.id}.mid"
             xml_target = predictions_root / f"{case.id}.musicxml"
             shutil.copy2(artifacts.midi_path, midi_target)
@@ -116,6 +120,10 @@ def generate_tier2_predictions(
         "corpus_version": corpus_version,
         "engine": asdict(identity),
         "device": device,
+        # Actual wall-clock model inference only. Peak resident/GPU memory is
+        # deliberately not inferred from elapsed time or runner metadata.
+        "case_inference_seconds": inference_seconds,
+        "peak_memory_bytes_measured": False,
         "case_ids": [item["case_id"] for item in generated],
     }
     (predictions_root / _PROVENANCE_FILE).write_text(

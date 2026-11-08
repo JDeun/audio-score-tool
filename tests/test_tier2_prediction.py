@@ -88,3 +88,5 @@ def test_generate_tier2_predictions_uses_manifest_audio_and_writes_provenance(
     assert identity.artifact_sha256 == "a" * 64
     assert case_ids == ("case-001",)
     assert payload["device"] == "cpu"
+    assert payload["case_inference_seconds"]["case-001"] >= 0
+    assert payload["peak_memory_bytes_measured"] is False

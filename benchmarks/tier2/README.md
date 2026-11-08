@@ -336,3 +336,47 @@ uv run --frozen python scripts/prepare_cocochorales_pairs.py \
 예제: [cocochorales-tiny.selection.example.json](cocochorales-tiny.selection.example.json). 공식 tiny 데이터의 실제 split, revision, 사용권은 자동으로 판정하지 않습니다. `rights_reviewed` 기본값은 `false`이고, 기존 `dataset-registry.json`에서도 CocoChorales는 **`status=planned`**입니다. 따라서 출처별 검토를 수행해 **별도의 사설 registry 사본**을 `verified_for_evaluation`로 승격하기 전에는 `validate_tier2_dataset_pairs.py`가 결과를 받아들이지 않습니다. 상용 MR-MT3 모델/실행 바이너리 재배포 허가와 데이터셋 CC BY 4.0 조건도 독립적으로 검토합니다.
 
 대조군으로 #59 Slakh2100(합성 다중악기), #60 GuitarSet(실제 기타; JAMS 음표 이벤트 변환 필요)을 사용하고, MAESTRO/ASAP은 비상업 조건에 분리합니다. 특히 **ASAP 저장소 자체에는 오디오가 없고 별도의 MAESTRO 음원을 정렬해야** 하므로 `dataset-registry.json`의 `audio_included=false`로 수정했습니다. 본 코드는 실제 공식 CocoChorales 데이터쌍의 추론/품질 측정을 완료한 결과가 아닙니다. #154/#34에 남은 실측 사항을 추적합니다.
+
+## Official CocoChorales tiny source integrity (#154)
+
+The official `lukewys/chamber-ensemble-generator` format at commit `4647edbce6719fe907e17fcc072651def168eaa5` assigns track numbers 000001–192000 to train, 192001–216000 to validation, and 216001–240000 to test. `prepare_cocochorales_pairs.py` now rejects a track tagged with a contradictory split and checks the four SATB names/GM program numbers in each official `metadata.yaml`. At most four **audio/MIDI pairs (eight media files)** are admitted per tiny evaluation run. The code does not infer a rights grant or upload audio.
+
+Official dataset landing page: https://magenta.tensorflow.org/datasets/cocochorales (CC BY 4.0; attribution and changes notice apply). Source format: https://github.com/lukewys/chamber-ensemble-generator/blob/4647edbce6719fe907e17fcc072651def168eaa5/data_format.md. Real paired files must be obtained via the official tiny shard downloads and recorded with archive checksums, rather than inferring provenance from a lookalike folder or HF mirror.
+
+### Official tiny single-shard audio+MIDI extraction (#154)
+
+The upstream [tiny download script](https://github.com/lukewys/chamber-ensemble-generator/blob/4647edbce6719fe907e17fcc072651def168eaa5/data_download/download_cocochorales_tiny.sh) downloads many archives; do **not** run it for a four-pair evaluation. Instead, download exactly the explicitly chosen \`main_dataset/{train,valid,test}/1.tar.bz2\` from Google's official \`cocochorales_full_v1_zipped\` bucket to a private folder (never git), and verify the archive MD5 against the [official checksum list](https://storage.googleapis.com/magentadata/datasets/cocochorales/cocochorales_full_v1_zipped/cocochorales_md5s.txt). The offline tool below rechecks the fixed upstream MD5 and then extracts only the operator-selected \`mix.wav\`, \`mix.mid\` and \`metadata.yaml\` for up to four exact track IDs. All other shard members, including stems and synthesis data, are ignored. The archive may still be large, so check the remote file size/storage before downloading. No media is committed.
+
+\`\`\`bash
+uv run --frozen python -m scripts.extract_cocochorales_tiny \
+  --archive /private/coco/shards/1.tar.bz2 \
+  --selection /private/coco/tiny-selection.json \
+  --output-root /private/coco/subset \
+  --report /private/coco/shard-evidence.pending.json
+
+uv run --frozen python -m scripts.prepare_cocochorales_pairs \
+  /private/coco/tiny-selection.json \
+  --corpus-root /private/coco/subset \
+  --pairs /private/coco/pairs.json \
+  --report /private/coco/pair-evidence.pending.json
+\`\`\`
+
+The operator selection must set \`source_release_revision=cocochorales_full_v1_zipped\`, \`rights_reviewed=true\`, and exact official track IDs/splits (global ranges specified above). \`1.tar.bz2\` is only one subset shard: selected tracks absent from it are refused; **do not substitute a Hugging Face mirror**. The resulting JSON records the checked original shard MD5+SHA-256, each selected WAV/MIDI SHA-256 and SATB instruments, with no source media, audio path, model weights, independent rights approval or benchmark numbers. The official CC BY 4.0 license requires attribution/changes notice; the model checkpoint's separate rights are not inferred.
+
+### Actual AMT prediction scoring (paired-source proof required)
+
+After the official pinned shard has been privately extracted and reviewed, validate the pair manifest against an **independently reviewed operator-local registry copy** with \`cocochorales.status=verified_for_evaluation\` (the bundled registry remains \`planned\` until real validation). Generate MT3 predictions with the existing \`scripts.generate_tier2_predictions\` runner and an exactly pinned model/runtime/checkpoint identity, using a Tier 2 manifest from \`scripts.validate_tier2_dataset_pairs\`.
+
+Then run:
+
+\`\`\`bash
+uv run --frozen python -m scripts.score_cocochorales_tiny \
+  --pairs /private/coco/pairs.json \
+  --registry /private/coco/reviewed-registry.json \
+  --source-proof /private/coco/shard-evidence.pending.json \
+  --corpus-root /private/coco/subset \
+  --predictions-root /private/coco/predictions \
+  --output /private/coco/mt3-coco-score.pending.json
+\`\`\`
+
+The scoring command verifies case IDs, audio/reference SHA-256, split, rights-reviewed dataset registry, official shard source evidence, and actual Tier 2 prediction provenance. Results contain separate **note-onset F1**, **onset+offset F1** (50ms onset; offset tolerance max(50ms, 20% of reference note duration)), **instrument-aware onset+offset F1** (requires matching GM program), MusicXML part/note counts, explicit failures, and SHA-256 of the prediction files. Real \`generate_tier2_predictions\` now records per-case wall-clock inference seconds. Peak resident/GPU memory, human correction effort, and time to publish are explicitly **unmeasured**, not filled with synthetic values. This dataset is generated Bach-style SATB, not a proxy for real popular music. The tool never grants a model license or authorizes public redistribution.
