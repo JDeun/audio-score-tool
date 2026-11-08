@@ -121,7 +121,8 @@ def setup_center_status() -> dict:
             required_for=["audio_transcription"],
             note=(
                 "시스템 pip/uvx를 사용하지 않습니다. 게시된 runtime artifact는 SHA-256 검증 후 "
-                "앱 데이터 영역에 atomic install되며 실패 시 기존 runtime을 유지합니다."
+                "앱 데이터 영역에 atomic install되며 실패 시 기존 runtime을 유지합니다. "
+                "패키지 채보는 검증된 checkpoints/<model> 파일만 사용하며 자동 모델 다운로드를 금지합니다."
             ),
         ),
         _component(

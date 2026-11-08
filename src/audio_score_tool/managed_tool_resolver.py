@@ -179,3 +179,25 @@ def is_registered_managed_executable(command: str | Path) -> bool:
             if _validated_tool(root, str(component), entry, str(name)) == candidate:
                 return True
     return False
+
+
+
+def registered_managed_component_root(component: str, *, required_tool: str) -> Path | None:
+    """Get the verified owner root for a tool and immutable companion assets.
+
+    A model runner must never derive its checkpoint location from the ambient
+    working directory or a user-supplied executable path. This exact root has
+    already passed both entrypoint and complete payload SHA-256 verification.
+    """
+    if not _safe_identifier(component) or not _safe_identifier(required_tool):
+        return None
+    root = managed_root()
+    components = _registered_state(root)
+    if not isinstance(components, dict):
+        return None
+    entry = components.get(component)
+    if not isinstance(entry, dict):
+        return None
+    if _validated_tool(root, component, entry, required_tool) is None:
+        return None
+    return root / "installed" / component / entry["version"]
