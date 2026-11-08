@@ -105,6 +105,16 @@ def _bind_private_native_audit(
         or not isinstance(tool_hashes, dict)
         or set(tool_hashes) != {"mt3-infer"}
         or tool_hashes["mt3-infer"] != member_hashes[executable]
+        or not isinstance(audit.get("frozen_inventory_sha256"), str)
+        or not _SHA.fullmatch(audit["frozen_inventory_sha256"])
+        or type(audit.get("embedded_frozen_archive_entries")) is not int
+        or audit["embedded_frozen_archive_entries"] <= 0
+        or type(audit.get("embedded_native_binary_entries")) is not int
+        or audit["embedded_native_binary_entries"] <= 0
+        or type(audit.get("embedded_pyz_modules")) is not int
+        or audit["embedded_pyz_modules"] <= 0
+        or type(audit.get("builder_distribution_inventory_count")) is not int
+        or audit["builder_distribution_inventory_count"] <= 0
         or not isinstance(audit.get("native_qa_receipt_canonical_sha256"), str)
         or not _SHA.fullmatch(audit["native_qa_receipt_canonical_sha256"])
         or audit.get("local_bytes_match_native_qa") is not True
@@ -129,6 +139,9 @@ def _bind_private_native_audit(
         "model_checkpoint_sha256": _MR_MT3_WEIGHT_SHA256,
         "tool_sha256": {"mt3-infer": tool_hashes["mt3-infer"]},
         "native_qa_receipt_canonical_sha256": audit["native_qa_receipt_canonical_sha256"],
+        "frozen_inventory_sha256": audit["frozen_inventory_sha256"],
+        "inventory_is_complete_distributable_sbom": False,
+        "third_party_license_approval": False,
         "native_inference_verified_by_local_receipt": True,
         "license_independently_approved": False,
         "clean_machine_verified": False,
