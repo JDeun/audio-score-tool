@@ -11,6 +11,7 @@ import struct
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -208,7 +209,7 @@ def test_unverified_youtube_media_tools_or_song_cannot_pass_release(
                 ),
                 "duration": (
                     None if failure == "no_duration"
-                    else 600 if failure == "duration" else 16,
+                    else 600 if failure == "duration" else 16
                 ),
             }).encode()
         if route == "/api/jobs/youtube":
@@ -293,7 +294,10 @@ def test_youtube_job_api_persists_source_kind_before_any_worker_starts(
     from audio_score_tool.runtime_services import YouTubeJobRequest
 
     reservations = []
-    monkeypatch.setattr(jobs, "runtime_settings", lambda: object())
+    monkeypatch.setattr(
+        jobs, "runtime_settings",
+        lambda: SimpleNamespace(muscriptor_model="large", whisperx_model="small"),
+    )
     monkeypatch.setattr(
         jobs, "resolve_job_models", lambda *_a, **_kw: ("small", "small"),
     )
