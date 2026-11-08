@@ -45,7 +45,8 @@ test("successful external enrichment refreshes the selected song without a manua
       },
     });
   });
-  await page.route(/\\/api\\/songs\\/song-live(?:\\/(?:notes|structure|score|publication))?$/, (route) => {
+  await page.route((url) => url.pathname === "/api/songs/song-live" ||
+    ["notes", "structure", "score", "publication"].some((suffix) => url.pathname === `/api/songs/song-live/${suffix}`), (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith("/notes")) {
       noteReads += 1;
