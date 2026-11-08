@@ -56,7 +56,7 @@ def _payloads():
     }
 
 
-def _fixture(tmp_path: Path, monkeypatch, *, tamper=None):
+def _fixture(tmp_path: Path, monkeypatch, *, tamper=None, track_count=1):
     selection = {
         "schema_version": 1,
         "dataset_id": "cocochorales",
@@ -64,11 +64,17 @@ def _fixture(tmp_path: Path, monkeypatch, *, tamper=None):
         "source_release_revision": "cocochorales_full_v1_zipped",
         "license": "CC-BY-4.0",
         "rights_reviewed": True,
-        "tracks": [{"track_id": "string_track000001", "split": "train"}],
+        "tracks": [
+            {"track_id": f"string_track{number:06d}", "split": "train"}
+            for number in range(1, track_count + 1)
+        ],
     }
     archive = tmp_path / "1.tar.bz2"
-    members = [(f"string_track000001/{filename}", contents)
-               for filename, contents in _payloads().items()]
+    members = [
+        (f"string_track{number:06d}/{filename}", contents)
+        for number in range(1, track_count + 1)
+        for filename, contents in _payloads().items()
+    ]
     if tamper == "missing":
         members.pop()
     if tamper == "path-traversal":
@@ -137,14 +143,13 @@ def test_corrupt_or_missing_archive_members_never_expose_partial_media(tmp_path,
     {"source_release_revision": "HuggingFace-mirror"},
     {"tracks": [{"track_id": "string_track000001", "split": "test"}]},
     {"tracks": [{"track_id": "string_track000001", "split": "train"}] * 2},
-    {"tracks": [{"track_id": f"string_track{i:06d}", "split": "train"}
-                for i in range(1, 6)]},
+    {"tracks": []},
 ])
-def test_invalid_source_attestation_split_or_sample_count_fails(tmp_path, monkeypatch, change):
+def test_invalid_source_attestation_or_split_fails(tmp_path, monkeypatch, change):
     archive, selection = _fixture(tmp_path, monkeypatch)
     selection.update(change)
     destination = tmp_path / "private"
-    with pytest.raises(ValueError, match="source|rights|track|tiny|eight|license"):
+    with pytest.raises(ValueError, match="source|rights|track|license|at least"):
         extraction.extract_official_shard(archive, selection, output_root=destination)
     assert not destination.exists()
 
@@ -177,3 +182,26 @@ def test_metadata_only_cli_no_overwrite(tmp_path, monkeypatch, capsys):
     with pytest.raises(SystemExit):
         extraction.main()
     assert report.is_file()
+
+
+def test_six_official_pairs_extract_without_any_media_count_cap(tmp_path, monkeypatch):
+    archive, selection = _fixture(tmp_path, monkeypatch, track_count=6)
+    target = tmp_path / "many-private-tracks"
+    proof = extraction.extract_official_shard(archive, selection, output_root=target)
+    assert proof["track_count"] == 6
+    assert proof["audio_midi_file_count"] == 12
+    assert proof["selected_file_count"] == 18
+    assert proof["selected_uncompressed_bytes"] > 0
+    assert len(proof["tracks"]) == 6
+    assert len(list(target.glob("*/mix.wav"))) == 6
+    assert len(list(target.glob("*/mix.mid"))) == 6
+
+
+def test_total_selected_extraction_byte_budget_blocks_compression_bombs(tmp_path, monkeypatch):
+    archive, selection = _fixture(tmp_path, monkeypatch, track_count=6)
+    monkeypatch.setattr(extraction, "_MAX_EXTRACTED_BYTES", 100)
+    target = tmp_path / "refused-private-output"
+    with pytest.raises(ValueError, match="total extraction budget"):
+        extraction.extract_official_shard(archive, selection, output_root=target)
+    assert not target.exists()
+    assert not list(tmp_path.glob(".coco-tiny-*"))
