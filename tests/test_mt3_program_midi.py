@@ -90,7 +90,7 @@ def test_drum_channel_is_reserved_and_not_given_to_melodic_instruments(tmp_path:
     (lambda items: items + [_note(velocity=128)], "Invalid"),
     (
         lambda items: [_note(program=i) for i in range(16)],
-        "more pitched programs than MIDI channels",
+        "more simultaneous pitched programs",
     ),
 ])
 def test_bad_model_notes_and_channel_overflow_fail_closed(change, error):
@@ -200,3 +200,37 @@ def test_packaged_entrypoint_and_local_settings_use_same_program_preserving_brid
     frozen = (Path(__file__).resolve().parents[1] / "scripts/mt3_frozen_entry.py"
               ).read_text(encoding="utf-8")
     assert "from audio_score_tool.mt3_program_midi import main" in frozen
+
+
+
+def test_more_than_15_distinct_programs_can_recycle_channels_without_losing_notes(tmp_path):
+    # Sequential instrument changes are legal, even though there are 20
+    # distinct programs in the decoded NoteSequence.
+    original = [
+        _note(
+            pitch=60 + (i % 12), program=i,
+            onset=i * 0.5, offset=i * 0.5 + 0.25,
+        )
+        for i in range(20)
+    ]
+    midi = bridge.midi_from_program_notes(original, ticks_per_quarter=480)
+    path = tmp_path / "sequential-programs.mid"
+    midi.save(str(path))
+    notes = midi_notes(path)
+    assert len(notes) == 20
+    assert sorted(note.program for note in notes) == list(range(20))
+    assert len([track for track in midi.tracks if any(
+        msg.type == "note_on" and msg.velocity > 0 for msg in track
+    )]) == 20
+    assert len({
+        msg.channel for track in midi.tracks for msg in track
+        if msg.type == "program_change"
+    }) <= 15
+    assert evaluate_midi_files(path, path).instrument_f1 == pytest.approx(1.0)
+
+
+def test_16_truly_overlapping_programs_fail_instead_of_dropping_instruments():
+    with pytest.raises(ValueError, match="more simultaneous pitched programs"):
+        bridge.midi_from_program_notes([
+            _note(program=i, onset=0, offset=1) for i in range(16)
+        ])
