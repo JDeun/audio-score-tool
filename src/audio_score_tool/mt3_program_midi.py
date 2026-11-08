@@ -28,15 +28,21 @@ PITCHED_MIDI_CHANNELS = tuple(channel for channel in range(16) if channel != 9)
 def midi_from_program_notes(
     notes: Iterable[Any], *, ticks_per_quarter: int = 220,
 ) -> mido.MidiFile:
-    """Serialize exactly the model-decoded note programs as separate tracks.
+    """Serialize model-decoded GM programs with safe, time-aware channel reuse.
 
-    MIDI type 1 uses independent tracks plus distinct pitched channels, so
-    program_change messages cannot change another simultaneous instrument.
-    Fail rather than collapse >15 different melodic programs into one channel.
+    A song may contain >15 *distinct* instruments sequentially while using
+    <=15 at any one moment. Recycle pitched channels only after their previous
+    instrument's notes have ended at a strictly earlier tick. Preserve one
+    separate MIDI track for each decoded GM program; track events record the
+    actual assigned channel on every note and program change.
+
+    If 16+ programs require channels simultaneously, fail closed rather than
+    flattening unrelated instrument identities or dropping any notes.
     """
     if type(ticks_per_quarter) is not int or not 1 <= ticks_per_quarter <= 32767:
         raise ValueError("Unsupported MIDI time resolution")
-    events_by_group: dict[tuple[bool, int], list[tuple[int, int, int, int]]] = defaultdict(list)
+
+    validated: list[tuple[int, int, tuple[bool, int], int, int]] = []
     for note in notes:
         pitch = getattr(note, "pitch", None)
         velocity = getattr(note, "velocity", None)
@@ -57,49 +63,93 @@ def midi_from_program_notes(
             raise ValueError("Invalid model-decoded MR-MT3 note")
         begin = round(start * ticks_per_quarter * 1_000_000 / MIDI_TEMPO)
         finish = max(begin + 1, round(end * ticks_per_quarter * 1_000_000 / MIDI_TEMPO))
-        key = (drum, 0 if drum else program)
-        # End note events come first at equal tick to prevent accidental overlaps.
-        events_by_group[key].extend([
-            (begin, 1, pitch, velocity),
-            (finish, 0, pitch, 0),
-        ])
-
-    instruments = sorted(program for drum, program in events_by_group if not drum)
-    if len(instruments) > len(PITCHED_MIDI_CHANNELS):
-        raise ValueError("Decoded MR-MT3 contains more pitched programs than MIDI channels")
+        validated.append((begin, finish, (drum, 0 if drum else program), pitch, velocity))
 
     midi = mido.MidiFile(type=1, ticks_per_beat=ticks_per_quarter)
-    if not events_by_group:
+    if not validated:
         tempo = mido.MidiTrack()
         tempo.append(mido.MetaMessage("set_tempo", tempo=MIDI_TEMPO, time=0))
         midi.tracks.append(tempo)
         return midi
 
-    channel_for = {program: PITCHED_MIDI_CHANNELS[i] for i, program in enumerate(instruments)}
-    for index, (drum, program) in enumerate(sorted(events_by_group)):
-        channel = 9 if drum else channel_for[program]
+    # Each model-inferred program gets a distinct score track, regardless of
+    # which MIDI channel it needs at a particular point in time.
+    events_by_group: dict[tuple[bool, int], list[tuple[int, int, int, int, int]]] = (
+        defaultdict(list)
+    )
+    timeline = []
+    for index, (begin, finish, _group, _pitch, _velocity) in enumerate(validated):
+        timeline.append((begin, 1, index))  # on
+        timeline.append((finish, 0, index))  # off
+    timeline.sort()
+
+    active_channel: dict[int, int] = {}
+    active_counts: dict[int, int] = defaultdict(int)
+    assigned: dict[int, int] = {}
+    last_program: dict[int, int] = {}
+    released_at = {channel: -1 for channel in PITCHED_MIDI_CHANNELS}
+
+    for tick, event_kind, index in timeline:
+        _start, _end, (is_drum, program), pitch, velocity = validated[index]
+        group = (is_drum, program)
+        if event_kind == 0:
+            channel = assigned[index]
+            events_by_group[group].append((tick, 0, pitch, 0, channel))
+            if not is_drum:
+                active_counts[program] -= 1
+                if active_counts[program] == 0:
+                    del active_channel[program]
+                    released_at[channel] = tick
+        else:
+            if is_drum:
+                channel = 9
+            elif program in active_channel:
+                channel = active_channel[program]
+            else:
+                occupied = set(active_channel.values())
+                free = [
+                    ch for ch in PITCHED_MIDI_CHANNELS
+                    if ch not in occupied and released_at[ch] < tick
+                ]
+                if not free:
+                    raise ValueError(
+                        "Decoded MR-MT3 has more simultaneous pitched "
+                        "programs than safely available MIDI channels"
+                    )
+                channel = free[0]
+                active_channel[program] = channel
+                if last_program.get(channel) != program:
+                    # A channel can change owners only while no previous note
+                    # is active on it. Program changes precede note-on.
+                    events_by_group[group].append((tick, 1, program, 0, channel))
+                    last_program[channel] = program
+            assigned[index] = channel
+            if not is_drum:
+                active_counts[program] += 1
+            events_by_group[group].append((tick, 2, pitch, velocity, channel))
+
+    for track_idx, (drum, program) in enumerate(sorted(events_by_group)):
         track = mido.MidiTrack()
         midi.tracks.append(track)
         track.append(mido.MetaMessage(
             "track_name", name="Drums" if drum else f"GM {program}", time=0,
         ))
-        if index == 0:
+        if track_idx == 0:
             track.append(mido.MetaMessage("set_tempo", tempo=MIDI_TEMPO, time=0))
-        if not drum:
-            track.append(mido.Message(
-                "program_change", program=program, channel=channel, time=0,
-            ))
         previous = 0
-        for tick, kind, pitch, velocity in sorted(
+        for tick, event_kind, value, velocity, channel in sorted(
             events_by_group[(drum, program)], key=lambda item: (item[0], item[1], item[2])
         ):
-            track.append(mido.Message(
-                "note_on" if kind else "note_off",
-                note=pitch,
-                velocity=velocity,
-                channel=channel,
-                time=max(0, tick - previous),
-            ))
+            delta = max(0, tick - previous)
+            if event_kind == 1:
+                track.append(mido.Message(
+                    "program_change", program=value, channel=channel, time=delta,
+                ))
+            else:
+                track.append(mido.Message(
+                    "note_on" if event_kind == 2 else "note_off",
+                    note=value, velocity=velocity, channel=channel, time=delta,
+                ))
             previous = tick
         track.append(mido.MetaMessage("end_of_track", time=0))
     return midi
