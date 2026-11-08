@@ -204,3 +204,11 @@ PyInstaller frozen 실행 파일의 Python 인터프리터는 일반 Python과 �
 출력은 `MT3-FROZEN-NATIVE-QA-<target>.pending.json`만 공개 CI 아티팩트로 보존합니다. 이 증빙에는 빌드 라이브러리 버전, 네이티브 실행 파일과 ZIP 해시, 실제 앱 관리형 등록/기동 결과가 포함됩니다. **실제 exe/onefile 바이너리·모델 가중치·ZIP은 업로드하지 않습니다.** Python이 CI 빌더에는 필요하지만, 실행 시험은 시스템 Python/개발 도구 PATH를 비우고 진행합니다.
 
 이 작업은 **MR-MT3 한 모델 어댑터의 기동과 모델 다운로드 차단에 한정**되며, 실제 MR-MT3 가중치를 포함하거나 해당 바이너리로 악보 채보를 완료한 시험은 아닙니다. YourMT3의 별도 Transformers 버전, 모델·서드파티 라이선스/상업용 배포권, 앱 설치 이후 Windows/macOS 클린 머신 인수시험, 코드 서명·공증(#22)은 별도입니다. 정식 배포 카탈로그 및 승인 기록은 빈 상태로 유지하고 #29를 닫지 않습니다.
+
+## Windows/macOS 실제 frozen MR-MT3 모델 추론 QA (#29, pending)
+
+이제 `.github/workflows/mt3-frozen-native-review.yml`은 두 실제 네이티브 러너(Windows x86_64, macOS arm64)에서 MT3-Infer v0.2.0의 **실제 MR-MT3 `mt3.pth`**를 각 러너 임시 디렉터리에 내려받고 정확한 SHA-256 `b8a3807ed265059abd25ad7f68142c06c35e8f6144dcaa45bd55946a3745398f`를 **두 차례 검증**하도록 구성합니다. 출처는 해당 버전 checkpoint registry의 `gudgud1014/MR-MT3` 리비전 미고정 URL이며, SHA가 조금이라도 다르면 inference를 수행하지 않습니다. 오래된 `torch.load(weights_only=False)` 포맷에 대한 임의 파일 실행은 금지합니다.
+
+검증기는 먼저 frozen CLI만 보유한 초기 구성요소를 설치하고 체크포인트 미존재·다운로드 차단을 확인합니다. 이후 같은 PyInstaller 실행 파일과 검증된 실제 가중치를 담은 **러너 로컬 임시 ZIP**으로 제품의 `install_component_artifact()` 업데이트를 진행합니다. `AST_PACKAGED=1`, `PATH=""`, 오프라인 Hugging Face 환경에서 **제품의 `MT3InferEngine.transcribe()`**를 호출해 프로젝트 자체 합성 16초 음원으로 MIDI 및 MusicXML을 생성하고, music21로 양쪽 파일을 다시 읽어 실제 음표·파트가 존재하는지 확인합니다. 실행 후에도 전체 설치 payload 해시가 유지돼야 통과합니다. CPU 처리이며, 벤치마크 정확도·음악적 품질의 보증은 아닙니다.
+
+업로드되는 파일은 버전·입출력 및 체크포인트 SHA-256, 음표 수 등을 기록한 `*.pending.json` 하나뿐입니다. **실제 모델 가중치, 실행 파일, ZIP, MIDI, MusicXML은 공개 업로드하지 않습니다.** 다음 조건은 여전히 미충족입니다: 원본 revision/재배포 및 상업 사용권·외부 notice/source 승인, 실사용 HTTPS 아티팩트, 모델별 품질 기준(#34), Windows/macOS 앱 인스톨러 전체 설치·업데이트 및 OS 독립 clean-machine 검증, 서명·공증(#22). `managed-component-catalog.json`의 `artifacts: {}`와 `managed-release-approvals.json`의 `approvals: {}`는 그대로 둡니다. 네이티브 QA가 성공하기 전에는 성공했다고 문서화하지 않습니다.
