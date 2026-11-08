@@ -14,6 +14,7 @@ import math
 import re
 from pathlib import Path
 from typing import Any
+
 from defusedxml import ElementTree as ET
 
 from audio_score_tool.metrics import MidiNote, evaluate_midi_files, midi_notes
