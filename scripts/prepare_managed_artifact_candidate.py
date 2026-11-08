@@ -208,6 +208,7 @@ def draft_candidate(
     )
 
     # Isolated local rehearsal; never touch the app's actual managed state.
+    model_identity = None
     with tempfile.TemporaryDirectory(prefix="ast-candidate-verify-") as directory:
         status = install_component_artifact(
             artifact,
@@ -220,6 +221,25 @@ def draft_candidate(
             name: sha256_file(Path(path))
             for name, path in sorted(status["tools"].items())
         }
+        if native_audit_binding is not None:
+            # The native audit binds the exact ZIP, but the publication contract
+            # also needs a reusable OS-independent *checkpoint* identity.
+            # Check installed bytes, not a claimed filename or manifest string.
+            checkpoint_path = "checkpoints/mr_mt3/mt3.pth"
+            checkpoint = Path(directory) / "installed" / component / version / checkpoint_path
+            if checkpoint.is_symlink() or not checkpoint.is_file():
+                raise ValueError("Audited model checkpoint is absent from installed candidate")
+            checkpoint_sha = sha256_file(checkpoint)
+            if checkpoint_sha != native_audit_binding["model_checkpoint_sha256"]:
+                raise ValueError("Installed model checkpoint SHA differs from native audit")
+            model_identity = {
+                "model_key": native_audit_binding["model"],
+                # A content digest is immutable even when upstream uses a mutable main ref.
+                "model_revision": "sha256:" + checkpoint_sha,
+                "runtime_revision": upstream_revision,
+                "checkpoint_path": checkpoint_path,
+                "checkpoint_sha256": checkpoint_sha,
+            }
 
     if native_audit_binding is not None and tool_digests != native_audit_binding["tool_sha256"]:
         raise ValueError("Installed tool hashes differ from the native inference audit")
@@ -243,6 +263,7 @@ def draft_candidate(
                     "tools": artifact.tools,
                     "max_download_bytes": artifact.max_download_bytes,
                     "max_uncompressed_bytes": artifact.max_uncompressed_bytes,
+                    **({"model_identity": model_identity} if model_identity is not None else {}),
                 }
             },
         },
@@ -254,6 +275,7 @@ def draft_candidate(
             "remote_artifact_verified": False,
             "tools_executed": False,
             "clean_machine_verified": False,
+            **({"model_identity_verified": True} if model_identity is not None else {}),
             **(
                 {"native_inference_audit": native_audit_binding}
                 if native_audit_binding is not None else {}

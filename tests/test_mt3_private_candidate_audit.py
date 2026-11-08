@@ -286,6 +286,13 @@ def test_stable_amt_candidate_requires_bound_native_audit_and_real_model_hash(
     assert bound["frozen_inventory_sha256"] == worksheet["frozen_inventory_sha256"]
     assert bound["inventory_is_complete_distributable_sbom"] is False
     assert bound["tool_sha256"] == draft["local_validation"]["tool_sha256"]
+    model = draft["candidate"]["artifacts"][target]["model_identity"]
+    assert model["model_key"] == "mr_mt3"
+    assert model["model_revision"] == "sha256:" + native._MR_MT3_SHA256
+    assert model["runtime_revision"] == "upstream-tag-v0.2.0-unapproved"
+    assert model["checkpoint_path"] == "checkpoints/mr_mt3/mt3.pth"
+    assert model["checkpoint_sha256"] == native._MR_MT3_SHA256
+    assert draft["local_validation"]["model_identity_verified"] is True
     assert draft["local_validation"]["clean_machine_verified"] is False
     assert draft["candidate"]["redistribution_status"] == "pending"
     assert draft["approval_required"] is True

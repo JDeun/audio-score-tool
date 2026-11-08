@@ -33,6 +33,7 @@ The comparison report and source reports contain benchmark metadata and metrics 
 5. The gate recomputes the Tier 2 comparison from those source reports; the stored comparison must be exactly equal to the recomputed result and match its receipt SHA-256.
 6. The approved engine must be that recomputed comparison's qualified `recommended_engine`, with identical model/runtime/artifact revisions.
 7. Required Windows x86_64 and macOS arm64 managed runtime artifacts are published with valid URL, checksum, tools, license, and provenance metadata.
+8. The selected MT3 model checkpoint hash recorded in Tier 2 `engine.artifact_sha256` (not the OS-specific ZIP SHA) must match the exact rehashed checkpoint in **both** independently published Windows/macOS managed artifacts. `model_revision` must be `sha256:<checkpoint digest>`, and `runtime_revision` must match the reviewed managed runtime upstream revision. The current audited implementation is MR-MT3 only; changes of provider/model require their own review contract.
 
 The desktop sidecar packaging path independently executes the same unified checker for `v1*` tags. A separate preflight workflow therefore cannot be bypassed by running the desktop release workflow alone.
 

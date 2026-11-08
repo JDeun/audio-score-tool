@@ -86,12 +86,14 @@ Prediction 생성 시점에 engine/model/runtime/artifact identity를 `tier2-pro
 
 최종 승격은 candidate report 최소 2개 → comparison 재계산 → #34 review → `release/v1-quality-approval.json` 순으로 이루어집니다. release gate는 source report와 comparison의 SHA-256 및 재계산 동일성을 다시 검증합니다.
 
+**P0↔P1 모델 일치 게이트:** v1 MT3 후보의 품질 보고서 `engine.artifact_sha256`은 실제 채보에 사용한 **모델 체크포인트 파일 자체의 SHA-256**으로 기록합니다(운영체제별 실행 파일 ZIP 해시가 아님). `model_revision`은 `sha256:<checkpoint digest>`, `runtime_revision`은 감사된 `transcription_engine.upstream_revision`과 동일해야 합니다. Windows/macOS는 각자 다른 실행 파일 ZIP을 게시할 수 있지만 `model_identity`의 `model_key=mr_mt3`, 체크포인트 상대 경로, 모델 리비전/해시 및 런타임 리비전은 품질 승인본과 같아야 합니다. 현재 자동 검증은 실제 frozen MR-MT3 감사 경로만 지원합니다. 다른 모델의 상용 승격은 새로운 감사·모델 신원 규약 검토가 필요합니다.
+
 ## P1 — Managed runtime delivery
 
 Issue #29의 범위를 실제 artifact publication까지 완료합니다.
 
 필수 대상:
-- commercial AMT runtime/model
+- commercial AMT runtime/model 및 모델/실행파일 별도 SHA 증빙(원격 모델 실제 바이트 재해시 포함)
 - YouTube ingest stack: `yt-dlp + Deno + ffmpeg + ffprobe`
 - OMR runtime(Audiveris 또는 대체 엔진) 및 필요한 JRE/runtime
 - 지원하기로 결정한 optional validation component
