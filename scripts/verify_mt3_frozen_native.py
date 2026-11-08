@@ -20,11 +20,11 @@ import subprocess
 import sys
 import tempfile
 import wave
-from threading import Event, Timer
 import zipfile
 from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
+from threading import Event, Timer
 from unittest.mock import patch
 
 from audio_score_tool.managed_components import (
