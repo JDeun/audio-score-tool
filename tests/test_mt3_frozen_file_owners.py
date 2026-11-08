@@ -173,3 +173,36 @@ def test_file_records_are_not_extracted_or_transferred_to_a_release(tmp_path: Pa
     assert str(tmp_path) not in str(result)
     assert dummy.read_bytes() not in str(result).encode()
     assert result["license_independently_approved"] is False
+
+
+def test_historical_native_wheel_record_review_observations_remain_pending():
+    """Historical real-OS counts have no inferred byte/owner/license approval."""
+    import json
+
+    data = json.loads(
+        (
+            Path(__file__).resolve().parents[1]
+            / "release/review/mt3-native-wheel-record-hints-pending-2026-11-08.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert data["schema"] == 1
+    assert data["run_url"].endswith("/42459748293")
+    assert data["mapping_basis"] == "wheel-RECORD-exact-relative-path-only"
+    assert data["filename_match_proves_source_owner"] is False
+    assert data["binary_payload_sha_matches_wheel_record_verified"] is False
+    assert data["complete_sbom_verified"] is False
+    assert data["redistribution_status"] == "pending"
+    targets = data["targets"]
+    assert set(targets) == {"windows-x86_64", "macos-aarch64"}
+    for target in targets.values():
+        assert target["native_filename_candidate_count"] == (
+            target["single_record_path_match_count"]
+            + target["ambiguous_count"]
+            + target["unmatched_count"]
+        )
+        assert sum(target["matches_by_builder_distribution"].values()) == (
+            target["single_record_path_match_count"]
+        )
+        for label in ("receipt_sha256", "inventory_sha256", "native_executable_sha256"):
+            assert len(target[label]) == 64
+

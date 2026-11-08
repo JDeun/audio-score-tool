@@ -195,3 +195,16 @@ python -m scripts.triage_mt3_frozen_dependencies \
 
 검토자는 일치 항목부터 실제 패키지 wheel과 포함 바이너리의 소스 라이선스를 확인하고, 미일치·복수 후보를 더 높은 우선순위로 처리할 수 있습니다. 이전 CI의 인벤토리에는 `native_file_record_hints` 필드가 없으므로, 구버전 증빙을 분석할 때는 `wheel_record_mapping_available=false`로 표시하며 **미검증을 0건으로 오인하지 않습니다**. 정식 publish 승인, 완전한 SBOM, 모델 재배포 권한, clean-machine 인수시험은 여전히 독립 조건입니다.
 
+
+### Windows/macOS 실물 wheel RECORD 경로 일치 결과 (#150, 2026-11-08)
+
+실제 [MR-MT3 native QA run #42459748293](https://github.com/JDeun/audio-score-tool/actions/runs/42459748293)에서 최종 frozen 바이너리로부터 출처 후보를 수집한 결과:
+
+| 검토 항목 | Windows x86_64 | macOS ARM64 |
+|---|---:|---:|
+| 라이브러리 **파일명 후보** | 341 | 333 |
+| 설치된 wheel RECORD 상대 경로에 **유일하게 일치** | 269 | 270 |
+| 복수 RECORD에서 동일 경로 주장 | 0 | 0 |
+| RECORD 경로 일치 없음 | 72 | 63 |
+
+SHA-256로 식별한 CI 원본 증빙과 패키지별 일치 건수는 [메타데이터-only 원본 관찰 기록](../release/review/mt3-native-wheel-record-hints-pending-2026-11-08.json)에 고정했습니다. 일치 항목은 여전히 **파일명 기반 후보**일 뿐 실제 번들 바이너리와 wheel 원본 파일의 SHA-256이 같다는 의미가 아닙니다. 미일치 항목에는 Python 런타임 자체의 확장 모듈과 OS 라이브러리가 포함되어 있으므로, 단순히 wheel 소유 패키지를 추정해 승인해서는 안 됩니다. 2개 OS 검증 모두 `redistribution_status=pending`이며 실제 외부 바이너리/모델은 증빙으로 게시하지 않았습니다.
