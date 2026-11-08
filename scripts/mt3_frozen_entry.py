@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import sys
 
-from mt3_infer.cli import main
+from audio_score_tool.mt3_program_midi import main
 
 
 def _configure_utf8_output() -> None:

@@ -111,7 +111,11 @@ def _default_mt3_infer_command() -> str:
         return _packaged_command("mt3-infer")
     installed = _find_executable("mt3-infer")
     if installed:
-        return installed
+        # Prefer our program-preserving CLI when both entrypoints exist in the
+        # same local tool environment. Never select a shim on its own when
+        # the required upstream MT3-Infer package is absent.
+        bridge = _find_executable("audio-score-mt3")
+        return bridge or installed
     uvx = _find_executable("uvx")
     if uvx:
         executable = f'"{uvx}"' if " " in uvx else uvx
