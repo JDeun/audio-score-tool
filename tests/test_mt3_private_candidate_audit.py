@@ -17,6 +17,7 @@ import pytest
 from scripts import audit_mt3_private_candidate as audit
 from scripts import prepare_managed_artifact_candidate as candidate
 from scripts import verify_mt3_frozen_native as native
+from scripts.collect_mt3_frozen_inventory import _canonical_sha
 
 
 def _sha(data: bytes) -> str:
@@ -50,6 +51,29 @@ def _fixture(
     model_sha = _sha(checkpoint)
     monkeypatch.setattr(native, "_MR_MT3_SHA256", model_sha)
     monkeypatch.setattr(candidate, "_MR_MT3_WEIGHT_SHA256", model_sha)
+    snapshot = {
+        "schema_version": "1",
+        "target": target,
+        "frozen_executable_sha256": _sha(binary),
+        "frozen_archive": {
+            "archive_entry_count": 3,
+            "native_binary_entry_count": 1,
+            "pyz_module_count": 5,
+        },
+        "builder": {"distribution_count": 3},
+        "inventory_is_complete_distributable_sbom": False,
+        "native_library_dependency_closure_independently_verified": False,
+        "third_party_license_approval": False,
+        "redistribution_status": "pending",
+    }
+    inventory = {
+        "schema_version": "1",
+        "inventory_sha256": _canonical_sha(snapshot),
+        "snapshot": snapshot,
+        "legal_reviewer_signoff": False,
+        "third_party_license_approval": False,
+        "redistribution_status": "pending",
+    }
     manifest = {
         "schema": 1,
         "target": "windows-x86_64" if bad_manifest else target,
@@ -58,6 +82,7 @@ def _fixture(
         "build_method": "PyInstaller onefile native QA",
         "packages": dict(native._EXPECTED),
         "mt3_wrapper_sha256": _sha(binary),
+        "frozen_inventory_sha256": inventory["inventory_sha256"],
         "upstream": "https://github.com/openmirlab/mt3-infer/tree/v0.2.0",
         "model_weights_included": True,
         "checkpoint_sha256": model_sha,
@@ -86,6 +111,7 @@ def _fixture(
         "model_adapter": "mr_mt3",
         "packages": dict(native._EXPECTED),
         "native_executable_sha256": _sha(binary),
+        "frozen_dependency_inventory": inventory,
         "private_archive_sha256": "b" * 64,
         "whole_payload_sha256_verified": True,
         "managed_installer_verified": True,
@@ -137,6 +163,8 @@ def test_native_candidate_streams_exact_bytes_and_remains_pending(
     assert report["archive_sha256"] == audit._sha256_file(archive)
     assert report["model_checkpoint_sha256"] == native._MR_MT3_SHA256
     assert report["tool_sha256"]["mt3-infer"] == proof["native_executable_sha256"]
+    assert report["frozen_inventory_sha256"] == proof["frozen_dependency_inventory"]["inventory_sha256"]
+    assert report["builder_distribution_inventory_count"] == 3
     assert report["native_qa_receipt_canonical_sha256"]
     assert report["publication_ready"] is False
     assert report["approval_required"] is True
@@ -255,6 +283,8 @@ def test_stable_amt_candidate_requires_bound_native_audit_and_real_model_hash(
     bound = draft["local_validation"]["native_inference_audit"]
     assert bound["model_checkpoint_sha256"] == native._MR_MT3_SHA256
     assert bound["native_inference_verified_by_local_receipt"] is True
+    assert bound["frozen_inventory_sha256"] == worksheet["frozen_inventory_sha256"]
+    assert bound["inventory_is_complete_distributable_sbom"] is False
     assert bound["tool_sha256"] == draft["local_validation"]["tool_sha256"]
     assert draft["local_validation"]["clean_machine_verified"] is False
     assert draft["candidate"]["redistribution_status"] == "pending"
@@ -300,3 +330,53 @@ def test_unrelated_optional_component_does_not_accept_native_amt_audit(
             license_name="review-required", provenance="synthetic test",
             upstream_revision="test", native_audit=report,
         )
+
+
+@pytest.mark.parametrize("tamper", (
+    "missing", "changed_sha", "different_binary", "claimed_complete",
+    "claimed_approved", "changed_manifest", "empty_modules",
+))
+def test_native_inventory_must_match_frozen_file_and_pending_manifest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, tamper: str,
+):
+    archive, proof = _fixture(tmp_path, monkeypatch)
+    inv = proof["frozen_dependency_inventory"]
+    if tamper == "missing":
+        proof.pop("frozen_dependency_inventory")
+    elif tamper == "changed_sha":
+        inv["inventory_sha256"] = "f" * 64
+    elif tamper == "different_binary":
+        inv["snapshot"]["frozen_executable_sha256"] = "f" * 64
+        inv["inventory_sha256"] = _canonical_sha(inv["snapshot"])
+    elif tamper == "claimed_complete":
+        inv["snapshot"]["inventory_is_complete_distributable_sbom"] = True
+        inv["inventory_sha256"] = _canonical_sha(inv["snapshot"])
+    elif tamper == "claimed_approved":
+        inv["legal_reviewer_signoff"] = True
+    elif tamper == "changed_manifest":
+        # The native binary/payload SHA stays unchanged. A mismatched
+        # inventory value inside the ZIP must not be accepted anyway.
+        inv["inventory_sha256"] = "1" * 64
+    elif tamper == "empty_modules":
+        inv["snapshot"]["frozen_archive"]["pyz_module_count"] = 0
+        inv["inventory_sha256"] = _canonical_sha(inv["snapshot"])
+    with pytest.raises(audit.PrivateCandidateAuditError):
+        audit.audit_private_candidate(archive, proof)
+
+
+def test_draft_requires_frozen_inventory_fields_to_remain_pending(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+):
+    archive, proof = _fixture(tmp_path, monkeypatch)
+    report = audit.audit_private_candidate(archive, proof)
+    for changed in (
+        ("frozen_inventory_sha256", "0" * 64),
+        ("builder_distribution_inventory_count", 0),
+        ("embedded_native_binary_entries", 0),
+        ("embedded_pyz_modules", 0),
+    ):
+        modified = copy.deepcopy(report)
+        modified[changed[0]] = changed[1]
+        with pytest.raises(ValueError, match="audit"):
+            _draft(archive, native_audit=modified)
+
