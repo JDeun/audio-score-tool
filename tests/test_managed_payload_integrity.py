@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from audio_score_tool import managed_components, managed_payload_integrity
+from audio_score_tool import managed_payload_integrity
 from audio_score_tool.api_ext import app
 from audio_score_tool.managed_components import (
     ComponentArtifact,
