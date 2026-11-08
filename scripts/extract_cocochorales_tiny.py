@@ -36,6 +36,8 @@ _OFFICIAL_FORMAT_COMMIT = "4647edbce6719fe907e17fcc072651def168eaa5"
 _ORIGIN = "https://storage.googleapis.com/magentadata/datasets/cocochorales/"
 _MAX_ARCHIVE_BYTES = 8 * 1024**3
 _MAX_ENTRIES = 100_000
+# Bound aggregate decompression/disk use, never the number of selected tracks.
+_MAX_EXTRACTED_BYTES = 8 * 1024**3
 _REQUIRED = ("mix.wav", "mix.mid", "metadata.yaml")
 
 
@@ -64,8 +66,8 @@ def _selection_details(selection: dict[str, Any]) -> tuple[str, set[str]]:
     ):
         raise ValueError("Official tiny selection needs exact v1 provenance and explicit rights review")
     tracks = selection.get("tracks")
-    if not isinstance(tracks, list) or not 1 <= len(tracks) <= 4:
-        raise ValueError("Choose 1 to 4 official tracks, at most eight audio/MIDI files")
+    if not isinstance(tracks, list) or not tracks:
+        raise ValueError("Choose at least one official track")
     splits, names = set(), set()
     for row in tracks:
         if not isinstance(row, dict):
@@ -109,6 +111,7 @@ def extract_official_shard(
         raise ValueError("Official CocoChorales shard MD5 differs from published source")
     target_files = {f"{name}/{item}" for name in names for item in _REQUIRED}
     seen: set[str] = set()
+    selected_bytes = 0
     with tempfile.TemporaryDirectory(prefix=".coco-tiny-", dir=dest.parent) as directory:
         staged = Path(directory) / "corpus"
         staged.mkdir()
@@ -127,6 +130,12 @@ def extract_official_shard(
                         continue
                     if path in seen or not member.isfile() or not 0 < member.size <= _MAX_BYTES:
                         raise ValueError("Selected CocoChorales asset is duplicate/unsafe/too large")
+                    # A tiny compressed tar can expand far beyond its archive
+                    # byte count. Limit the *total* selected extraction without
+                    # imposing an unrelated number-of-tracks restriction.
+                    selected_bytes += member.size
+                    if selected_bytes > _MAX_EXTRACTED_BYTES:
+                        raise ValueError("Selected CocoChorales media exceeds total extraction budget")
                     stream = package.extractfile(member)
                     if stream is None:
                         raise ValueError("Selected CocoChorales asset cannot be read")
@@ -169,6 +178,8 @@ def extract_official_shard(
         "archive_bytes": bytes_count,
         "track_count": len(names),
         "audio_midi_file_count": len(names) * 2,
+        "selected_file_count": len(target_files),
+        "selected_uncompressed_bytes": selected_bytes,
         "tracks": audit["tracks"],
         "private_corpus_created": True,
         "operator_rights_reviewed": True,

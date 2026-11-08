@@ -105,8 +105,8 @@ def validate_pairs(
         raise ValueError("corpus_root must be an accessible private directory")
     if manifest.get("schema_version") != 1 or not isinstance(manifest.get("cases"), list):
         raise ValueError("paired subset needs schema_version 1 with cases")
-    if not manifest["cases"] or len(manifest["cases"]) > 128:
-        raise ValueError("paired subset must contain 1 to 128 case records")
+    if not manifest["cases"]:
+        raise ValueError("paired subset must contain at least one case record")
     if registry.get("schema_version") != 1 or not isinstance(registry.get("datasets"), list):
         raise ValueError("source dataset registry is invalid")
     sources = {
