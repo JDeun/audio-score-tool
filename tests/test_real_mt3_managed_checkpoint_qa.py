@@ -1,16 +1,13 @@
 """No-network regressions for real checkpoint packaging QA (synthetic bytes)."""
 from __future__ import annotations
 
-import json
 import os
-import stat
 import zipfile
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
-from audio_score_tool.managed_components import component_status
 from audio_score_tool.managed_tool_resolver import registered_managed_component_root
 from scripts import smoke_real_mt3_managed_checkpoint as qa
 
