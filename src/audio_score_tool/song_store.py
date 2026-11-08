@@ -62,6 +62,9 @@ class SongStore:
 
     @staticmethod
     def _source_kind(job: dict[str, Any], source_dir: Path) -> str:
+        declared = job.get("source_kind")
+        if declared in {"local", "youtube", "omr", "notation"}:
+            return declared
         filename = job.get("filename") or ""
         has_extension = bool(Path(filename).suffix)
         if not has_extension and any(source_dir.glob("input.*")):
