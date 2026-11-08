@@ -14,7 +14,7 @@ import math
 import re
 from pathlib import Path
 from typing import Any
-from xml.etree import ElementTree as ET
+from defusedxml import ElementTree as ET
 
 from audio_score_tool.metrics import MidiNote, evaluate_midi_files, midi_notes
 from audio_score_tool.tier2_prediction import load_tier2_prediction_provenance
@@ -75,6 +75,8 @@ def _score_matching(
 
 
 def _musicxml_summary(path: Path) -> dict[str, int]:
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > 16 * 1024 * 1024:
+        raise ValueError("prediction MusicXML file is missing or exceeds safe size")
     try:
         document = ET.parse(path)
     except (ET.ParseError, OSError, ValueError) as exc:
@@ -192,7 +194,7 @@ def score_cocochorales(
             onset = evaluate_midi_files(pred_midi, reference).as_dict()
             full = _score_matching(predicted_notes, reference_notes, require_instrument=False)
             instrument = _score_matching(predicted_notes, reference_notes, require_instrument=True)
-        except (OSError, ValueError, EOFError) as exc:
+        except (OSError, ValueError, EOFError):
             measured.append({"case_id": case_id, "status": "failed",
                              "failure_reason": "invalid-prediction-midi-or-musicxml"})
             continue
@@ -215,6 +217,7 @@ def score_cocochorales(
             "model_inference_seconds": raw_times[case_id] if raw_times is not None else None,
             "peak_memory_bytes": None,
             "peak_memory_measured": False,
+            "human_publish_time_seconds": None,
         })
     return {
         "schema_version": 1,
