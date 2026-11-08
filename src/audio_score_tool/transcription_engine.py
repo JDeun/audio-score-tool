@@ -223,6 +223,11 @@ class MT3InferEngine(BaseTranscriptionEngine):
                         "TRANSFORMERS_OFFLINE": "1",
                         "HF_DATASETS_OFFLINE": "1",
                         "HF_HUB_DISABLE_TELEMETRY": "1",
+                        # The upstream CLI writes Unicode status markers.
+                        # Windows redirects the subprocess output to a log,
+                        # where legacy console encodings cannot represent them.
+                        "PYTHONIOENCODING": "utf-8",
+                        "PYTHONUTF8": "1",
                     }
                     if checkpoint_root is not None else None
                 ),
