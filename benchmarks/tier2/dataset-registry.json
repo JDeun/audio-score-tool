@@ -44,7 +44,9 @@
       "reference_format": "mix.mid",
       "audio_format": "mix.wav",
       "subset": "official_tiny",
-      "license_review": "official_dataset_page_only; specific source files and release hash pending"
+      "license_review": "official CC BY 4.0 page and pinned format script; individual shard provenance + real paired evaluation pending",
+      "source_release_revision": "cocochorales_full_v1_zipped",
+      "official_format_commit": "4647edbce6719fe907e17fcc072651def168eaa5"
     },
     {
       "id": "slakh2100",

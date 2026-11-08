@@ -39,15 +39,20 @@ def _fixture(tmp_path: Path):
     voices.append(mido.Message("note_on", note=64, velocity=75, time=0))
     voices.append(mido.Message("note_off", note=64, velocity=0, time=480))
     mid.save(str(subdir / "mix.mid"))
-    (subdir / "metadata.yaml").write_text("ensemble: string\n", encoding="utf-8")
+    (subdir / "metadata.yaml").write_text(
+        "ensemble: string\ninstrument_name:\n"
+        "  0: violin\n  1: violin\n  2: viola\n  3: cello\n"
+        "midi_program_number:\n"
+        "  0: 40\n  1: 40\n  2: 41\n  3: 42\n", encoding="utf-8",
+    )
     review = {
         "schema_version": 1,
         "dataset_id": "cocochorales",
         "official_source": "https://magenta.tensorflow.org/datasets/cocochorales",
-        "source_release_revision": "cocochorales-official-tiny-v1",
+        "source_release_revision": "cocochorales_full_v1_zipped",
         "license": "CC-BY-4.0",
         "rights_reviewed": False,
-        "tracks": [{"track_id": track_id, "split": "test"}],
+        "tracks": [{"track_id": track_id, "split": "train"}],
     }
     return root, review, track_id
 
@@ -66,6 +71,9 @@ def test_exact_official_mix_wav_and_midi_yield_sha_bound_private_manifest(tmp_pa
     assert entry["reference_midi"]["sha256"] == coco._digest(root / track_id / "mix.mid")
     assert report["case_count"] == 1
     assert report["tracks"][0]["reference_note_on_count"] == 2
+    assert report["media_file_count"] == 2
+    assert report["tracks"][0]["instruments"][2]["instrument"] == "viola"
+    assert report["tracks"][0]["instruments"][3]["midi_program"] == 42
     assert report["tracks"][0]["duration_seconds"] == 2
     assert report["model_inference_performed"] is False
     assert report["rights_reviewed_by_operator_only"] is False
@@ -125,6 +133,9 @@ def test_unreviewed_pair_never_passes_tier2_quality_gate(tmp_path):
     {"tracks": []},
     {"tracks": [{"track_id": "../../escape", "split": "test"}]},
     {"tracks": [{"track_id": "string_track000001", "split": "unreviewed"}]},
+    {"tracks": [{"track_id": "string_track000001", "split": "test"}]},
+    {"tracks": [{"track_id": "string_track000000", "split": "train"}]},
+    {"tracks": [{"track_id": "string_track240001", "split": "test"}]},
     {"tracks": [
         {"track_id": "string_track000001", "split": "test"},
         {"track_id": "string_track000001", "split": "train"},
@@ -202,3 +213,32 @@ def test_invalid_metadata_output_destination_fails_before_write(tmp_path, monkey
     with pytest.raises(ValueError, match="outside the repository"):
         coco.main()
     assert not (tmp_path / "pairs.json").exists()
+
+
+
+def test_official_track_split_boundaries_and_small_media_cap(tmp_path):
+    assert coco.official_split("string_track192000") == "train"
+    assert coco.official_split("string_track192001") == "validation"
+    assert coco.official_split("string_track216000") == "validation"
+    assert coco.official_split("string_track216001") == "test"
+    root, selected, track = _fixture(tmp_path)
+    selected["tracks"] = [
+        {"track_id": f"string_track{index:06d}", "split": "train"}
+        for index in range(1, 6)
+    ]
+    with pytest.raises(ValueError, match="at most 8"):
+        coco.prepare_pairs(selected, corpus_root=root)
+    selected["tracks"] = [{"track_id": track, "split": "validation"}]
+    with pytest.raises(ValueError, match="official track-number"):
+        coco.prepare_pairs(selected, corpus_root=root)
+
+
+def test_misleading_ensemble_metadata_or_missing_satb_parts_is_rejected(tmp_path):
+    root, selected, track = _fixture(tmp_path)
+    meta = root / track / "metadata.yaml"
+    meta.write_text("ensemble: brass\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="ensemble differs"):
+        coco.prepare_pairs(selected, corpus_root=root)
+    meta.write_text("ensemble: string\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="four named SATB"):
+        coco.prepare_pairs(selected, corpus_root=root)

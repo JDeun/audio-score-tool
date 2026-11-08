@@ -28,8 +28,58 @@ _SPLITS = frozenset({"train", "validation", "test"})
 _SOURCE = "https://magenta.tensorflow.org/datasets/cocochorales"
 _DATASET_ID = "cocochorales"
 _LICENSE = "CC-BY-4.0"
-_MAX_TRACKS = 16
+_MAX_TRACKS = 4
 _MAX_BYTES = 128 * 1024 * 1024
+
+
+def official_split(track_id: str) -> str:
+    """The upstream format assigns global track-number split ranges."""
+    if not _TRACK.fullmatch(track_id):
+        raise ValueError("Invalid CocoChorales official track ID")
+    number = int(track_id.rsplit("track", 1)[1])
+    if not 1 <= number <= 240000:
+        raise ValueError("CocoChorales track number is out of official range")
+    return "train" if number <= 192000 else "validation" if number <= 216000 else "test"
+
+
+def _instrument_parts(path: Path, *, ensemble: str) -> list[dict[str, Any]]:
+    """Read only the small upstream instrument-name/program YAML subset.
+
+    No arbitrary YAML deserialization, external dependency, or inference.
+    The four official SATB voice labels are 0..3 in a fixed order.
+    """
+    if path.stat().st_size > 1024 * 1024:
+        raise ValueError("CocoChorales metadata exceeds size budget")
+    text = path.read_text(encoding="utf-8")
+    if not re.search(rf"(?m)^ensemble:\s*{re.escape(ensemble)}\s*$", text):
+        raise ValueError("CocoChorales metadata ensemble differs from track ID")
+    groups: dict[str, dict[int, Any]] = {"instrument_name": {}, "midi_program_number": {}}
+    active = None
+    for line in text.splitlines():
+        if line.startswith("instrument_name:"):
+            active = "instrument_name"
+        elif line.startswith("midi_program_number:"):
+            active = "midi_program_number"
+        elif line and not line[0].isspace():
+            active = None
+        elif active is not None:
+            item = re.fullmatch(r"\s{2,}([0-3]):\s*([A-Za-z][A-Za-z0-9 _-]*|[0-9]{1,3})\s*", line)
+            if item:
+                index = int(item.group(1))
+                value = item.group(2).strip()
+                if index in groups[active]:
+                    raise ValueError("Duplicate CocoChorales instrument voice")
+                groups[active][index] = value if active == "instrument_name" else int(value)
+    if any(set(values) != {0, 1, 2, 3} for values in groups.values()):
+        raise ValueError("CocoChorales metadata requires four named SATB instrument parts")
+    for value in groups["midi_program_number"].values():
+        if not isinstance(value, int) or not 0 <= value <= 127:
+            raise ValueError("CocoChorales instrument program is outside MIDI range")
+    return [
+        {"voice": voice, "instrument": groups["instrument_name"][voice],
+         "midi_program": groups["midi_program_number"][voice]}
+        for voice in range(4)
+    ]
 
 
 def _digest(path: Path) -> str:
@@ -126,7 +176,7 @@ def prepare_pairs(
         raise ValueError("CocoChorales source release is a placeholder")
     tracks = selected.get("tracks")
     if not isinstance(tracks, list) or not 1 <= len(tracks) <= _MAX_TRACKS:
-        raise ValueError("Select 1 to 16 CocoChorales tiny tracks explicitly")
+        raise ValueError("Select 1 to 4 CocoChorales tiny tracks (at most 8 audio/MIDI files)")
     used: set[str] = set()
     cases: list[dict[str, Any]] = []
     recorded: list[dict[str, Any]] = []
@@ -139,6 +189,8 @@ def prepare_pairs(
             or track_id in used or split not in _SPLITS
         ):
             raise ValueError("Track IDs must be unique official CocoChorales names with explicit splits")
+        if official_split(track_id) != split:
+            raise ValueError("CocoChorales selected split contradicts official track-number range")
         used.add(track_id)
         audio_rel = f"{track_id}/mix.wav"
         midi_rel = f"{track_id}/mix.mid"
@@ -146,6 +198,8 @@ def prepare_pairs(
         audio = _regular(root, audio_rel)
         reference = _regular(root, midi_rel)
         metadata = _regular(root, metadata_rel)
+        ensemble = track_id.split("_track", 1)[0]
+        parts = _instrument_parts(metadata, ensemble=ensemble)
         duration = _duration(audio)
         count, midi_seconds = _notes(reference)
         # The dataset may add a small release/reverb tail; reject grossly
@@ -173,6 +227,8 @@ def prepare_pairs(
             "duration_seconds": duration,
             "midi_duration_seconds": midi_seconds,
             "reference_note_on_count": count,
+            "instruments": parts,
+            "reference_voice_count_from_metadata": len(parts),
         })
     pairs = {"schema_version": 1, "cases": cases}
     audit = {
@@ -188,6 +244,9 @@ def prepare_pairs(
         "model_inference_performed": False,
         "source_media_published": False,
         "commercial_model_redistribution_approved": False,
+        "media_file_count": len(cases) * 2,
+        "source_archive": selected.get("official_archive_evidence"),
+        "official_archive_verification_reperformed_by_prepare_pairs": False,
     }
     return pairs, audit
 

@@ -336,3 +336,9 @@ uv run --frozen python scripts/prepare_cocochorales_pairs.py \
 예제: [cocochorales-tiny.selection.example.json](cocochorales-tiny.selection.example.json). 공식 tiny 데이터의 실제 split, revision, 사용권은 자동으로 판정하지 않습니다. `rights_reviewed` 기본값은 `false`이고, 기존 `dataset-registry.json`에서도 CocoChorales는 **`status=planned`**입니다. 따라서 출처별 검토를 수행해 **별도의 사설 registry 사본**을 `verified_for_evaluation`로 승격하기 전에는 `validate_tier2_dataset_pairs.py`가 결과를 받아들이지 않습니다. 상용 MR-MT3 모델/실행 바이너리 재배포 허가와 데이터셋 CC BY 4.0 조건도 독립적으로 검토합니다.
 
 대조군으로 #59 Slakh2100(합성 다중악기), #60 GuitarSet(실제 기타; JAMS 음표 이벤트 변환 필요)을 사용하고, MAESTRO/ASAP은 비상업 조건에 분리합니다. 특히 **ASAP 저장소 자체에는 오디오가 없고 별도의 MAESTRO 음원을 정렬해야** 하므로 `dataset-registry.json`의 `audio_included=false`로 수정했습니다. 본 코드는 실제 공식 CocoChorales 데이터쌍의 추론/품질 측정을 완료한 결과가 아닙니다. #154/#34에 남은 실측 사항을 추적합니다.
+
+## Official CocoChorales tiny source integrity (#154)
+
+The official `lukewys/chamber-ensemble-generator` format at commit `4647edbce6719fe907e17fcc072651def168eaa5` assigns track numbers 000001–192000 to train, 192001–216000 to validation, and 216001–240000 to test. `prepare_cocochorales_pairs.py` now rejects a track tagged with a contradictory split and checks the four SATB names/GM program numbers in each official `metadata.yaml`. At most four **audio/MIDI pairs (eight media files)** are admitted per tiny evaluation run. The code does not infer a rights grant or upload audio.
+
+Official dataset landing page: https://magenta.tensorflow.org/datasets/cocochorales (CC BY 4.0; attribution and changes notice apply). Source format: https://github.com/lukewys/chamber-ensemble-generator/blob/4647edbce6719fe907e17fcc072651def168eaa5/data_format.md. Real paired files must be obtained via the official tiny shard downloads and recorded with archive checksums, rather than inferring provenance from a lookalike folder or HF mirror.
