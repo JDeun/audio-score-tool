@@ -251,7 +251,7 @@ def audit_private_candidate(archive: Path, proof: dict[str, Any]) -> dict[str, A
     _expect(manifest.get("packages") == native._EXPECTED,
             "Private manifest builder package versions do not match QA receipt")
 
-    return {
+    report = {
         "schema_version": "1",
         "purpose": "private-native-mr-mt3-release-review",
         "component": "transcription_engine",
@@ -295,6 +295,11 @@ def audit_private_candidate(archive: Path, proof: dict[str, Any]) -> dict[str, A
         "release_blockers": list(_BLOCKERS),
         "observed_at_utc": datetime.now(timezone.utc).isoformat(),
     }
+    # Detect accidental/malicious edits between the offline native model audit
+    # and the candidate draft. Not an independent cryptographic signature:
+    # operators still need signed build/source and legal review attestations.
+    report["audit_integrity_sha256"] = _canonical_sha(report)
+    return report
 
 
 def write_pending_audit(report: dict[str, Any], output: Path) -> None:
