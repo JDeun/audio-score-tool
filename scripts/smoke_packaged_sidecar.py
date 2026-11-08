@@ -408,11 +408,15 @@ def main() -> None:
                 if (
                     result.get("actual_product_audio_job_completed") is not True
                     or result.get("embedded_jre_started_without_system_path") is not True
+                    or result.get("real_pdf_omr_accepted") is not True
+                    or result.get("omr_musicxml_pdf_midi_parts_export_verified") is not True
                 ):
-                    raise RuntimeError("Managed product audio/JRE acceptance was incomplete")
+                    raise RuntimeError(
+                        "Managed product audio/PDF-to-OMR/editable-score acceptance was incomplete"
+                    )
             print(
                 f"Packaged sidecar smoke passed on 127.0.0.1:{port}"
-                + (" (managed delivery, real AMT Job and embedded Audiveris JRE verified)"
+                + (" (managed delivery, real AMT Job, PDF OMR and score export verified)"
                    if args.require_managed_delivery else "")
             )
         finally:
