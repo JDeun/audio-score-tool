@@ -12,3 +12,5 @@ Use [research template](RESEARCH_TEMPLATE.md) for reproducible investigations. I
 - [CocoChorales MR-MT3 real sample baseline](COCOCHORALES_MRMT3_REAL_SAMPLE_2026-11-08.md) — independently scored author WAV/reference MIDI, exact model/source hashes, low instrument/onset F1 and explicit non-generalization limits; actual CI run #42489135513.
 
 - [Four-ensemble real CocoChorales MR-MT3 benchmark](COCOCHORALES_MRMT3_FOUR_ENSEMBLE_2026-11-08.md) — original source/score SHA evidence, GM program/part-collapse diagnosis, per-ensemble F1, explicit train-split limitations; Actions run #42490888388.
+
+- [MR-MT3 program-preserving MIDI before/after evidence](COCOCHORALES_MRMT3_PROGRAM_PRESERVING_2026-11-09.md) — real four-ensemble onset, offset and instrument F1 improvement, exact run/checkpoint/source provenance and remaining over-segmentation.
