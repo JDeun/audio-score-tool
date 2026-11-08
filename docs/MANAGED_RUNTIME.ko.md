@@ -290,3 +290,9 @@ GitHub Actions의 운영자 설정 **Repository Variable `YOUTUBE_QA_SOURCE_REVI
 **실제 전체 검증:** `/api/sources/youtube/status`로 관리형 네 도구 준비 확인 → 인증 `POST /api/sources/youtube/inspect`로 해당 영상 ID/길이 대조 → `POST /api/jobs/youtube`에 명시적으로 `authorized=true` 제출 → 실제 `yt-dlp`/Deno/FFmpeg 입력·MT3 AMT 완료 → MIME이 아닌 **MIDI note-on/MusicXML pitched notes** 검사 → `GET /api/songs`에서 `source_kind=youtube`인 canonical Song이 정확히 하나 기록됐는지 확인합니다. 관련 `source_kind`는 이제 JobStore의 명시적인 SQLite 컬럼으로 지속 저장하며, 영상 제목에 `.mp3`처럼 확장자가 있어도 로컬 입력으로 오분류되지 않습니다. 구버전 Job은 `NULL`로 유지하고 추정으로 원본 권리를 생성하지 않습니다.
 
 이 경로의 성공은 **실제 허가된 영상에 대한 제품 입력 기능**을 확인하는 것이지 YouTube 서비스 약관, 모델/바이너리 상용 재배포 라이선스, 독립적인 저작권 승인, clean-machine GUI 설치·업데이트, 음악 정확도(#34)를 통과했다는 뜻이 아닙니다. 출시 후보 구성요소 카탈로그 `artifacts: {}` 및 승인 기록 `approvals: {}`가 비어 있는 동안에도 자동 실행/출시 승인은 금지됩니다.
+
+## 게시된 모델과 데스크톱 기본 선택 연결 (#29)
+
+관리형 배포가 실제로 승인되기 전에는 기존 source/development 모델 선택을 유지하며, 미게시 MR-MT3를 자동 준비 완료로 표시하지 않습니다. `AST_PACKAGED=1`에서 해당 플랫폼 `transcription_engine`이 **독립 승인 기록까지 통과하여 게시된 경우에만**, `model_identity.model_key=mr_mt3`를 새 설치의 AMT 기본 모델로 채택합니다. 개인 모드 새 설치에서도 제공되지 않는 MuScriptor 대신 게시된 MT3를 기본 선택합니다. 과거 설정에 YourMT3가 남아 있더라도 지원되지 않는 모델 파일을 실행하려 하지 않고 승인된 모델을 유효 선택으로 사용합니다(사용자 저장 파일 자체는 임의 수정하지 않음). 배포판 UI는 미포함 모델 선택을 비활성화하고 API는 직접 잘못된 요청을 HTTP 422로 거부합니다.
+
+이 기본값 배선은 게시 승인·SHA/서명·실제 추론 품질의 **대체가 아닙니다**. `managed_mt3_model` API 값이 `null`이면 독립 승인된 릴리스 모델이 없다는 의미입니다. 다음 단계에서는 실제 Windows/macOS 승인 아티팩트로 설정→설치→음원 채보·출력까지 검증해야 합니다.

@@ -9,7 +9,7 @@ from .config import packaged_runtime
 from .engine_release_policy import release_policy_summary
 from .optional_feature_policy import optional_feature_summary
 from .preflight_v2 import preflight
-from .runtime_settings import runtime_settings
+from .runtime_settings import published_managed_mt3_model, runtime_settings
 from .settings_store import SettingsStore
 from .transcription_engine import available_engines
 
@@ -69,6 +69,17 @@ class EngineSettingsPayload(BaseModel):
 
 
 def _recommendation(settings) -> dict:
+    managed = published_managed_mt3_model()
+    if managed:
+        return {
+            "engine": "mt3_infer",
+            "model": managed,
+            "release_approved_default": False,
+            "reason": (
+                "이 플랫폼에 게시·검증된 관리형 모델입니다. "
+                "실제 채보 품질의 v1 승인 여부는 별도 Tier 2 게이트에서 판단합니다."
+            ),
+        }
     if settings.usage_mode == "personal":
         return {
             "engine": "muscriptor",
@@ -92,6 +103,7 @@ def get_engines() -> dict:
     settings = runtime_settings(store=_store)
     return {
         "packaged_runtime": packaged_runtime(),
+        "managed_mt3_model": published_managed_mt3_model(),
         "usage_mode": settings.usage_mode,
         "selected": settings.transcription_engine,
         "mt3_infer_cmd": settings.mt3_infer_cmd,
@@ -116,6 +128,18 @@ def update_engine(payload: EngineSettingsPayload) -> dict:
             422,
             "MuScriptor 공개 weights는 CC BY-NC 4.0이므로 상용 모드에서는 사용할 수 없습니다.",
         )
+    managed = published_managed_mt3_model()
+    if (
+        packaged_runtime()
+        and managed
+        and payload.transcription_engine == "mt3_infer"
+        and payload.mt3_model not in (None, managed)
+    ):
+        raise HTTPException(
+            422,
+            f"배포된 관리형 MT3 모델은 {managed}만 지원합니다. "
+            "임의 체크포인트는 이 배포판에서 사용할 수 없습니다.",
+        )
     if payload.transcription_engine == "native":
         if not checkpoint:
             raise HTTPException(422, "AudioScore Native requires a project-owned checkpoint path.")
@@ -128,7 +152,7 @@ def update_engine(payload: EngineSettingsPayload) -> dict:
             "usage_mode": payload.usage_mode,
             "transcription_engine": payload.transcription_engine,
             "mt3_infer_cmd": payload.mt3_infer_cmd,
-            "mt3_model": payload.mt3_model or "yourmt3",
+            "mt3_model": managed or payload.mt3_model or "yourmt3",
             "muscriptor_cmd": payload.muscriptor_cmd,
             "muscriptor_model": payload.muscriptor_model or "large",
             "native_engine_cmd": payload.native_engine_cmd,
