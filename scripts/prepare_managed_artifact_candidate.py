@@ -12,6 +12,7 @@ import json
 import re
 import tempfile
 from pathlib import Path
+from typing import Any
 
 from audio_score_tool.managed_components import (
     ComponentArtifact,
@@ -22,12 +23,15 @@ from audio_score_tool.managed_publication_readiness import (
     _REQUIRED_TOOLS,
     CORE_COMPONENTS,
     OPTIONAL_COMPONENTS,
+    STABLE_TARGETS,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
 BUNDLED_CATALOG = ROOT / "src" / "audio_score_tool" / "managed-component-catalog.json"
 _ALLOWED_TARGET = re.compile(r"^(?:windows|macos|linux)-(?:x86_64|aarch64)$")
 _UNREVIEWED = {"", "unknown", "tbd", "n/a", "runtime-specific", "..."}
+_MR_MT3_WEIGHT_SHA256 = "b8a3807ed265059abd25ad7f68142c06c35e8f6144dcaa45bd55946a3745398f"
+_SHA = re.compile(r"[a-f0-9]{64}\Z")
 
 
 def _required_label(value: str, name: str) -> str:
@@ -58,6 +62,80 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+
+def _bind_private_native_audit(
+    archive_path: Path, *, component: str, target: str,
+    archive_sha256: str, audit: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Require exact local MR-MT3 native inference evidence for core platforms.
+
+    A receipt is not an independent signed attestation and cannot authorize
+    redistribution. All bytes are still installed/hashed by the product below.
+    Other provider/model releases need their own audited evidence contract.
+    """
+    required = component == "transcription_engine" and target in STABLE_TARGETS
+    if not required:
+        if audit is not None:
+            raise ValueError("Native inference audit is only valid for stable MT3 runtime candidates")
+        return None
+    if not isinstance(audit, dict):
+        raise ValueError("Stable transcription_engine requires a private native inference audit")
+    executable = f"bin/mt3-infer{'.exe' if target.startswith('windows') else ''}"
+    expected_names = {
+        executable, "checkpoints/mr_mt3/mt3.pth",
+        "provenance/frozen-native-qa.pending.json",
+    }
+    member_hashes = audit.get("member_sha256")
+    tool_hashes = audit.get("tool_sha256")
+    if (
+        audit.get("schema_version") != "1"
+        or audit.get("purpose") != "private-native-mr-mt3-release-review"
+        or audit.get("component") != component
+        or audit.get("model") != "mr_mt3"
+        or audit.get("target") != target
+        or audit.get("private_candidate_filename") != archive_path.name
+        or audit.get("archive_sha256") != archive_sha256
+        or type(audit.get("archive_bytes")) is not int
+        or audit["archive_bytes"] != archive_path.stat().st_size
+        or audit.get("model_checkpoint_sha256") != _MR_MT3_WEIGHT_SHA256
+        or not isinstance(member_hashes, dict)
+        or set(member_hashes) != expected_names
+        or not all(isinstance(h, str) and _SHA.fullmatch(h) for h in member_hashes.values())
+        or member_hashes["checkpoints/mr_mt3/mt3.pth"] != _MR_MT3_WEIGHT_SHA256
+        or not isinstance(tool_hashes, dict)
+        or set(tool_hashes) != {"mt3-infer"}
+        or tool_hashes["mt3-infer"] != member_hashes[executable]
+        or not isinstance(audit.get("native_qa_receipt_canonical_sha256"), str)
+        or not _SHA.fullmatch(audit["native_qa_receipt_canonical_sha256"])
+        or audit.get("local_bytes_match_native_qa") is not True
+        or audit.get("checkpoint_not_deserialized_by_audit") is not True
+        or audit.get("builder_packages_are_complete_frozen_sbom") is not False
+        or audit.get("remote_artifact_verified") is not False
+        or audit.get("license_independently_approved") is not False
+        or audit.get("clean_machine_verified") is not False
+        or audit.get("approval_required") is not True
+        or audit.get("publication_ready") is not False
+        or audit.get("redistribution_status") != "pending"
+        or not isinstance(audit.get("release_blockers"), list)
+        or len(audit["release_blockers"]) == 0
+    ):
+        raise ValueError("Private native inference audit is missing, inconsistent or approved improperly")
+    return {
+        "audit_sha256": hashlib.sha256(
+            json.dumps(audit, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest(),
+        "archive_sha256": archive_sha256,
+        "model": "mr_mt3",
+        "model_checkpoint_sha256": _MR_MT3_WEIGHT_SHA256,
+        "tool_sha256": {"mt3-infer": tool_hashes["mt3-infer"]},
+        "native_qa_receipt_canonical_sha256": audit["native_qa_receipt_canonical_sha256"],
+        "native_inference_verified_by_local_receipt": True,
+        "license_independently_approved": False,
+        "clean_machine_verified": False,
+        "redistribution_status": "pending",
+    }
+
+
 def draft_candidate(
     *,
     archive_path: Path,
@@ -72,6 +150,7 @@ def draft_candidate(
     upstream_revision: str,
     max_download_bytes: int = 8 * 1024**3,
     max_uncompressed_bytes: int = 4 * 1024**3,
+    native_audit: dict[str, Any] | None = None,
 ) -> dict:
     if component not in set(CORE_COMPONENTS + OPTIONAL_COMPONENTS):
         raise ValueError("Unknown managed product component.")
@@ -88,6 +167,13 @@ def draft_candidate(
         raise ValueError("Missing required managed tools: " + ",".join(missing))
 
     digest = sha256_file(archive_path)
+    # On stable Windows/macOS, a launcher with a plausible filename and a
+    # valid ZIP is not enough to establish functional model delivery.
+    # Require the separate offline frozen+real-checkpoint audit receipt first.
+    native_audit_binding = _bind_private_native_audit(
+        archive_path, component=component, target=target,
+        archive_sha256=digest, audit=native_audit,
+    )
     artifact = ComponentArtifact(
         component=component,
         version=version,
@@ -114,6 +200,9 @@ def draft_candidate(
             name: sha256_file(Path(path))
             for name, path in sorted(status["tools"].items())
         }
+
+    if native_audit_binding is not None and tool_digests != native_audit_binding["tool_sha256"]:
+        raise ValueError("Installed tool hashes differ from the native inference audit")
 
     return {
         "schema_version": "1",
@@ -145,6 +234,10 @@ def draft_candidate(
             "remote_artifact_verified": False,
             "tools_executed": False,
             "clean_machine_verified": False,
+            **(
+                {"native_inference_audit": native_audit_binding}
+                if native_audit_binding is not None else {}
+            ),
         },
         "approval_required": True,
     }
@@ -174,6 +267,10 @@ def main() -> int:
     parser.add_argument("--license", required=True)
     parser.add_argument("--provenance", required=True)
     parser.add_argument("--upstream-revision", required=True)
+    parser.add_argument(
+        "--native-audit", type=Path,
+        help="Required for stable Windows/macOS transcription_engine candidates: private audit pending JSON",
+    )
     parser.add_argument("--max-download-bytes", type=int, default=8 * 1024**3)
     parser.add_argument("--max-uncompressed-bytes", type=int, default=4 * 1024**3)
     parser.add_argument("--output", required=True, type=Path)
@@ -193,6 +290,10 @@ def main() -> int:
             upstream_revision=args.upstream_revision,
             max_download_bytes=args.max_download_bytes,
             max_uncompressed_bytes=args.max_uncompressed_bytes,
+            native_audit=(
+                json.loads(args.native_audit.read_text(encoding="utf-8"))
+                if args.native_audit is not None else None
+            ),
         )
         write_report(report, args.output)
     except (OSError, ValueError, ComponentError) as exc:
