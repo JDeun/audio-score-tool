@@ -82,7 +82,7 @@ jobs:
     needs: prepare-release
     permissions:
       contents: write
-    timeout-minutes: 75
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -137,6 +137,16 @@ jobs:
       - name: Smoke packaged sidecar
         working-directory: desktop
         run: uv run --project .. --frozen --extra desktop python ../scripts/smoke_packaged_sidecar.py
+
+      - name: Verify managed delivery and real packaged product workflow before signing
+        # A signed public release must not bypass the genuine AMT/OMR/YouTube
+        # acceptance that runs in Desktop Packages. Missing publication approval
+        # or an operator-reviewed YouTube QA source fails before signing.
+        if: vars.RELEASE_SIGNING_READY == 'true'
+        working-directory: desktop
+        env:
+          AST_YOUTUBE_QA_RECEIPT_JSON: ${{ vars.YOUTUBE_QA_SOURCE_REVIEW_JSON }}
+        run: uv run --project .. --frozen --extra desktop python ../scripts/smoke_packaged_sidecar.py --require-managed-delivery
 
       - name: Validate Windows signing secrets
         if: runner.os == 'Windows' && vars.RELEASE_SIGNING_READY == 'true'

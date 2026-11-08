@@ -140,13 +140,16 @@ private key는 CI secret에만 저장하고 public key만 application configurat
 `RELEASE_SIGNING_READY=true`와 필요한 credential이 모두 준비된 경우:
 
 1. draft Release 준비
-2. Windows `.exe` build/sign/timestamp/verification
-3. macOS `.app/.dmg` sign/notarize/staple/verification
-4. updater archive와 `.sig` 생성
-5. `latest.json`에 실제 signature와 platform URL 기록
-6. `SHA256SUMS.txt` 생성
-7. release artifacts를 동일 draft에 집계
-8. 양쪽 주요 플랫폼 gate가 모두 성공한 경우에만 stable publication 허용
+2. Windows/macOS의 frozen sidecar에서 승인된 AMT·YouTube·OMR 관리형 구성요소를 실제 설치·검증하고, 원본 WAV 채보·PDF OMR·검토된 YouTube→Song 기능 인수시험 통과
+3. Windows `.exe` build/sign/timestamp/verification
+4. macOS `.app/.dmg` sign/notarize/staple/verification
+5. updater archive와 `.sig` 생성
+6. `latest.json`에 실제 signature와 platform URL 기록
+7. `SHA256SUMS.txt` 생성
+8. release artifacts를 동일 draft에 집계
+9. 양쪽 주요 플랫폼 gate가 모두 성공한 경우에만 stable publication 허용
+
+서명 배포의 `Desktop Release`는 별도 `Desktop Packages` 실행 결과에 의존하지 않고, **서명 전 동일한 `smoke_packaged_sidecar.py --require-managed-delivery` 인수시험을 각 플랫폼에서 직접 실행**합니다. `YOUTUBE_QA_SOURCE_REVIEW_JSON` 검토 기록 또는 승인된 런타임이 없으면 공개 배포가 차단됩니다. 이 시험은 frozen sidecar에서 실행하지만 설치된 DMG/NSIS를 깨끗한 사용자 컴퓨터에서 검증하는 단계 자체를 대체하지는 않습니다(#22).
 
 플랫폼 하나라도 실패하면 불완전한 artifact를 stable release로 홍보하지 않습니다.
 
@@ -207,9 +210,11 @@ PR CI green이나 unsigned package 생성만으로 `release verified`라고 부�
 
 일반 코드 PR에서는 Windows/macOS/Linux 패키지 빌드를 실행하지 않습니다. `Desktop Packages`를 수동 실행할 때 `require_managed_delivery` 옵션을 활성화하거나 `v1*` 릴리스 태그를 발행하면 **Windows/macOS**에서 별도의 managed-delivery smoke가 실행됩니다(Linux는 패키지 자체 회귀 범위 유지).
 
-이 강화 smoke는 배포된 PyInstaller sidecar를 독립된 임시 `AST_COMPONENT_DIR`로 실행하고, 앱이 실제 번들한 승인 카탈로그를 조회합니다. 각 필수 `transcription_engine`, `youtube_runtime`, `audiveris`에 대해 **실제 `POST /api/setup/install` 다운로드·SHA-256 설치 검증**을 수행합니다. 설치된 모든 필수 도구 파일의 관리 루트 containment 및 Setup Center의 저장된 verified 상태를 재검사합니다. 또한 YouTube 구성요소(`yt-dlp`, `deno`, `ffmpeg`, `ffprobe`)는 **실제 설치 경로로 `--version`/`-version`을 실행**해 운영체제에서 기동되는지 확인합니다. 같은 번들에 포함된 `BUNDLE-INVENTORY.json`의 플랫폼·각 도구 상대 경로·SHA-256과 실제 실행 버전까지 일치해야 통과합니다. 해당 inventory가 없거나, 서로 다른 관리형 설치 디렉터리의 파일이 섞이거나, 파일은 정상이어도 실행 버전이 다른 경우에는 fail-closed 처리합니다. 각 실행에는 시간·로그 출력 상한을 적용하고, `PATH`를 비워 시스템에 따로 설치된 실행 파일로 우회하지 못하게 합니다. 인터넷 접근이나 실제 영상 다운로드를 수행하지 않습니다. 하나라도 미게시·재배포 미승인·다운로드 실패·checksum 불일치·도구 누락이면 smoke는 실패합니다.
+이 강화 smoke는 배포된 PyInstaller sidecar를 독립된 임시 `AST_COMPONENT_DIR`로 실행하고, 앱이 실제 번들한 승인 카탈로그를 조회합니다. 각 필수 `transcription_engine`, `youtube_runtime`, `audiveris`에 대해 **실제 `POST /api/setup/install` HTTPS 다운로드·SHA-256 설치 검증**을 수행합니다. 설치된 도구의 관리 루트 containment 및 Setup Center verified 상태를 재검사합니다. YouTube 4종(`yt-dlp`, `deno`, `ffmpeg`, `ffprobe`)은 `BUNDLE-INVENTORY.json`의 경로·버전·해시와 실제 실행 결과가 일치해야 합니다. `PATH`를 비워 호스트 도구로 우회하지 못하게 합니다.
 
-이 smoke는 **실제 모델 추론 정확도, 특정 곡의 채보, Audiveris/JRE 기능 실행, signed clean install을 검증한 것이 아닙니다.** 이후 #29의 실제 음원/OMR 처리 및 clean-machine 인수시험과 #34의 모델 품질 선정은 별도로 수행합니다. 현시점 `artifacts: {}`이므로 강화 옵션은 예상대로 fail-closed 하며, 무해한 기본 패키지 QA smoke는 계속 실행할 수 있습니다.
+이후 **자체 생성 WAV → 실제 MT3 모델 추론 → note-on MIDI/MusicXML**, **Verovio PDF → 관리형 Audiveris/내장 JRE → 정규 Song → PDF/MIDI/파트 출력**, 그리고 **권한 검토된 실제 단일 YouTube URL → 관리형 오디오 가져오기 → MT3 → Song**을 인증된 packaged API에서 시험합니다. 실제 HTTPS 구성요소 다운로드와 검토된 YouTube 영상 다운로드가 발생하므로 **`YOUTUBE_QA_SOURCE_REVIEW_JSON` Repository Variable에 운영자가 검토한 영상/권리/길이 제한의 영수증**이 있어야 하며, 권리 확인이 없으면 다운로드 전에 fail-closed 합니다. 원본 영상과 가중치는 공개 CI 아티팩트로 올리지 않습니다.
+
+이 시험은 **실제 모델을 실행하는 기능 인수시험**이지만 #34의 실음원 품질 평가나 제3자 재배포 권리 승인, Windows/macOS 설치본의 clean-machine 설치·업데이트·서명 수락을 대체하지 않습니다. 현시점 카탈로그의 `artifacts: {}`와 승인 목록이 비어 있어 강화 옵션은 의도대로 실패합니다. 미게시 상태에서도 기본 unsigned QA package smoke만 별도로 실행할 수 있습니다.
 
 ## 8. clean-install/update acceptance
 

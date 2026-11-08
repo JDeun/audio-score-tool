@@ -96,3 +96,29 @@ def test_official_youtube_source_review_is_separate_and_never_redistributes_bina
     assert "desktop-packages.yml" not in review
     assert "verified/*.exe" not in review
     assert "verified/*.zip" not in review
+
+def test_signed_release_cannot_skip_actual_managed_product_acceptance():
+    """Both signed OS builders must finish a real frozen-sidecar E2E before signing."""
+    release = _read("desktop-release.yml")
+    package = _read("desktop-packages.yml")
+    # The signed release cannot borrow a green QA result from a different
+    # workflow run, an unsigned artifact, or a metadata-only approval.
+    step_name = "Verify managed delivery and real packaged product workflow before signing"
+    build = release.split("\n  build:\n", 1)[1].split("\n  publish-release:\n", 1)[0]
+    assert build.count(f"- name: {step_name}") == 1
+    step = build.split(f"      - name: {step_name}\n", 1)[1].split("\n      - name:", 1)[0]
+    assert "if: vars.RELEASE_SIGNING_READY == 'true'" in step
+    assert "working-directory: desktop" in step
+    assert "AST_YOUTUBE_QA_RECEIPT_JSON: ${{ vars.YOUTUBE_QA_SOURCE_REVIEW_JSON }}" in step
+    command = "python ../scripts/smoke_packaged_sidecar.py --require-managed-delivery"
+    assert command in step and command in package
+    assert build.index("- name: Smoke packaged sidecar") < build.index(step_name)
+    for signing_step in (
+        "- name: Validate Windows signing secrets",
+        "- name: Validate macOS signing secrets",
+        "- name: Build signed Windows NSIS installer",
+        "- name: Build signed, notarized macOS DMG",
+    ):
+        assert build.index(step_name) < build.index(signing_step)
+    assert "needs: build" in release.split("\n  publish-release:\n", 1)[1]
+    assert "if: vars.RELEASE_SIGNING_READY != 'true'" in build
