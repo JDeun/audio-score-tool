@@ -17,6 +17,8 @@ on:
       - 'scripts/smoke_audiveris_omr_product_e2e.py'
       - 'tests/test_audiveris_omr_product_e2e.py'
       - 'src/audio_score_tool/managed_components.py'
+      - 'src/audio_score_tool/managed_payload_integrity.py'
+      - 'tests/test_managed_payload_integrity.py'
   workflow_dispatch:
 
 permissions:
