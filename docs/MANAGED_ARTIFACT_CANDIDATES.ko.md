@@ -184,3 +184,14 @@ python -m scripts.triage_mt3_frozen_dependencies \
 출력에는 경로 그룹별 네이티브 라이브러리 파일명 **후보**와 OS별 빌더 패키지 license expression/legacy label/classifiers/notice SHA 목록, 정확한 출처 체크섬, 플랫폼 간 패키지 버전 차이, 검토 우선순위가 포함됩니다. 원본 모델/바이너리/zip 바이트는 불러오거나 업로드하지 않습니다. 결과는 `publication_ready=false`, `complete_sbom_verified=false`, `redistribution_status=pending`이므로 배포 승인을 자동 활성화할 수 없습니다.
 
 **현재 검토 순서:** PyTorch `torch/lib` 및 기타 네이티브 라이브러리의 실제 bundled 소스/동적 의존성을 추적 → `tokenizers` 고지·대응 소스 확인 → Windows BINARY typecode로 동봉된 소스/자산의 권리 목록 확보 → MR-MT3 checkpoint의 고정 upstream revision과 권리 확인 → 독립 법적 승인 및 clean-machine 재설치 검증. `main`의 catalog/approval 파일은 이 과정을 완료하기 전까지 그대로 비워 둡니다.
+
+## 9. Frozen 네이티브 파일과 wheel RECORD의 정확한 경로 비교 (#29)
+
+이제 `scripts/map_mt3_frozen_file_owners.py`가 Windows x86_64/macOS arm64 **최종 PyInstaller CArchive의 라이브러리 파일명 후보**와 동일 빌드에 설치된 Python wheel의 `RECORD` 상대 경로를 직접 비교합니다. 비교 결과는 `scripts/collect_mt3_frozen_inventory.py`의 SHA-256 결속된 인벤토리에 `native_file_record_hints`로 포함되며, `triage_mt3_frozen_dependencies.py` 검토 큐에 이어집니다.
+
+`single_record_path_match`는 정확히 하나의 빌더 패키지 RECORD 경로와 일치한다는 뜻이고, `ambiguous`는 둘 이상이 같은 경로를 주장한다는 뜻이며, `unmatched`는 일치하는 RECORD가 없다는 뜻입니다. Windows에서는 상대 경로를 정규화하고 대소문자를 구분하지 않습니다. 절대/상위 디렉터리 기록이나 중복 RECORD는 독립적인 출처 단서로 삼지 않습니다. wheel `RECORD`에 SHA-256와 파일 크기가 있으면 그 **빌더 파일의 기록 메타데이터**도 보존합니다.
+
+**이 결과는 법적 출처 소유권의 확정이 아닙니다.** PyInstaller가 바이너리를 수집하면서 경로를 이동하거나 파일을 수정할 수 있고, 같은 wheel이 포함한 네이티브 라이브러리의 별도 C/C++ 라이선스 조건도 존재합니다. 번들 안의 실제 바이너리 SHA가 wheel RECORD 해시와 동일한지 이 단계에서 실행·추출·비교하지 않으며, 동적 로더의 의존성도 완전하게 재귀 조사하지 않습니다. `source_owner_independently_verified=false`, `binary_payload_equals_record_hash_verified=false`, `license_independently_approved=false`를 유지합니다.
+
+검토자는 일치 항목부터 실제 패키지 wheel과 포함 바이너리의 소스 라이선스를 확인하고, 미일치·복수 후보를 더 높은 우선순위로 처리할 수 있습니다. 이전 CI의 인벤토리에는 `native_file_record_hints` 필드가 없으므로, 구버전 증빙을 분석할 때는 `wheel_record_mapping_available=false`로 표시하며 **미검증을 0건으로 오인하지 않습니다**. 정식 publish 승인, 완전한 SBOM, 모델 재배포 권한, clean-machine 인수시험은 여전히 독립 조건입니다.
+
