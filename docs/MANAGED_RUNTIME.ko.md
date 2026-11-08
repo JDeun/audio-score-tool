@@ -212,3 +212,26 @@ PyInstaller frozen 실행 파일의 Python 인터프리터는 일반 Python과 �
 검증기는 먼저 frozen CLI만 보유한 초기 구성요소를 설치하고 체크포인트 미존재·다운로드 차단을 확인합니다. 이후 같은 PyInstaller 실행 파일과 검증된 실제 가중치를 담은 **러너 로컬 임시 ZIP**으로 제품의 `install_component_artifact()` 업데이트를 진행합니다. `AST_PACKAGED=1`, `PATH=""`, 오프라인 Hugging Face 환경에서 **제품의 `MT3InferEngine.transcribe()`**를 호출해 프로젝트 자체 합성 16초 음원으로 MIDI 및 MusicXML을 생성하고, music21로 양쪽 파일을 다시 읽어 실제 음표·파트가 존재하는지 확인합니다. 실행 후에도 전체 설치 payload 해시가 유지돼야 통과합니다. CPU 처리이며, 벤치마크 정확도·음악적 품질의 보증은 아닙니다.
 
 업로드되는 파일은 버전·입출력 및 체크포인트 SHA-256, 음표 수 등을 기록한 `*.pending.json` 하나뿐입니다. **실제 모델 가중치, 실행 파일, ZIP, MIDI, MusicXML은 공개 업로드하지 않습니다.** 다음 조건은 여전히 미충족입니다: 원본 revision/재배포 및 상업 사용권·외부 notice/source 승인, 실사용 HTTPS 아티팩트, 모델별 품질 기준(#34), Windows/macOS 앱 인스톨러 전체 설치·업데이트 및 OS 독립 clean-machine 검증, 서명·공증(#22). `managed-component-catalog.json`의 `artifacts: {}`와 `managed-release-approvals.json`의 `approvals: {}`는 그대로 둡니다. 네이티브 QA가 성공하기 전에는 성공했다고 문서화하지 않습니다.
+
+## 실제 MR-MT3 네이티브 ZIP의 로컬 후보 보존 (#29)
+
+`scripts/verify_mt3_frozen_native.py`는 Windows x86_64/macOS arm64 실제 체크포인트 검증·관리형 설치·채보·MusicXML 확인을 완료한 후, 기본 동작에서는 모든 바이너리/모델 ZIP을 임시 공간에서 삭제합니다. 정식 출고 검토자가 그 **동일하게 검증된 ZIP 바이트**를 후속 후보 검토에 사용할 필요가 있을 때만 선택적 `--private-candidate-dir` 인자를 지원합니다.
+
+- 이 인자는 체크포인트가 없는 기동 검증에서는 거부하며, 사전에 만들어 둔 **Git 저장소 외부의 일반 디렉터리**만 허용합니다. 모든 경로 조상의 심볼릭 링크와 기존 ZIP 파일 덮어쓰기를 거부합니다.
+- `GITHUB_ACTIONS=true`에서는 무조건 거부하므로 기존 공개 저장소 CI가 가중치나 실행 바이너리를 실수로 보존/업로드하지 않습니다. CI는 기존처럼 증빙 `*.pending.json`만 보관합니다.
+- 실제 네이티브 채보와 전체 payload 검증, 원본 ZIP SHA-256 재검증 **이후** 사설 폴더에 임시 파일을 쓰고 SHA-256을 다시 확인한 뒤 원자적 hard-link 생성으로 결과 이름을 등록합니다. POSIX 파일 권한은 owner-only입니다. 파일이 이미 있거나 부분 복사·무결성 문제가 발생하면 기존 파일을 변경하지 않고 임시 파일을 정리합니다.
+- 파일명은 `MT3-MRMT3-<target>-UNAPPROVED.zip`입니다. 내부에는 frozen `mt3-infer`, SHA-256이 고정된 `checkpoints/mr_mt3/mt3.pth`, `pending` provenance만 있습니다. **상업 사용/재배포 권한이 승인됐다는 의미가 아니므로 어떤 공개 저장소, GitHub artifact, 클라우드 배포 URL에도 자동 게시하지 않습니다.**
+
+운영자가 승인 대기 자료를 오프라인으로 검토할 때만 다음처럼 실행합니다.
+
+```bash
+# 대상 OS의 고정 Python/PyInstaller/torch/MT3-Infer 빌더 환경에서 실행
+# 저장 경로와 체크포인트는 git checkout 밖에 사전 준비
+python scripts/verify_mt3_frozen_native.py \
+  --target macos-aarch64 \
+  --checkpoint-dir /private/reviewed-mrmt3-checkpoints \
+  --private-candidate-dir /private/release-review \
+  --output /private/release-review/mt3-native.pending.json
+```
+
+Windows에서는 `--target windows-x86_64`, Windows 전용 사설 절대 경로를 사용합니다. 정확한 빌더 의존성은 `.github/workflows/mt3-frozen-native-review.yml`에서 확인합니다. 이 출력은 임의 외부 배포 권한을 대체하지 않으며, 유효한 `--url`/라이선스/업스트림 revision과 실제 소스·고지를 따로 검토한 다음 `prepare_managed_artifact_candidate.py` 및 `verify_managed_artifact_publication.py`의 기존 출고 절차로 진행합니다. 최종 승인은 독립적인 담당자의 서명/라이선스 판단과 clean-machine 테스트까지 요구합니다.

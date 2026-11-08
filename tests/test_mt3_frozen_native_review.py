@@ -361,3 +361,145 @@ def test_native_workflow_runs_real_model_and_uploads_only_pending_json():
     assert "MT3-FROZEN-NATIVE-QA" in upload_step
     assert ".pending.json" in upload_step
     assert ".pth" not in upload_step and ".zip" not in upload_step and "*.exe" not in upload_step
+
+def test_private_native_candidate_staging_is_atomic_and_not_published(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+):
+    """An operator may retain verified bytes, but never overwrite or use CI."""
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    staging_dir = tmp_path / "operator-private"
+    staging_dir.mkdir()
+    destination = qa._private_candidate_destination(
+        staging_dir, target="macos-aarch64",
+    )
+    source = tmp_path / "real-private-qa.zip"
+    source.write_bytes(b"private-unapproved-model-archive" * 40)
+    digest = hashlib.sha256(source.read_bytes()).hexdigest()
+
+    qa._stage_private_candidate(source, destination, expected_sha256=digest)
+    assert destination.read_bytes() == source.read_bytes()
+    assert destination.name == "MT3-MRMT3-macos-aarch64-UNAPPROVED.zip"
+    if os.name != "nt":
+        assert destination.stat().st_mode & 0o077 == 0
+    assert not list(staging_dir.glob(".mt3-unapproved-*"))
+    with pytest.raises(qa.FrozenMT3ReviewError, match="already exists"):
+        qa._private_candidate_destination(staging_dir, target="macos-aarch64")
+    with pytest.raises(qa.FrozenMT3ReviewError, match="already exists"):
+        qa._stage_private_candidate(source, destination, expected_sha256=digest)
+    assert destination.read_bytes() == source.read_bytes()
+
+
+def test_private_candidate_rejects_ci_repo_path_and_symlink(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+):
+    staging_dir = tmp_path / "operator-private"
+    staging_dir.mkdir()
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    with pytest.raises(qa.FrozenMT3ReviewError, match="GitHub Actions"):
+        qa._private_candidate_destination(staging_dir, target="macos-aarch64")
+
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    with pytest.raises(qa.FrozenMT3ReviewError, match="outside the repository"):
+        qa._private_candidate_destination(qa._ROOT / "scripts", target="macos-aarch64")
+    with pytest.raises(qa.FrozenMT3ReviewError, match="already exist"):
+        qa._private_candidate_destination(tmp_path / "missing", target="macos-aarch64")
+    alias = tmp_path / "symlink-dir"
+    alias.symlink_to(staging_dir, target_is_directory=True)
+    with pytest.raises(qa.FrozenMT3ReviewError, match="linked"):
+        qa._private_candidate_destination(alias, target="macos-aarch64")
+
+
+def test_private_candidate_failed_checksum_does_not_leave_partial_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    source = tmp_path / "private-source.zip"
+    source.write_bytes(b"unapproved-artifact")
+    destination = tmp_path / "private-staged.zip"
+    with pytest.raises(qa.FrozenMT3ReviewError, match="changed after"):
+        qa._stage_private_candidate(source, destination, expected_sha256="0" * 64)
+    assert not destination.exists()
+    assert not list(tmp_path.glob(".mt3-unapproved-*"))
+
+
+def test_private_staging_requires_real_checkpoint_before_build(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    monkeypatch.setattr(qa, "_native_target", lambda _target: None)
+    monkeypatch.setattr(qa, "_pinned_packages", lambda: dict(qa._EXPECTED))
+    staging_dir = tmp_path / "private-candidates"
+    staging_dir.mkdir()
+    with pytest.raises(qa.FrozenMT3ReviewError, match="actual verified model"):
+        qa.build_and_verify_native(
+            target="macos-aarch64",
+            destination=tmp_path / "unused.pending.json",
+            private_candidate_dir=staging_dir,
+        )
+    assert list(staging_dir.iterdir()) == []
+
+
+def test_operator_private_candidate_only_staged_after_successful_native_probe(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    checkpoint = tmp_path / "reviewed-weight.pth"
+    checkpoint.write_bytes(b"private-source-weight")
+    root = tmp_path / "runner-only"
+    root.mkdir()
+    destination_dir = tmp_path / "operator-private"
+    destination_dir.mkdir()
+    monkeypatch.setattr(qa, "_native_target", lambda _target: None)
+    monkeypatch.setattr(qa, "_pinned_packages", lambda: dict(qa._EXPECTED))
+    monkeypatch.setattr(qa, "_trusted_checkpoint", lambda _root: checkpoint)
+
+    def fake_build(cmd, *, cwd, check):
+        assert cwd == qa._ROOT and check
+        dist = Path(cmd[cmd.index("--distpath") + 1])
+        dist.mkdir(parents=True)
+        (dist / f"mt3-infer{'.exe' if os.name == 'nt' else ''}").write_bytes(
+            b"MZ" + b"synthetic-frozen-review-binary" * 60000
+        )
+        return subprocess.CompletedProcess(cmd, 0)
+
+    def fake_probe(*_args, **_kwargs):
+        return {"checkpoint_download_disabled": True}
+
+    def verified_model(*, base, binary, managed, checkpoint, manifest, executable_sha):
+        assert managed.is_dir() and binary.is_file()
+        assert checkpoint.read_bytes() == b"private-source-weight"
+        assert executable_sha == qa._sha256(binary)
+        private_archive = base / "MT3-REAL-WEIGHTS-NOT-PUBLISHED.zip"
+        private_archive.write_bytes(b"private-verified-native-plus-model")
+        return {
+            "private_real_archive_sha256": qa._sha256(private_archive),
+            "actual_cpu_model_inference_verified": True,
+        }
+
+    monkeypatch.setattr(qa.subprocess, "run", fake_build)
+    monkeypatch.setattr(qa, "_probe_managed_native", fake_probe)
+    monkeypatch.setattr(qa, "_probe_native_real_inference", verified_model)
+    proof = qa.build_and_verify_native(
+        target="macos-aarch64",
+        destination=tmp_path / "proof.pending.json",
+        checkpoint_directory=root,
+        private_candidate_dir=destination_dir,
+    )
+    staged = destination_dir / "MT3-MRMT3-macos-aarch64-UNAPPROVED.zip"
+    assert staged.read_bytes() == b"private-verified-native-plus-model"
+    assert proof["private_candidate_staged_locally"] is True
+    assert proof["private_candidate_filename"] == staged.name
+    assert proof["runtime_redistribution_approved"] is False
+    assert proof["binaries_uploaded"] is False
+    assert not (tmp_path / "proof.pending.json").exists()
+
+
+def test_ci_workflow_never_invokes_private_archive_staging():
+    workflow = (
+        Path(__file__).resolve().parents[1]
+        / ".github/workflows/mt3-frozen-native-review.yml"
+    ).read_text(encoding="utf-8")
+    assert "--private-candidate-dir" not in workflow
+    assert "pending.json" in workflow
+    assert "MT3-REAL-WEIGHTS-NOT-PUBLISHED.zip" not in workflow
+

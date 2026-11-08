@@ -94,3 +94,9 @@ uv run --frozen python scripts/verify_managed_artifact_publication.py \
 - 별도 사람이 승인한 제3자 라이선스 검토자, 일시, 고지 URL·고지 해시, 대응 소스 제공 위치가 기록됨
 
 어느 하나라도 없거나 불일치하면 `published=false`이며 `POST /api/setup/install`도 409로 차단됩니다. 검증 도구나 앱이 라이선스 승인 기록을 자동 작성하지 않습니다. [관리형 런타임 출고 승인 형식](MANAGED_RELEASE_APPROVALS.ko.md)에 승인 기록과 신뢰 한계를 정리했습니다.
+
+### MT3-Infer MR-MT3 사설 후보 ZIP (native QA → 출고 준비)
+
+Windows/macOS frozen MR-MT3의 실제 모델 추론은 CI에서 검증됐지만, 이전 실행은 모델/실행 ZIP을 항상 삭제했습니다. 운영자가 **명시적으로 로컬 사설 폴더를 지정하는 경우에만** `verify_mt3_frozen_native.py --checkpoint-dir ... --private-candidate-dir ...`가 모델 포함 검증 완료 ZIP을 보존합니다. 저장 위치는 Git 저장소 밖이어야 하고, Github Actions에서는 이 옵션 자체를 거부합니다. 이름: `MT3-MRMT3-<target>-UNAPPROVED.zip`.
+
+다음 단계의 후보 준비 명령(`prepare_managed_artifact_candidate.py`)에 이 ZIP을 입력할 수 있지만, 플랫폼별 실제 URL, 정확한 라이선스/서드파티 notice, upstream revision 및 별도 리뷰 증빙이 확정되기 전에는 배포 파일을 공개하지 않습니다. 사설 ZIP 내부의 `pending` metadata는 법률적 승인 또는 clean-machine acceptance가 아닙니다. 운영자는 바이너리/체크포인트 아카이브를 GitHub Actions public artifact에 추가하거나 이 단계에서 `managed-component-catalog.json` 또는 승인 JSON을 변경하지 않습니다.
