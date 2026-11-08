@@ -38,6 +38,7 @@ from audio_score_tool.managed_tool_resolver import (
     registered_managed_tool,
 )
 from audio_score_tool.runner import CommandError, run_command
+from scripts.collect_mt3_frozen_inventory import collect_frozen_inventory
 
 _ROOT = Path(__file__).resolve().parents[1]
 _ENTRY = _ROOT / "scripts/mt3_frozen_entry.py"
@@ -490,12 +491,16 @@ def build_and_verify_native(
         if binary.stat().st_size > _MAX_ARCHIVE // 2:
             raise FrozenMT3ReviewError("Native MT3 runtime exceeds safe archive budget")
         executable_sha = _sha256(binary)
+        inventory = collect_frozen_inventory(binary, target=target)
+        if inventory["snapshot"]["frozen_executable_sha256"] != executable_sha:
+            raise FrozenMT3ReviewError("Frozen inventory does not match native executable bytes")
         manifest = {
             "schema": 1, "target": target, "model_adapter": _MODEL,
             "component": "transcription_engine",
             "build_method": "PyInstaller onefile native QA",
             "packages": packages,
             "mt3_wrapper_sha256": executable_sha,
+            "frozen_inventory_sha256": inventory["inventory_sha256"],
             "upstream": "https://github.com/openmirlab/mt3-infer/tree/v0.2.0",
             "model_weights_included": False,
             "redistribution_status": "pending", "approval_required": True,
@@ -553,6 +558,7 @@ def build_and_verify_native(
             "packages": packages,
             "native_executable_sha256": executable_sha,
             "native_executable_bytes": binary.stat().st_size,
+            "frozen_dependency_inventory": inventory,
             "private_archive_sha256": archive_sha,
             "private_archive_bytes": archive.stat().st_size,
             "whole_payload_sha256_verified": True,
