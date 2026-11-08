@@ -13,8 +13,8 @@ from pydantic import BaseModel, Field
 
 from .config import component_dir, packaged_runtime
 from .hf_session import active_token, authenticated, clear_session, identity, set_session
-from .runtime_settings import runtime_settings
 from .runner import command_exists
+from .runtime_settings import runtime_settings
 from .settings_store import SettingsStore
 
 router = APIRouter(tags=["model-manager"])
