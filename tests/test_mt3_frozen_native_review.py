@@ -145,3 +145,70 @@ def test_native_review_workflow_prohibits_binary_uploads():
     assert "*.exe" not in uploader
     assert "*.zip" not in uploader
     assert "MT3-FROZEN-NATIVE-QA" in uploader
+
+@pytest.mark.parametrize(
+    ("failure_kind", "accepted"),
+    [
+        ("expected_checkpoint", True),
+        ("unrelated_file", False),
+        ("wrong_checkpoint", False),
+        ("checkpoint_suffix", False),
+    ],
+)
+def test_native_probe_rejects_unrelated_missing_files(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    failure_kind: str,
+    accepted: bool,
+):
+    """A missing DLL/resource cannot masquerade as an absent model checkpoint."""
+    native = tmp_path / "mt3-infer"
+    native.write_bytes(b"private-frozen-cli")
+    monkeypatch.setattr(
+        qa, "registered_managed_tool", lambda *_args, **_kw: native,
+    )
+    expected_path = (
+        tmp_path / "intentionally-absent-checkpoints" / "mr_mt3" / "mt3.pth"
+    )
+    failures = {
+        "expected_checkpoint": (
+            f"Transcribing with mr_mt3...\\n"
+            f"Transcription failed: Checkpoint not found: {expected_path}"
+        ),
+        "unrelated_file": "OSError: libtorch_cpu.dll: No such file or directory",
+        "wrong_checkpoint": (
+            f"Transcription failed: Checkpoint not found: {tmp_path / 'other.pth'}"
+        ),
+        "checkpoint_suffix": (
+            f"Checkpoint not found: {expected_path}.unexpected"
+        ),
+    }
+
+    def fake_command(command, args, *, env, timeout_seconds):
+        assert command == str(native) and timeout_seconds == 180
+        assert env["PATH"] == ""
+        assert env["PYTHONPATH"] == "" and env["PYTHONHOME"] == ""
+        assert env["PYTHONIOENCODING"] == "utf-8" and env["PYTHONUTF8"] == "1"
+        assert env["HF_HUB_OFFLINE"] == "1"
+        if args == ["--version"]:
+            output = "mt3-infer 0.2.0"
+        elif args == ["list"]:
+            output = "Models: mr_mt3"
+        elif args == ["transcribe", "--help"]:
+            output = "Usage: transcribe --no-download"
+        else:
+            assert args[0] == "transcribe" and "--no-download" in args
+            raise qa.CommandError(failures[failure_kind])
+        return subprocess.CompletedProcess(args, 0, stdout=output)
+
+    monkeypatch.setattr(qa, "run_command", fake_command)
+    if accepted:
+        proof = qa._probe_managed_native(tmp_path, native.name, model="mr_mt3")
+        assert proof["checkpoint_download_disabled"] is True
+        assert proof["dynamic_mr_mt3_adapter_reached"] is True
+    else:
+        with pytest.raises(
+            qa.FrozenMT3ReviewError, match="other than its absent checkpoint",
+        ):
+            qa._probe_managed_native(tmp_path, native.name, model="mr_mt3")
+    assert not expected_path.exists()
