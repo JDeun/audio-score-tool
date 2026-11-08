@@ -320,7 +320,7 @@ def verify_packaged_managed_features(
     mt3_model: str | None = None,
     job_timeout_seconds: float = 1200,
 ) -> dict[str, Any]:
-    """Real uploaded audio→managed frozen CLI→MIDI→MusicXML, plus JRE startup."""
+    """Real packaged audio→MIDI/MusicXML and PDF→Audiveris→Song→publish."""
     status, payload = _http(base_url, token, "GET", "/api/setup/center")
     setup = _json_ok(status, payload, name="packaged managed component state")
     items = setup.get("components")
@@ -355,6 +355,15 @@ def verify_packaged_managed_features(
     if status != 200:
         raise PackagedFeatureAcceptanceError(f"Packaged MusicXML download failed: HTTP {status}")
     notes, parts = _musicxml_note_count(xml_bytes)
+    from scripts.verify_packaged_omr_pdf import verify_real_pdf_omr
+
+    omr_accepted = verify_real_pdf_omr(
+        base_url, token, workspace=private_workspace,
+    )
+    if omr_accepted.get("real_pdf_omr_accepted") is not True:
+        raise PackagedFeatureAcceptanceError(
+            "Real PDF→Audiveris→Song→export product acceptance was incomplete"
+        )
     return {
         "schema_version": "1",
         "mt3_model": model,
@@ -365,6 +374,7 @@ def verify_packaged_managed_features(
         "packaged_backend_http_job_api_verified": True,
         "system_python_required_for_model_execution": False,
         **omr,
+        **omr_accepted,
         "clean_machine_desktop_installer_verified": False,
         "model_redistribution_approved": False,
         "publication_status": "already-approved-catalog-only",

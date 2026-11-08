@@ -14,6 +14,7 @@ import pytest
 
 from scripts import smoke_packaged_sidecar as smoke
 from scripts import verify_packaged_managed_features as features
+from scripts import verify_packaged_omr_pdf as real_omr
 
 _BASE = "http://127.0.0.1:4567"
 _TOKEN = "local-qa-acceptance-token"
@@ -228,6 +229,10 @@ def test_real_managed_audio_to_musicxml_downloads_from_packaged_api(tmp_path, mo
         "real_pdf_omr_accepted": False,
     })
     monkeypatch.setattr(features, "_put_engine", lambda *_: "mr_mt3")
+    monkeypatch.setattr(real_omr, "verify_real_pdf_omr", lambda *_a, **_kw: {
+        "actual_pdf_omr_job_completed": True,
+        "real_pdf_omr_accepted": True,
+    })
     monkeypatch.setattr(features, "_upload_owned_wav", lambda *_: job_id)
     monkeypatch.setattr(features, "_await_job", lambda *_a, **_kw: {"job_id": job_id, "status": "done", "result": {"midi": "tmp", "musicxml": "tmp"}})
     output = features.verify_packaged_managed_features(
@@ -237,7 +242,8 @@ def test_real_managed_audio_to_musicxml_downloads_from_packaged_api(tmp_path, mo
     assert output["downloaded_midi_note_ons"] == 1
     assert output["downloaded_musicxml_pitched_notes"] == 1
     assert output["downloaded_musicxml_parts"] == 1
-    assert output["real_pdf_omr_accepted"] is False
+    assert output["real_pdf_omr_accepted"] is True
+    assert output["actual_pdf_omr_job_completed"] is True
     assert requests == [
         ("GET", "/api/setup/center"),
         ("GET", f"/api/jobs/{job_id}/files/midi"),
@@ -287,6 +293,8 @@ def test_package_gate_uses_isolated_appdata_and_empty_host_path(monkeypatch, tmp
             or {
                 "actual_product_audio_job_completed": True,
                 "embedded_jre_started_without_system_path": True,
+                "real_pdf_omr_accepted": True,
+                "omr_musicxml_pdf_midi_parts_export_verified": True,
             }
         ),
     )
