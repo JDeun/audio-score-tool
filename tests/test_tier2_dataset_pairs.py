@@ -1,6 +1,7 @@
 """Owned tiny WAV/MIDI fixtures for domain-dataset pair integrity; no model runs."""
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import wave
@@ -139,3 +140,22 @@ def test_invalid_midi_after_matching_pinned_hash_is_still_rejected(tmp_path: Pat
     plan["cases"][0]["reference_midi"]["sha256"] = _sha(midi)
     with pytest.raises((ValueError, EOFError), match="reference MIDI"):
         validate_pairs(plan, registry, corpus_root=corpus)
+
+
+def test_more_than_128_paired_cases_flow_through_existing_tier2_manifest(tmp_path: Path):
+    plan, registry, corpus = _fixture(tmp_path)
+    original = plan["cases"][0]
+    plan["cases"] = []
+    for number in range(129):
+        case = copy.deepcopy(original)
+        case["id"] = f"piano-{number:03d}"
+        case["recording_id"] = f"owned-recording-{number:03d}"
+        plan["cases"].append(case)
+    report, tier2 = validate_pairs(plan, registry, corpus_root=corpus)
+    assert report["case_count"] == 129
+    assert len(tier2["cases"]) == 129
+    manifest = tmp_path / "large-tier2-manifest.json"
+    manifest.write_text(json.dumps(tier2), encoding="utf-8")
+    _version, loaded = load_manifest(manifest)
+    assert len(loaded) == 129
+    assert all(case.reference_midi == "private://reference/piano.mid" for case in loaded)

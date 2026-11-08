@@ -1,6 +1,7 @@
 """Synthetic-only paired CocoChorales scoring: no external dataset or weights."""
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import shutil
@@ -213,3 +214,45 @@ def test_untrusted_or_unmeasured_latency_claim_fails_closed(tmp_path):
     prov.write_text(json.dumps(data))
     with pytest.raises(ValueError, match="inference time"):
         _score(p, registry, source, root, predictions)
+
+
+def test_more_than_four_original_pairs_are_scored_without_silent_truncation(tmp_path):
+    p, registry, source, root, predictions = _fixture(tmp_path)
+    original = p["cases"][0]
+    original_source = source["tracks"][0]
+    original_id = original["id"]
+    for number in range(2, 8):
+        name = f"string_track{number:06d}"
+        case_id = f"coco-{name}"
+        folder = root / name
+        folder.mkdir()
+        for filename in ("mix.wav", "mix.mid"):
+            shutil.copy2(root / "string_track000001" / filename, folder / filename)
+        case = copy.deepcopy(original)
+        case["id"] = case_id
+        case["recording_id"] = name
+        case["audio"]["locator"] = f"private://{name}/mix.wav"
+        case["reference_midi"]["locator"] = f"private://{name}/mix.mid"
+        p["cases"].append(case)
+        track = copy.deepcopy(original_source)
+        track["track_id"] = name
+        source["tracks"].append(track)
+        for suffix in ("mid", "musicxml"):
+            shutil.copy2(
+                predictions / f"{original_id}.{suffix}",
+                predictions / f"{case_id}.{suffix}",
+            )
+    provenance = predictions / "tier2-prediction-provenance.json"
+    payload = json.loads(provenance.read_text(encoding="utf-8"))
+    payload["case_ids"] = [case["id"] for case in p["cases"]]
+    # Adding real pairs changes the source corpus fingerprint. A stale,
+    # one-case prediction provenance must not be accepted for seven cases.
+    _verified, manifest = validate_pairs(p, registry, corpus_root=root)
+    payload["corpus_version"] = manifest["corpus_version"]
+    payload["case_inference_seconds"] = {case_id: 1.25 for case_id in payload["case_ids"]}
+    provenance.write_text(json.dumps(payload), encoding="utf-8")
+    report = _score(p, registry, source, root, predictions)
+    assert report["case_count"] == 7
+    assert report["scored_case_count"] == 7
+    assert all(case["note_onset_offset_f1"] == 1 for case in report["cases"])
+    assert report["release_quality_approved"] is False

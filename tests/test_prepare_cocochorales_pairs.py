@@ -216,18 +216,32 @@ def test_invalid_metadata_output_destination_fails_before_write(tmp_path, monkey
 
 
 
-def test_official_track_split_boundaries_and_small_media_cap(tmp_path):
+def test_official_track_split_boundaries_and_unbounded_pair_selection(tmp_path):
     assert coco.official_split("string_track192000") == "train"
     assert coco.official_split("string_track192001") == "validation"
     assert coco.official_split("string_track216000") == "validation"
     assert coco.official_split("string_track216001") == "test"
     root, selected, track = _fixture(tmp_path)
+
+    # Six tracks/12 media files: the historical eight-media cap is gone.
+    originals = {
+        part: (root / track / part).read_bytes()
+        for part in ("mix.wav", "mix.mid", "metadata.yaml")
+    }
+    for number in range(2, 7):
+        folder = root / f"string_track{number:06d}"
+        folder.mkdir()
+        for name, content in originals.items():
+            (folder / name).write_bytes(content)
     selected["tracks"] = [
-        {"track_id": f"string_track{index:06d}", "split": "train"}
-        for index in range(1, 6)
+        {"track_id": f"string_track{number:06d}", "split": "train"}
+        for number in range(1, 7)
     ]
-    with pytest.raises(ValueError, match="at most 8"):
-        coco.prepare_pairs(selected, corpus_root=root)
+    pairs, report = coco.prepare_pairs(selected, corpus_root=root)
+    assert len(pairs["cases"]) == 6
+    assert report["media_file_count"] == 12
+    assert len({case["recording_id"] for case in pairs["cases"]}) == 6
+
     selected["tracks"] = [{"track_id": track, "split": "validation"}]
     with pytest.raises(ValueError, match="official track-number"):
         coco.prepare_pairs(selected, corpus_root=root)

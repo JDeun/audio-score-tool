@@ -28,7 +28,6 @@ _SPLITS = frozenset({"train", "validation", "test"})
 _SOURCE = "https://magenta.tensorflow.org/datasets/cocochorales"
 _DATASET_ID = "cocochorales"
 _LICENSE = "CC-BY-4.0"
-_MAX_TRACKS = 4
 _MAX_BYTES = 128 * 1024 * 1024
 
 
@@ -175,8 +174,8 @@ def prepare_pairs(
     if any(term in revision.lower() for term in ("unknown", "unreviewed", "placeholder", "replace")):
         raise ValueError("CocoChorales source release is a placeholder")
     tracks = selected.get("tracks")
-    if not isinstance(tracks, list) or not 1 <= len(tracks) <= _MAX_TRACKS:
-        raise ValueError("Select 1 to 4 CocoChorales tiny tracks (at most 8 audio/MIDI files)")
+    if not isinstance(tracks, list) or not tracks:
+        raise ValueError("Select at least one CocoChorales track")
     used: set[str] = set()
     cases: list[dict[str, Any]] = []
     recorded: list[dict[str, Any]] = []

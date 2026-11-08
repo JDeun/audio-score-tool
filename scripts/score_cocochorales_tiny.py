@@ -146,8 +146,8 @@ def score_cocochorales(
     if not isinstance(pairs, dict) or not isinstance(source_proof, dict):
         raise ValueError("CocoChorales paired manifest and source proof must be objects")
     records = pairs.get("cases")
-    if not isinstance(records, list) or not 1 <= len(records) <= 4:
-        raise ValueError("CocoChorales benchmark accepts 1–4 pairs only")
+    if not isinstance(records, list) or not records:
+        raise ValueError("CocoChorales benchmark requires at least one pair")
     for case in records:
         if not isinstance(case, dict) or case.get("dataset_id") != "cocochorales":
             raise ValueError("Mixed datasets cannot enter CocoChorales-only evaluation")
