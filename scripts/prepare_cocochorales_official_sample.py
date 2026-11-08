@@ -124,9 +124,15 @@ def prepare_official_sample(
                         continue
                     if (
                         selected in extracted or not 0 < info.file_size <= MAX_MEMBER_BYTES
-                        or not info.compress_type in {zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED}
                     ):
-                        raise ValueError("Duplicate, unsupported or oversized sample member")
+                        raise ValueError("Duplicate or oversized sample member")
+                    if info.compress_type not in {
+                        zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED,
+                        zipfile.ZIP_BZIP2, zipfile.ZIP_LZMA,
+                    }:
+                        raise ValueError(
+                            f"Unsupported ZIP compression for {selected}: {info.compress_type}"
+                        )
                     aggregate_size += info.file_size
                     if aggregate_size > MAX_TOTAL_EXTRACTED:
                         raise ValueError("Total selected sample media exceeds extraction budget")
