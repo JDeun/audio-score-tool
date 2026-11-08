@@ -136,6 +136,19 @@ def test_identical_original_midi_predictions_reach_perfect_onset_offset_f1(tmp_p
     assert case["instrument_onset_offset_f1"] == pytest.approx(1.0)
     assert case["matched_onset_offset_notes"] == 1
     assert case["musicxml"] == {"parts": 1, "notes": 1}
+    diagnostic = case["instrument_part_diagnostics"]
+    assert diagnostic["source_declared_gm_programs"] == [40]
+    assert diagnostic["reference_gm_program_note_counts"] == [
+        {"is_drum": False, "program": 40, "note_count": 1}
+    ]
+    assert diagnostic["prediction_gm_program_note_counts"] == [
+        {"is_drum": False, "program": 40, "note_count": 1}
+    ]
+    assert diagnostic["shared_gm_programs"] == [40]
+    assert diagnostic["prediction_midi"]["note_bearing_tracks"] == 1
+    assert diagnostic["prediction_musicxml_part_count"] == 1
+    assert diagnostic["midi_to_musicxml_track_count_reduction_observed"] is False
+    assert diagnostic["no_shared_program_explains_strict_zero"] is False
     assert case["model_inference_seconds"] == 1.25
     assert case["peak_memory_measured"] is False
     assert case["human_publish_time_seconds"] is None
@@ -158,6 +171,11 @@ def test_offset_and_instrument_scores_are_independent_of_onset_f1(tmp_path):
     assert result["note_onset_f1"] == pytest.approx(1)
     assert result["note_onset_offset_f1"] == pytest.approx(1)
     assert result["instrument_onset_offset_f1"] == pytest.approx(0)
+    diagnostic = result["instrument_part_diagnostics"]
+    assert diagnostic["reference_gm_program_note_counts"][0]["program"] == 40
+    assert diagnostic["prediction_gm_program_note_counts"][0]["program"] == 56
+    assert diagnostic["shared_gm_programs"] == []
+    assert diagnostic["no_shared_program_explains_strict_zero"] is True
 
 
 @pytest.mark.parametrize("kind", [
@@ -256,3 +274,27 @@ def test_more_than_four_original_pairs_are_scored_without_silent_truncation(tmp_
     assert report["scored_case_count"] == 7
     assert all(case["note_onset_offset_f1"] == 1 for case in report["cases"])
     assert report["release_quality_approved"] is False
+
+
+
+def test_track_summary_identifies_possible_midi_to_musicxml_part_loss(tmp_path):
+    p, registry, source, root, predictions = _fixture(tmp_path)
+    pred = predictions / "coco-string_track000001.mid"
+    midi = mido.MidiFile(ticks_per_beat=480)
+    for channel, program, pitch in ((0, 40, 60), (1, 41, 64)):
+        part = mido.MidiTrack()
+        part.extend([
+            mido.Message("program_change", channel=channel, program=program, time=0),
+            mido.Message("note_on", channel=channel, note=pitch, velocity=80, time=0),
+            mido.Message("note_off", channel=channel, note=pitch, velocity=0, time=480),
+        ])
+        midi.tracks.append(part)
+    midi.save(str(pred))
+    result = _score(p, registry, source, root, predictions)["cases"][0]
+    diagnostic = result["instrument_part_diagnostics"]
+    assert diagnostic["prediction_midi"]["total_tracks"] == 2
+    assert diagnostic["prediction_midi"]["note_bearing_tracks"] == 2
+    assert diagnostic["prediction_musicxml_part_count"] == 1
+    assert diagnostic["midi_to_musicxml_track_count_reduction_observed"] is True
+    assert len(diagnostic["prediction_gm_program_note_counts"]) == 2
+    assert diagnostic["diagnosis_is_observation_not_causal_proof"] is True

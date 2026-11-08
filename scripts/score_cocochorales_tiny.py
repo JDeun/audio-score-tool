@@ -12,10 +12,12 @@ import hashlib
 import json
 import math
 import re
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
 from defusedxml import ElementTree as ET
+import mido
 
 from audio_score_tool.metrics import MidiNote, evaluate_midi_files, midi_notes
 from audio_score_tool.tier2_prediction import load_tier2_prediction_provenance
@@ -106,6 +108,71 @@ def _musicxml_summary(path: Path) -> dict[str, int]:
     if not parts or not note_count:
         raise ValueError("prediction MusicXML is empty")
     return {"parts": len(parts), "notes": note_count}
+
+
+def _midi_program_diagnostics(
+    predicted_midi: Path, reference_midi: Path,
+    predicted_notes: list[MidiNote], reference_notes: list[MidiNote],
+    *,
+    original_instruments: list[dict[str, Any]],
+    musicxml_parts: int,
+    strict_note_matches: int,
+) -> dict[str, Any]:
+    """Record actual GM/channel/MIDI track evidence without changing predictions.
+
+    Note counts use the same program interpretation as instrument-aware F1.
+    The raw MIDI track summaries distinguish engine part collapse from a
+    *possible* MIDI→MusicXML conversion collapse; neither infers a root cause.
+    """
+
+    def programs(notes: list[MidiNote]) -> list[dict[str, Any]]:
+        counter = Counter((note.is_drum, note.program) for note in notes)
+        return [
+            {"is_drum": is_drum, "program": program, "note_count": counter[(is_drum, program)]}
+            for is_drum, program in sorted(counter)
+        ]
+
+    def tracks(path: Path) -> dict[str, int]:
+        midi = mido.MidiFile(str(path))
+        return {
+            "total_tracks": len(midi.tracks),
+            "note_bearing_tracks": sum(
+                any(event.type == "note_on" and event.velocity > 0 for event in track)
+                for track in midi.tracks
+            ),
+        }
+
+    predicted_keys = {note.instrument_key for note in predicted_notes}
+    reference_keys = {note.instrument_key for note in reference_notes}
+    expected_programs = sorted({
+        part["midi_program"] for part in original_instruments
+        if isinstance(part, dict) and type(part.get("midi_program")) is int
+        and 0 <= part["midi_program"] <= 127
+    })
+    predicted_structure = tracks(predicted_midi)
+    reference_structure = tracks(reference_midi)
+    return {
+        "source_declared_gm_programs": expected_programs,
+        "reference_gm_program_note_counts": programs(reference_notes),
+        "prediction_gm_program_note_counts": programs(predicted_notes),
+        "reference_note_channels": sorted({note.channel for note in reference_notes}),
+        "prediction_note_channels": sorted({note.channel for note in predicted_notes}),
+        "shared_gm_programs": [
+            program for is_drum, program in sorted(reference_keys & predicted_keys)
+            if not is_drum
+        ],
+        "reference_midi": reference_structure,
+        "prediction_midi": predicted_structure,
+        "prediction_musicxml_part_count": musicxml_parts,
+        "strict_instrument_note_matches": strict_note_matches,
+        "no_shared_program_explains_strict_zero": (
+            not (predicted_keys & reference_keys) and strict_note_matches == 0
+        ),
+        "midi_to_musicxml_track_count_reduction_observed": (
+            predicted_structure["note_bearing_tracks"] > musicxml_parts
+        ),
+        "diagnosis_is_observation_not_causal_proof": True,
+    }
 
 
 def _source_receipt(
@@ -220,6 +287,12 @@ def score_cocochorales(
                              "failure_reason": "prediction-artifact-missing-or-linked"})
             continue
         reference = corpus_root.expanduser().resolve() / case["reference_midi"]["locator"].removeprefix("private://")
+        original = next(
+            (item for item in source_proof["tracks"] if item["track_id"] == case["recording_id"]),
+            None,
+        )
+        if original is None:
+            raise ValueError("CocoChorales source proof case lacks instrument metadata")
         try:
             predicted_notes = midi_notes(pred_midi)
             reference_notes = midi_notes(reference)
@@ -227,6 +300,12 @@ def score_cocochorales(
             onset = evaluate_midi_files(pred_midi, reference).as_dict()
             full = _score_matching(predicted_notes, reference_notes, require_instrument=False)
             instrument = _score_matching(predicted_notes, reference_notes, require_instrument=True)
+            diagnostics = _midi_program_diagnostics(
+                pred_midi, reference, predicted_notes, reference_notes,
+                original_instruments=original["instruments"],
+                musicxml_parts=xml_summary["parts"],
+                strict_note_matches=instrument["matched"],
+            )
         except (OSError, ValueError, EOFError):
             measured.append({"case_id": case_id, "status": "failed",
                              "failure_reason": "invalid-prediction-midi-or-musicxml"})
@@ -245,6 +324,7 @@ def score_cocochorales(
             "onset_mae_ms": onset["onset_mae_ms"],
             "offset_mae_ms": onset["offset_mae_ms"],
             "musicxml": xml_summary,
+            "instrument_part_diagnostics": diagnostics,
             "prediction_midi_sha256": _sha(pred_midi),
             "prediction_musicxml_sha256": _sha(xml),
             "model_inference_seconds": raw_times[case_id] if raw_times is not None else None,
