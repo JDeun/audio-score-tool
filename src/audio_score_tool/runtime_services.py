@@ -368,6 +368,7 @@ def health() -> dict:
     return {
         "status": "ok",
         "packaged_runtime": packaged_runtime(),
+        "usage_mode": getattr(_runtime_settings(), "usage_mode", "commercial"),
         "device_plan": detect_device_plan().as_dict(),
         "preflight": preflight(_runtime_settings()),
         "presets": list_presets(),
@@ -530,15 +531,17 @@ async def create_job(
 
 @app.post("/api/jobs/youtube", status_code=202)
 def create_youtube_job(payload: YouTubeJobRequest) -> dict:
-    if not payload.authorized:
-        raise HTTPException(
-            422,
-            "Confirm that you are authorized to process this content before importing it.",
-        )
-
     try:
         url = validate_youtube_url(payload.url)
         defaults = _runtime_settings()
+        # Personal offline practice is not a public redistribution workflow.
+        # Commercial mode retains an explicit rights confirmation; automated
+        # release QA has a separate, stricter reviewed-source contract.
+        if getattr(defaults, "usage_mode", None) != "personal" and not payload.authorized:
+            raise HTTPException(
+                422,
+                "Confirm that you are authorized to process this content before importing it.",
+            )
         resolved_muscriptor, resolved_whisperx = resolve_job_models(
             payload.preset,
             selected_muscriptor_model=defaults.muscriptor_model,

@@ -15,6 +15,7 @@ type DevicePlan = {
 type Health = {
   status: string;
   packaged_runtime?: boolean;
+  usage_mode?: "personal" | "commercial";
   device_plan: DevicePlan;
   preflight: { ok: boolean; missing: string[]; tools: Record<string, boolean> };
   youtube?: { ready: boolean };
@@ -187,6 +188,7 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
 
   const showToast = (message: string, kind: "success" | "error" = "success") => setToast({ message, kind });
   const whisperxReady = health?.preflight.tools.whisperx === true;
+  const personalYoutube = health?.usage_mode === "personal";
 
   useEffect(() => {
     if (!health) return;
@@ -356,13 +358,13 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
         response = await fetch(`${API}/api/jobs`, { method: "POST", body });
       } else {
         if (!youtubeMetadata) throw new Error("YouTube 링크를 먼저 확인하세요.");
-        if (!youtubeAuthorized) throw new Error("콘텐츠 처리 권한을 확인해야 합니다.");
+        if (!personalYoutube && !youtubeAuthorized) throw new Error("상용 모드에서 콘텐츠 처리 권한을 확인해야 합니다.");
         response = await fetch(`${API}/api/jobs/youtube`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             url: youtubeUrl,
-            authorized: true,
+            authorized: !personalYoutube && youtubeAuthorized,
             language,
             skip_lyrics: !lyrics,
             preset: preset === "custom" ? "balanced" : preset,
@@ -559,7 +561,11 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
               <div className="youtube-inline-copy"><span className="card-kicker">YouTube → 오디오 → 악보</span><h2>YouTube 링크에서 바로 채보</h2><p>링크를 확인한 뒤 최적의 오디오 스트림만 로컬로 가져와 동일한 채보 파이프라인을 실행합니다.</p></div>
               <div className="youtube-inline-row"><input type="url" value={youtubeUrl} placeholder="https://www.youtube.com/watch?v=…" disabled={active} onChange={(event) => { setYoutubeUrl(event.target.value); setYoutubeMetadata(null); }} onKeyDown={(event) => event.key === "Enter" && void inspectYoutube()} /><button className="secondary-button" disabled={!youtubeUrl.trim() || youtubeInspecting || active} onClick={() => void inspectYoutube()}>{youtubeInspecting ? "확인 중…" : "링크 확인"}</button></div>
               {youtubeMetadata && <div className="source-preview-row"><div className="source-preview-note">♪</div><div><strong>{youtubeMetadata.title}</strong><span>{youtubeMetadata.uploader ?? "YouTube"} · {formatDuration(youtubeMetadata.duration)}</span></div><span className="source-ready">준비됨</span></div>}
-              <label className="rights-check"><input type="checkbox" checked={youtubeAuthorized} disabled={active} onChange={(event) => setYoutubeAuthorized(event.target.checked)} /><span>이 콘텐츠를 다운로드·처리할 권한이 있거나 YouTube/권리자가 허용한 콘텐츠임을 확인합니다.</span></label>
+              {personalYoutube ? (
+                <p className="source-usage-note">개인 연습·학습용 로컬 분석입니다. YouTube 이용약관과 적용되는 저작권 규정을 준수하고, 원본 음원이나 생성한 결과물을 허가 없이 공개·재배포하지 마세요.</p>
+              ) : (
+                <label className="rights-check"><input type="checkbox" checked={youtubeAuthorized} disabled={active} onChange={(event) => setYoutubeAuthorized(event.target.checked)} /><span>상용 이용: 이 콘텐츠를 처리할 권한이나 이용 허가가 있음을 확인합니다.</span></label>
+              )}
             </div>
           )}
         </section>
@@ -571,7 +577,7 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
             <label className="switch-field"><span>가사 인식·정렬</span><button className={`product-switch ${lyrics ? "on" : ""}`} disabled={!whisperxReady} onClick={() => { lyricsPreferenceTouched.current = true; setLyrics((value) => !value); }} aria-pressed={lyrics}><i />{lyrics ? "포함" : "악보만"}</button><small>{whisperxReady ? "보컬 파트에 인식한 가사를 자동 배치합니다." : "WhisperX 미설치: 가사 없이 악보를 생성합니다."}</small></label>
           </div>
           {preset === "custom" && <div className="custom-model-row"><label><span>MuScriptor</span><select value={muscriptorModel} onChange={(event) => setMuscriptorModel(event.target.value)}><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></label><label><span>WhisperX</span><select value={whisperxModel} disabled={!lyrics} onChange={(event) => setWhisperxModel(event.target.value)}><option value="small">Small</option><option value="medium">Medium</option><option value="large-v3">Large v3</option></select></label></div>}
-          <div className="primary-action-row">{!health?.preflight.ok && <span className="setup-needed">일부 실행 환경을 확인해야 합니다. 설정 메뉴에서 상태를 확인하세요.</span>}<button className="primary-button large" disabled={busy || active || offline || !health?.preflight.ok || (sourceMode === "youtube" && health?.youtube?.ready === false) || (sourceMode === "file" ? !file : !youtubeMetadata || !youtubeAuthorized)} onClick={() => void startTranscription()}>{active ? "작업 진행 중" : "자동 채보 시작"}</button></div>
+          <div className="primary-action-row">{!health?.preflight.ok && <span className="setup-needed">일부 실행 환경을 확인해야 합니다. 설정 메뉴에서 상태를 확인하세요.</span>}<button className="primary-button large" disabled={busy || active || offline || !health?.preflight.ok || (sourceMode === "youtube" && health?.youtube?.ready === false) || (sourceMode === "file" ? !file : !youtubeMetadata || (!personalYoutube && !youtubeAuthorized))} onClick={() => void startTranscription()}>{active ? "작업 진행 중" : "자동 채보 시작"}</button></div>
         </section>
         {currentJobCard}
         <section className="workflow-strip" aria-label="자동 채보 과정"><div><b>1</b><span>음원 분석</span></div><i /><div><b>2</b><span>파트별 채보</span></div><i /><div><b>3</b><span>코드·가사</span></div><i /><div><b>4</b><span>악보 편집</span></div><i /><div><b>5</b><span>PDF 내보내기</span></div></section>
