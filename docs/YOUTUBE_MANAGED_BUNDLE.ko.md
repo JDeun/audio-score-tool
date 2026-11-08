@@ -156,3 +156,14 @@ uv run --frozen python scripts/assemble_youtube_runtime_candidate.py \
 후속 승인 순서는 [로컬 아티팩트 후보 관리](MANAGED_ARTIFACT_CANDIDATES.ko.md)의 URL·SHA-256 확인 → 라이선스/재배포 승인 → 배포 카탈로그 작성 → Windows/macOS `Desktop Packages` 수동 `require_managed_delivery` → 실제 YouTube 처리·복구·클린 머신 smoke입니다.
 
 **현재 릴리스 차단 상태:** 네 개 도구를 하나의 승인된 바이너리 조합으로 게시하지 않았으므로 #29는 계속 open이며, 모델 비교(#34)와 라이선스 판단을 대신하지 않습니다.
+
+
+## 실제 네이티브 관리형 ZIP 설치·변환 인수시험 (#29)
+
+`.github/workflows/ffmpeg-native-build-review.yml`에서 실제 공식 yt-dlp/Deno 자산과 고정 FFmpeg 소스에서 컴파일한 네 실행 파일을 하나의 **앱 관리형 ZIP**으로 조립해 검증합니다. 새 `scripts/verify_youtube_managed_candidate_native.py`는 기존 검증된 `SOURCE-EVIDENCE.pending.json`, `DOWNLOAD-EVIDENCE.pending.json`, `NATIVE-FFMPEG-EVIDENCE.pending.json`, `FFMPEG-BUILD-REVIEW.pending.json` 및 고정된 소스 커밋·툴 해시가 서로 일치하는 경우에만 후보를 만듭니다.
+
+네이티브 Windows x86_64/macOS ARM64 CI에서 이 ZIP을 다시 **제품의 `install_component_artifact()`로 실제 설치**하고, 설치 파일의 전체 SHA-256, 모든 파일의 인벤토리, `AST_PACKAGED=1`의 등록 명령 해석 및 네 도구의 `--version`을 검증합니다. 시스템 `PATH`를 비운 상태에서 앱이 생성한 440Hz 합성 WAV를 로컬 HTTP로 제공해 설치된 yt-dlp → FFmpeg FLAC 변환 → ffprobe 검증 흐름을 실행합니다.
+
+출력되는 `MANAGED-YOUTUBE-NATIVE-E2E.pending.json`과 `*.zip.pending.json`만 공개 Actions 증빙으로 업로드합니다. **실제 바이너리 ZIP, 원본 다운로드, 음원, 임시 모델/런타임은 공개 아티팩트로 업로드하지 않습니다.** 잠정 제3자 고지는 검토 전용 문구로 명시되며, 상용/사용자 배포용 라이선스 고지로 간주하지 않습니다.
+
+이 네이티브 시험은 원래 #29에 남아 있던 **실제 YouTube 스택이 앱 관리형 ZIP 형태로 설치·실행 가능한지** 검증합니다. 다만 실제 YouTube 비디오/JS challenge 추출, 독립 서명 검증, 최종 라이선스 및 대응 소스 제공 승인, 공개 HTTPS 아티팩트 게시, Windows/macOS 클린 머신 설치는 **검증하지 않습니다**. 따라서 `managed-component-catalog.json`과 `managed-release-approvals.json`은 비어 있으며 #29는 유지합니다.
