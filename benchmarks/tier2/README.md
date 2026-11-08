@@ -342,3 +342,23 @@ uv run --frozen python scripts/prepare_cocochorales_pairs.py \
 The official `lukewys/chamber-ensemble-generator` format at commit `4647edbce6719fe907e17fcc072651def168eaa5` assigns track numbers 000001–192000 to train, 192001–216000 to validation, and 216001–240000 to test. `prepare_cocochorales_pairs.py` now rejects a track tagged with a contradictory split and checks the four SATB names/GM program numbers in each official `metadata.yaml`. At most four **audio/MIDI pairs (eight media files)** are admitted per tiny evaluation run. The code does not infer a rights grant or upload audio.
 
 Official dataset landing page: https://magenta.tensorflow.org/datasets/cocochorales (CC BY 4.0; attribution and changes notice apply). Source format: https://github.com/lukewys/chamber-ensemble-generator/blob/4647edbce6719fe907e17fcc072651def168eaa5/data_format.md. Real paired files must be obtained via the official tiny shard downloads and recorded with archive checksums, rather than inferring provenance from a lookalike folder or HF mirror.
+
+### Official tiny single-shard audio+MIDI extraction (#154)
+
+The upstream [tiny download script](https://github.com/lukewys/chamber-ensemble-generator/blob/4647edbce6719fe907e17fcc072651def168eaa5/data_download/download_cocochorales_tiny.sh) downloads many archives; do **not** run it for a four-pair evaluation. Instead, download exactly the explicitly chosen \`main_dataset/{train,valid,test}/1.tar.bz2\` from Google's official \`cocochorales_full_v1_zipped\` bucket to a private folder (never git), and verify the archive MD5 against the [official checksum list](https://storage.googleapis.com/magentadata/datasets/cocochorales/cocochorales_full_v1_zipped/cocochorales_md5s.txt). The offline tool below rechecks the fixed upstream MD5 and then extracts only the operator-selected \`mix.wav\`, \`mix.mid\` and \`metadata.yaml\` for up to four exact track IDs. All other shard members, including stems and synthesis data, are ignored. The archive may still be large, so check the remote file size/storage before downloading. No media is committed.
+
+\`\`\`bash
+uv run --frozen python -m scripts.extract_cocochorales_tiny \
+  --archive /private/coco/shards/1.tar.bz2 \
+  --selection /private/coco/tiny-selection.json \
+  --output-root /private/coco/subset \
+  --report /private/coco/shard-evidence.pending.json
+
+uv run --frozen python -m scripts.prepare_cocochorales_pairs \
+  /private/coco/tiny-selection.json \
+  --corpus-root /private/coco/subset \
+  --pairs /private/coco/pairs.json \
+  --report /private/coco/pair-evidence.pending.json
+\`\`\`
+
+The operator selection must set \`source_release_revision=cocochorales_full_v1_zipped\`, \`rights_reviewed=true\`, and exact official track IDs/splits (global ranges specified above). \`1.tar.bz2\` is only one subset shard: selected tracks absent from it are refused; **do not substitute a Hugging Face mirror**. The resulting JSON records the checked original shard MD5+SHA-256, each selected WAV/MIDI SHA-256 and SATB instruments, with no source media, audio path, model weights, independent rights approval or benchmark numbers. The official CC BY 4.0 license requires attribution/changes notice; the model checkpoint's separate rights are not inferred.
