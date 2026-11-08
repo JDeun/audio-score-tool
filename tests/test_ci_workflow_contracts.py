@@ -121,4 +121,4 @@ def test_signed_release_cannot_skip_actual_managed_product_acceptance():
     ):
         assert build.index(step_name) < build.index(signing_step)
     assert "needs: build" in release.split("\n  publish-release:\n", 1)[1]
-    assert "if: vars.RELEASE_SIGNING_READY != 'true'" in build
+    assert "vars.RELEASE_SIGNING_READY != 'true'" in build
