@@ -36,6 +36,7 @@ class JobStore:
                     stage TEXT,
                     progress INTEGER NOT NULL DEFAULT 0,
                     filename TEXT,
+                    source_kind TEXT,
                     language TEXT,
                     skip_lyrics INTEGER NOT NULL DEFAULT 0,
                     preset TEXT,
@@ -51,6 +52,10 @@ class JobStore:
             columns = {row[1] for row in conn.execute("PRAGMA table_info(jobs)").fetchall()}
             if "kind" not in columns:
                 conn.execute("ALTER TABLE jobs ADD COLUMN kind TEXT NOT NULL DEFAULT 'transcription'")
+            if "source_kind" not in columns:
+                # Older jobs cannot be re-attributed safely from a title; NULL
+                # preserves the historical best-effort fallback without inventing origin.
+                conn.execute("ALTER TABLE jobs ADD COLUMN source_kind TEXT")
             conn.execute(
                 "CREATE INDEX IF NOT EXISTS idx_jobs_completed_cursor "
                 "ON jobs(status, updated_at, job_id)"
@@ -61,6 +66,8 @@ class JobStore:
             )
 
     def create(self, job_id: str, **values: Any) -> None:
+        if values.get("source_kind") not in {None, "local", "youtube", "omr", "notation"}:
+            raise ValueError("Unsupported Job source_kind")
         now = _now()
         payload = {
             "kind": values.get("kind", "transcription"),
@@ -68,6 +75,7 @@ class JobStore:
             "stage": values.get("stage", "queued"),
             "progress": int(values.get("progress", 0)),
             "filename": values.get("filename"),
+            "source_kind": values.get("source_kind"),
             "language": values.get("language"),
             "skip_lyrics": int(bool(values.get("skip_lyrics", False))),
             "preset": values.get("preset"),
@@ -80,13 +88,13 @@ class JobStore:
             conn.execute(
                 """
                 INSERT INTO jobs (
-                    job_id,kind,status,stage,progress,filename,language,skip_lyrics,preset,
+                    job_id,kind,status,stage,progress,filename,source_kind,language,skip_lyrics,preset,
                     muscriptor_model,whisperx_model,error,result_json,created_at,updated_at
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """,
                 (
                     job_id, payload["kind"], payload["status"], payload["stage"], payload["progress"],
-                    payload["filename"], payload["language"], payload["skip_lyrics"],
+                    payload["filename"], payload["source_kind"], payload["language"], payload["skip_lyrics"],
                     payload["preset"], payload["muscriptor_model"], payload["whisperx_model"],
                     payload["error"], payload["result_json"], now, now,
                 ),
@@ -96,6 +104,8 @@ class JobStore:
         if not values:
             return
         mapping = dict(values)
+        if "source_kind" in mapping and mapping["source_kind"] not in {None, "local", "youtube", "omr", "notation"}:
+            raise ValueError("Unsupported Job source_kind")
         if "result" in mapping:
             mapping["result_json"] = json.dumps(mapping.pop("result"))
         if "skip_lyrics" in mapping:
