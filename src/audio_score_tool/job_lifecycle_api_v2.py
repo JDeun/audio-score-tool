@@ -90,11 +90,15 @@ def _restore_staged_workspace(original: Path | None, staged: Path | None) -> Non
 
 @router.post("/api/jobs/youtube", status_code=202)
 def create_youtube_job_v2(payload: base_api.YouTubeJobRequest) -> dict:
-    if not payload.authorized:
-        raise HTTPException(422, "이 콘텐츠를 처리할 권한이 있음을 확인해야 합니다.")
     try:
         url = validate_youtube_url(payload.url)
         defaults = runtime_settings()
+        # The desktop default is private, noncommercial practice; do not ask
+        # users to affirm ownership of every streamed public-video analysis.
+        # Commercial jobs still require explicit user confirmation. This does
+        # not override YouTube service restrictions or independently verify rights.
+        if defaults.usage_mode != "personal" and not payload.authorized:
+            raise HTTPException(422, "이 콘텐츠를 처리할 권한이 있음을 확인해야 합니다.")
         resolved_muscriptor, resolved_whisperx = resolve_job_models(
             payload.preset,
             selected_muscriptor_model=defaults.muscriptor_model,
