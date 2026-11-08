@@ -143,7 +143,7 @@ def test_corrupt_tiny_midi_or_wrong_sampling_rate_rejected(tmp_path):
     with pytest.raises(ValueError, match="MIDI"):
         coco.prepare_pairs(selected, corpus_root=root)
 
-    root, selected, track = _fixture(tmp_path)
+    root, selected, track = _fixture(tmp_path / "fresh")
     wav = root / track / "mix.wav"
     with wave.open(str(wav), "wb") as wave_file:
         wave_file.setnchannels(1)
