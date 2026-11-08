@@ -15,6 +15,10 @@ from statistics import mean
 from typing import Any
 
 from scripts.fetch_pinned_mrmt3_checkpoint import CHECKPOINT_SHA256, MODEL_REVISION
+from scripts.fetch_pinned_yourmt3_checkpoint import (
+    CHECKPOINT_SHA256 as YOURMT3_CHECKPOINT_SHA256,
+    MODEL_REVISION as YOURMT3_MODEL_REVISION,
+)
 from scripts.prepare_cocochorales_official_sample import (
     SAMPLE_BLOBS,
     SAMPLE_ROOT,
@@ -30,6 +34,14 @@ TRACKS = (
     "random_track145011",
 )
 _EXPECTED_RUNTIME = "mt3-infer-0.2.0-transformers-4.57.6-ast-program-preserving-v1"
+_EXPECTED_MODEL_PROFILES = {
+    "mr_mt3": (MODEL_REVISION, CHECKPOINT_SHA256, _EXPECTED_RUNTIME),
+    "yourmt3": (
+        YOURMT3_MODEL_REVISION,
+        YOURMT3_CHECKPOINT_SHA256,
+        "mt3-infer-0.2.0-transformers-4.44.2-yptf-moe-nops",
+    ),
+}
 _METRICS = (
     "note_onset_f1", "note_onset_offset_f1",
     "instrument_onset_offset_f1",
@@ -69,15 +81,20 @@ def _read_json(root: Path, path: Path) -> dict:
     return payload
 
 
-def aggregate_official_samples(evidence_root: Path) -> dict[str, Any]:
-    """Fail closed on incomplete/forged batch, keep every per-ensemble failure."""
+def aggregate_official_samples(
+    evidence_root: Path, *, model_key: str = "mr_mt3",
+) -> dict[str, Any]:
+    """Fail closed on incomplete/forged batches without conflating candidate identities."""
+    _require(model_key in _EXPECTED_MODEL_PROFILES, "Unsupported paired AMT model")
+    source_revision, checkpoint_sha, runtime_revision = _EXPECTED_MODEL_PROFILES[model_key]
     root = evidence_root.expanduser().absolute()
     _require(root.is_dir() and not root.is_symlink(), "Private evidence folder missing")
     model = _read_json(root, root / "model-source.pending.json")
     _require(
-        model.get("model") == "mr_mt3"
-        and model.get("upstream_revision") == MODEL_REVISION
-        and model.get("checkpoint_sha256") == CHECKPOINT_SHA256
+        model.get("model") == model_key
+        and model.get("upstream_revision") == source_revision
+        and model.get("checkpoint_sha256") == checkpoint_sha
+        and model.get("immutable_revision_requested") is True
         and model.get("checkpoint_sha256_verified") is True
         and model.get("redistribution_status") == "pending"
         and model.get("model_redistribution_approved") is False,
@@ -134,9 +151,9 @@ def aggregate_official_samples(evidence_root: Path) -> dict[str, Any]:
         _require(
             isinstance(engine, dict)
             and engine.get("id") == "mt3_infer"
-            and engine.get("model_revision") == f"sha256:{CHECKPOINT_SHA256}"
-            and engine.get("artifact_sha256") == CHECKPOINT_SHA256
-            and engine.get("runtime_revision") == _EXPECTED_RUNTIME,
+            and engine.get("model_revision") == f"sha256:{checkpoint_sha}"
+            and engine.get("artifact_sha256") == checkpoint_sha
+            and engine.get("runtime_revision") == runtime_revision,
             "A different or unpinned model produced the score",
         )
         cases = score.get("cases")
@@ -197,10 +214,11 @@ def aggregate_official_samples(evidence_root: Path) -> dict[str, Any]:
     success = [entry for entry in observed if entry["status"] == "scored"]
     return {
         "schema_version": 1,
-        "purpose": "four-ensemble-author-sample-real-mrmt3-review",
-        "model": "mr_mt3",
-        "model_revision": MODEL_REVISION,
-        "checkpoint_sha256": CHECKPOINT_SHA256,
+        "purpose": "four-ensemble-author-sample-real-mt3-review",
+        "model": model_key,
+        "model_revision": source_revision,
+        "runtime_revision": runtime_revision,
+        "checkpoint_sha256": checkpoint_sha,
         "model_source_evidence_sha256": _sha256_json(model),
         "sample_count": len(observed),
         "scored_count": len(success),
@@ -223,12 +241,13 @@ def aggregate_official_samples(evidence_root: Path) -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Aggregate four private author-sample QA receipts")
     parser.add_argument("--evidence-root", type=Path, required=True)
+    parser.add_argument("--model", choices=sorted(_EXPECTED_MODEL_PROFILES), default="mr_mt3")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     if args.output.exists() or args.output.is_symlink():
         parser.error("A new metadata-only report output is required")
     try:
-        result = aggregate_official_samples(args.evidence_root)
+        result = aggregate_official_samples(args.evidence_root, model_key=args.model)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         with args.output.open("x", encoding="utf-8") as stream:
             json.dump(result, stream, ensure_ascii=False, indent=2, sort_keys=True)

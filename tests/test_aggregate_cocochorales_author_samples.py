@@ -25,6 +25,7 @@ def _fixture(tmp_path: Path) -> Path:
         "upstream_revision": MODEL_REVISION,
         "checkpoint_sha256": CHECKPOINT_SHA256,
         "checkpoint_sha256_verified": True,
+        "immutable_revision_requested": True,
         "model_redistribution_approved": False,
         "redistribution_status": "pending",
     }
@@ -243,3 +244,37 @@ def test_workflow_uses_four_real_fixed_examples_and_keeps_media_off_artifacts():
     upload = workflow.split("name: Upload metadata only", 1)[1]
     for suffix in (".wav", ".mid", ".musicxml", ".pth", ".zip"):
         assert suffix not in upload
+
+
+
+def test_yourmt3_model_receipt_uses_distinct_checkpoint_runtime_and_same_cases(tmp_path):
+    from scripts.fetch_pinned_yourmt3_checkpoint import (
+        CHECKPOINT_SHA256 as your_sha,
+        MODEL_REVISION as your_revision,
+    )
+
+    root = _fixture(tmp_path)
+    model_path = root / "model-source.pending.json"
+    original_model = json.loads(model_path.read_text())
+    original_model.update(
+        model="yourmt3", upstream_revision=your_revision, checkpoint_sha256=your_sha,
+        upstream_repository="mimbres/YourMT3", upstream_repository_type="space",
+    )
+    model_path.write_text(json.dumps(original_model), encoding="utf-8")
+    for track in batch.TRACKS:
+        path = root / track / "mt3-real-score.pending.json"
+        score = json.loads(path.read_text())
+        score["engine"].update(
+            model_revision=f"sha256:{your_sha}",
+            artifact_sha256=your_sha,
+            runtime_revision="mt3-infer-0.2.0-transformers-4.44.2-yptf-moe-nops",
+        )
+        path.write_text(json.dumps(score), encoding="utf-8")
+    result = batch.aggregate_official_samples(root, model_key="yourmt3")
+    assert result["model"] == "yourmt3"
+    assert result["checkpoint_sha256"] == your_sha
+    assert result["scored_count"] == 4
+    with pytest.raises(batch.AuthorSampleAggregateError, match="Unverified"):
+        batch.aggregate_official_samples(root, model_key="mr_mt3")
+    with pytest.raises(batch.AuthorSampleAggregateError, match="Unsupported"):
+        batch.aggregate_official_samples(root, model_key="mt3_pytorch")
