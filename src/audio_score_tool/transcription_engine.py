@@ -4,7 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from threading import Event
 
-from .config import Settings
+from .config import Settings, packaged_runtime
+from .managed_tool_resolver import registered_managed_component_root
 from .notation_backend import NotationBackendError, backend_status, midi_to_musicxml
 from .runner import CommandCancelled, CommandError, command_exists, run_command
 
@@ -96,9 +97,49 @@ class MT3InferEngine(BaseTranscriptionEngine):
     commercial_status = "commercial_candidate"
     quality_rank = 2
     supported_models = {"mr_mt3", "yourmt3"}
+    _checkpoint_extensions = frozenset({
+        ".pt", ".pth", ".ckpt", ".bin", ".safetensors", ".h5", ".msgpack",
+    })
+
+    def _packaged_checkpoint_root(self) -> Path | None:
+        """Require shipped, fully verified weights instead of upstream auto-download.
+
+        MT3-Infer reads MT3_CHECKPOINT_DIR/<model> in both CLI and Python use.
+        Only a pinned installed transcription_engine component can supply it.
+        """
+        if not packaged_runtime():
+            return None
+        model = self.settings.mt3_model.strip().lower()
+        if model not in self.supported_models:
+            return None
+        installed = registered_managed_component_root(
+            "transcription_engine", required_tool="mt3-infer",
+        )
+        if installed is None:
+            return None
+        checkpoint_root = installed / "checkpoints"
+        selected = checkpoint_root / model
+        if selected.is_symlink() or not selected.is_dir():
+            return None
+        try:
+            has_weights = any(
+                file.is_file()
+                and not file.is_symlink()
+                and file.suffix.lower() in self._checkpoint_extensions
+                and file.stat().st_size > 0
+                for file in selected.rglob("*")
+            )
+        except OSError:
+            return None
+        return checkpoint_root if has_weights else None
 
     def ready(self) -> bool:
-        return command_exists(self.settings.mt3_infer_cmd) and backend_status(self.settings)["music21"]
+        if not (
+            command_exists(self.settings.mt3_infer_cmd)
+            and backend_status(self.settings)["music21"]
+        ):
+            return False
+        return not packaged_runtime() or self._packaged_checkpoint_root() is not None
 
     def describe(self) -> dict[str, object]:
         model = self.settings.mt3_model
@@ -128,6 +169,11 @@ class MT3InferEngine(BaseTranscriptionEngine):
         cancel_event: Event | None = None,
     ) -> TranscriptionArtifacts:
         if not command_exists(self.settings.mt3_infer_cmd):
+            if packaged_runtime():
+                raise TranscriptionEngineUnavailable(
+                    "The packaged MT3-Infer runtime or checkpoint is missing or unverified. "
+                    "Reinstall the managed transcription runtime in Setup Center."
+                )
             raise TranscriptionEngineUnavailable(
                 "MT3-Infer is unavailable. Install mt3-infer or make uvx available."
             )
@@ -139,6 +185,14 @@ class MT3InferEngine(BaseTranscriptionEngine):
         if not backend_status(self.settings)["music21"]:
             raise TranscriptionEngineUnavailable(
                 "MT3-Infer의 MIDI→MusicXML 변환에는 기본 dependency인 music21이 필요합니다."
+            )
+
+        checkpoint_root = self._packaged_checkpoint_root() if packaged_runtime() else None
+        if packaged_runtime() and checkpoint_root is None:
+            raise TranscriptionEngineUnavailable(
+                "The packaged MT3-Infer checkpoint is missing or unverified. "
+                "Repair the managed transcription runtime in Setup Center; "
+                "model auto-download and system checkpoint fallback are disabled."
             )
 
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -158,6 +212,16 @@ class MT3InferEngine(BaseTranscriptionEngine):
                     device,
                 ],
                 cancel_event=cancel_event,
+                env=(
+                    {
+                        "MT3_CHECKPOINT_DIR": str(checkpoint_root),
+                        "HF_HUB_OFFLINE": "1",
+                        "TRANSFORMERS_OFFLINE": "1",
+                        "HF_DATASETS_OFFLINE": "1",
+                        "HF_HUB_DISABLE_TELEMETRY": "1",
+                    }
+                    if checkpoint_root is not None else None
+                ),
             )
             if not midi_path.is_file():
                 raise TranscriptionEngineError(

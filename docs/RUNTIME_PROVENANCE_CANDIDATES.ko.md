@@ -165,3 +165,8 @@ clean-machine smoke result
 - #29 managed runtime artifact publication
 - #22 signed release acceptance
 - #36 v1 readiness umbrella
+
+
+### 패키지 MT3-Infer 가중치 배선
+
+공식 MT3-Infer는 `MT3_CHECKPOINT_DIR`을 통해 모델 캐시의 루트를 지정할 수 있습니다. AudioScoreTool 패키지 런타임은 외부 자동 다운로드에 의존하지 않고 `installed/transcription_engine/<version>/checkpoints/<selected-model>/`의 검증된 파일로 이를 고정합니다. ZIP에 모델이 포함되지 않았다면 Setup Center는 채보를 사용 가능으로 표시하지 않습니다. YourMT3/MR-MT3 등 모델 코드와 가중치 각각의 정확한 라이선스·revision·체크섬·실제 추론 결과 검토는 계속 #29/#34에서 처리합니다.

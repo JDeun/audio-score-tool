@@ -10,6 +10,8 @@ on:
       - 'tests/test_managed_payload_integrity.py'
       - 'src/audio_score_tool/managed_tool_resolver.py'
       - 'src/audio_score_tool/youtube.py'
+      - 'src/audio_score_tool/transcription_engine.py'
+      - 'tests/test_managed_mt3_checkpoint_binding.py'
       - 'src/audio_score_tool/config.py'
       - 'tests/test_managed_tool_provider_binding.py'
       - 'src/audio_score_tool/managed_component_catalog.py'
@@ -60,7 +62,7 @@ jobs:
       - name: Install Python test dependencies
         run: uv sync --frozen --extra dev
       - name: Verify managed component integrity, install, removal, recovery and API
-        run: uv run --frozen pytest -q tests/test_managed_components.py tests/test_managed_payload_integrity.py tests/test_managed_version_rollback.py tests/test_managed_release_approval.py tests/test_managed_install_publication_gate.py tests/test_managed_tool_provider_binding.py tests/test_youtube.py tests/test_setup_center_managed_runtime.py tests/test_model_manager_wiring.py tests/test_desktop_api_wiring.py
+        run: uv run --frozen pytest -q tests/test_managed_components.py tests/test_managed_payload_integrity.py tests/test_managed_version_rollback.py tests/test_managed_mt3_checkpoint_binding.py tests/test_managed_release_approval.py tests/test_managed_install_publication_gate.py tests/test_managed_tool_provider_binding.py tests/test_youtube.py tests/test_setup_center_managed_runtime.py tests/test_model_manager_wiring.py tests/test_desktop_api_wiring.py
       - name: Install frontend
         working-directory: desktop
         run: npm ci --ignore-scripts

@@ -156,3 +156,21 @@ Setup Center의 `catalog.published` 및 `auto_install`은 별도 릴리스 게�
 카탈로그에 `redistribution_status=approved`와 정상 형태의 HTTPS URL·SHA-256이 있어도 **이것만으로는 설치할 수 없습니다**. 동일한 sidecar에 번들된 `managed-release-approvals.json`에서 정확한 플랫폼·전체 항목 해시와 다운로드 검증 보고서, 별도의 사람에 의한 라이선스/소스 제공 위치 검토가 확인돼야 Setup Center와 API에 설치가 허용됩니다. 기록 누락은 `approval-receipt-missing`, 변경된 카탈로그는 `approval-catalog-drift`, 실제 게시 바이트 증빙 누락·불일치는 `remote-evidence-missing` / `remote-evidence-mismatch`, 라이선스 검토 누락은 `license-review-missing` 등으로 fail-closed 처리합니다.
 
 이 승인 기록은 패키지의 로컬 메타데이터이므로 독립된 암호학적 서명을 대체하지 않습니다. 브랜치 보호 및 실제 검토자의 승인, 모델 상업 사용권 판단, Windows/macOS 클린 머신 인수시험은 별도입니다. 자세한 절차는 [MANAGED_RELEASE_APPROVALS.ko.md](MANAGED_RELEASE_APPROVALS.ko.md)를 참조하세요.
+
+
+## 관리형 MT3-Infer 체크포인트 실행 경로 (#29, 2026-11-08)
+
+이전 구현은 `mt3-infer` 실행 파일만 앱 관리형 경로에서 검사했지만, 상위 모델 라이브러리가 기본 체크포인트 디렉터리 또는 외부 캐시에서 모델을 자동 다운로드할 가능성은 차단하지 못했습니다.
+
+패키지 실행 `AST_PACKAGED=1`에서는 `transcription_engine`의 **검증된 전체 아카이브** 안에 모델별 가중치가 있어야 채보 엔진을 준비 완료로 표시합니다. 필수 번들 구조는 다음과 같습니다.
+
+```text
+installed/transcription_engine/<version>/
+  bin/mt3-infer[.exe]
+  checkpoints/mr_mt3/<model-weight>.safetensors | .pt | .pth | .ckpt | .bin
+  checkpoints/yourmt3/<model-weight>...
+```
+
+두 모델을 모두 제공할 필요는 없지만, 실제 선택된 `Settings.mt3_model`의 모델 디렉터리에 **검증된 비어 있지 않은 체크포인트 파일**이 하나 이상 있어야 합니다. 런타임은 구성요소 전체 SHA-256을 검사한 뒤 이 디렉터리만 `MT3_CHECKPOINT_DIR`에 전달합니다. 패키지 하위 프로세스에는 `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1`, `HF_DATASETS_OFFLINE=1`을 명시적으로 주입하여 사용자 `HOME`/기본 캐시로 모델을 다운받거나 시스템 파일을 빌려오지 않게 합니다. 개발 모드의 기존 환경변수/설치 경로 동작은 변경하지 않습니다.
+
+체크포인트가 누락·변조되거나 선택한 모델과 불일치하면 엔진 `ready=false`이고 Setup Center의 관리형 런타임 복구 안내가 유지되며, 추론 프로세스는 시작하지 않습니다. 모델이 실제로 올바른 내용을 가진 채보 가중치인지, 해당 배포·상업 사용권이 있는지 및 원본 오디오에서 정확하게 추론하는지는 **추가 필수 증빙**입니다. 파일명과 정상 SHA 만으로 #29의 상용 AMT 후보가 승인되는 것은 아닙니다.
