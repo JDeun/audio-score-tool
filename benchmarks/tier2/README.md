@@ -394,3 +394,24 @@ For the first **real** score, the official [CocoChorales author demonstration](h
 The CocoChorales Real MR-MT3 Benchmark (research-only) workflow runs on a Linux CPU runner. It obtains the immutable author sample ZIP and independently pinned checkpoint, disables model network fallback during inference, uses the existing Tier 2 generator and scores note onset/offset and instrument-aware F1 against the author's original MIDI. CC BY 4.0 review is scoped only to this private sample; the committed dataset registry remains planned. Only score/hash/revision/attribution JSON is retained by GitHub Actions.
 
 The four official examples all fall into the dataset **train** split. Results from them must not be interpreted as held-out model generalization, commercial quality acceptance, or cross-genre validation. Human edit time, full native memory peak, and model redistribution rights remain unmeasured/unapproved. Cite the original dataset creators and CC BY 4.0 license.
+
+## 동일 역할 모델 전수 비교 계획 (#34, #43, #53, #55, #56)
+
+`model-candidate-registry.json`는 현 프로젝트의 실제 후보와 외부 비교 후보를 **multi-instrument AMT / lead sheet / chord estimation / beat/downbeat** 역할별로 기록합니다. 새로 추가한 `scripts/plan_tier2_candidate_groups.py`는 개인/상용 계획을 분리해 라이선스·런타임 차단 사유만 출력합니다. 실제 모델 실행, 성능 순위 결정, 상업 재배포 승인을 **하지 않습니다**.
+
+```bash
+uv run --frozen python -m scripts.plan_tier2_candidate_groups \
+  --role full_instrument_amt --usage-mode personal
+uv run --frozen python -m scripts.plan_tier2_candidate_groups \
+  --role full_instrument_amt --usage-mode commercial
+uv run --frozen python -m scripts.plan_tier2_candidate_groups \
+  --role chord_estimation --usage-mode personal
+```
+
+현재 AMT의 직접 경쟁 후보: **MR-MT3(4개 공식 train 예제 실측), YourMT3+ YPTF.MoE+Multi(합성 스모크), MT3-PyTorch(제품 어댑터 미연결·원본 소스 라이선스 미기재), MuScriptor small/medium/large(비상업 weights·인증/자원 차단), MIROS(원본 체크포인트·배포 라이선스·어댑터 미검증)**. 자체 Native는 학습 scaffold이며 실제 가중치가 없으므로 제품 기본 모델 선정에 포함하지 않습니다. MT3-Infer v0.2.0이 보고한 MT3-PyTorch 체크포인트 SHA-256은 MR-MT3와 동일하므로 **독립 학습 모델로 중복 계상하지 않고 어댑터 차이만** 검증해야 합니다.
+
+화성/멜로디 분석은 **신형 SheetSage2와 구형 `sheetsage-infer`가 다른 모델**입니다. 현재 실험 매트릭스의 `sheetsage2`, `yourmt3+sheetsage2`, `mr-mt3+sheetsage2` 역사적 stage ID는 그대로 유지되지만, 이들 단계가 호출하는 실제 어댑터는 구형 SheetSage입니다. 해당 stage를 SheetSage2 품질 실측이라고 표시해서는 안 됩니다. Chordify는 수동 적법한 내보내기만 가능한 외부 서비스 비교 기준이며 정답 annotation이 아닙니다. Chordino/NNLS·ChordFormer는 chord 추정 연구 비교 후보, Beat This!는 beat/downbeat 연구 후보이며 모두 새로 측정·연결하기 전에는 `not_integrated` 또는 `research`로 표시됩니다.
+
+**실험은 하나의 배치에서 수행하되, 동일 GPU에 여러 모델을 무작정 동시에 적재하면 추론시간/VRAM 비교가 왜곡**됩니다. 모델별 격리된 동일 사양 러너라면 병렬 실행하고, 단일 GPU라면 동등한 조건으로 순차 실행합니다. 같은 SHA-256 음원·독립 reference·split·metric tolerance·후처리에서 note onset/offset, instrument/part, 코드 WCSR, beat/downbeat 등 **해당 역할에서 비교 가능한 지표만** 비교합니다. 성능 1위는 라이선스 승인과 별개이며, 개인/비상업 winner와 상용 release 후보는 서로 다를 수 있습니다.
+
+엔진 최종 승인에서는 `compare_tier2_reports.py`와 기존 #34 절차를 활용하되, **최종 편집 완료까지 필요한 사람 수정시간·작업 수, 모든 최종 export 성공 여부**를 중심으로 선정합니다. 적법한 held-out 다장르 reference corpus, 실제 모델 전체 실측과 법적 checkpoint/실행파일 배포권 검증이 완료되기 전에는 승자를 단정하거나 나머지 모델을 삭제하지 않습니다.
