@@ -293,6 +293,8 @@ def test_package_gate_uses_isolated_appdata_and_empty_host_path(monkeypatch, tmp
             or {
                 "actual_product_audio_job_completed": True,
                 "embedded_jre_started_without_system_path": True,
+                "real_pdf_omr_accepted": True,
+                "omr_musicxml_pdf_midi_parts_export_verified": True,
             }
         ),
     )
