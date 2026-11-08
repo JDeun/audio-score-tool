@@ -18,14 +18,10 @@ from statistics import mean
 from typing import Any
 
 from scripts.aggregate_cocochorales_author_samples import TRACKS
-from scripts.fetch_pinned_mrmt3_checkpoint import (
-    CHECKPOINT_SHA256 as MR_SHA,
-    MODEL_REVISION as MR_REVISION,
-)
-from scripts.fetch_pinned_yourmt3_checkpoint import (
-    CHECKPOINT_SHA256 as YOUR_SHA,
-    MODEL_REVISION as YOUR_REVISION,
-)
+from scripts.fetch_pinned_mrmt3_checkpoint import CHECKPOINT_SHA256 as MR_SHA
+from scripts.fetch_pinned_mrmt3_checkpoint import MODEL_REVISION as MR_REVISION
+from scripts.fetch_pinned_yourmt3_checkpoint import CHECKPOINT_SHA256 as YOUR_SHA
+from scripts.fetch_pinned_yourmt3_checkpoint import MODEL_REVISION as YOUR_REVISION
 
 _SHA = re.compile(r"[a-f0-9]{64}\Z")
 _MODEL_ID = {

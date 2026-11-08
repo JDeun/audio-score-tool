@@ -17,6 +17,8 @@ from typing import Any
 from scripts.fetch_pinned_mrmt3_checkpoint import CHECKPOINT_SHA256, MODEL_REVISION
 from scripts.fetch_pinned_yourmt3_checkpoint import (
     CHECKPOINT_SHA256 as YOURMT3_CHECKPOINT_SHA256,
+)
+from scripts.fetch_pinned_yourmt3_checkpoint import (
     MODEL_REVISION as YOURMT3_MODEL_REVISION,
 )
 from scripts.prepare_cocochorales_official_sample import (

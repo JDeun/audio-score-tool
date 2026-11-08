@@ -248,10 +248,8 @@ def test_workflow_uses_four_real_fixed_examples_and_keeps_media_off_artifacts():
 
 
 def test_yourmt3_model_receipt_uses_distinct_checkpoint_runtime_and_same_cases(tmp_path):
-    from scripts.fetch_pinned_yourmt3_checkpoint import (
-        CHECKPOINT_SHA256 as your_sha,
-        MODEL_REVISION as your_revision,
-    )
+    from scripts.fetch_pinned_yourmt3_checkpoint import CHECKPOINT_SHA256 as your_sha
+    from scripts.fetch_pinned_yourmt3_checkpoint import MODEL_REVISION as your_revision
 
     root = _fixture(tmp_path)
     model_path = root / "model-source.pending.json"

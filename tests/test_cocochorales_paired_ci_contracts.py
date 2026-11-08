@@ -6,7 +6,6 @@ from pathlib import Path
 from scripts.fetch_pinned_mrmt3_checkpoint import CHECKPOINT_SHA256 as MR_SHA
 from scripts.fetch_pinned_yourmt3_checkpoint import CHECKPOINT_SHA256 as YOUR_SHA
 
-
 _WORKFLOW = Path(".github/workflows/cocochorales-real-mt3-benchmark.yml")
 
 
