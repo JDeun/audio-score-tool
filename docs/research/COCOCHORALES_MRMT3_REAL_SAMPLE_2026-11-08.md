@@ -45,3 +45,7 @@ Original ensemble metadata lists violin, violin, viola, cello (GM programs 40, 4
 4. **Release gate still blocked:** `release_quality_approved=false`, `model_redistribution_approved=false`. #154 still needs a held-out/test-split official pair, multi-song comparative baseline and #34 human correction/publishing evidence. No acceptance decision follows automatically from this report.
 
 Reproduce from this repository's `CocoChorales Real MR-MT3 Benchmark (research-only)` workflow; compare its metadata-only artifact to the exact run above. Do not replace this historic measured result with a later experimental run without labeling the run and commit separately.
+
+## Follow-up diagnostics — designed, not retroactively measured
+
+The original #42489135513 report did not include per-program and per-MIDI-track provenance. New scoring runs now record the actual reference vs prediction GM program note histograms, channel use, note-bearing MIDI tracks and MusicXML part count. A strict zero instrument F1 *might* be explained by no shared program, by note timing/assignment, or by both; the historical run alone cannot establish which. Similarly, only a new run with both actual MIDI track counts and XML part counts can indicate whether part loss arose before or during MIDI→MusicXML conversion. Do not overwrite the historical results in this section; link each new run separately.
