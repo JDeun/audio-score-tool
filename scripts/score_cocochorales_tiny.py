@@ -25,6 +25,15 @@ from scripts.extract_cocochorales_tiny import (
     _RELEASE,
     _SHARD_SPLIT,
 )
+from scripts.prepare_cocochorales_official_sample import (
+    SAMPLE_BLOBS,
+    SAMPLE_ROOT,
+    SOURCE_COMMIT,
+    SOURCE_FORMAT_COMMIT,
+    SOURCE_PAGE,
+    SOURCE_RELEASE,
+    SOURCE_REPO,
+)
 from scripts.prepare_cocochorales_pairs import _ROOT, official_split
 from scripts.validate_tier2_dataset_pairs import validate_pairs
 
@@ -102,7 +111,30 @@ def _musicxml_summary(path: Path) -> dict[str, int]:
 def _source_receipt(
     record: dict, *, split: str, paired: dict,
 ) -> None:
-    if (
+    if record.get("source_kind") == "official-sample-zip":
+        tracks = paired.get("cases", [])
+        track = tracks[0].get("recording_id") if len(tracks) == 1 else None
+        pinned = SAMPLE_BLOBS.get(track)
+        if (
+            pinned is None or split != "train"
+            or record.get("official_release") != SOURCE_RELEASE
+            or record.get("official_source") != "https://magenta.tensorflow.org/datasets/cocochorales"
+            or record.get("official_sample_page") != SOURCE_PAGE
+            or record.get("source_repository") != SOURCE_REPO
+            or record.get("source_revision") != SOURCE_COMMIT
+            or record.get("official_format_source_commit") != SOURCE_FORMAT_COMMIT
+            or record.get("official_archive_path") != f"{SAMPLE_ROOT}/{track}.zip"
+            or record.get("archive_git_blob_sha1") != pinned[0]
+            or record.get("archive_bytes") != pinned[1]
+            or record.get("track_count") != 1
+            or record.get("operator_rights_reviewed") is not True
+            or record.get("source_media_published") is not False
+            or record.get("upstream_rights_independently_verified") is not False
+            or not isinstance(record.get("archive_sha256"), str)
+            or _SHA.fullmatch(record["archive_sha256"]) is None
+        ):
+            raise ValueError("Official CocoChorales sample archive provenance is invalid")
+    elif (
         record.get("schema_version") != 1
         or record.get("dataset") != "cocochorales"
         or record.get("official_release") != _RELEASE

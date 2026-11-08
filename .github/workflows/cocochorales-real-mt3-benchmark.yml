@@ -1,0 +1,166 @@
+name: CocoChorales Real MR-MT3 Benchmark (research-only)
+
+# Real author-hosted music + original MIDI vs real pretrained model.
+# Only pending metrics/hash JSON is retained; never ZIP/audio/MIDI/weights.
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/cocochorales-real-mt3-benchmark.yml'
+      - 'scripts/prepare_cocochorales_official_sample.py'
+      - 'tests/test_official_cocochorales_sample.py'
+      - 'scripts/prepare_cocochorales_pairs.py'
+      - 'scripts/score_cocochorales_tiny.py'
+      - 'scripts/fetch_pinned_mrmt3_checkpoint.py'
+      - 'src/audio_score_tool/tier2_prediction.py'
+      - 'src/audio_score_tool/transcription_engine.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: real-cocochorales-mrmt3-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  real-cocochorales-reference:
+    name: original author sample to genuine MR-MT3 MIDI vs reference
+    runs-on: ubuntu-24.04
+    timeout-minutes: 85
+    steps:
+      - name: Checkout fixed author sample verifier and private AMT scorer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup pinned model builder Python
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.11'
+
+      - name: Install lightweight MIDI/reference validators
+        shell: bash
+        run: |
+          python -m pip install --disable-pip-version-check 'mido==1.3.3' 'mutagen==1.48.1'
+
+      - name: Fetch exactly one pinned upstream ZIP (not the entire corpus)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/coco-download"
+          curl --fail --location --silent --show-error \
+            --proto '=https' --proto-redir '=https' \
+            --connect-timeout 30 --max-time 600 --retry 3 --retry-delay 3 \
+            --output "$RUNNER_TEMP/coco-download/string_track001010.zip" \
+            'https://raw.githubusercontent.com/lukewys/lukewys.github.io/7a0b15e7be365a6b062027c38ce0f8d57ed1d98a/cocochorales/assets/sample_examples/pieces/string_track001010.zip'
+          # List member metadata only (names/sizes/compression), never content.
+          python - <<'PY'
+          import os
+          import zipfile
+          from pathlib import Path
+          archive = Path(os.environ["RUNNER_TEMP"]) / "coco-download/string_track001010.zip"
+          with zipfile.ZipFile(archive) as bundle:
+              for member in bundle.infolist():
+                  if member.filename.rsplit("/", 1)[-1] in {
+                      "mix.wav", "mix.mid", "metadata.yaml", "string_track001010.yaml",
+                  }:
+                      print(f"Official sample candidate: {member.filename} "
+                            f"({member.file_size} bytes, compression={member.compress_type})")
+          PY
+          python -m scripts.prepare_cocochorales_official_sample \
+            --archive "$RUNNER_TEMP/coco-download/string_track001010.zip" \
+            --track-id string_track001010 \
+            --corpus-root "$RUNNER_TEMP/coco-private-source" \
+            --metadata-root "$RUNNER_TEMP/coco-evidence"
+
+      - name: Install real MR-MT3 inference and exact T5 runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install --disable-pip-version-check \
+            'mt3-infer[torch]==0.2.0' 'torch==2.7.1' \
+            'torchaudio==2.7.1' 'torchvision==0.22.1' \
+            'transformers==4.57.6' 'music21==10.5.0' 'defusedxml==0.7.1'
+          python -m pip install --disable-pip-version-check -e .
+          python - <<'PY'
+          import inspect
+          from importlib.metadata import version
+          from transformers.models.t5.modeling_t5 import T5Block
+          assert version("mt3-infer") == "0.2.0"
+          assert version("torch") == "2.7.1"
+          assert version("transformers") == "4.57.6"
+          assert "past_key_values" in inspect.signature(T5Block.forward).parameters
+          print("MR-MT3 / T5 inference runtime pinned")
+          PY
+
+      - name: Obtain exact, SHA-verified MR-MT3 model checkpoint privately
+        shell: bash
+        env:
+          MT3_CHECKPOINT_DIR: ${{ runner.temp }}/coco-private-model
+        run: |
+          set -euo pipefail
+          python -m scripts.fetch_pinned_mrmt3_checkpoint \
+            --checkpoint-dir "$MT3_CHECKPOINT_DIR" \
+            --cache-dir "$RUNNER_TEMP/coco-model-cache" \
+            --output "$RUNNER_TEMP/coco-evidence/model-source.pending.json"
+
+      - name: Transcribe actual original mix and independently score MIDI notes
+        shell: bash
+        env:
+          MT3_CHECKPOINT_DIR: ${{ runner.temp }}/coco-private-model
+          HF_HUB_OFFLINE: '1'
+          TRANSFORMERS_OFFLINE: '1'
+          HF_DATASETS_OFFLINE: '1'
+          PYTHONIOENCODING: utf-8
+        run: |
+          set -euo pipefail
+          python -m scripts.generate_tier2_predictions \
+            "$RUNNER_TEMP/coco-evidence/tier2-manifest.json" \
+            --corpus-root "$RUNNER_TEMP/coco-private-source" \
+            --predictions-root "$RUNNER_TEMP/coco-private-predictions" \
+            --engine mt3_infer --model mr_mt3 \
+            --model-revision 'sha256:b8a3807ed265059abd25ad7f68142c06c35e8f6144dcaa45bd55946a3745398f' \
+            --runtime-revision 'mt3-infer-0.2.0-transformers-4.57.6' \
+            --artifact-sha256 'b8a3807ed265059abd25ad7f68142c06c35e8f6144dcaa45bd55946a3745398f' \
+            --device cpu
+          python -m scripts.score_cocochorales_tiny \
+            --pairs "$RUNNER_TEMP/coco-evidence/pairs.json" \
+            --registry "$RUNNER_TEMP/coco-evidence/reviewed-registry.json" \
+            --source-proof "$RUNNER_TEMP/coco-evidence/source-proof.pending.json" \
+            --corpus-root "$RUNNER_TEMP/coco-private-source" \
+            --predictions-root "$RUNNER_TEMP/coco-private-predictions" \
+            --output "$RUNNER_TEMP/coco-evidence/mt3-real-score.pending.json"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          root = Path(os.environ["RUNNER_TEMP"]) / "coco-evidence"
+          report = json.loads((root / "mt3-real-score.pending.json").read_text())
+          for case in report["cases"]:
+              print(json.dumps({
+                  "case": case["case_id"], "status": case["status"],
+                  "onset_f1": case.get("note_onset_f1"),
+                  "onset_offset_f1": case.get("note_onset_offset_f1"),
+                  "instrument_f1": case.get("instrument_onset_offset_f1"),
+                  "prediction_notes": case.get("prediction_note_count"),
+                  "reference_notes": case.get("reference_note_count"),
+                  "inference_seconds": case.get("model_inference_seconds"),
+                  "failure_reason": case.get("failure_reason"),
+              }, sort_keys=True))
+          if report["scored_case_count"] < 1:
+              raise SystemExit("No actual nonempty score was produced; quality measurement failed")
+          PY
+
+      - name: Upload metadata only, never music/MIDI/checkpoint/score/source ZIP
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coco-real-mrmt3-evidence-pending
+          path: |
+            ${{ runner.temp }}/coco-evidence/source-proof.pending.json
+            ${{ runner.temp }}/coco-evidence/model-source.pending.json
+            ${{ runner.temp }}/coco-evidence/mt3-real-score.pending.json
+          if-no-files-found: warn
+          retention-days: 30
