@@ -207,4 +207,8 @@ system Python/Node/Rust/uv/pip
 Windows/macOS 네이티브 빌더의 `scripts/collect_mt3_frozen_inventory.py`는 최종 frozen 실행 파일 **내부 CArchive/PYZ 엔트리**와 **빌더 환경의 distribution/license metadata**를 분리해 SHA-256 결속된 pending 영수증으로 남깁니다. CArchive에 포함된 네이티브 라이브러리·모듈 목록은 법무/릴리스 담당자의 후속 source-license 매핑 자료이며, PyInstaller bootloader 자체의 라이선스(bootloader exception), PyTorch/torchaudio 및 기타 C/C++ 라이브러리, 모델 가중치의 저작권과 재배포 권리는 **별도 검토**가 필요합니다.
 
 `License-Expression`과 `.dist-info` LICENSE/NOTICE 해시는 upstream metadata 증빙이지 상용 재배포 허가서가 아닙니다. 패키지 빌더 목록에 있다는 사실만으로 최종 바이너리에 포함됐다고 간주하면 안 됩니다. 현재 완전한 SBOM, 독립적 라이선스 심사, source-offer 및 clean-machine 검증은 모두 미완료이며, `#29`의 공개 배포 승인은 계속 차단합니다.
+### Windows/macOS MR-MT3 네이티브 ZIP의 실측 license review queue (2026-11-08)
 
+`scripts/triage_mt3_frozen_dependencies.py`로 이전 네이티브 CI pending 인벤토리를 두 OS에서 함께 검토할 수 있습니다. 분류는 **아카이브 파일명/확장자 기반 후보 식별**이며, 실제 PE/Mach-O 타입·네이티브 공유 라이브러리 종속성 분석이나 제3자 라이선스 승인과는 별개입니다. Windows PyInstaller의 BINARY typecode 5,905개가 네이티브 라이브러리 5,905개라는 의미가 아님을 명시합니다(파일명상 DLL/공유 라이브러리 후보 341개). macOS 역시 BINARY typecode 337개 중 후보는 333개입니다.
+
+빌더 환경의 `tokenizers` 설치 배포판에는 local LICENSE/NOTICE SHA가 수집되지 않았고, Windows 43개/macOS 40개 빌더 배포 패키지는 SPDX `License-Expression`이 기재되지 않았습니다. 이는 **라이선스 위반 판정이 아니라 검토 자료 누락 신호**입니다. `license_metadata_label`·`license_classifiers`·원본 소스 저장소를 통해 각각 검토할 수 있으며, 법무/릴리스 담당자가 실제 포함 바이너리와 제공 의무를 독립적으로 검증해야 합니다. complete SBOM, 모델 가중치 배포권, 제3자 notice 및 대응 소스, 서명/공증 승인 없이 public release를 허용하지 않습니다.
