@@ -221,7 +221,9 @@ def test_unverified_youtube_media_tools_or_song_cannot_pass_release(
             return (404, b"none") if failure == "missing_midi" else (200, _midi())
         if route == f"/api/jobs/{_JOB}/files/musicxml":
             if failure == "empty_musicxml":
-                return 200, b'<score-partwise></score-partwise>' * 15
+                return 200, _xml().replace(
+                    b"<pitch><step>C</step><octave>4</octave></pitch>", b"<rest/>",
+                )
             return 200, _xml()
         if route == "/api/songs":
             return 200, json.dumps({
