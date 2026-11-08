@@ -209,3 +209,7 @@ v1은 다음 조건을 모두 만족해야 합니다.
 `Desktop Packages --require-managed-delivery`는 승인된 관리형 네 도구의 native CLI 버전만 확인하지 않고, **사람이 소유·처리 권한을 검토한 실제 단일 YouTube 영상**을 인증된 패키지 API로 조회·가져와 **MT3 AMT → MIDI/MusicXML → 정규 Song**까지 확인합니다. 위 검토 JSON은 `YOUTUBE_QA_SOURCE_REVIEW_JSON` Repository Variable에 준비되어야 하며, 없으면 다운로드 이전에 fail closed합니다. 실제 미디어나 원본 권리 문서는 공개 CI artifact로 저장하지 않습니다.
 
 신규 Job의 `source_kind`를 SQLite로 명시 저장해 `Live. 2026.mp3`처럼 점이 포함된 YouTube 영상 제목이 `local`로 오분류되지 않게 했습니다. 이 검증 경로 및 이전 PDF OMR/MT3 인수시험의 **코드**는 CI에서 합성 테스트를 통과해야 하지만, 현재 미승인 모델·배포 artifact의 **실물 출시 인수시험 성공**이라고 표시하지는 않습니다.
+
+### 개인 YouTube 분석 UX와 자동화 release QA 분리 (#155)
+
+일반 `personal` 모드에서는 **모든 링크에 대한 소유권 확약 체크박스를 강제하지 않으며**, UI의 이용약관/저작권 안내는 비차단으로 표시합니다. `commercial`은 명시적 콘텐츠 처리 권한 확인을 요구합니다. 개인 사용이 모든 YouTube 다운로드의 합법성을 자동 보장하는 것은 아니며, 플랫폼의 독립 약관과 영상/권리 제한은 계속 적용됩니다. v1 태그·수동 QA는 #153의 운영자 검토 기록이 없으면 실제 외부 영상을 다운로드하지 않습니다. UI 모드와 서버 모드가 달라도 API의 최종 정책이 적용됩니다.
