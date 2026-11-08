@@ -15,6 +15,33 @@ import pytest
 
 from audio_score_tool.managed_tool_resolver import registered_managed_tool
 from scripts import verify_mt3_frozen_native as qa
+from scripts.collect_mt3_frozen_inventory import _canonical_sha
+
+
+def _synthetic_inventory(binary: Path, *, target: str) -> dict:
+    snapshot = {
+        "schema_version": "1",
+        "target": target,
+        "frozen_executable_sha256": qa._sha256(binary),
+        "frozen_archive": {
+            "archive_entry_count": 3,
+            "native_binary_entry_count": 1,
+            "pyz_module_count": 2,
+        },
+        "builder": {"distribution_count": 3},
+        "inventory_is_complete_distributable_sbom": False,
+        "native_library_dependency_closure_independently_verified": False,
+        "third_party_license_approval": False,
+        "redistribution_status": "pending",
+    }
+    return {
+        "schema_version": "1", "snapshot": snapshot,
+        "inventory_sha256": _canonical_sha(snapshot),
+        "legal_reviewer_signoff": False,
+        "third_party_license_approval": False,
+        "redistribution_status": "pending",
+    }
+
 
 
 def test_review_freezer_collects_upstream_registry_and_lazy_mr_mt3_adapter(tmp_path: Path):
@@ -96,6 +123,7 @@ def test_real_product_installer_is_used_for_synthetic_native_binary_without_publ
 
     monkeypatch.setattr(qa.subprocess, "run", fake_pyinstaller)
     monkeypatch.setattr(qa, "_probe_managed_native", fake_native_probe)
+    monkeypatch.setattr(qa, "collect_frozen_inventory", _synthetic_inventory)
     proof = qa.build_and_verify_native(
         target="macos-aarch64",
         destination=tmp_path / "private-runtime-report.pending.json",
@@ -333,6 +361,7 @@ def test_native_model_evidence_is_explicitly_opt_in_and_never_approved(
     monkeypatch.setattr(qa.subprocess, "run", build)
     monkeypatch.setattr(qa, "_probe_managed_native", simple_probe)
     monkeypatch.setattr(qa, "_probe_native_real_inference", actual_probe)
+    monkeypatch.setattr(qa, "collect_frozen_inventory", _synthetic_inventory)
     result = qa.build_and_verify_native(
         target="macos-aarch64",
         destination=tmp_path / "private-real-model.pending.json",
@@ -479,6 +508,7 @@ def test_operator_private_candidate_only_staged_after_successful_native_probe(
     monkeypatch.setattr(qa.subprocess, "run", fake_build)
     monkeypatch.setattr(qa, "_probe_managed_native", fake_probe)
     monkeypatch.setattr(qa, "_probe_native_real_inference", verified_model)
+    monkeypatch.setattr(qa, "collect_frozen_inventory", _synthetic_inventory)
     proof = qa.build_and_verify_native(
         target="macos-aarch64",
         destination=tmp_path / "proof.pending.json",
