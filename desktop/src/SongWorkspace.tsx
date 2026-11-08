@@ -162,7 +162,7 @@ function toggleValue(values: string[], value: string) {
 }
 
 export default function SongWorkspace() {
-  const { setTarget: setSelectedSong } = useSelectedSong();
+  const { setTarget: setSelectedSong, songChange } = useSelectedSong();
   const [songs, setSongs] = useState<Song[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [song, setSong] = useState<Song | null>(null);
@@ -352,6 +352,16 @@ export default function SongWorkspace() {
     if (!selectedId) return;
     await Promise.all([loadSong(selectedId), refreshSongs()]);
   };
+
+  useEffect(() => {
+    // Auxiliary controllers mutate the same canonical Song through their own APIs.
+    // Reload both the score editor and song list after a confirmed mutation;
+    // never allow a late notice for a different song to change the selection.
+    if (!songChange || songChange.songId !== activeSongId.current) return;
+    void reload().catch((error) => {
+      if (activeSongId.current === songChange.songId) setMessage(String(error));
+    });
+  }, [songChange]);
 
   const withBusy = async (operation: () => Promise<void>) => {
     setBusy(true);

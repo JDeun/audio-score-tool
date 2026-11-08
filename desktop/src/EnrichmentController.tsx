@@ -34,7 +34,7 @@ type IdentificationReport = {
 };
 
 export default function EnrichmentController() {
-  const { target } = useSelectedSong();
+  const { target, notifySongChanged } = useSelectedSong();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
@@ -98,6 +98,7 @@ export default function EnrichmentController() {
       if (!response.ok) throw new Error(body?.detail ?? "원본 음원을 식별하지 못했습니다.");
       setIdentification(body);
       if (body.applied) {
+        notifySongChanged(target.songId);
         setMessage("원본 음원을 식별해 신뢰도가 높은 곡 정보를 반영했습니다.");
         const songResponse = await fetch(`${API}/api/songs/${target.songId}`);
         if (songResponse.ok) {
@@ -141,6 +142,9 @@ export default function EnrichmentController() {
       const body = await response.json().catch(() => null);
       if (!response.ok) throw new Error(body?.detail ?? "외부 정보를 조회하지 못했습니다.");
       setReport(body);
+      if (body.metadata?.applied || body.lyric_application?.applied) {
+        notifySongChanged(target.songId);
+      }
       if (body.lyric_application?.applied) setMessage("메타데이터를 확인하고 외부 가사를 WhisperX 타이밍에 맞춰 악보에 반영했습니다.");
       else if (body.metadata?.applied) setMessage("신뢰도가 높은 메타데이터를 곡 정보에 반영했습니다.");
       else setMessage("후보를 찾았습니다. 자동 적용 기준을 넘지 않은 정보는 저장하지 않았습니다.");
