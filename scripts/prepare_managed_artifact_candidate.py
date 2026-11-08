@@ -25,6 +25,7 @@ from audio_score_tool.managed_publication_readiness import (
     OPTIONAL_COMPONENTS,
     STABLE_TARGETS,
 )
+from scripts.collect_mt3_frozen_inventory import _canonical_sha
 
 ROOT = Path(__file__).resolve().parents[1]
 BUNDLED_CATALOG = ROOT / "src" / "audio_score_tool" / "managed-component-catalog.json"
@@ -89,6 +90,12 @@ def _bind_private_native_audit(
     tool_hashes = audit.get("tool_sha256")
     if (
         audit.get("schema_version") != "1"
+        or not isinstance(audit.get("audit_integrity_sha256"), str)
+        or not _SHA.fullmatch(audit["audit_integrity_sha256"])
+        or audit["audit_integrity_sha256"] != _canonical_sha({
+            name: value for name, value in audit.items()
+            if name != "audit_integrity_sha256"
+        })
         or audit.get("purpose") != "private-native-mr-mt3-release-review"
         or audit.get("component") != component
         or audit.get("model") != "mr_mt3"
