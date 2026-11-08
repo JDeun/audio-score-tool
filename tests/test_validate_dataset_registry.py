@@ -34,3 +34,34 @@ def test_duplicate_id_rejected() -> None:
     data["datasets"].append(dict(data["datasets"][0]))
     with pytest.raises(ValueError, match="Duplicate"):
         validate_registry(data)
+
+
+def test_recommended_real_dataset_registry_preserves_reference_availability():
+    import json
+    from pathlib import Path
+
+    registry = json.loads(
+        (Path(__file__).resolve().parents[1] / "benchmarks/tier2/dataset-registry.json")
+        .read_text(encoding="utf-8")
+    )
+    datasets = {item["id"]: item for item in registry["datasets"]}
+    coco = datasets["cocochorales"]
+    assert coco["audio_included"] is True
+    assert coco["license"] == "CC-BY-4.0"
+    assert coco["reference_format"] == "mix.mid"
+    assert coco["audio_format"] == "mix.wav"
+    assert coco["status"] == "planned"  # not prematurely approved
+    assert coco["subset"] == "official_tiny"
+    assert datasets["slakh2100"]["audio_included"] is True
+    assert datasets["guitarset"]["audio_included"] is True
+    # ASAP annotations/score do not embed the aligned MAESTRO recordings.
+    assert datasets["asap"]["audio_included"] is False
+    assert datasets["asap"]["license"] == "CC-BY-NC-SA-4.0"
+    assert datasets["maestro"]["license"] == "CC-BY-NC-SA-4.0"
+    commercial = validate_registry(registry, commercial=True)
+    assert commercial["blocked"]["asap"] in {
+        "noncommercial_license", "no_audio_in_dataset",
+    }
+    assert commercial["blocked"]["maestro"] == "noncommercial_license"
+    assert "cocochorales" in commercial["audio_candidates"]
+

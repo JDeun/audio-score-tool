@@ -314,3 +314,25 @@ uv run --frozen python scripts/tier2_execution_ledger.py \
 ```
 
 비모델 실행 기록 계약과 CI 테스트가 존재해도 적법한 다중 곡 corpus와 사람이 검토한 실제 품질 결과가 확보됐다는 의미는 아닙니다. 외부 권리 확인·실제 측정 지표·성능 승인 등은 #34/#47 후속 실증 조건으로 남깁니다.
+
+## CocoChorales tiny: 공식 음원 + 정답 MIDI 페어링 (#154)
+
+공식 [CocoChorales](https://magenta.tensorflow.org/datasets/cocochorales)는 **CC BY 4.0**으로 게시된 합성 4성부 앙상블 데이터셋이며, 공식 [파일 형식](https://github.com/lukewys/chamber-ensemble-generator/blob/master/data_format.md)에 따르면 한 트랙 폴더에 `mix.wav`, `mix.mid`, `metadata.yaml`이 함께 있습니다. 전체 데이터셋 대신 원본의 **tiny**만 소량으로 입수하고, 출처 버전·이용 조건·attribution·파일 해시를 사람이 확인해야 합니다.
+
+`scripts/prepare_cocochorales_pairs.py`는 개발자 소유·검토된 트랙만 오프라인으로 읽습니다. WAV의 16kHz/16-bit PCM 특성과 길이, MIDI의 실제 note-on 이벤트와 시간, 입력 경로·심볼릭 링크·안전한 파일 크기 및 SHA-256을 검사합니다. 출력은 (1) 기존 `validate_tier2_dataset_pairs.py`가 읽을 **private:// mix WAV + mix MIDI** 페어링 JSON, (2) 경로·음원 바이트가 포함되지 않은 메타데이터 영수증입니다. 이 도구 자체는 모델 추론, 원본 데이터 다운로드, 라이선스 자동 승인, 참고 MIDI와 실제 오디오 정렬 정도의 독립 측정을 하지 않습니다.
+
+```bash
+# official tiny 자료는 먼저 수동 입수, 라이선스/출처/분할을 검토하고
+# private/cocochorales/ 안에 각 track_id/mix.wav,mix.mid,metadata.yaml 배치
+# 아래 example의 source_release_revision, rights_reviewed, track_id/split을
+# 검토 후에만 수정. 예제 그대로는 유효한 출처가 아닙니다.
+uv run --frozen python scripts/prepare_cocochorales_pairs.py \
+  /private/reviewed-coco-selection.json \
+  --corpus-root /private/cocochorales \
+  --pairs /private/coco-pairs.json \
+  --report /private/coco-pairs.pending.json
+```
+
+예제: [cocochorales-tiny.selection.example.json](cocochorales-tiny.selection.example.json). 공식 tiny 데이터의 실제 split, revision, 사용권은 자동으로 판정하지 않습니다. `rights_reviewed` 기본값은 `false`이고, 기존 `dataset-registry.json`에서도 CocoChorales는 **`status=planned`**입니다. 따라서 출처별 검토를 수행해 **별도의 사설 registry 사본**을 `verified_for_evaluation`로 승격하기 전에는 `validate_tier2_dataset_pairs.py`가 결과를 받아들이지 않습니다. 상용 MR-MT3 모델/실행 바이너리 재배포 허가와 데이터셋 CC BY 4.0 조건도 독립적으로 검토합니다.
+
+대조군으로 #59 Slakh2100(합성 다중악기), #60 GuitarSet(실제 기타; JAMS 음표 이벤트 변환 필요)을 사용하고, MAESTRO/ASAP은 비상업 조건에 분리합니다. 특히 **ASAP 저장소 자체에는 오디오가 없고 별도의 MAESTRO 음원을 정렬해야** 하므로 `dataset-registry.json`의 `audio_included=false`로 수정했습니다. 본 코드는 실제 공식 CocoChorales 데이터쌍의 추론/품질 측정을 완료한 결과가 아닙니다. #154/#34에 남은 실측 사항을 추적합니다.
