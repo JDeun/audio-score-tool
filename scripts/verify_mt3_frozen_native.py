@@ -20,6 +20,7 @@ import subprocess
 import sys
 import tempfile
 import wave
+from threading import Event, Timer
 import zipfile
 from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
@@ -31,7 +32,10 @@ from audio_score_tool.managed_components import (
     component_status,
     install_component_artifact,
 )
-from audio_score_tool.managed_tool_resolver import registered_managed_tool
+from audio_score_tool.managed_tool_resolver import (
+    registered_managed_component_root,
+    registered_managed_tool,
+)
 from audio_score_tool.runner import CommandError, run_command
 
 _ROOT = Path(__file__).resolve().parents[1]
@@ -46,6 +50,10 @@ _EXPECTED = {
 }
 _TARGETS = {"windows-x86_64", "macos-aarch64"}
 _MAX_ARCHIVE = 6 * 1024**3
+# Exact upstream v0.2.0 registry checkpoint, independently validated by its
+# download utility. Only this hash may be unpickled by the private QA runner.
+_MR_MT3_SHA256 = "b8a3807ed265059abd25ad7f68142c06c35e8f6144dcaa45bd55946a3745398f"
+_MR_MT3_SOURCE = "https://huggingface.co/gudgud1014/MR-MT3/resolve/main/mt3.pth"
 
 
 class FrozenMT3ReviewError(ValueError):
@@ -122,7 +130,9 @@ def _original_wav(path: Path) -> None:
         out.writeframes(b"\x00\x00" * 16000)
 
 
-def _private_zip(archive: Path, frozen: Path, metadata: dict) -> None:
+def _private_zip(
+    archive: Path, frozen: Path, metadata: dict, *, checkpoint: Path | None = None,
+) -> None:
     with zipfile.ZipFile(archive, "w", allowZip64=True) as bundle:
         tool = zipfile.ZipInfo(
             f"bin/mt3-infer{'.exe' if os.name == 'nt' else ''}",
@@ -140,6 +150,16 @@ def _private_zip(archive: Path, frozen: Path, metadata: dict) -> None:
         manifest.create_system = 3
         manifest.external_attr = (stat.S_IFREG | 0o644) << 16
         bundle.writestr(manifest, json.dumps(metadata, sort_keys=True, indent=2) + "\n")
+        if checkpoint is not None:
+            weight = zipfile.ZipInfo(
+                "checkpoints/mr_mt3/mt3.pth", date_time=(1980, 1, 1, 0, 0, 0),
+            )
+            weight.create_system = 3
+            weight.external_attr = (stat.S_IFREG | 0o644) << 16
+            weight.compress_type = zipfile.ZIP_STORED
+            with checkpoint.open("rb") as src, bundle.open(weight, "w", force_zip64=True) as dest:
+                for chunk in iter(lambda: src.read(1024 * 1024), b""):
+                    dest.write(chunk)
 
 
 def _probe_managed_native(root: Path, managed_name: str, *, model: str) -> dict:
@@ -229,9 +249,153 @@ def _probe_managed_native(root: Path, managed_name: str, *, model: str) -> dict:
     }
 
 
-def build_and_verify_native(*, target: str, destination: Path) -> dict:
+
+def _trusted_checkpoint(directory: Path) -> Path:
+    """Allow only the exact known MR-MT3 weight bytes, never an arbitrary pickle.
+
+    This hash is pinned in upstream MT3-Infer v0.2.0's checkpoint registry.
+    Checking the blob *before* installing/loading is essential: torch.load in
+    the vendored adapter uses weights_only=False for this legacy checkpoint.
+    """
+    directory = directory.expanduser()
+    model_dir = directory / "mr_mt3"
+    weight = model_dir / "mt3.pth"
+    if (
+        directory.is_symlink() or not directory.is_dir()
+        or model_dir.is_symlink() or not model_dir.is_dir()
+        or weight.is_symlink() or not weight.is_file()
+    ):
+        raise FrozenMT3ReviewError("Exact app-reviewed MR-MT3 checkpoint path is missing or linked")
+    size = weight.stat().st_size
+    if not 1024 * 1024 <= size <= 1024**3:
+        raise FrozenMT3ReviewError("Pinned MR-MT3 checkpoint has an implausible size")
+    if _sha256(weight) != _MR_MT3_SHA256:
+        raise FrozenMT3ReviewError("MR-MT3 checkpoint SHA-256 does not match pinned upstream bytes")
+    return weight
+
+
+def _probe_native_real_inference(
+    *, base: Path, binary: Path, managed: Path, checkpoint: Path,
+    manifest: dict, executable_sha: str,
+) -> dict:
+    """Install genuine weights with the frozen binary, then use product AMT E2E.
+
+    The actual upstream checkpoint and frozen executable never leave the runner.
+    This proves native product inference, not licenses or clean-machine release.
+    """
+    from audio_score_tool.config import Settings
+    from audio_score_tool.transcription_engine import MT3InferEngine
+    from scripts.generate_tier2_smoke_audio import generate_fixture
+    from scripts.run_tier2_model_smoke import verify_model_outputs
+
+    private_archive = base / "MT3-REAL-WEIGHTS-NOT-PUBLISHED.zip"
+    proof = {
+        **manifest,
+        "model_weights_included": True,
+        "checkpoint_sha256": _MR_MT3_SHA256,
+        "checkpoint_source": _MR_MT3_SOURCE,
+        "checkpoint_license_review": "pending",
+    }
+    _private_zip(private_archive, binary, proof, checkpoint=checkpoint)
+    if _sha256(checkpoint) != _MR_MT3_SHA256 or _sha256(binary) != executable_sha:
+        raise FrozenMT3ReviewError("Private inputs changed during checkpoint packaging")
+    archive_sha = _sha256(private_archive)
+    extension = ".exe" if os.name == "nt" else ""
+    artifact = ComponentArtifact(
+        component="transcription_engine",
+        version="mt3-0.2.0-mr-mt3-native-real-qa2",
+        url="https://example.invalid/NOT-PUBLISHED-MR-MT3.zip",
+        sha256=archive_sha,
+        archive="zip",
+        tools={"mt3-infer": f"bin/mt3-infer{extension}"},
+        license="unapproved-native-mr-mt3-real-checkpoint-QA",
+        provenance="Pinned upstream MT3-Infer model; private integration test only",
+        max_download_bytes=_MAX_ARCHIVE,
+        max_uncompressed_bytes=_MAX_ARCHIVE,
+    )
+    result = install_component_artifact(artifact, root=managed, local_archive=private_archive)
+    if (
+        result.get("ready") is not True or result.get("integrity") != "verified"
+        or result.get("payload_file_count") != 3
+    ):
+        raise FrozenMT3ReviewError("Production installer rejected the actual private model payload")
+    fixture = generate_fixture(base / "original-composed-qa.wav")
+    if not fixture.is_file() or fixture.stat().st_size < 100_000:
+        raise FrozenMT3ReviewError("Original composed inference fixture is missing")
+    output = base / "real-score-output"
+    with patch.dict(os.environ, {
+        "AST_PACKAGED": "1",
+        "AST_COMPONENT_DIR": str(managed),
+        "PATH": "",
+        "PYTHONPATH": "",
+        "PYTHONHOME": "",
+        "MT3_CHECKPOINT_DIR": str(base / "untrusted-ambient-cache"),
+        "HF_HUB_OFFLINE": "1",
+        "TRANSFORMERS_OFFLINE": "1",
+        "HF_DATASETS_OFFLINE": "1",
+    }):
+        tool = registered_managed_tool("mt3-infer", component="transcription_engine")
+        installed_root = registered_managed_component_root(
+            "transcription_engine", required_tool="mt3-infer",
+        )
+        if tool is None or installed_root is None or tool.name != f"mt3-infer{extension}":
+            raise FrozenMT3ReviewError("The true frozen model does not use the owned managed CLI")
+        if _sha256(tool) != executable_sha:
+            raise FrozenMT3ReviewError("Managed executable bytes differ from reviewed native binary")
+        installed_weight = installed_root / "checkpoints" / "mr_mt3" / "mt3.pth"
+        if _sha256(installed_weight) != _MR_MT3_SHA256:
+            raise FrozenMT3ReviewError("The installed model is not the verified upstream checkpoint")
+        engine = MT3InferEngine(Settings(
+            mt3_model="mr_mt3", transcription_engine="mt3_infer", usage_mode="commercial",
+        ))
+        if not engine.ready():
+            raise FrozenMT3ReviewError("Real model payload is not ready through the product engine")
+        cancelled = Event()
+        deadline = Timer(1800, cancelled.set)
+        deadline.daemon = True
+        deadline.start()
+        try:
+            artifacts = engine.transcribe(
+                fixture, output, device="cpu", cancel_event=cancelled,
+            )
+        finally:
+            deadline.cancel()
+        notes = verify_model_outputs(artifacts.midi_path, artifacts.musicxml_path)
+        if notes["midi_notes"] <= 0 or notes["notes"] <= 0 or notes["parts"] <= 0:
+            raise FrozenMT3ReviewError("Real native model returned an empty or malformed score")
+        after = component_status("transcription_engine", root=managed)
+        if after.get("ready") is not True or after.get("integrity") != "verified":
+            raise FrozenMT3ReviewError("Native inference changed or corrupted its owned model payload")
+    return {
+        "model": "mr_mt3",
+        "checkpoint_sha256": _MR_MT3_SHA256,
+        "checkpoint_source": _MR_MT3_SOURCE,
+        "frozen_executable_sha256": executable_sha,
+        "private_real_archive_sha256": archive_sha,
+        "private_real_archive_bytes": private_archive.stat().st_size,
+        "actual_model_weights_verified": True,
+        "managed_archive_and_full_payload_verified": True,
+        "registered_native_frozen_executable_verified": True,
+        "actual_cpu_model_inference_verified": True,
+        "product_midi_to_musicxml_verified": True,
+        "no_ambient_python_or_path_required_by_frozen_cli": True,
+        "audio_sha256": _sha256(fixture),
+        "midi_sha256": _sha256(artifacts.midi_path),
+        "musicxml_sha256": _sha256(artifacts.musicxml_path),
+        "note_counts": notes,
+        "model_redistribution_approved": False,
+        "model_weights_published": False,
+        "clean_machine_install_verified": False,
+        "redistribution_status": "pending",
+    }
+
+
+def build_and_verify_native(
+    *, target: str, destination: Path, checkpoint_directory: Path | None = None,
+) -> dict:
     _native_target(target)
     packages = _pinned_packages()
+    checkpoint = _trusted_checkpoint(checkpoint_directory) if checkpoint_directory is not None else None
     if not destination.parent.is_dir() or destination.exists() or destination.is_symlink():
         raise FrozenMT3ReviewError("Native QA evidence must be a new file")
     with tempfile.TemporaryDirectory(prefix="ast-mt3-frozen-review-") as private:
@@ -286,6 +450,13 @@ def build_and_verify_native(*, target: str, destination: Path) -> dict:
             end_status = component_status("transcription_engine", root=managed)
             if not end_status.get("ready"):
                 raise FrozenMT3ReviewError("Frozen CLI mutated its installed runtime")
+        real_evidence = (
+            _probe_native_real_inference(
+                base=base, binary=binary, managed=managed,
+                checkpoint=checkpoint, manifest=manifest, executable_sha=executable_sha,
+            )
+            if checkpoint is not None else None
+        )
         if _sha256(binary) != executable_sha:
             raise FrozenMT3ReviewError("Frozen CLI changed after native probes")
         return {
@@ -299,8 +470,9 @@ def build_and_verify_native(*, target: str, destination: Path) -> dict:
             "managed_installer_verified": True,
             "registered_executable_verified": True,
             "native_host_python_not_required_for_startup": True,
-            "actual_model_inference_verified": False,
-            "model_checkpoint_included": False,
+            "actual_model_inference_verified": real_evidence is not None,
+            "model_checkpoint_included": real_evidence is not None,
+            "real_native_inference": real_evidence,
             "windows_macos_clean_machine_verified": False,
             "model_license_approved": False,
             "runtime_redistribution_approved": False,
@@ -317,9 +489,16 @@ def main() -> int:
     )
     parser.add_argument("--target", choices=sorted(_TARGETS), required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--checkpoint-dir", type=Path,
+        help="Private, runner-local MR-MT3 download root; enables actual native score inference",
+    )
     args = parser.parse_args()
     try:
-        proof = build_and_verify_native(target=args.target, destination=args.output)
+        proof = build_and_verify_native(
+            target=args.target, destination=args.output,
+            checkpoint_directory=args.checkpoint_dir,
+        )
         with args.output.open("x", encoding="utf-8") as report:
             json.dump(proof, report, sort_keys=True, indent=2)
             report.write("\n")
@@ -329,7 +508,7 @@ def main() -> int:
         "target": proof["target"],
         "managed_installer_verified": proof["managed_installer_verified"],
         "native_host_python_not_required_for_startup": proof["native_host_python_not_required_for_startup"],
-        "actual_model_inference_verified": False,
+        "actual_model_inference_verified": proof["actual_model_inference_verified"],
         "redistribution_status": "pending",
     }, sort_keys=True))
     return 0
