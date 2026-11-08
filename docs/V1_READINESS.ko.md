@@ -143,7 +143,7 @@ Issue #22의 trust chain을 실제로 활성화합니다.
 
 정식 stable은 P0/P1/P2가 모두 green일 때만 허용합니다.
 
-`V1 Release Preflight`뿐 아니라 tagged sidecar packaging 경로 자체도 동일한 P0/P1 unified checker를 실행하므로 별도 workflow를 우회해 v1 release artifact를 만들 수 없습니다.
+`V1 Release Preflight`뿐 아니라 tagged sidecar packaging 경로 자체도 동일한 P0/P1 unified checker를 실행하므로 별도 workflow를 우회해 v1 release artifact를 만들 수 없습니다. `RELEASE_SIGNING_READY=true`인 `Desktop Release`는 Windows/macOS에서 서명 전에 실제 승인 런타임 다운로드·채보·PDF OMR·검토된 YouTube→Song의 packaged HTTP E2E를 별도로 실행하며, 실패한 플랫폼이 있으면 public release publish 단계로 진입하지 않습니다. 검토된 QA 영상의 권리 영수증이 없으면 다운로드 전에 실패합니다.
 
 ## P3 — Post-v1 feature track
 
