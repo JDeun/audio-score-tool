@@ -50,7 +50,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/coco-download"
+          mkdir -p "$RUNNER_TEMP/coco-download" "$RUNNER_TEMP/coco-evidence"
           for track in string_track001010 brass_track049013 woodwind_track097010 random_track145011; do
             echo "Proving official author sample: $track"
             curl --fail --location --silent --show-error \
