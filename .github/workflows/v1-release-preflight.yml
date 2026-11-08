@@ -66,6 +66,7 @@ jobs:
             tests/test_packaged_runtime_dependencies.py \
             tests/test_packaged_managed_delivery_smoke.py \
             tests/test_packaged_managed_feature_acceptance.py \
+            tests/test_packaged_omr_pdf_acceptance.py \
             tests/test_youtube.py \
             tests/test_youtube_managed_native_candidate.py \
             tests/test_engine_release_policy.py \
