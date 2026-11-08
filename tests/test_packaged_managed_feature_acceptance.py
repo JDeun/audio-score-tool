@@ -7,7 +7,6 @@ from __future__ import annotations
 import json
 import struct
 import sys
-import xml.etree.ElementTree as ET
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -47,7 +46,6 @@ def _xml(*, with_notes=True) -> bytes:
 def test_real_product_output_requires_nonempty_midi_note_ons_and_xml_parts():
     assert features._midi_note_count(_midi()) == 1
     assert features._musicxml_note_count(_xml()) == (1, 1)
-    assert features._midi_note_count(_midi(with_notes=False)) if False else True
     with pytest.raises(features.PackagedFeatureAcceptanceError, match="no note-on"):
         features._midi_note_count(_midi(with_notes=False))
     with pytest.raises(features.PackagedFeatureAcceptanceError, match="pitched"):
