@@ -58,6 +58,7 @@ jobs:
             tests/test_managed_artifact_publication_evidence.py \
             tests/test_packaged_runtime_dependencies.py \
             tests/test_youtube.py \
+            tests/test_youtube_managed_native_candidate.py \
             tests/test_engine_release_policy.py \
             tests/test_optional_feature_policy.py \
             tests/test_tier2_benchmark.py \
