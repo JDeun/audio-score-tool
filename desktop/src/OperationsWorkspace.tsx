@@ -565,7 +565,7 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
                 <p className="source-usage-note">개인 연습·학습용 로컬 분석입니다. YouTube 이용약관과 적용되는 저작권 규정을 준수하고, 원본 음원이나 생성한 결과물을 허가 없이 공개·재배포하지 마세요.</p>
               ) : (
                 <label className="rights-check"><input type="checkbox" checked={youtubeAuthorized} disabled={active} onChange={(event) => setYoutubeAuthorized(event.target.checked)} /><span>상용 이용: 이 콘텐츠를 처리할 권한이나 이용 허가가 있음을 확인합니다.</span></label>
-              )
+              )}
             </div>
           )}
         </section>
