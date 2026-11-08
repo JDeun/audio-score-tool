@@ -6,6 +6,7 @@ third-party executables are included in this test suite.
 from __future__ import annotations
 
 import json
+import sqlite3
 import struct
 import sys
 from datetime import datetime, timedelta, timezone
@@ -315,4 +316,59 @@ def test_youtube_job_api_persists_source_kind_before_any_worker_starts(
     assert reservations[0][1]["source_kind"] == "youtube"
     assert reservations[0][1]["filename"] == "YouTube import"
     assert (tmp_path / response["job_id"]).is_dir()
+
+
+def test_old_job_sqlite_migrates_source_marker_without_rewriting_history(tmp_path):
+    path = tmp_path / "legacy.sqlite3"
+    with sqlite3.connect(path) as conn:
+        conn.execute("""
+            CREATE TABLE jobs(
+                job_id TEXT PRIMARY KEY, kind TEXT NOT NULL,
+                status TEXT NOT NULL, stage TEXT,
+                progress INTEGER NOT NULL DEFAULT 0,
+                filename TEXT, language TEXT, skip_lyrics INTEGER NOT NULL DEFAULT 0,
+                preset TEXT, muscriptor_model TEXT, whisperx_model TEXT, error TEXT,
+                result_json TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+            )
+        """)
+        conn.execute(
+            "INSERT INTO jobs(job_id,kind,status,filename,created_at,updated_at)"
+            " VALUES (?, ?, ?, ?, ?, ?)",
+            ("e" * 32, "transcription", "done", "Old unknown.mp3",
+             "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z"),
+        )
+    store = JobStore(path)
+    old = store.get("e" * 32)
+    assert old is not None
+    assert old["source_kind"] is None  # never forge origin of existing Jobs
+    assert old["filename"] == "Old unknown.mp3"
+    store.create(
+        _JOB, kind="transcription", status="queued",
+        filename="Current title.mp3", source_kind="youtube",
+    )
+    assert store.get(_JOB)["source_kind"] == "youtube"
+    with sqlite3.connect(path) as conn:
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(jobs)")}
+    assert "source_kind" in cols
+
+
+def test_youtube_execution_rejects_forged_or_missing_review_object(monkeypatch):
+    monkeypatch.setattr(
+        packaged, "_http",
+        lambda *_a, **_kw: (_ for _ in ()).throw(
+            AssertionError("Unreviewed YouTube video must not be inspected"),
+        ),
+    )
+    valid = _approved()
+    for modified in (
+        None,
+        {},
+        {**valid, "rights_receipt_sha256": ""},
+        {**valid, "duration_limit_seconds": 400},
+        {**valid, "authorization_is_operator_claim_not_independent_legal_proof": False},
+    ):
+        with pytest.raises(packaged.PackagedFeatureAcceptanceError):
+            youtube.verify_packaged_youtube_ingest(
+                _BASE, _TOKEN, reviewed=modified,
+            )
 
