@@ -259,3 +259,34 @@ uv run --frozen --extra desktop python scripts/smoke_packaged_sidecar.py \
 ```
 
 `desktop-packages.yml`의 수동 `require_managed_delivery` 입력 및 v1 태그 인수시험은 새로운 경로를 포함합니다. 별도의 실제 모델 품질·사용자 수정 시간 선정은 #34, 유효한 코드 서명·공증·업데이터 인수시험은 #22에서 처리합니다.
+
+## 승인된 YouTube 영상의 실제 packaged 입력→악보 인수시험 (#29)
+
+이제 수동 `Desktop Packages --require-managed-delivery` 및 `v1*` 태그 배포의 **전체 관리형 기능 인수시험**에는 실제 YouTube URL의 채보 경로도 포함됩니다. 사전에 게시·승인된 Windows/macOS managed `yt-dlp`/Deno/FFmpeg/ffprobe 및 AMT 체크포인트가 필요하며, 출고 검토자가 **소유하거나 적법하게 QA 처리 허가를 받은 짧은 공개 영상 한 개**를 직접 제공해야 합니다.
+
+**기본 테스트 영상·외부 음악 링크는 없습니다.** CI가 임의로 제3자 음악을 다운로드하지 않도록, 별도 사람이 확인한 `AST_YOUTUBE_QA_RECEIPT_JSON`이 없으면 사이드카 기동/관리형 구성요소 다운로드 **이전**에 오류로 종료합니다. 검토 기록의 필드는 다음과 같습니다.
+
+```json
+{
+  "schema": 1,
+  "purpose": "owned-youtube-automated-release-qa-v1",
+  "source_url": "https://www.youtube.com/watch?v=<REPLACE_WITH_OWNED_11_CHAR_VIDEO_ID>",
+  "video_id": "<REPLACE_WITH_OWNED_11_CHAR_VIDEO_ID>",
+  "rights_basis": "original-owned",
+  "authorized_for_automated_download_and_transcription": true,
+  "may_publish_source_media_as_ci_artifact": false,
+  "redistribution_status": "pending",
+  "reviewer": "<YOUR_RELEASE_REVIEWER>",
+  "rights_evidence_reference": "<YOUR_INTERNAL_OWNERSHIP_OR_WRITTEN_LICENSE_REFERENCE>",
+  "reviewed_at": "2026-11-08T09:00:00+00:00",
+  "max_duration_seconds": 60
+}
+```
+
+위 값들은 *형식 예시*이며 유효한 영상·승인 증빙이 아닙니다. `rights_basis`는 `original-owned` 또는 `separately-licensed-for-qa` 중 하나만 허용하며, 검토 기준일은 시간대가 명시되고 180일 이내여야 합니다. URL은 YouTube 단일 영상에 대한 정확한 `https://www.youtube.com/watch?v=<11자리 ID>`만 허용합니다. `max_duration_seconds`는 5~180초이며 실제 yt-dlp metadata의 영상 길이가 이를 초과하거나 조회 불가능하면 테스트를 중단합니다. 영상의 소유/사용권은 이 도구가 **법적으로 독립 검증하는 것이 아니므로**, 출고 담당자가 실제 법적 권리를 따로 확인해야 합니다.
+
+GitHub Actions의 운영자 설정 **Repository Variable `YOUTUBE_QA_SOURCE_REVIEW_JSON`**에 검토된 JSON을 등록하면, `.github/workflows/desktop-packages.yml`이 **수동 관리형 배포 검증 또는 v1 태그 실행에서만** 이 값을 QA 런처의 `AST_YOUTUBE_QA_RECEIPT_JSON`에 전달합니다. 패키지 백엔드 자식 프로세스에는 검토 JSON 원문을 전달하지 않고, API의 통상적인 인증된 JSON 요청에 영상 URL만 전달합니다. 로컬 수동 QA에서는 실행 환경에 `AST_YOUTUBE_QA_RECEIPT_JSON`을 직접 설정할 수 있습니다. 민감한 소유권 문서·원본 영상·음원·인증 토큰은 저장소나 CI 아티팩트에 업로드하지 않습니다.
+
+**실제 전체 검증:** `/api/sources/youtube/status`로 관리형 네 도구 준비 확인 → 인증 `POST /api/sources/youtube/inspect`로 해당 영상 ID/길이 대조 → `POST /api/jobs/youtube`에 명시적으로 `authorized=true` 제출 → 실제 `yt-dlp`/Deno/FFmpeg 입력·MT3 AMT 완료 → MIME이 아닌 **MIDI note-on/MusicXML pitched notes** 검사 → `GET /api/songs`에서 `source_kind=youtube`인 canonical Song이 정확히 하나 기록됐는지 확인합니다. 관련 `source_kind`는 이제 JobStore의 명시적인 SQLite 컬럼으로 지속 저장하며, 영상 제목에 `.mp3`처럼 확장자가 있어도 로컬 입력으로 오분류되지 않습니다. 구버전 Job은 `NULL`로 유지하고 추정으로 원본 권리를 생성하지 않습니다.
+
+이 경로의 성공은 **실제 허가된 영상에 대한 제품 입력 기능**을 확인하는 것이지 YouTube 서비스 약관, 모델/바이너리 상용 재배포 라이선스, 독립적인 저작권 승인, clean-machine GUI 설치·업데이트, 음악 정확도(#34)를 통과했다는 뜻이 아닙니다. 출시 후보 구성요소 카탈로그 `artifacts: {}` 및 승인 기록 `approvals: {}`가 비어 있는 동안에도 자동 실행/출시 승인은 금지됩니다.
