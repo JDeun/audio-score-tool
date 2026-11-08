@@ -101,7 +101,7 @@ jobs:
           argument = "past_key_values" if model == "mr_mt3" else "past_key_value"
           assert version("mt3-infer") == "0.2.0"
           assert version("transformers") == required
-          assert "past_key_values" in inspect.signature(T5Block.forward).parameters if model == "mr_mt3" else "past_key_value" in inspect.signature(T5Block.forward).parameters
+          assert argument in inspect.signature(T5Block.forward).parameters
           print(f"Matched {model} adapter with Transformers {required} T5 {argument}")
           PY
 
@@ -196,10 +196,13 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install metadata comparator requirements
+      - name: Setup metadata comparator Python
         uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           python-version: '3.11'
+
+      - name: Install reference comparison dependencies only (no PyTorch checkpoint)
+        run: python -m pip install --disable-pip-version-check -e . 'defusedxml==0.7.1'
 
       - name: Download MR-MT3 metadata-only proof
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
