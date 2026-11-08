@@ -11,7 +11,6 @@ import pytest
 from scripts import plan_tier2_candidate_groups as plans
 from scripts.run_tier2_matrix import plan as matrix_plan
 
-
 CATALOG_PATH = Path("benchmarks/tier2/model-candidate-registry.json")
 MATRIX_PATH = Path("benchmarks/tier2/experiment-matrix.json")
 
