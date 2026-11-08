@@ -189,6 +189,11 @@ installed/transcription_engine/<version>/
 
 실제 CPU 모델 CI가 제공하는 `mt3-infer transcribe --help`에서 `--no-download` 옵션을 확인했습니다. 패키지 모드의 채보 실행은 기존 `MT3_CHECKPOINT_DIR`의 앱 관리형 절대 경로 및 Hugging Face/Transformers offline 환경변수뿐 아니라 **CLI의 `--no-download`**도 반드시 전달합니다. 체크포인트가 누락된 경우 외부 다운로더로 대체할 수 없으며, 개발 모드에서는 기존 upstream 동작을 유지합니다. Windows/macOS의 독립 실행형 frozen runtime과 상업용 가중치 배포 권리는 여전히 별도 #29 출고 조건입니다.
 
+### Windows 패키지 MT3 CLI의 UTF-8 출력 (#29)
+
+공식 MT3-Infer CLI는 채보 진행 및 모델 목록에 체크표시·화살표 등 유니코드를 출력합니다. Windows에서 백엔드가 자식 프로세스 stdout을 파일로 리다이렉트할 때 기존 사용자 코드 페이지(cp1252 등)를 사용하면 `UnicodeEncodeError`로 정상 명령이 실패할 수 있습니다. 앱의 **패키지 모드 MT3 채보 실행**은 `PYTHONIOENCODING=utf-8`과 `PYTHONUTF8=1`을 자식 프로세스에 명시적으로 전달해 결과 인코딩을 표준화합니다. 개발 모드의 사용자 Python 환경은 변경하지 않습니다. 네이티브 얼리 QA 실행기에도 같은 환경을 적용해 실물 빌드에서 검증합니다.
+
+PyInstaller frozen 실행 파일의 Python 인터프리터는 일반 Python과 달리 `PYTHONIOENCODING`·`PYTHONUTF8` 환경 설정을 따르지 않을 수 있습니다. 따라서 실제 Windows 독립 실행형 빌드는 `scripts/mt3_frozen_entry.py`에서 stdout/stderr를 직접 UTF-8로 설정하며, 빈 PATH와 오프라인 상태의 네이티브 실행 시험으로 이를 검증합니다. 이 단계는 체크포인트 포함·실제 모델 추론을 대신하지 않습니다.
 
 ## Windows/macOS MT3 PyInstaller 독립 실행형 기동 QA (#29, 2026-11-08)
 

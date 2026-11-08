@@ -90,6 +90,10 @@ def test_packaged_inference_passes_verified_checkpoint_path_and_forbids_ambient_
     fake_cache.mkdir()
     monkeypatch.setenv("MT3_CHECKPOINT_DIR", str(fake_cache))
     monkeypatch.setenv("HF_HUB_OFFLINE", "0")
+    # Windows may inherit a code-page encoding that cannot represent the
+    # upstream CLI's checkmarks and arrows when stdout is redirected.
+    monkeypatch.setenv("PYTHONIOENCODING", "cp1252")
+    monkeypatch.setenv("PYTHONUTF8", "0")
     engine = _engine()
     used: list[tuple[str, list, dict]] = []
 
@@ -118,6 +122,8 @@ def test_packaged_inference_passes_verified_checkpoint_path_and_forbids_ambient_
     assert env["TRANSFORMERS_OFFLINE"] == "1"
     assert env["HF_DATASETS_OFFLINE"] == "1"
     assert env["HF_HUB_DISABLE_TELEMETRY"] == "1"
+    assert env["PYTHONIOENCODING"] == "utf-8"
+    assert env["PYTHONUTF8"] == "1"
 
 
 @pytest.mark.parametrize("mode", [
