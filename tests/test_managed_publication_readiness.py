@@ -38,7 +38,15 @@ def test_bundled_catalog_is_not_yet_publication_ready():
     assert all(check["reason"] == "artifact-not-published" for check in report["checks"])
 
 
-def test_pinned_cross_platform_catalog_is_publication_ready(tmp_path: Path, monkeypatch):
+def test_pinned_cross_platform_catalog_is_publication_ready_with_reviewed_signoff_stub(
+    tmp_path: Path, monkeypatch,
+):
+    # This fixture tests the cross-platform manifest contract only. The real
+    # independent human/remote receipt is checked in test_managed_release_approval.
+    monkeypatch.setattr(
+        "audio_score_tool.managed_publication_readiness.check_release_approval",
+        lambda *_args: None,
+    )
     digest = hashlib.sha256(b"fixture").hexdigest()
     targets = ("windows-x86_64", "macos-aarch64")
     licenses = {
@@ -158,6 +166,12 @@ def test_redistribution_must_be_explicitly_approved(tmp_path: Path, monkeypatch)
 
 
 def test_missing_platform_keeps_release_not_ready(tmp_path: Path, monkeypatch):
+    # The Windows approval is controlled independently; only platform absence
+    # is under test here.
+    monkeypatch.setattr(
+        "audio_score_tool.managed_publication_readiness.check_release_approval",
+        lambda *_args: None,
+    )
     digest = hashlib.sha256(b"fixture").hexdigest()
     catalog = tmp_path / "catalog.json"
     catalog.write_text(
