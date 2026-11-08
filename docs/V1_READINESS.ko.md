@@ -203,3 +203,9 @@ v1은 다음 조건을 모두 만족해야 합니다.
 지원 대상의 게시 승인 메타데이터와 SHA-256이 확보된 뒤, `Desktop Packages --require-managed-delivery`는 단순 파일 설치 상태 외에 **인증된 frozen sidecar API의 WAV 업로드 → 실제 AMT Job 완료 → note-on MIDI/MusicXML 다운로드**를 필수 검증합니다. 제품이 선택한 MT3 모델을 사용하며 무모델·무음 MIDI·잘못된 XML·네이티브 실행 실패는 허용하지 않습니다.
 
 동일 시험에서 Audiveris 배포판 **내장 JRE**가 PATH/JAVA_HOME 없이 시작되는지 확인한 뒤, **패키지 백엔드의 12마디 원본 MusicXML 가져오기 → 자체 Verovio/fpdf2 PDF 조판 → 관리형 Audiveris의 실제 PDF OMR Job → 정규 Song 저장 → MusicXML/MIDI/PDF/파트 출력**까지 검증합니다. 이는 실제 OMR 작업을 필수로 실행하는 *조건부 인수시험 코드*이며, 외부 구성요소가 승인·게시되지 않은 현재 실물 배포가 이 검증을 통과한 것은 아닙니다. 데스크톱 설치·업데이트와 모델/OMR 재배포 권한은 별도입니다. 카탈로그/라이선스가 미승인 상태에서는 이 테스트가 정식 v1 통과를 보고할 수 없습니다.
+
+### YouTube URL→Song 실제 기능 배선 및 릴리스 QA
+
+`Desktop Packages --require-managed-delivery`는 승인된 관리형 네 도구의 native CLI 버전만 확인하지 않고, **사람이 소유·처리 권한을 검토한 실제 단일 YouTube 영상**을 인증된 패키지 API로 조회·가져와 **MT3 AMT → MIDI/MusicXML → 정규 Song**까지 확인합니다. 위 검토 JSON은 `YOUTUBE_QA_SOURCE_REVIEW_JSON` Repository Variable에 준비되어야 하며, 없으면 다운로드 이전에 fail closed합니다. 실제 미디어나 원본 권리 문서는 공개 CI artifact로 저장하지 않습니다.
+
+신규 Job의 `source_kind`를 SQLite로 명시 저장해 `Live. 2026.mp3`처럼 점이 포함된 YouTube 영상 제목이 `local`로 오분류되지 않게 했습니다. 이 검증 경로 및 이전 PDF OMR/MT3 인수시험의 **코드**는 CI에서 합성 테스트를 통과해야 하지만, 현재 미승인 모델·배포 artifact의 **실물 출시 인수시험 성공**이라고 표시하지는 않습니다.
