@@ -6,6 +6,7 @@ import json
 import os
 import socket
 import subprocess
+import sys
 import tempfile
 import time
 import urllib.error
@@ -327,18 +328,38 @@ def main() -> None:
     parser.add_argument(
         "--require-managed-delivery",
         action="store_true",
-        help="Download and verify all approved managed core archives through the packaged API.",
+        help=(
+            "Install approved managed components, then use the frozen HTTP API "
+            "to actually transcribe original audio and launch the owned Audiveris JRE."
+        ),
+    )
+    parser.add_argument(
+        "--managed-mt3-model", choices=("mr_mt3", "yourmt3"),
+        help="Override the isolated release-QA MT3 model (default: packaged engine setting).",
     )
     args = parser.parse_args()
+    if args.managed_mt3_model and not args.require_managed_delivery:
+        parser.error("--managed-mt3-model requires --require-managed-delivery")
     binary = _sidecar()
     port = _free_port()
     token = "ci-sidecar-smoke-token"
-    with tempfile.TemporaryDirectory(prefix="ast-component-smoke-") as component_root:
+    with tempfile.TemporaryDirectory(prefix="ast-component-smoke-") as component_temp:
+        # Never touch a developer's or QA operator's actual Song/Job/settings DB.
+        # Every packaged acceptance starts with an independent clean app-data tree.
+        component_root = Path(component_temp)
+        managed_root = component_root / "managed"
+        managed_root.mkdir()
+        sandbox_data = component_root / "app-data"
         env = os.environ.copy()
         env["AST_API_PORT"] = str(port)
         env["AST_API_TOKEN"] = token
         env["AST_PACKAGED"] = "1"
-        env["AST_COMPONENT_DIR"] = component_root
+        env["AST_COMPONENT_DIR"] = str(managed_root)
+        env["AST_DATA_DIR"] = str(sandbox_data)
+        if args.require_managed_delivery:
+            # This must not succeed by finding Python, Java, FFmpeg, or yt-dlp
+            # accidentally installed on the QA runner's system PATH.
+            env["PATH"] = ""
         process = subprocess.Popen(
             [str(binary)],
             cwd=ROOT,
@@ -371,10 +392,28 @@ def main() -> None:
             _json_object(authenticated[1], label="authenticated health")
             _verify_embedded_runtime(base_url, token)
             if args.require_managed_delivery:
-                _verify_managed_delivery(base_url, token, Path(component_root))
+                _verify_managed_delivery(base_url, token, managed_root)
+                # Direct execution (../scripts/smoke_packaged_sidecar.py) may put
+                # only /repo/scripts on sys.path, not the repository root.
+                if str(ROOT) not in sys.path:
+                    sys.path.insert(0, str(ROOT))
+                from scripts.verify_packaged_managed_features import (
+                    verify_packaged_managed_features,
+                )
+                result = verify_packaged_managed_features(
+                    base_url, token, managed_root,
+                    private_workspace=component_root / "original-qa-fixtures",
+                    mt3_model=args.managed_mt3_model,
+                )
+                if (
+                    result.get("actual_product_audio_job_completed") is not True
+                    or result.get("embedded_jre_started_without_system_path") is not True
+                ):
+                    raise RuntimeError("Managed product audio/JRE acceptance was incomplete")
             print(
                 f"Packaged sidecar smoke passed on 127.0.0.1:{port}"
-                + (" (managed delivery verified)" if args.require_managed_delivery else "")
+                + (" (managed delivery, real AMT Job and embedded Audiveris JRE verified)"
+                   if args.require_managed_delivery else "")
             )
         finally:
             if process.poll() is None:

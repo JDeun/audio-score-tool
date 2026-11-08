@@ -235,3 +235,27 @@ python scripts/verify_mt3_frozen_native.py \
 ```
 
 Windows에서는 `--target windows-x86_64`, Windows 전용 사설 절대 경로를 사용합니다. 정확한 빌더 의존성은 `.github/workflows/mt3-frozen-native-review.yml`에서 확인합니다. 이 출력은 임의 외부 배포 권한을 대체하지 않으며, 유효한 `--url`/라이선스/업스트림 revision과 실제 소스·고지를 따로 검토한 다음 `prepare_managed_artifact_candidate.py` 및 `verify_managed_artifact_publication.py`의 기존 출고 절차로 진행합니다. 최종 승인은 독립적인 담당자의 서명/라이선스 판단과 clean-machine 테스트까지 요구합니다.
+
+## v1 게시된 관리형 런타임의 실제 packaged API 인수시험 (#29)
+
+기존 `Desktop Packages`의 `--require-managed-delivery` 검사는 앱 관리형 AMT/YouTube/Audiveris ZIP을 설치하고 체크섬·등록상태를 확인했지만, YouTube 네이티브 CLI 외에는 **실제 채보 Job/MIDI/MusicXML이나 Audiveris JRE 실행**을 확인하지 않았습니다. 승인·출고된 안정형 Windows x86_64/macOS ARM64 runtime에서만 실행되는 동일 옵션의 수동 QA/v1 태그 경로를 보강했습니다.
+
+`scripts/smoke_packaged_sidecar.py --require-managed-delivery`는 이제 **관리형 설치가 승인된 플랫폼**에서 아래를 추가로 검사합니다.
+
+1. 독립 임시 `AST_DATA_DIR`·`AST_COMPONENT_DIR`에 패키지 백엔드 사이드카를 실행하고, **사이드카의 `PATH=""`**로 시스템 Python/FFmpeg/Java/yt-dlp 우회 사용을 제한합니다. 기존 일반 unsigned/PR 패키지 smoke는 외부 모델 게시를 요구하지 않습니다.
+2. 기존 게시 승인/원격 아카이브/전체 파일 무결성 검증과 YouTube 4도구 버전 기동, 설치 후 Setup Center 상태 재조회가 통과해야 다음 단계로 진행합니다.
+3. 동일한 **패키지 백엔드의 인증 HTTP API**에서 `/api/engines`를 실제로 읽고 테스트 전용 임시 설정을 상용 모드 MT3-Infer로 변경합니다. 시험 대상 모델은 제품에서 선택된 `mt3_model`을 사용하며, 의도적으로 특정 리뷰 모델만 시험할 때는 `--managed-mt3-model mr_mt3` 또는 `yourmt3`로 명시할 수 있습니다. 이것은 상업용 모델 라이선스 승인이 아닙니다.
+4. 프로젝트가 직접 생성한 16초 다성 WAV를 `POST /api/jobs`로 올려 **패키지 백엔드 → 실제 앱 관리형 MT3 실행 파일 → 검증된 가중치 → 결과 처리 파이프라인**을 통과한 `done` 상태를 기다립니다. 실패·취소·타임아웃은 거부하며, 타임아웃 시 해당 작업을 취소하도록 요청합니다. `GET /api/jobs/{id}/files/{midi,musicxml}`에서 각각 MIDI **실제 note-on 이벤트** 및 MusicXML **유효한 음표·파트**를 표준 라이브러리로 검사합니다. 호스트 Python의 추론 라이브러리나 외부 음악 파일은 필요하지 않습니다.
+5. 설치된 `audiveris` 관리형 실행 파일이 `GET /api/omr/status`에 정확히 바인딩됐는지 확인하고, 해당 배포판의 **번들된 Java**를 시스템 PATH/JAVA_HOME 없이 `-version`으로 기동합니다. 이는 **실제 PDF→Audiveris OMR→MusicXML 성공을 증명하지 않습니다**. 그 인수시험은 별도 [Audiveris 실물 E2E](AUDIVERIS_OFFICIAL_RUNTIME_REVIEW.ko.md) 등으로 수행해야 합니다.
+6. 테스트 입력과 SQLite, 출력은 전용 임시 앱 데이터에 보관하고 종료 후 삭제합니다. 메타데이터·Job 상태 검증은 법적 재배포 허가, Windows/macOS의 진짜 깨끗한 사용자 OS 설치, Tauri 데스크톱 앱 UI 실행, updater 서명·공증 acceptance를 대체하지 않습니다.
+
+기존 관리형 카탈로그 `artifacts: {}` 및 출고 승인 `approvals: {}`인 현재에는 위 고비용 테스트가 **합법적인 실제 출고 URL을 마련하기 전에는 통과할 수 없도록** 설계되었습니다. 이 기능 때문에 CI에 모델 바이너리를 추가 업로드하거나 라이선스/게시를 자동 승인하지 않습니다.
+
+```bash
+# 이미 심사·게시된 Windows/macOS 런타임이 있는 수동 QA 환경에서만 실행
+uv run --frozen --extra desktop python scripts/smoke_packaged_sidecar.py \
+  --require-managed-delivery \
+  --managed-mt3-model mr_mt3
+```
+
+`desktop-packages.yml`의 수동 `require_managed_delivery` 입력 및 v1 태그 인수시험은 새로운 경로를 포함합니다. 별도의 실제 모델 품질·사용자 수정 시간 선정은 #34, 유효한 코드 서명·공증·업데이터 인수시험은 #22에서 처리합니다.
