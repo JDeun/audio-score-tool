@@ -1,7 +1,6 @@
 """Offline synthetic fixtures for source-bound four-ensemble MR-MT3 score receipts."""
 from __future__ import annotations
 
-import copy
 import json
 import sys
 from pathlib import Path
