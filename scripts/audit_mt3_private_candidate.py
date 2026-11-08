@@ -66,7 +66,8 @@ def _sha256_member(source: BinaryIO) -> str:
 def _validate_native_receipt(proof: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     _expect(proof.get("schema") == 1, "Native QA receipt schema is unsupported")
     target = proof.get("target")
-    _expect(target in native._TARGETS, "Native QA receipt target is unsupported")
+    _expect(isinstance(target, str) and target in native._TARGETS,
+            "Native QA receipt target is unsupported")
     _expect(proof.get("model_adapter") == "mr_mt3", "Native QA receipt must use MR-MT3")
     _expect(proof.get("packages") == native._EXPECTED, "Native QA builder pins do not match")
     for key in (
@@ -245,23 +246,26 @@ def audit_private_candidate(archive: Path, proof: dict[str, Any]) -> dict[str, A
 
 def write_pending_audit(report: dict[str, Any], output: Path) -> None:
     """Write metadata only, owner-readable, with no-clobber outside the repo."""
-    parent = output.expanduser().absolute().parent
+    destination = output.expanduser().absolute()
+    parent = destination.parent
     _expect(parent.is_dir() and not parent.is_symlink(),
             "An existing private output directory is required")
+    for ancestor in (parent, *parent.parents):
+        _expect(not ancestor.is_symlink(), "Private output path may not traverse symlinks")
     resolved = parent.resolve()
     _expect(not resolved.is_relative_to(_ROOT.resolve()),
             "Private audit output must stay outside the Git checkout")
-    _expect(not output.is_symlink() and not output.exists(),
+    _expect(not destination.is_symlink() and not destination.exists(),
             "Refusing to overwrite an existing audit file")
     # O_EXCL prevents a race with an existing file or symlink. The audit is
     # metadata-only, never the model or the executable.
-    fd = os.open(output, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    fd = os.open(destination, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
             json.dump(report, handle, sort_keys=True, ensure_ascii=False, indent=2)
             handle.write("\n")
     except BaseException:
-        Path(output).unlink(missing_ok=True)
+        destination.unlink(missing_ok=True)
         raise
 
 
