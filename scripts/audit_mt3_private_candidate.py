@@ -148,6 +148,10 @@ def _validate_native_receipt(proof: dict[str, Any]) -> tuple[str, dict[str, Any]
     _expect(real.get("checkpoint_sha256") == native._MR_MT3_SHA256, "Model weight SHA-256 is not pinned")
     _expect(real.get("checkpoint_source") == native._MR_MT3_SOURCE, "Checkpoint source has drifted")
     _expect(
+        real.get("checkpoint_source_revision") == native._MR_MT3_SOURCE_REVISION,
+        "Checkpoint upstream revision was not pinned in native proof",
+    )
+    _expect(
         real.get("frozen_executable_sha256") == proof["native_executable_sha256"],
         "Real inference executable differs from native CLI QA",
     )
@@ -242,6 +246,7 @@ def audit_private_candidate(archive: Path, proof: dict[str, Any]) -> dict[str, A
         "model_weights_included": True,
         "checkpoint_sha256": native._MR_MT3_SHA256,
         "checkpoint_source": native._MR_MT3_SOURCE,
+        "checkpoint_source_revision": native._MR_MT3_SOURCE_REVISION,
         "checkpoint_license_review": "pending",
         "redistribution_status": "pending",
         "approval_required": True,

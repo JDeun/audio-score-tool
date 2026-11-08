@@ -171,6 +171,9 @@ def test_native_review_workflow_prohibits_binary_uploads():
     assert "torch==2.7.1" in workflow
     assert "mt3-infer[torch]==0.2.0" in workflow
     assert "verify_mt3_frozen_native.py" in workflow
+    assert "scripts.fetch_pinned_mrmt3_checkpoint" in workflow
+    assert "MR-MT3-SOURCE-EVIDENCE.pending.json" in workflow
+    assert "mt3_infer.cli download mr_mt3" not in workflow
     uploader = workflow.split("Publish only pending JSON, not the frozen executable", 1)[1]
     assert "pending.json" in uploader
     assert "*.exe" not in uploader

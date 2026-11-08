@@ -97,7 +97,7 @@ uv run --frozen python scripts/verify_managed_artifact_publication.py \
 
 ### MT3-Infer MR-MT3 사설 후보 ZIP (native QA → 출고 준비)
 
-Windows/macOS frozen MR-MT3의 실제 모델 추론은 CI에서 검증됐지만, 이전 실행은 모델/실행 ZIP을 항상 삭제했습니다. 운영자가 **명시적으로 로컬 사설 폴더를 지정하는 경우에만** `verify_mt3_frozen_native.py --checkpoint-dir ... --private-candidate-dir ...`가 모델 포함 검증 완료 ZIP을 보존합니다. 저장 위치는 Git 저장소 밖이어야 하고, Github Actions에서는 이 옵션 자체를 거부합니다. 이름: `MT3-MRMT3-<target>-UNAPPROVED.zip`.
+Windows/macOS frozen MR-MT3의 실제 모델 추론은 CI에서 검증됐지만, 이전 실행은 모델/실행 ZIP을 항상 삭제했습니다. 원본 체크포인트 가져오기 단계는 이제 immutable Hugging Face commit `7bd24c3e1dc26468a6a9354c0a4f174405c9bad8`와 검증된 SHA-256를 모두 고정하며, 고정 원본에 해시가 다른 체크포인트만 존재하면 네이티브 빌드를 중단합니다. Source 증빙은 JSON만 CI에 업로드합니다. 운영자가 **명시적으로 로컬 사설 폴더를 지정하는 경우에만** `verify_mt3_frozen_native.py --checkpoint-dir ... --private-candidate-dir ...`가 모델 포함 검증 완료 ZIP을 보존합니다. 저장 위치는 Git 저장소 밖이어야 하고, Github Actions에서는 이 옵션 자체를 거부합니다. 이름: `MT3-MRMT3-<target>-UNAPPROVED.zip`.
 
 다음 단계의 후보 준비 명령(`prepare_managed_artifact_candidate.py`)에 이 ZIP을 입력할 수 있지만, 플랫폼별 실제 URL, 정확한 라이선스/서드파티 notice, upstream revision 및 별도 리뷰 증빙이 확정되기 전에는 배포 파일을 공개하지 않습니다. 사설 ZIP 내부의 `pending` metadata는 법률적 승인 또는 clean-machine acceptance가 아닙니다. 운영자는 바이너리/체크포인트 아카이브를 GitHub Actions public artifact에 추가하거나 이 단계에서 `managed-component-catalog.json` 또는 승인 JSON을 변경하지 않습니다.
 
