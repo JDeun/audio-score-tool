@@ -249,3 +249,114 @@ def test_native_entrypoint_sets_utf8_for_isolated_windows_frozen_cli(
         assert len(stream.calls) == 1
         assert stream.calls[0]["encoding"] == "utf-8"
         assert stream.calls[0]["errors"] in {"replace", "backslashreplace"}
+
+
+def test_native_review_private_archive_with_real_weights(tmp_path: Path):
+    """Real weights remain runner-local but must be inventoried inside managed ZIP."""
+    binary = tmp_path / "mt3-infer.bin"
+    binary.write_bytes(b"MZ" + b"synthetic-frozen")
+    weight = tmp_path / "mt3.pth"
+    weight.write_bytes(b"test-checkpoint" * 1000)
+    archive = tmp_path / "not-for-publication.zip"
+    qa._private_zip(
+        archive, binary, {"redistribution_status": "pending"}, checkpoint=weight,
+    )
+    with zipfile.ZipFile(archive) as package:
+        assert sorted(package.namelist()) == sorted([
+            f"bin/mt3-infer{'.exe' if os.name == 'nt' else ''}",
+            "provenance/frozen-native-qa.pending.json",
+            "checkpoints/mr_mt3/mt3.pth",
+        ])
+        assert package.read("checkpoints/mr_mt3/mt3.pth") == weight.read_bytes()
+        assert package.read("bin/mt3-infer" + (".exe" if os.name == "nt" else "")) == binary.read_bytes()
+        assert all(info.compress_type == zipfile.ZIP_STORED for info in package.infolist())
+
+
+def test_native_checkpoint_requires_exact_reviewed_bytes_and_refuses_symlink(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+):
+    root = tmp_path / "review-only"
+    selected = root / "mr_mt3"
+    selected.mkdir(parents=True)
+    weight = selected / "mt3.pth"
+    bytes_original = b"a" * (1024 * 1024)
+    weight.write_bytes(bytes_original)
+    monkeypatch.setattr(qa, "_MR_MT3_SHA256", hashlib.sha256(bytes_original).hexdigest())
+    assert qa._trusted_checkpoint(root) == weight
+
+    weight.write_bytes(b"b" * len(bytes_original))
+    with pytest.raises(qa.FrozenMT3ReviewError, match="SHA-256"):
+        qa._trusted_checkpoint(root)
+
+    weight.unlink()
+    other = tmp_path / "untrusted.pth"
+    other.write_bytes(bytes_original)
+    weight.symlink_to(other)
+    with pytest.raises(qa.FrozenMT3ReviewError, match="missing or linked"):
+        qa._trusted_checkpoint(root)
+
+
+def test_native_model_evidence_is_explicitly_opt_in_and_never_approved(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+):
+    checkpoint = tmp_path / "runner-only-checkpoint.pth"
+    checkpoint.write_bytes(b"fake-source-weight")
+    download_root = tmp_path / "review-checkpoints"
+    download_root.mkdir()
+    monkeypatch.setattr(qa, "_trusted_checkpoint", lambda root: checkpoint)
+    monkeypatch.setattr(qa, "_native_target", lambda *_args: None)
+    monkeypatch.setattr(qa, "_pinned_packages", lambda: dict(qa._EXPECTED))
+    called = []
+
+    def build(cmd, *, cwd, check):
+        assert check and cwd == qa._ROOT
+        binary_dir = Path(cmd[cmd.index("--distpath") + 1])
+        binary_dir.mkdir(parents=True)
+        (binary_dir / f"mt3-infer{'.exe' if os.name == 'nt' else ''}").write_bytes(
+            b"MZ" + b"native-frozen-fixture" * 70000,
+        )
+        called.append("build")
+        return subprocess.CompletedProcess(cmd, 0)
+
+    def simple_probe(*_args, **_kwargs):
+        called.append("missing-checkpoint-probe")
+        return {"checkpoint_download_disabled": True}
+
+    def actual_probe(*, base, binary, managed, checkpoint, manifest, executable_sha):
+        called.append("real-model-probe")
+        assert checkpoint.read_bytes() == b"fake-source-weight"
+        assert binary.is_file() and managed.is_dir() and base.is_dir()
+        assert executable_sha == qa._sha256(binary)
+        assert manifest["model_weights_included"] is False
+        return {"actual_cpu_model_inference_verified": True, "note_counts": {"notes": 12}}
+
+    monkeypatch.setattr(qa.subprocess, "run", build)
+    monkeypatch.setattr(qa, "_probe_managed_native", simple_probe)
+    monkeypatch.setattr(qa, "_probe_native_real_inference", actual_probe)
+    result = qa.build_and_verify_native(
+        target="macos-aarch64",
+        destination=tmp_path / "private-real-model.pending.json",
+        checkpoint_directory=download_root,
+    )
+    assert called == ["build", "missing-checkpoint-probe", "real-model-probe"]
+    assert result["actual_model_inference_verified"] is True
+    assert result["real_native_inference"]["note_counts"]["notes"] == 12
+    assert result["runtime_redistribution_approved"] is False
+    assert result["binaries_uploaded"] is False
+    assert result["windows_macos_clean_machine_verified"] is False
+    assert not (tmp_path / "private-real-model.pending.json").exists()
+
+
+def test_native_workflow_runs_real_model_and_uploads_only_pending_json():
+    workflow = (
+        Path(__file__).resolve().parents[1]
+        / ".github/workflows/mt3-frozen-native-review.yml"
+    ).read_text(encoding="utf-8")
+    assert "python -m mt3_infer.cli download mr_mt3" in workflow
+    assert "--checkpoint-dir" in workflow
+    assert qa._MR_MT3_SHA256 in workflow
+    assert "music21==10.5.0" in workflow
+    upload_step = workflow.split("Publish only pending JSON, not the frozen executable", 1)[1]
+    assert "MT3-FROZEN-NATIVE-QA" in upload_step
+    assert ".pending.json" in upload_step
+    assert ".pth" not in upload_step and ".zip" not in upload_step and "*.exe" not in upload_step
