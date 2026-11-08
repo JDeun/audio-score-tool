@@ -2,6 +2,11 @@
 
 이 문서는 **법률 자문이 아니라 제품 배포를 위한 기술적 provenance 체크리스트**입니다. 실제 유료/공식 배포 직전에는 고정된 package version, binary build flags, model revision을 기준으로 다시 검토해야 합니다.
 
+## 자체 코드의 Apache-2.0 출처 고지
+
+프로젝트 자체의 권리는 루트 [`LICENSE`](../LICENSE)와 [`NOTICE`](../NOTICE)에서 확인합니다. Apache-2.0 §4(d)는 파생 저작물 재배포 시 관련 NOTICE 귀속 고지의 보존을 요구합니다. 따라서 NOTICE는 상용 서비스의 모든 화면에 로고나 링크를 상시 표시하게 하는 새로운 라이선스 조건이 아닙니다.
+
+설치형 Tauri 패키지는 `bundle.resources`에서 `legal/LICENSE`, `legal/NOTICE`로 두 파일을 포함하고, 설정 화면은 원본 텍스트를 frontend에 포함하므로 네트워크가 없어도 열람할 수 있습니다. 이 자체 코드 고지는 **포함된 제3자 소프트웨어에 대한 필수 개별 LICENSE/NOTICE/SBOM 검토를 대체하지 않습니다.** 해당 검토는 실제 배포 아티팩트의 버전과 구성요소를 기준으로 수행해야 합니다.
 ## 1. 배포 원칙
 
 AudioScoreTool 자체 코드는 Apache-2.0입니다. 그러나 bundled/managed component는 각자의 라이선스를 유지합니다.

@@ -171,6 +171,11 @@ updater는 **향후 구현 항목이 아니라 구현된 기능**입니다.
 
 즉 **updater implementation complete ≠ trusted stable update channel activated**입니다.
 
+## 설치형 라이선스 고지 계약
+
+- 원저작물 `LICENSE`와 `NOTICE`는 Tauri `bundle.resources`에 포함되어 설치된 앱에서 읽을 수 있어야 합니다.
+- 설정 화면에서는 두 파일의 전문을 **오프라인으로** 확인할 수 있어야 합니다. 소스 GitHub 링크만 제공하는 것은 이 계약의 대체가 아닙니다.
+- `LICENSE`/`NOTICE` 고지는 AudioScoreTool 자체 코드에 대한 것이며, 실제 포함한 모델·binary·폰트 등 제3자 고지/SBOM을 별도로 검토해야 합니다. 이번 구조 테스트가 설치본의 실물 라이선스 인벤토리 검수를 완료했다는 뜻은 아닙니다.
 ## 7. CI / release gate
 
 일반 PR CI와 패키징·보안 감사의 실행 조건은 [CI 실행 전략](CI_STRATEGY.ko.md)을 따릅니다. Python/프런트엔드/Tauri의 빠른 코드 검증은 `verify`에 집계하고, 패키지·보안/권리·클린 머신·서명은 독립 출시 게이트로 유지합니다.

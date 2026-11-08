@@ -1,4 +1,5 @@
 import { ChangeEvent, DragEvent, useEffect, useMemo, useRef, useState } from "react";
+import LegalNotices from "./LegalNotices";
 
 const API = "http://127.0.0.1:8080";
 
@@ -639,6 +640,7 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
           </label>
         </section>
         <section className="work-card storage-card"><div><span className="card-kicker">저장공간 관리</span><h3>오래된 작업 데이터 정리</h3><p>곡 라이브러리는 유지하고, 최근 30개를 제외한 오래된 작업 임시파일만 정리합니다.</p></div><button className="secondary-button" onClick={cleanupStorage}>저장공간 정리</button></section>
+        <LegalNotices />
         {offline && <div className="offline-banner"><strong>로컬 백엔드에 연결할 수 없습니다.</strong><span>AudioScoreTool 백엔드가 실행 중인지 확인하세요.</span></div>}
       </div>
     );

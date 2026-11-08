@@ -254,6 +254,14 @@ stable acceptance에는 서명뿐 아니라 **system Python/Node/Rust/uv/pip가 
 - [릴리스](docs/RELEASE.ko.md)
 - [제3자 모델·라이선스](docs/THIRD_PARTY_LICENSES.ko.md)
 
+## 라이선스 및 출처 표시
+
+AudioScoreTool의 자체 코드는 [Apache License 2.0](LICENSE)으로 공개합니다. **개인·상업적 사용을 모두 허용**하며, 재배포 시 LICENSE 및 관련 저작권·출처 고지의 보존 의무가 적용됩니다.
+
+- [NOTICE](NOTICE) — AudioScoreTool 원저작물의 출처 및 저작권 고지. 파생 저작물을 재배포할 때 Apache-2.0 §4(d)에 따라 관련 고지를 포함해야 합니다.
+- 데스크톱 앱의 **설정 → 라이선스 및 출처 표시**에서 LICENSE 및 NOTICE 전문을 네트워크 없이 열람할 수 있습니다. 설치 패키지에도 두 파일을 포함합니다.
+- Apache-2.0은 상업 서비스의 모든 웹페이지나 앱 화면에 프로젝트 로고를 상시 표시하도록 의무화하지 않습니다. 이 README 또는 NOTICE가 별도 라이선스 제한을 추가하지 않습니다.
+- 제3자 바이너리·라이브러리·모델·데이터는 별개 라이선스 적용 대상입니다. [제3자 라이선스 안내](docs/THIRD_PARTY_LICENSES.ko.md)를 확인하십시오.
 ## 기여와 보안
 
 - 기능 제안·버그 수정 절차: [CONTRIBUTING.md](CONTRIBUTING.md)
