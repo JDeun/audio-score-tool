@@ -107,6 +107,15 @@ def test_binary_typecodes_are_not_misreported_as_native_libraries():
     assert "transformers/models/t5/modeling_t5.py" not in reviewed["native_library_file_review_queue"]
     assert "tokenizers" in reviewed["builder_distribution_missing_notice_file_digests"]
     assert "tokenizers" in reviewed["builder_distribution_missing_spdx_expression"]
+    review_items = reviewed["builder_distribution_license_review_queue"]
+    tokenizers = next(x for x in review_items if x["name"] == "tokenizers")
+    torch = next(x for x in review_items if x["name"] == "torch")
+    assert tokenizers["available_notice_file_digests"] == []
+    assert tokenizers["independent_license_signoff"] is False
+    assert torch["available_notice_file_digests"] == [
+        {"name": "license", "sha256": "1" * 64}
+    ]
+    assert torch["distribution_confirmed_in_frozen_binary"] is False
     assert reviewed["all_builder_distributions_are_bundled"] is False
     assert reviewed["publication_ready"] is False
 
