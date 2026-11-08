@@ -18,6 +18,7 @@ from pathlib import Path, PurePosixPath
 from typing import BinaryIO
 
 from .config import component_dir
+from .managed_payload_integrity import build_payload_inventory, verify_payload_inventory
 
 _SCHEMA_VERSION = 1
 _MAX_ARCHIVE_MEMBERS = 4096
@@ -248,13 +249,13 @@ def _tree_matches_state(path: Path, entry: dict, root: Path) -> bool:
                 return False
     except (OSError, ValueError, RuntimeError):
         return False
-    return True
+    return verify_payload_inventory(path, entry.get("payload_files")) is None
 
 
 
 _ROLLBACK_IDENTITY_FIELDS = (
     "version", "root", "tools", "tool_sha256",
-    "archive_sha256", "license", "provenance",
+    "archive_sha256", "license", "provenance", "payload_files",
 )
 
 
@@ -725,6 +726,12 @@ def install_component_artifact(
                 raise ComponentIntegrityError("Managed component checksum mismatch.")
             _extract(artifact, download, staged)
             tools, tool_sha256 = _verify_tools(artifact, staged)
+            try:
+                payload_files = build_payload_inventory(staged)
+            except (OSError, ValueError) as exc:
+                raise ComponentIntegrityError(
+                    "Managed component contains an unsafe or unstable payload."
+                ) from exc
 
             # For cross-version upgrades, save the identity of the *currently
             # verified* runtime before the state pointer changes. Keep the
@@ -766,6 +773,7 @@ def install_component_artifact(
                 "root": str(final.relative_to(root).as_posix()),
                 "tools": tools,
                 "tool_sha256": tool_sha256,
+                "payload_files": payload_files,
                 "archive_sha256": artifact.sha256,
                 "license": artifact.license,
                 "provenance": artifact.provenance,
@@ -893,7 +901,12 @@ def component_status(component: str, *, root: Path | None = None) -> dict:
     ):
         return {"component": component, "ready": False, "integrity": "state-invalid"}
     installed = root.joinpath(*PurePosixPath(relative_root).parts)
-    if installed.is_symlink() or not installed.is_dir():
+    if (
+        (root / "installed").is_symlink()
+        or (root / "installed" / component).is_symlink()
+        or installed.is_symlink()
+        or not installed.is_dir()
+    ):
         return {"component": component, "ready": False, "integrity": "root-invalid"}
     try:
         installed_real = installed.resolve()
@@ -941,10 +954,20 @@ def component_status(component: str, *, root: Path | None = None) -> dict:
                 "integrity": "tool-digest-mismatch",
             }
         resolved_tools[str(name)] = str(tool)
+
+    payload_problem = verify_payload_inventory(installed, entry.get("payload_files"))
+    if payload_problem is not None:
+        return {
+            "component": component,
+            "ready": False,
+            "integrity": payload_problem,
+        }
+
     return {
         "component": component,
         "ready": True,
         "integrity": "verified",
+        "payload_file_count": len(entry["payload_files"]),
         "version": entry.get("version"),
         "tools": resolved_tools,
         "license": entry.get("license"),
