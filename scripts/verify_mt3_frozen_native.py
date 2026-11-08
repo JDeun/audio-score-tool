@@ -170,8 +170,12 @@ def _probe_managed_native(root: Path, managed_name: str, *, model: str) -> dict:
         try:
             result = run_command(str(tool), arguments, env=env, timeout_seconds=180)
         except CommandError as exc:
+            # A native PyInstaller failure must preserve the bounded stderr/stdout
+            # tail so CI can distinguish registry, import, Unicode and DLL errors.
+            # The probe has no credentials and run_command already limits output.
+            detail = str(exc)[-6000:]
             raise FrozenMT3ReviewError(
-                f"Frozen native MT3 CLI startup failed: {label}"
+                f"Frozen native MT3 CLI startup failed: {label}\n{detail}"
             ) from exc
         output = result.stdout.lower()
         if (
