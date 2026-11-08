@@ -368,7 +368,7 @@ def health() -> dict:
     return {
         "status": "ok",
         "packaged_runtime": packaged_runtime(),
-        "usage_mode": _runtime_settings().usage_mode,
+        "usage_mode": getattr(_runtime_settings(), "usage_mode", "commercial"),
         "device_plan": detect_device_plan().as_dict(),
         "preflight": preflight(_runtime_settings()),
         "presets": list_presets(),
