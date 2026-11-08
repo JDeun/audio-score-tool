@@ -362,3 +362,21 @@ uv run --frozen python -m scripts.prepare_cocochorales_pairs \
 \`\`\`
 
 The operator selection must set \`source_release_revision=cocochorales_full_v1_zipped\`, \`rights_reviewed=true\`, and exact official track IDs/splits (global ranges specified above). \`1.tar.bz2\` is only one subset shard: selected tracks absent from it are refused; **do not substitute a Hugging Face mirror**. The resulting JSON records the checked original shard MD5+SHA-256, each selected WAV/MIDI SHA-256 and SATB instruments, with no source media, audio path, model weights, independent rights approval or benchmark numbers. The official CC BY 4.0 license requires attribution/changes notice; the model checkpoint's separate rights are not inferred.
+
+### Actual AMT prediction scoring (paired-source proof required)
+
+After the official pinned shard has been privately extracted and reviewed, validate the pair manifest against an **independently reviewed operator-local registry copy** with \`cocochorales.status=verified_for_evaluation\` (the bundled registry remains \`planned\` until real validation). Generate MT3 predictions with the existing \`scripts.generate_tier2_predictions\` runner and an exactly pinned model/runtime/checkpoint identity, using a Tier 2 manifest from \`scripts.validate_tier2_dataset_pairs\`.
+
+Then run:
+
+\`\`\`bash
+uv run --frozen python -m scripts.score_cocochorales_tiny \
+  --pairs /private/coco/pairs.json \
+  --registry /private/coco/reviewed-registry.json \
+  --source-proof /private/coco/shard-evidence.pending.json \
+  --corpus-root /private/coco/subset \
+  --predictions-root /private/coco/predictions \
+  --output /private/coco/mt3-coco-score.pending.json
+\`\`\`
+
+The scoring command verifies case IDs, audio/reference SHA-256, split, rights-reviewed dataset registry, official shard source evidence, and actual Tier 2 prediction provenance. Results contain separate **note-onset F1**, **onset+offset F1** (50ms onset; offset tolerance max(50ms, 20% of reference note duration)), **instrument-aware onset+offset F1** (requires matching GM program), MusicXML part/note counts, explicit failures, and SHA-256 of the prediction files. Real \`generate_tier2_predictions\` now records per-case wall-clock inference seconds. Peak resident/GPU memory, human correction effort, and time to publish are explicitly **unmeasured**, not filled with synthetic values. This dataset is generated Bach-style SATB, not a proxy for real popular music. The tool never grants a model license or authorizes public redistribution.
