@@ -1,0 +1,53 @@
+.legal-notices-card {
+  display: grid;
+  gap: 14px;
+}
+
+.legal-notices-card h3 {
+  margin: 5px 0 8px;
+}
+
+.legal-notices-card p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.legal-notices-documents {
+  display: grid;
+  gap: 8px;
+}
+
+.legal-notices-documents details {
+  border: 1px solid var(--border, #cfd2d5);
+  border-radius: 8px;
+  min-width: 0;
+}
+
+.legal-notices-documents summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  font-weight: 600;
+}
+
+.legal-notices-documents summary:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.legal-notices-documents pre {
+  margin: 0;
+  padding: 12px 14px;
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  border-top: 1px solid var(--border, #cfd2d5);
+  user-select: text;
+}
+
+.legal-notices-card .legal-notices-footnote {
+  font-size: 12px;
+}
