@@ -11,7 +11,6 @@ No model, executable, archive extraction, subprocess, or network access.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import re
 from collections import Counter
