@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import json
 import struct
-import sys
 from pathlib import Path
 
 import pytest
@@ -237,8 +236,10 @@ def test_recognizer_without_real_notes_does_not_pass_acceptance(monkeypatch, tmp
     monkeypatch.setattr(omr, "_post_owned_file", lambda *a, kind, **kw: (
         _IMPORT_ID if kind == "notation-import" else _OMR_ID
     ))
-    monkeypatch.setattr(features, "_await_job", lambda *_a, **_kw: {
-        "status": "done", "kind": "omr", "result": {"omr_provider": "audiveris"},
+    monkeypatch.setattr(features, "_await_job", lambda _base, _token, job_id, **_kw: {
+        "status": "done",
+        "kind": "notation-import" if job_id == _IMPORT_ID else "omr",
+        "result": {"omr_provider": "audiveris"} if job_id == _OMR_ID else {},
     })
     monkeypatch.setattr(omr, "_song_for_job", lambda *a, **kw: _IMPORT_ID)
     monkeypatch.setattr(omr, "_export_song", lambda *_a, **kw: (
