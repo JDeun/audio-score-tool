@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "purpose": "review-only native PyInstaller third-party inventory observations",
+  "recorded_date_utc": "2026-11-08",
+  "source": {
+    "repository": "JDeun/audio-score-tool",
+    "workflow_run": "https://github.com/JDeun/audio-score-tool/actions/runs/42453842931",
+    "reviewed_commit": "71b5e7dee6c82deb919a23dab863352ade7d2bfa",
+    "source_is": "CI metadata-only frozen native model QA receipts; not an independent signed attestation"
+  },
+  "model_checkpoint_sha256": "b8a3807ed265059abd25ad7f68142c06c35e8f6144dcaa45bd55946a3745398f",
+  "targets": {
+    "windows-x86_64": {
+      "workflow_artifact_id": 13607127004,
+      "native_receipt_sha256": "48367b0355b4939c28a8672ff73b9b4ea2b852e868d1e8dc3c34bdd6bbeb3c23",
+      "frozen_inventory_sha256": "8aab97d187c3f22a851d22e340829f68ed48deaae3ae10a159ba71110094134f",
+      "frozen_executable_sha256": "5d5980d616cafe48faf8e183b79d0712af1f9718d616220fd650d8ced5f350d5",
+      "frozen_executable_bytes": 285787987,
+      "pyinstaller_binary_typecode_entries": 5905,
+      "native_library_filename_candidates": 341,
+      "binary_typecode_items_not_identified_as_native_libraries": 5564,
+      "builder_distribution_count": 74,
+      "builder_distributions_without_spdx_expression_count": 43,
+      "builder_distributions_without_spdx_or_legacy_license_label_count": 14,
+      "builder_distributions_without_local_license_notice_file_digest": [
+        "tokenizers"
+      ]
+    },
+    "macos-aarch64": {
+      "workflow_artifact_id": 13606004805,
+      "native_receipt_sha256": "09ef0d0f57a03093c6f9f5666ae5150ef8755eff970d1af9357ae95335e40fd3",
+      "frozen_inventory_sha256": "889f3b732b2c670a0ac8bae764d3e03147128afaaecc3432faeed0b894cc9a7c",
+      "frozen_executable_sha256": "3b3d91587a25914bc983189c09190c9254a2bdf4e53dbc23921db1603ecdf0a1",
+      "frozen_executable_bytes": 232590528,
+      "pyinstaller_binary_typecode_entries": 337,
+      "native_library_filename_candidates": 333,
+      "binary_typecode_items_not_identified_as_native_libraries": 4,
+      "builder_distribution_count": 73,
+      "builder_distributions_without_spdx_expression_count": 40,
+      "builder_distributions_without_spdx_or_legacy_license_label_count": 12,
+      "builder_distributions_without_local_license_notice_file_digest": [
+        "tokenizers"
+      ]
+    }
+  },
+  "cross_platform_builder_package_version_mismatches": [],
+  "windows_only_builder_packages": [
+    "colorama",
+    "pefile",
+    "pywin32-ctypes"
+  ],
+  "macos_only_builder_packages": [
+    "hf-xet",
+    "macholib"
+  ],
+  "reviewed_license_or_model_redistribution_rights": false,
+  "filename_extension_classification_is_binary_format_verification": false,
+  "native_loader_dependency_closure_verified": false,
+  "builder_distributions_equivalent_to_bundled_sbom": false,
+  "notices_and_corresponding_source_approved": false,
+  "model_checkpoint_upstream_revision_pinned": false,
+  "full_sbom_verified": false,
+  "clean_machine_install_verified": false,
+  "production_catalog_published": false,
+  "redistribution_status": "pending",
+  "human_review_queue": [
+    "Map native filename candidates to exact upstream binaries and transitive C/C++ libraries; independently verify each license/source obligation.",
+    "Trace source/data files carried as PyInstaller BINARY typecodes, particularly Windows.",
+    "Obtain installed-version tokenizers license/notice evidence; classify missing local metadata as pending, not as a violation.",
+    "Resolve missing SPDX expressions using upstream primary sources and full notice/source obligations.",
+    "Pin MR-MT3 checkpoint revision and independently confirm commercial redistribution permissions.",
+    "Prepare approved notices/corresponding-source distribution and signed clean-machine release evidence."
+  ]
+}
