@@ -22,7 +22,7 @@ _MAX_DISTRIBUTIONS = 3_000
 _MAX_LICENSE_FILES = 16
 _MAX_LICENSE_BYTES = 4 * 1024 * 1024
 _SAFE_MODULE = re.compile(r"^[A-Za-z0-9_.-]{1,350}$")
-_ALLOWED_TYPES = frozenset("bdzZMm s xol".replace(" ", ""))
+_ALLOWED_TYPES = frozenset("abdlnmMsxzZ")  # includes PKG and embedded SYMLINK entries
 _SHA = re.compile(r"^[a-f0-9]{64}$")
 
 
