@@ -17,6 +17,8 @@ from importlib.metadata import distributions as installed_distributions
 from pathlib import Path, PurePosixPath
 from typing import Any, Callable, Iterable
 
+from scripts.map_mt3_frozen_file_owners import map_native_file_records
+
 _MAX_ENTRIES = 100_000
 _MAX_DISTRIBUTIONS = 3_000
 _MAX_LICENSE_FILES = 16
@@ -249,7 +251,15 @@ def collect_frozen_inventory(
     if target not in {"windows-x86_64", "macos-aarch64"}:
         raise FrozenInventoryError("Native inventory is restricted to reviewed stable targets")
     embedded = inspect_frozen_archive(executable, reader_factory=reader_factory)
-    builder = inspect_builder_distributions(distributions_fn=distributions_fn)
+    # Enumerate the same builder distributions once for both distinct tasks:
+    # (1) installed metadata/licenses, (2) file path hints from wheel RECORD.
+    # A path match is NOT proof that the frozen executable contains those bytes
+    # or that a package's license covers the shipped native subdependency.
+    distribution_items = list(distributions_fn())
+    builder = inspect_builder_distributions(distributions_fn=lambda: distribution_items)
+    native_matches = map_native_file_records(
+        embedded["archive_entries"], distribution_items, target=target,
+    )
     packages = {re.sub(r"[-_.]+", "-", entry["name"]).lower(): entry["version"]
                 for entry in builder["distributions"]}
     for name, ver in {
@@ -269,6 +279,7 @@ def collect_frozen_inventory(
         "frozen_archive_reader": "PyInstaller CArchiveReader 6.17.0",
         "frozen_archive": embedded,
         "builder": builder,
+        "native_file_record_hints": native_matches,
         "inventory_is_complete_distributable_sbom": False,
         "native_library_dependency_closure_independently_verified": False,
         "model_weights_in_frozen_executable": False,
