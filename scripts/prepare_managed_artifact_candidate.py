@@ -26,12 +26,13 @@ from audio_score_tool.managed_publication_readiness import (
     STABLE_TARGETS,
 )
 from scripts.collect_mt3_frozen_inventory import _canonical_sha
+from scripts.fetch_pinned_mrmt3_checkpoint import CHECKPOINT_SHA256
 
 ROOT = Path(__file__).resolve().parents[1]
 BUNDLED_CATALOG = ROOT / "src" / "audio_score_tool" / "managed-component-catalog.json"
 _ALLOWED_TARGET = re.compile(r"^(?:windows|macos|linux)-(?:x86_64|aarch64)$")
 _UNREVIEWED = {"", "unknown", "tbd", "n/a", "runtime-specific", "..."}
-_MR_MT3_WEIGHT_SHA256 = "b8a3807ed265059abd25ad7f68142c06c35e8f6144dcaa45bd55946a3745398f"
+_MR_MT3_WEIGHT_SHA256 = CHECKPOINT_SHA256
 _SHA = re.compile(r"[a-f0-9]{64}\Z")
 
 

@@ -39,6 +39,11 @@ from audio_score_tool.managed_tool_resolver import (
 )
 from audio_score_tool.runner import CommandError, run_command
 from scripts.collect_mt3_frozen_inventory import collect_frozen_inventory
+from scripts.fetch_pinned_mrmt3_checkpoint import (
+    CHECKPOINT_SHA256,
+    MODEL_REVISION,
+    SOURCE_URL,
+)
 
 _ROOT = Path(__file__).resolve().parents[1]
 _ENTRY = _ROOT / "scripts/mt3_frozen_entry.py"
@@ -54,8 +59,9 @@ _TARGETS = {"windows-x86_64", "macos-aarch64"}
 _MAX_ARCHIVE = 6 * 1024**3
 # Exact upstream v0.2.0 registry checkpoint, independently validated by its
 # download utility. Only this hash may be unpickled by the private QA runner.
-_MR_MT3_SHA256 = "b8a3807ed265059abd25ad7f68142c06c35e8f6144dcaa45bd55946a3745398f"
-_MR_MT3_SOURCE = "https://huggingface.co/gudgud1014/MR-MT3/resolve/main/mt3.pth"
+_MR_MT3_SHA256 = CHECKPOINT_SHA256
+_MR_MT3_SOURCE_REVISION = MODEL_REVISION
+_MR_MT3_SOURCE = SOURCE_URL
 
 
 class FrozenMT3ReviewError(ValueError):
@@ -296,6 +302,7 @@ def _probe_native_real_inference(
         "model_weights_included": True,
         "checkpoint_sha256": _MR_MT3_SHA256,
         "checkpoint_source": _MR_MT3_SOURCE,
+        "checkpoint_source_revision": _MR_MT3_SOURCE_REVISION,
         "checkpoint_license_review": "pending",
     }
     _private_zip(private_archive, binary, proof, checkpoint=checkpoint)
@@ -372,6 +379,7 @@ def _probe_native_real_inference(
         "model": "mr_mt3",
         "checkpoint_sha256": _MR_MT3_SHA256,
         "checkpoint_source": _MR_MT3_SOURCE,
+        "checkpoint_source_revision": _MR_MT3_SOURCE_REVISION,
         "frozen_executable_sha256": executable_sha,
         "private_real_archive_sha256": archive_sha,
         "private_real_archive_bytes": private_archive.stat().st_size,

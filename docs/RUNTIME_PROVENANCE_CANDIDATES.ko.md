@@ -40,6 +40,12 @@ Release 원칙:
 
 단, v1 commercial baseline 확정은 #34 Tier 2 품질 결과와 **정확한 checkpoint 파일/revision/hash** 확인 후 수행합니다.
 
+#### MR-MT3 원본 리비전 고정 (2026-11-08)
+
+Hugging Face 원본 모델 저장소 [gudgud1014/MR-MT3](https://huggingface.co/gudgud1014/MR-MT3/tree/7bd24c3e1dc26468a6a9354c0a4f174405c9bad8)의 공개 히스토리에서 확인한 불변 snapshot commit `7bd24c3e1dc26468a6a9354c0a4f174405c9bad8`를 QA 다운로드 기준으로 고정합니다. 이전 `resolve/main/mt3.pth` 사용을 중단하고 `scripts/fetch_pinned_mrmt3_checkpoint.py`가 **해당 commit에서 가져온 실제 파일**의 고정 SHA-256 `b8a3807ed265059abd25ad7f68142c06c35e8f6144dcaa45bd55946a3745398f`를 독립 재계산한 후에만 네이티브 추론 빌드로 넘깁니다. 동일 해시의 파일을 해당 리비전에서 제공하지 않으면 CI는 성공할 수 없습니다.
+
+원본 모델 카드에 표시된 MIT 메타데이터는 참고 자료이지 실제 frozen 코드의 완전한 SBOM이나 배포 의무 심사를 대체하지 않습니다. **이 source pin은 재배포 승인도, Tier 2 품질 합격도 아닙니다.** 외부 모델 및 전체 의존성 재배포 검토가 끝나기 전까지 기존 `managed-component-catalog.json`은 비워 둡니다.
+
 ### YourMT3 / YourMT3+
 
 상태: `candidate`, `pending-tier2`, checkpoint 재확인 필요

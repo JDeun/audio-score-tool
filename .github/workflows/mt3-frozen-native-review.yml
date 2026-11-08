@@ -8,6 +8,8 @@ on:
       - '.github/workflows/mt3-frozen-native-review.yml'
       - 'scripts/mt3_frozen_entry.py'
       - 'scripts/verify_mt3_frozen_native.py'
+      - 'scripts/fetch_pinned_mrmt3_checkpoint.py'
+      - 'tests/test_pinned_mrmt3_checkpoint_fetch.py'
       - 'scripts/collect_mt3_frozen_inventory.py'
       - 'scripts/map_mt3_frozen_file_owners.py'
       - 'tests/test_mt3_frozen_file_owners.py'
@@ -88,22 +90,12 @@ jobs:
           PYTHONUTF8: '1'
         run: |
           set -euo pipefail
-          # The upstream downloader verifies its registered SHA. Check it
-          # independently before allowing legacy PyTorch checkpoint loading.
-          python -X utf8 -m mt3_infer.cli download mr_mt3
-          python - <<'PY'
-          import hashlib
-          import os
-          from pathlib import Path
-          checkpoint = Path(os.environ['MT3_CHECKPOINT_DIR']) / 'mr_mt3' / 'mt3.pth'
-          assert checkpoint.is_file() and not checkpoint.is_symlink()
-          with checkpoint.open('rb') as source:
-              digest = hashlib.file_digest(source, 'sha256').hexdigest()
-          expected = 'b8a3807ed265059abd25ad7f68142c06c35e8f6144dcaa45bd55946a3745398f'
-          if digest != expected:
-              raise RuntimeError('Unreviewed MR-MT3 checkpoint bytes are forbidden')
-          print(f'Private MR-MT3 checkpoint SHA-256 verified: {digest}')
-          PY
+          # Never fetch mutable HF main: use the immutable snapshot and verify
+          # the full checkpoint SHA before any legacy torch.load(weights_only=False).
+          python -X utf8 -m scripts.fetch_pinned_mrmt3_checkpoint \
+            --checkpoint-dir "$MT3_CHECKPOINT_DIR" \
+            --cache-dir "$RUNNER_TEMP/ast-mrmt3-hf-cache" \
+            --output "$RUNNER_TEMP/MR-MT3-SOURCE-EVIDENCE.pending.json"
 
       - name: Freeze real MT3-Infer and verify app-owned executable
         shell: bash
@@ -126,6 +118,8 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: mt3-frozen-native-qa-${{ matrix.target }}
-          path: ${{ runner.temp }}/MT3-FROZEN-NATIVE-QA-${{ matrix.target }}.pending.json
+          path: |
+            ${{ runner.temp }}/MT3-FROZEN-NATIVE-QA-${{ matrix.target }}.pending.json
+            ${{ runner.temp }}/MR-MT3-SOURCE-EVIDENCE.pending.json
           if-no-files-found: warn
           retention-days: 14

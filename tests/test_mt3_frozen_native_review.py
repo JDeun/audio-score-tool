@@ -171,6 +171,9 @@ def test_native_review_workflow_prohibits_binary_uploads():
     assert "torch==2.7.1" in workflow
     assert "mt3-infer[torch]==0.2.0" in workflow
     assert "verify_mt3_frozen_native.py" in workflow
+    assert "scripts.fetch_pinned_mrmt3_checkpoint" in workflow
+    assert "MR-MT3-SOURCE-EVIDENCE.pending.json" in workflow
+    assert "mt3_infer.cli download mr_mt3" not in workflow
     uploader = workflow.split("Publish only pending JSON, not the frozen executable", 1)[1]
     assert "pending.json" in uploader
     assert "*.exe" not in uploader
@@ -381,10 +384,16 @@ def test_native_workflow_runs_real_model_and_uploads_only_pending_json():
         Path(__file__).resolve().parents[1]
         / ".github/workflows/mt3-frozen-native-review.yml"
     ).read_text(encoding="utf-8")
-    assert "python -X utf8 -m mt3_infer.cli download mr_mt3" in workflow
+    assert "python -X utf8 -m scripts.fetch_pinned_mrmt3_checkpoint" in workflow
+    assert "mt3_infer.cli download mr_mt3" not in workflow
     assert "PYTHONIOENCODING: utf-8" in workflow and "PYTHONUTF8: '1'" in workflow
     assert "--checkpoint-dir" in workflow
-    assert qa._MR_MT3_SHA256 in workflow
+    pinned_source = (
+        Path(__file__).resolve().parents[1]
+        / "scripts/fetch_pinned_mrmt3_checkpoint.py"
+    ).read_text(encoding="utf-8")
+    assert qa._MR_MT3_SHA256 in pinned_source
+    assert qa._MR_MT3_SOURCE_REVISION in pinned_source
     assert "music21==10.5.0" in workflow
     upload_step = workflow.split("Publish only pending JSON, not the frozen executable", 1)[1]
     assert "MT3-FROZEN-NATIVE-QA" in upload_step
