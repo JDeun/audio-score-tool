@@ -167,3 +167,16 @@ uv run --frozen python scripts/assemble_youtube_runtime_candidate.py \
 출력되는 `MANAGED-YOUTUBE-NATIVE-E2E.pending.json`과 `*.zip.pending.json`만 공개 Actions 증빙으로 업로드합니다. **실제 바이너리 ZIP, 원본 다운로드, 음원, 임시 모델/런타임은 공개 아티팩트로 업로드하지 않습니다.** 잠정 제3자 고지는 검토 전용 문구로 명시되며, 상용/사용자 배포용 라이선스 고지로 간주하지 않습니다.
 
 이 네이티브 시험은 원래 #29에 남아 있던 **실제 YouTube 스택이 앱 관리형 ZIP 형태로 설치·실행 가능한지** 검증합니다. 다만 실제 YouTube 비디오/JS challenge 추출, 독립 서명 검증, 최종 라이선스 및 대응 소스 제공 승인, 공개 HTTPS 아티팩트 게시, Windows/macOS 클린 머신 설치는 **검증하지 않습니다**. 따라서 `managed-component-catalog.json`과 `managed-release-approvals.json`은 비어 있으며 #29는 유지합니다.
+
+## 개인용 YouTube URL 분석과 출시 QA 권리 검토의 구분 (#155)
+
+일반 사용자에게는 엔진 설정의 `usage_mode`가 `personal`일 때 YouTube 링크 확인 → **자동 채보 시작**에 별도의 **저작권 소유권 확약 체크박스**를 요구하지 않습니다. 결과는 기본적으로 사용자의 로컬 앱 데이터에 저장되며, 파일이나 악보를 외부에 자동 공개하지 않습니다. `commercial` 모드에서는 기존의 콘텐츠 처리 권한 확인을 유지합니다. 화면과 HTTP API는 모두 서버의 실제 `usage_mode`로 정책을 판단하며, 호출자가 전달하는 `authorized`만으로 모드를 변경할 수 없습니다.
+
+**법률·약관 구분:** 한국 저작권법 제30조의 개인·가정 등 일정한 범위의 사적 복제 예외가 적용될 수 있으나, 이것이 모든 영상의 다운로드·자동 접근·복제·재배포를 허가한다는 뜻은 아닙니다. YouTube의 콘텐츠 다운로드/자동 접근 제한은 **별도의 약관 문제**입니다. 따라서 앱은 간결한 비차단 안내를 제공하고, 실제 콘텐츠 접근 제한, URL/SSRF 검증, 보호된 스트림 우회 금지, 파일 공개·재배포 제한을 계속 지킵니다. 이 구현은 개별 사용 행위의 합법성 보증이 아닙니다.
+
+출시용 자동화 검증은 별도입니다. `Desktop Packages --require-managed-delivery`의 PR #153 `AST_YOUTUBE_QA_RECEIPT_JSON` 요구는 **운영자가 봇으로 특정 외부 영상을 자동 다운로드하는 release QA**에서만 유지하며, 일반 개인 사용자는 해당 JSON/릴리스 검토자/영상 소유권 증명서를 제시할 필요가 없습니다. 상용 영상 분석 및 서드파티 모델의 재배포 승인은 계속 독립 심사 대상입니다.
+
+참고:
+- https://www.law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1029423199
+- https://kr.youtube.com/t/terms
+- https://chordify.net/pages/terms-and-conditions/ (Chordify는 YouTube **임베디드 재생**을 사용하며 일반 yt-dlp 다운로드에 대한 일괄 허가가 아님)
