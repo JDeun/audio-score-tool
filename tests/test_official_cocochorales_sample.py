@@ -44,17 +44,20 @@ def _zip(tmp_path: Path, monkeypatch, *, change=None) -> Path:
     track = "string_track001010"
     path = tmp_path / f"{track}.zip"
     members = {
-        f"{track}/mix.wav": _wav(),
-        f"{track}/mix.mid": _midi(),
-        f"{track}/metadata.yaml": (
+        f"{track}/main_dataset/mix.wav": _wav(),
+        f"{track}/main_dataset/mix.mid": _midi(),
+        f"{track}/main_dataset/metadata.yaml": (
             b"ensemble: string\ninstrument_name:\n"
             b"  0: violin\n  1: violin\n  2: viola\n  3: cello\n"
             b"midi_program_number:\n"
             b"  0: 40\n  1: 40\n  2: 41\n  3: 42\n"
         ),
     }
+    # The author ZIP also contains a noncanonical metadata snapshot.
+    # It must be ignored rather than mistaken for the actual mix metadata.
+    members[f"{track}/metadata/metadata.yaml"] = b"noncanonical research metadata"
     if change == "missing":
-        members.pop(f"{track}/mix.mid")
+        members.pop(f"{track}/main_dataset/mix.mid")
     if change == "traversal":
         members["../outside"] = b"escaped"
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as writer:

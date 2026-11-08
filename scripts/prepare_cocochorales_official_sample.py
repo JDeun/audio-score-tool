@@ -69,12 +69,14 @@ def _destination_member(name: str, track_id: str) -> str | None:
         or PurePosixPath(name).is_absolute()
     ):
         raise ValueError("Official sample ZIP contains an unsafe member path")
-    base = PurePosixPath(name).name
-    if base in {"mix.wav", "mix.mid", "metadata.yaml"}:
-        return base
-    if base == f"{track_id}.yaml":
-        return "metadata.yaml"
-    return None
+    # The official author ZIP contains *two* metadata.yaml files:
+    # track/metadata/metadata.yaml and track/main_dataset/metadata.yaml.
+    # Only the latter belongs to the original mix.wav + mix.mid ground truth.
+    # Never select an arbitrary basename from a sibling source-data tree.
+    parts = PurePosixPath(name).parts
+    if len(parts) != 3 or parts[:2] != (track_id, "main_dataset"):
+        return None
+    return parts[2] if parts[2] in {"mix.wav", "mix.mid", "metadata.yaml"} else None
 
 
 def prepare_official_sample(
