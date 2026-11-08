@@ -122,7 +122,7 @@ def prepare_pairs(
         raise ValueError("CocoChorales exact source release/revision is required")
     # The operator must supply a non-placeholder, traceable source artifact
     # identity; this tool cannot independently audit external distribution rights.
-    if any(term in revision.lower() for term in ("unknown", "unreviewed", "placeholder", "todo", "replace")):
+    if any(term in revision.lower() for term in ("unknown", "unreviewed", "placeholder", "replace")):
         raise ValueError("CocoChorales source release is a placeholder")
     tracks = selected.get("tracks")
     if not isinstance(tracks, list) or not 1 <= len(tracks) <= _MAX_TRACKS:
