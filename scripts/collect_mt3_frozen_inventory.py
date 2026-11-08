@@ -17,6 +17,7 @@ from importlib.metadata import distributions as installed_distributions
 from pathlib import Path, PurePosixPath
 from typing import Any, Callable, Iterable
 
+from scripts.hash_mt3_frozen_native_bytes import hash_frozen_native_records
 from scripts.map_mt3_frozen_file_owners import map_native_file_records
 
 _MAX_ENTRIES = 100_000
@@ -260,6 +261,10 @@ def collect_frozen_inventory(
     native_matches = map_native_file_records(
         embedded["archive_entries"], distribution_items, target=target,
     )
+    native_bytes = hash_frozen_native_records(
+        executable, embedded["archive_entries"], native_matches,
+        target=target, reader_factory=reader_factory,
+    )
     packages = {re.sub(r"[-_.]+", "-", entry["name"]).lower(): entry["version"]
                 for entry in builder["distributions"]}
     for name, ver in {
@@ -280,6 +285,7 @@ def collect_frozen_inventory(
         "frozen_archive": embedded,
         "builder": builder,
         "native_file_record_hints": native_matches,
+        "native_file_byte_evidence": native_bytes,
         "inventory_is_complete_distributable_sbom": False,
         "native_library_dependency_closure_independently_verified": False,
         "model_weights_in_frozen_executable": False,

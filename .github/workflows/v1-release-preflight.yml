@@ -58,6 +58,7 @@ jobs:
             tests/test_mt3_private_candidate_audit.py \
             tests/test_mt3_frozen_inventory.py \
             tests/test_mt3_frozen_file_owners.py \
+            tests/test_mt3_frozen_native_byte_audit.py \
             tests/test_mt3_frozen_license_triage.py \
             tests/test_managed_publication_readiness.py \
             tests/test_managed_release_approval.py \

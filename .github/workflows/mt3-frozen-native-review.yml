@@ -12,6 +12,8 @@ on:
       - 'tests/test_pinned_mrmt3_checkpoint_fetch.py'
       - 'scripts/collect_mt3_frozen_inventory.py'
       - 'scripts/map_mt3_frozen_file_owners.py'
+      - 'scripts/hash_mt3_frozen_native_bytes.py'
+      - 'tests/test_mt3_frozen_native_byte_audit.py'
       - 'tests/test_mt3_frozen_file_owners.py'
       - 'scripts/triage_mt3_frozen_dependencies.py'
       - 'tests/test_mt3_frozen_license_triage.py'
