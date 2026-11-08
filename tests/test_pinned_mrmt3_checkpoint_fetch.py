@@ -80,10 +80,11 @@ def test_refuses_output_paths_in_git_tree_or_linked_model_path(fake_hf, tmp_path
     with pytest.raises(source.PinnedCheckpointError, match="outside the Git repository"):
         source.fetch_pinned_checkpoint(source._ROOT / "checkpoint", cache_dir=tmp_path / "cache")
     linked = tmp_path / "linked"
-    linked.symlink_to(tmp_path / "models", target_is_directory=True)
-    # The existing symlink is unresolved to its actual target; explicit
-    # destination links are still forbidden.
-    assert linked.is_symlink()
+    actual = tmp_path / "models"
+    actual.mkdir()
+    linked.symlink_to(actual, target_is_directory=True)
+    with pytest.raises(source.PinnedCheckpointError, match="cannot be linked"):
+        source.fetch_pinned_checkpoint(linked, cache_dir=tmp_path / "cache")
     with pytest.raises(source.PinnedCheckpointError, match="separate"):
         source.fetch_pinned_checkpoint(tmp_path / "common", cache_dir=tmp_path / "common/cache")
 
