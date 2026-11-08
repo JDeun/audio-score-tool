@@ -6,7 +6,6 @@ import types
 from pathlib import Path
 from types import SimpleNamespace
 
-import mido
 import numpy as np
 import pytest
 
