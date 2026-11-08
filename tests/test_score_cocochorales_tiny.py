@@ -245,6 +245,10 @@ def test_more_than_four_original_pairs_are_scored_without_silent_truncation(tmp_
     provenance = predictions / "tier2-prediction-provenance.json"
     payload = json.loads(provenance.read_text(encoding="utf-8"))
     payload["case_ids"] = [case["id"] for case in p["cases"]]
+    # Adding real pairs changes the source corpus fingerprint. A stale,
+    # one-case prediction provenance must not be accepted for seven cases.
+    _verified, manifest = validate_pairs(p, registry, corpus_root=root)
+    payload["corpus_version"] = manifest["corpus_version"]
     payload["case_inference_seconds"] = {case_id: 1.25 for case_id in payload["case_ids"]}
     provenance.write_text(json.dumps(payload), encoding="utf-8")
     report = _score(p, registry, source, root, predictions)
