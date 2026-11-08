@@ -283,3 +283,36 @@ def test_workflow_only_passes_rights_receipt_on_opt_in_native_package_gate():
     assert "AST_YOUTUBE_QA_RECEIPT_JSON:" in text
     assert "require_managed_delivery" in text
     assert "startsWith(github.ref, 'refs/tags/v1')" in text
+
+
+def test_youtube_job_api_persists_source_kind_before_any_worker_starts(
+    monkeypatch, tmp_path: Path,
+):
+    from audio_score_tool import job_lifecycle_api_v2 as jobs
+    from audio_score_tool.runtime_services import YouTubeJobRequest
+
+    reservations = []
+    monkeypatch.setattr(jobs, "runtime_settings", lambda: object())
+    monkeypatch.setattr(
+        jobs, "resolve_job_models", lambda *_a, **_kw: ("small", "small"),
+    )
+    monkeypatch.setattr(jobs, "preflight", lambda *_a, **_kw: {"ok": True})
+    monkeypatch.setattr(jobs, "youtube_tool_status", lambda *_a, **_kw: {"ready": True})
+    monkeypatch.setattr(jobs, "jobs_dir", lambda: tmp_path)
+    monkeypatch.setattr(
+        jobs, "_reserve_or_429",
+        lambda job_id, **values: reservations.append((job_id, values)),
+    )
+    monkeypatch.setattr(jobs, "_start_or_mark_failed", lambda *_a: None)
+    payload = YouTubeJobRequest(
+        url=_URL, authorized=True, skip_lyrics=True, preset="auto",
+    )
+    response = jobs.create_youtube_job_v2(payload)
+    assert response["source"] == "youtube"
+    assert response["status"] == "queued"
+    assert len(reservations) == 1
+    assert reservations[0][0] == response["job_id"]
+    assert reservations[0][1]["source_kind"] == "youtube"
+    assert reservations[0][1]["filename"] == "YouTube import"
+    assert (tmp_path / response["job_id"]).is_dir()
+
