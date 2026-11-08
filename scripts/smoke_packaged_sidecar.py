@@ -363,6 +363,9 @@ def main() -> None:
         managed_root.mkdir()
         sandbox_data = component_root / "app-data"
         env = os.environ.copy()
+        # Release rights-review metadata belongs to the QA launcher only;
+        # the packaged service receives only its local HTTP Job parameters.
+        env.pop("AST_YOUTUBE_QA_RECEIPT_JSON", None)
         env["AST_API_PORT"] = str(port)
         env["AST_API_TOKEN"] = token
         env["AST_PACKAGED"] = "1"
