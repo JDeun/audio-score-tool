@@ -156,7 +156,7 @@ def test_corrupted_or_non_sha256_wheel_record_does_not_create_fake_digest():
     ] is None
     corrupt = Record("torch/lib/native.dll")
     corrupt.hash = SimpleNamespace(mode="sha256", value="not-a-real-digest")
-    with pytest.raises(owners.FileOwnerMappingError, match="length"):
+    with pytest.raises(owners.FileOwnerMappingError, match="Wheel RECORD SHA-256"):
         owners.map_native_file_records(
             frozen, [Dist("torch", [corrupt])], target="windows-x86_64",
         )
