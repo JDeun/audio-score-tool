@@ -203,6 +203,23 @@ def analyze_native_proof(proof: dict[str, Any]) -> dict[str, Any]:
         and not x.get("license_metadata_label")
     )
     scopes = Counter(_scope(x) for x in actual_native)
+    # Keep actual recorded metadata and notice hashes in the report so legal
+    # reviewers can identify each distribution requiring primary-source review.
+    # Never treat labels/classifiers as a license grant or bundled file mapping.
+    distribution_review_queue = [
+        {
+            "name": item["name"],
+            "version": item["version"],
+            "license_expression": item.get("license_expression"),
+            "legacy_license_label": item.get("license_metadata_label"),
+            "legacy_license_text_sha256": item.get("license_metadata_text_sha256"),
+            "license_classifiers": item.get("license_classifiers", []),
+            "available_notice_file_digests": item["local_notice_digests"],
+            "distribution_confirmed_in_frozen_binary": False,
+            "independent_license_signoff": False,
+        }
+        for item in sorted(dists, key=lambda item: item["name"].lower())
+    ]
     return {
         "target": target,
         "native_executable_sha256": native_sha,
@@ -222,6 +239,7 @@ def analyze_native_proof(proof: dict[str, Any]) -> dict[str, Any]:
         "path_scope_is_verified_source_owner": False,
         "native_library_scope_counts": dict(sorted(scopes.items())),
         "builder_distribution_count": len(dists),
+        "builder_distribution_license_review_queue": distribution_review_queue,
         "builder_distribution_names_and_versions": {
             x["name"]: x["version"] for x in sorted(dists, key=lambda x: x["name"].lower())
         },
