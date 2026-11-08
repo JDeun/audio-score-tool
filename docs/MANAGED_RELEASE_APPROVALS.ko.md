@@ -47,3 +47,10 @@
 - 패키지 환경에서는 번들된 승인 파일만 신뢰합니다. 개발 환경의 `AST_COMPONENT_APPROVALS` 오버라이드는 테스트·검토용이며 packaged 앱에서는 무시합니다.
 - 승인 파일을 수동으로 위조할 수 있으므로 이 절차는 **암호학적 서명 또는 변조 불가 제3자 법률 증명서가 아닙니다**. 보호된 GitHub 브랜치(#38), 사람의 정식 승인, 코드 서명·공증(#22) 및 clean-machine 설치 결과가 필요합니다.
 - 유효한 승인 기록도 실제 원격 파일 설치 전에 신뢰를 증명하는 것이 아닙니다. 다운로드와 설치시 아카이브·전체 런타임 SHA 검증을 계속 수행하며, 정상 설치/실행 확인은 별도 #29 출고 조건으로 유지합니다.
+
+## MT3 Windows/macOS 네이티브 후보를 출고 심사에 연결하기 전
+
+사설 `verify_mt3_frozen_native.py` 영수증과 해당 ZIP을 `audit_mt3_private_candidate.py`로 대조합니다. 감사 결과는 아카이브 전체·내부 모델·네이티브 실행 파일의 SHA-256 및 실제 CPU 추론이 동일한 후보에 해당한다는 **로컬 일관성 검증**입니다. 이 JSON은 법적 허가, 배포 권리의 독립된 서명, 완전한 transitive dependency SBOM이 아닙니다.
+
+`prepare_managed_artifact_candidate.py`는 Windows/macOS `transcription_engine`에서 `--native-audit`를 요구해, 검증되지 않은 임의 실행 파일이나 모델이 `pending` 후보로 넘어가지 않도록 방어합니다. 감사 단계가 성공해도 원격 게시 파일·라이선스/노티스 검토·사람에 의한 승인 및 clean-machine acceptance는 계속 별도 단계입니다. `managed-component-catalog.json`과 `managed-release-approvals.json`을 자동으로 채우거나 `approved`로 바꾸지 않습니다.
+
