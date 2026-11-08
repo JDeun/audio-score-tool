@@ -166,6 +166,8 @@ Windows/macOS에서 실제 MR-MT3 추론에 성공한 [네이티브 CI #148 증�
 | SPDX `License-Expression` 없는 빌더 배포 패키지 | 43 | 40 |
 | 로컬 `.dist-info` LICENSE/NOTICE 해시가 없는 패키지 | `tokenizers` | `tokenizers` |
 
+실측 수치와 두 플랫폼의 원본 영수증·내부 인벤토리·실행파일 SHA-256는 [`release/review/mt3-native-third-party-pending-2026-11-08.json`](../release/review/mt3-native-third-party-pending-2026-11-08.json)에 고정했습니다. 원본 GitHub Actions 아티팩트가 만료되더라도 **그 당시의 관찰값을 재현 가능한 출처 식별자와 함께 보존**하는 pending 기록이며, 새 native 빌드 결과에 그대로 적용할 수는 없습니다.
+
 **주의:** 이 수치는 PyInstaller 아카이브 TOC의 filename/typecode 분류이며 PE/Mach-O 매직·디스어셈블·OS 로더 종속성을 검사한 완전한 네이티브 SBOM이 아닙니다. Windows는 PyInstaller가 `.py` 소스와 일부 실행 속성 데이터도 `b` typecode로 포함해 기존 `native_binary_entry_count=5905`라는 *역사적 필드 이름이 잘못된 인상*을 주었습니다. 이 보고서에서는 해당 수치를 명시적으로 `pyinstaller_binary_typecode_entry_count`로 취급하며, `recognizable_native_library_filename_count`만 별도 후보 수로 기록합니다.
 
 `tokenizers`는 빌더 메타데이터에 Apache 관련 license classifier가 있지만 해당 설치본의 로컬 notice SHA가 확인되지 않은 상태입니다. 이는 **누락된 로컬 메타데이터·검토 필요**를 뜻하며 재배포 위반이나 무라이선스임을 뜻하지 않습니다. SPDX 표현식 미기록 또한 legacy license/classifier가 별도로 존재할 수 있으므로 무허가로 단정하지 않습니다. 각 패키지의 실제 포함 여부, wheel/원본 source commit, 해당 버전 LICENSE 및 notice, 네이티브 바이너리의 정적/동적 라이브러리 provenance와 대응 소스 제공 의무를 별도로 확인해야 합니다.
