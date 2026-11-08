@@ -188,3 +188,14 @@ installed/transcription_engine/<version>/
 ### MT3-Infer `--no-download` 명시적 강제
 
 실제 CPU 모델 CI가 제공하는 `mt3-infer transcribe --help`에서 `--no-download` 옵션을 확인했습니다. 패키지 모드의 채보 실행은 기존 `MT3_CHECKPOINT_DIR`의 앱 관리형 절대 경로 및 Hugging Face/Transformers offline 환경변수뿐 아니라 **CLI의 `--no-download`**도 반드시 전달합니다. 체크포인트가 누락된 경우 외부 다운로더로 대체할 수 없으며, 개발 모드에서는 기존 upstream 동작을 유지합니다. Windows/macOS의 독립 실행형 frozen runtime과 상업용 가중치 배포 권리는 여전히 별도 #29 출고 조건입니다.
+
+
+## Windows/macOS MT3 PyInstaller 독립 실행형 기동 QA (#29, 2026-11-08)
+
+이전의 Linux 실물 체크포인트 추론 시험은 러너의 Python/Torch 환경에서 `mt3-infer` 진입점 스크립트를 실행하므로 Windows/macOS 사용자 설치본을 증명하지 못합니다. 새로운 `.github/workflows/mt3-frozen-native-review.yml`은 해당 OS의 고정 Python 3.11 빌더에서 **MT3-Infer 0.2.0, PyTorch/torchaudio 2.7.1, Transformers 4.57.6, PyInstaller 6.17.0**을 설치하고, `mt3_infer.cli`와 MR-MT3 동적 T5 어댑터 및 모델 registry YAML을 포함하는 실제 **onefile 네이티브 실행 파일**을 빌드합니다.
+
+검증은 파일명만 보고 완료로 판단하지 않습니다. 빌드된 바이너리를 임시 ZIP에 넣고 **제품의 `install_component_artifact()`**를 호출하여 아카이브·전체 파일 SHA-256을 확인합니다. `AST_PACKAGED=1`, `PATH=\"\"` 하에서 앱 관리형 등록 실행 파일을 사용해 `--version`, `list`, `transcribe --help`를 실행하고, `--no-download`로 모델이 없는 경우 **체크포인트 미존재 때문에** 실패하는지 확인합니다. 단순한 Torch/동적 import 오류는 성공으로 인정하지 않습니다.
+
+출력은 `MT3-FROZEN-NATIVE-QA-<target>.pending.json`만 공개 CI 아티팩트로 보존합니다. 이 증빙에는 빌드 라이브러리 버전, 네이티브 실행 파일과 ZIP 해시, 실제 앱 관리형 등록/기동 결과가 포함됩니다. **실제 exe/onefile 바이너리·모델 가중치·ZIP은 업로드하지 않습니다.** Python이 CI 빌더에는 필요하지만, 실행 시험은 시스템 Python/개발 도구 PATH를 비우고 진행합니다.
+
+이 작업은 **MR-MT3 한 모델 어댑터의 기동과 모델 다운로드 차단에 한정**되며, 실제 MR-MT3 가중치를 포함하거나 해당 바이너리로 악보 채보를 완료한 시험은 아닙니다. YourMT3의 별도 Transformers 버전, 모델·서드파티 라이선스/상업용 배포권, 앱 설치 이후 Windows/macOS 클린 머신 인수시험, 코드 서명·공증(#22)은 별도입니다. 정식 배포 카탈로그 및 승인 기록은 빈 상태로 유지하고 #29를 닫지 않습니다.
