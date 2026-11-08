@@ -141,6 +141,23 @@ def check_release_approval(
     ):
         return "remote-evidence-mismatch"
 
+    # The runtime archive hashes legitimately differ between Windows and
+    # macOS. The checkpoint itself must have the same verified byte identity.
+    if component == "transcription_engine" and target in {"windows-x86_64", "macos-aarch64"}:
+        model = payload.get("model_identity")
+        verified = evidence.get("published_model_identity")
+        if (
+            not isinstance(model, dict)
+            or not isinstance(verified, dict)
+            or model.get("model_key") != "mr_mt3"
+            or model.get("checkpoint_path") != "checkpoints/mr_mt3/mt3.pth"
+            or not _hex_sha(model.get("checkpoint_sha256"))
+            or model.get("model_revision") != "sha256:" + model["checkpoint_sha256"]
+            or model.get("runtime_revision") != payload.get("upstream_revision")
+            or verified != {**model, "checkpoint_verified": True}
+        ):
+            return "model-evidence-mismatch"
+
     signoff = record.get("license_review")
     if not isinstance(signoff, dict):
         return "license-review-missing"

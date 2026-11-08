@@ -286,6 +286,13 @@ def test_stable_amt_candidate_requires_bound_native_audit_and_real_model_hash(
     assert bound["frozen_inventory_sha256"] == worksheet["frozen_inventory_sha256"]
     assert bound["inventory_is_complete_distributable_sbom"] is False
     assert bound["tool_sha256"] == draft["local_validation"]["tool_sha256"]
+    model = draft["candidate"]["artifacts"][target]["model_identity"]
+    assert model["model_key"] == "mr_mt3"
+    assert model["model_revision"] == "sha256:" + native._MR_MT3_SHA256
+    assert model["runtime_revision"] == "upstream-tag-v0.2.0-unapproved"
+    assert model["checkpoint_path"] == "checkpoints/mr_mt3/mt3.pth"
+    assert model["checkpoint_sha256"] == native._MR_MT3_SHA256
+    assert draft["local_validation"]["model_identity_verified"] is True
     assert draft["local_validation"]["clean_machine_verified"] is False
     assert draft["candidate"]["redistribution_status"] == "pending"
     assert draft["approval_required"] is True
@@ -380,3 +387,46 @@ def test_draft_requires_frozen_inventory_fields_to_remain_pending(
         with pytest.raises(ValueError, match="audit"):
             _draft(archive, native_audit=modified)
 
+
+
+def test_remote_native_model_publication_proof_hashes_installed_checkpoint(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+):
+    """The remote HTTPS proof covers the actual model file, not just the CLI."""
+    import io
+
+    from audio_score_tool import managed_components
+    from scripts import verify_managed_artifact_publication as publication
+
+    archive, native_proof = _fixture(tmp_path, monkeypatch)
+    pending = _draft(archive, native_audit=audit.audit_private_candidate(archive, native_proof))
+    class Response(io.BytesIO):
+        def geturl(self):
+            return "https://example.invalid/private-unapproved.zip"
+
+    monkeypatch.setattr(
+        managed_components, "_open_trusted_download",
+        lambda request: Response(archive.read_bytes()),
+    )
+    published = publication.verify_published_candidate(pending, local_archive=archive)
+    model = pending["candidate"]["artifacts"]["macos-aarch64"]["model_identity"]
+    assert published["published_model_identity"] == {**model, "checkpoint_verified": True}
+    assert published["redistribution_status"] == "pending"
+    assert published["license_independently_approved"] is False
+    assert published["clean_machine_verified"] is False
+
+
+def test_native_model_identity_forgery_is_refused_before_network(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+):
+    from scripts import verify_managed_artifact_publication as publication
+    archive, native_proof = _fixture(tmp_path, monkeypatch)
+    pending = _draft(archive, native_audit=audit.audit_private_candidate(archive, native_proof))
+    identity = pending["candidate"]["artifacts"]["macos-aarch64"]["model_identity"]
+    identity["checkpoint_sha256"] = "f" * 64
+    monkeypatch.setattr(
+        publication, "_download",
+        lambda *_args: (_ for _ in ()).throw(AssertionError("forged model fetched")),
+    )
+    with pytest.raises(ValueError, match="audited model identity"):
+        publication.verify_published_candidate(pending)

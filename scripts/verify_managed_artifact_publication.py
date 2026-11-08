@@ -27,6 +27,7 @@ from audio_score_tool.managed_publication_readiness import (
     _REQUIRED_TOOLS,
     CORE_COMPONENTS,
     OPTIONAL_COMPONENTS,
+    STABLE_TARGETS,
 )
 
 _ROOT = Path(__file__).resolve().parents[1]
@@ -92,10 +93,32 @@ def candidate_artifact(report: dict[str, Any]) -> tuple[ComponentArtifact, dict]
         for value in tool_hashes.values()
     ):
         raise ValueError("Local candidate contains invalid tool SHA-256")
+
+    model_identity = None
+    if component == "transcription_engine" and target in STABLE_TARGETS:
+        identity = settings.get("model_identity")
+        native_audit = local.get("native_inference_audit")
+        if (
+            not isinstance(identity, dict)
+            or not isinstance(native_audit, dict)
+            or local.get("model_identity_verified") is not True
+            or identity.get("model_key") != "mr_mt3"
+            or identity.get("checkpoint_path") != "checkpoints/mr_mt3/mt3.pth"
+            or identity.get("checkpoint_sha256") != native_audit.get("model_checkpoint_sha256")
+            or not isinstance(identity.get("checkpoint_sha256"), str)
+            or re.fullmatch(r"[a-f0-9]{64}", identity["checkpoint_sha256"]) is None
+            or identity.get("model_revision") != "sha256:" + identity["checkpoint_sha256"]
+            or identity.get("runtime_revision") != revision
+            or native_audit.get("native_inference_verified_by_local_receipt") is not True
+            or native_audit.get("redistribution_status") != "pending"
+        ):
+            raise ValueError("Stable MT3 candidate requires exact locally audited model identity")
+        model_identity = identity
     return artifact, {
         "target": target,
         "revision": revision,
         "tool_hashes": tool_hashes,
+        "model_identity": model_identity,
     }
 
 
@@ -131,6 +154,16 @@ def verify_published_candidate(
             raise ComponentIntegrityError(
                 "Published tool bytes differ from the locally verified candidate"
             )
+        published_model_identity = None
+        if pins["model_identity"] is not None:
+            model = pins["model_identity"]
+            installed = isolated / "owned-component" / "installed" / artifact.component / artifact.version
+            checkpoint = installed / model["checkpoint_path"]
+            if checkpoint.is_symlink() or not checkpoint.is_file():
+                raise ComponentIntegrityError("Published model checkpoint is missing or linked")
+            if _file_sha256(checkpoint) != model["checkpoint_sha256"]:
+                raise ComponentIntegrityError("Published model checkpoint differs from reviewed local model")
+            published_model_identity = {**model, "checkpoint_verified": True}
 
     fingerprint = hashlib.sha256(
         json.dumps(report, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -147,6 +180,8 @@ def verify_published_candidate(
         "published_archive_sha256": sha,
         "published_archive_bytes": downloaded_bytes,
         "published_tool_sha256": actual_tools,
+        **({"published_model_identity": published_model_identity}
+           if published_model_identity is not None else {}),
         "remote_artifact_verified": True,
         "local_archive_rechecked": local_archive is not None,
         "archive_checked_and_installed_locally": True,

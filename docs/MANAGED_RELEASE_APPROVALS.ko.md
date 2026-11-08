@@ -54,3 +54,9 @@
 
 `prepare_managed_artifact_candidate.py`는 Windows/macOS `transcription_engine`에서 `--native-audit`를 요구해, 검증되지 않은 임의 실행 파일이나 모델이 `pending` 후보로 넘어가지 않도록 방어합니다. 감사 단계가 성공해도 원격 게시 파일·라이선스/노티스 검토·사람에 의한 승인 및 clean-machine acceptance는 계속 별도 단계입니다. `managed-component-catalog.json`과 `managed-release-approvals.json`을 자동으로 채우거나 `approved`로 바꾸지 않습니다.
 
+
+## 품질 승인 모델과 실물 배포 모델 신원 결속 (#29/#34)
+
+Windows/macOS `transcription_engine` MR-MT3의 pending 후보에는 로컬 설치 후 재해시한 `model_identity`가 포함됩니다: `model_key=mr_mt3`, `model_revision=sha256:<checkpoint_sha256>`, `runtime_revision=<reviewed upstream_revision>`, `checkpoint_path=checkpoints/mr_mt3/mt3.pth`, `checkpoint_sha256=<full digest>`. 원격 검증 명령은 HTTPS로 가져온 ZIP을 별도 루트에 설치한 뒤 **모델 파일을 다시 해시**하고 `published_model_identity.checkpoint_verified=true`인 pending 기록을 남깁니다. 이 바이트 증빙이 카탈로그와 다르면 설치 승인이 거부됩니다. 단순히 JSON 필드를 추가해 원격 검증을 대체할 수 없습니다.
+
+`check_v1_release_readiness.py`는 #34의 품질 승인 `engine.artifact_sha256`을 **체크포인트 파일 해시**로 간주하여 두 OS의 모델 신원과 대조합니다. 운영체제별 native ZIP `sha256`은 다를 수 있으며 각 ZIP은 기존 독립 SHA-256/도구/라이선스 승인 정책을 그대로 거칩니다. 품질 리포트에 임의 SHA를 넣어도 사람의 승인/벤치마크 재계산 의무는 사라지지 않습니다. MR-MT3 외 모델/런타임은 별도 검증 계약 확장 전 v1 승인하지 않습니다.

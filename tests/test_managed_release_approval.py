@@ -314,3 +314,36 @@ def test_sidecar_bundles_both_catalog_and_approval_files():
     assert "managed-component-catalog.json" in source
     assert "managed-release-approvals.json" in source
     assert 'f"{release_approvals}{os.pathsep}audio_score_tool"' in source
+
+
+def test_stable_amt_model_requires_remote_checkpoint_byte_proof(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+):
+    # Synthetic, with an explicitly supplied Windows target on a Linux CI host.
+    name, _target, _entry, payload, _catalog, approvals = _test_catalog(
+        tmp_path, monkeypatch, "transcription_engine",
+    )
+    target = "windows-x86_64"
+    digest = hashlib.sha256(b"owned-synthetic-model").hexdigest()
+    identity = {
+        "model_key": "mr_mt3",
+        "model_revision": "sha256:" + digest,
+        "runtime_revision": payload["upstream_revision"],
+        "checkpoint_path": "checkpoints/mr_mt3/mt3.pth",
+        "checkpoint_sha256": digest,
+    }
+    payload["model_identity"] = identity
+    approved = _valid_record(name, target, payload)
+    approved["remote_evidence"]["published_model_identity"] = {
+        **identity, "checkpoint_verified": True,
+    }
+    _write_approval(approvals, name, target, approved)
+    assert check_release_approval(name, target, payload) is None
+
+    approved["remote_evidence"]["published_model_identity"]["checkpoint_sha256"] = "f" * 64
+    _write_approval(approvals, name, target, approved)
+    assert check_release_approval(name, target, payload) == "model-evidence-mismatch"
+
+    del approved["remote_evidence"]["published_model_identity"]
+    _write_approval(approvals, name, target, approved)
+    assert check_release_approval(name, target, payload) == "model-evidence-mismatch"
