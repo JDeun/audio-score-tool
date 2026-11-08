@@ -352,7 +352,8 @@ def test_native_workflow_runs_real_model_and_uploads_only_pending_json():
         Path(__file__).resolve().parents[1]
         / ".github/workflows/mt3-frozen-native-review.yml"
     ).read_text(encoding="utf-8")
-    assert "python -m mt3_infer.cli download mr_mt3" in workflow
+    assert "python -X utf8 -m mt3_infer.cli download mr_mt3" in workflow
+    assert "PYTHONIOENCODING: utf-8" in workflow and "PYTHONUTF8: '1'" in workflow
     assert "--checkpoint-dir" in workflow
     assert qa._MR_MT3_SHA256 in workflow
     assert "music21==10.5.0" in workflow

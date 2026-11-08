@@ -76,11 +76,14 @@ jobs:
         shell: bash
         env:
           MT3_CHECKPOINT_DIR: ${{ runner.temp }}/ast-native-reviewed-mrmt3
+          # Host Python uses CP1252 on redirected Windows streams by default.
+          PYTHONIOENCODING: utf-8
+          PYTHONUTF8: '1'
         run: |
           set -euo pipefail
           # The upstream downloader verifies its registered SHA. Check it
           # independently before allowing legacy PyTorch checkpoint loading.
-          python -m mt3_infer.cli download mr_mt3
+          python -X utf8 -m mt3_infer.cli download mr_mt3
           python - <<'PY'
           import hashlib
           import os
