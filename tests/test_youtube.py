@@ -84,7 +84,10 @@ def test_validate_youtube_url_rejects_credential_and_ssrf_like_inputs(url: str):
         validate_youtube_url(url)
 
 
-def test_youtube_job_requires_authorization_confirmation():
+def test_commercial_youtube_job_requires_authorization_confirmation(monkeypatch):
+    from audio_score_tool import job_lifecycle_api_v2 as jobs
+
+    monkeypatch.setattr(jobs, "runtime_settings", lambda: Settings(usage_mode="commercial"))
     client = TestClient(app)
     response = client.post(
         "/api/jobs/youtube",
@@ -94,6 +97,7 @@ def test_youtube_job_requires_authorization_confirmation():
         },
     )
     assert response.status_code == 422
+    assert "권한" in response.json()["detail"]
 
 
 def test_youtube_job_rejects_non_youtube_url():
@@ -315,3 +319,74 @@ def test_download_youtube_audio_uses_downloaded_input(monkeypatch, tmp_path):
     assert calls == 2
     assert audio == tmp_path / "input.m4a"
     assert metadata.title == "Example Song"
+
+
+def test_personal_youtube_job_does_not_require_ownership_assertion(
+    monkeypatch, tmp_path: Path,
+):
+    """The actual v2 HTTP route must not block a personal practice link."""
+    from audio_score_tool import job_lifecycle_api_v2 as jobs
+
+    submitted: list[dict] = []
+    monkeypatch.setattr(jobs, "runtime_settings", lambda: Settings(usage_mode="personal"))
+    monkeypatch.setattr(jobs, "preflight", lambda *_a, **_kw: {"ok": True})
+    monkeypatch.setattr(jobs, "youtube_tool_status", lambda *_a, **_kw: {"ready": True})
+    monkeypatch.setattr(jobs, "jobs_dir", lambda: tmp_path)
+    monkeypatch.setattr(
+        jobs, "_reserve_or_429",
+        lambda _job_id, **payload: submitted.append(payload),
+    )
+    monkeypatch.setattr(jobs, "_start_or_mark_failed", lambda *_a: None)
+
+    response = TestClient(app).post(
+        "/api/jobs/youtube",
+        json={
+            "url": "https://www.youtube.com/watch?v=abc123",
+            "authorized": False,
+        },
+    )
+    assert response.status_code == 202
+    assert response.json()["source"] == "youtube"
+    assert submitted and submitted[0]["source_kind"] == "youtube"
+
+
+def test_commercial_youtube_still_starts_after_explicit_confirmation(
+    monkeypatch, tmp_path: Path,
+):
+    from audio_score_tool import job_lifecycle_api_v2 as jobs
+
+    submitted: list[dict] = []
+    monkeypatch.setattr(jobs, "runtime_settings", lambda: Settings(usage_mode="commercial"))
+    monkeypatch.setattr(jobs, "preflight", lambda *_a, **_kw: {"ok": True})
+    monkeypatch.setattr(jobs, "youtube_tool_status", lambda *_a, **_kw: {"ready": True})
+    monkeypatch.setattr(jobs, "jobs_dir", lambda: tmp_path)
+    monkeypatch.setattr(
+        jobs, "_reserve_or_429",
+        lambda _job_id, **payload: submitted.append(payload),
+    )
+    monkeypatch.setattr(jobs, "_start_or_mark_failed", lambda *_a: None)
+
+    response = TestClient(app).post(
+        "/api/jobs/youtube",
+        json={
+            "url": "https://www.youtube.com/watch?v=abc123",
+            "authorized": True,
+        },
+    )
+    assert response.status_code == 202
+    assert len(submitted) == 1
+    assert submitted[0]["source_kind"] == "youtube"
+
+
+def test_personal_permission_relaxation_never_disables_youtube_url_validation(
+    monkeypatch,
+):
+    from audio_score_tool import job_lifecycle_api_v2 as jobs
+
+    monkeypatch.setattr(jobs, "runtime_settings", lambda: Settings(usage_mode="personal"))
+    response = TestClient(app).post(
+        "/api/jobs/youtube",
+        json={"url": "https://unauthorized.example/watch?v=abc123", "authorized": False},
+    )
+    assert response.status_code == 422
+
