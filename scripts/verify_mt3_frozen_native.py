@@ -149,7 +149,13 @@ def _probe_managed_native(root: Path, managed_name: str, *, model: str) -> dict:
         raise FrozenMT3ReviewError("Native frozen MT3 tool is not registered by its owner")
     env = {
         "PATH": "",
+        # A frozen binary must not depend on the runner's Python import path.
+        "PYTHONPATH": "",
+        "PYTHONHOME": "",
         "PYTHONNOUSERSITE": "1",
+        # The upstream CLI prints Unicode markers, including on Windows.
+        "PYTHONIOENCODING": "utf-8",
+        "PYTHONUTF8": "1",
         "HF_HUB_OFFLINE": "1",
         "TRANSFORMERS_OFFLINE": "1",
         "HF_DATASETS_OFFLINE": "1",
@@ -193,10 +199,18 @@ def _probe_managed_native(root: Path, managed_name: str, *, model: str) -> dict:
             timeout_seconds=180,
         )
     except CommandError as exc:
-        lower = str(exc).lower()
-        if not any(phrase in lower for phrase in (
-            "checkpoint not found", "checkpoint is missing", "no such file",
-        )):
+        # The pinned upstream MR-MT3 adapter emits this exact exception only
+        # after the audio, model registry, dynamic adapter and torch paths work.
+        # Do not accept generic "no such file" errors: they can indicate a
+        # missing bundled DLL, shared library, model resource or import.
+        expected_checkpoint = (
+            root / "intentionally-absent-checkpoints" / "mr_mt3" / "mt3.pth"
+        )
+        expected_error = f"Checkpoint not found: {expected_checkpoint}".casefold()
+        if not any(
+            line.strip().casefold().endswith(expected_error)
+            for line in str(exc).splitlines()
+        ):
             raise FrozenMT3ReviewError(
                 "Frozen MT3 inference failed for a reason other than its absent checkpoint"
             ) from exc
