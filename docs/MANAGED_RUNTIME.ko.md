@@ -174,3 +174,17 @@ installed/transcription_engine/<version>/
 두 모델을 모두 제공할 필요는 없지만, 실제 선택된 `Settings.mt3_model`의 모델 디렉터리에 **검증된 비어 있지 않은 체크포인트 파일**이 하나 이상 있어야 합니다. 런타임은 구성요소 전체 SHA-256을 검사한 뒤 이 디렉터리만 `MT3_CHECKPOINT_DIR`에 전달합니다. 패키지 하위 프로세스에는 `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1`, `HF_DATASETS_OFFLINE=1`을 명시적으로 주입하여 사용자 `HOME`/기본 캐시로 모델을 다운받거나 시스템 파일을 빌려오지 않게 합니다. 개발 모드의 기존 환경변수/설치 경로 동작은 변경하지 않습니다.
 
 체크포인트가 누락·변조되거나 선택한 모델과 불일치하면 엔진 `ready=false`이고 Setup Center의 관리형 런타임 복구 안내가 유지되며, 추론 프로세스는 시작하지 않습니다. 모델이 실제로 올바른 내용을 가진 채보 가중치인지, 해당 배포·상업 사용권이 있는지 및 원본 오디오에서 정확하게 추론하는지는 **추가 필수 증빙**입니다. 파일명과 정상 SHA 만으로 #29의 상용 AMT 후보가 승인되는 것은 아닙니다.
+
+
+## 실제 모델 체크포인트를 설치한 관리형 MT3 추론 검토 (#29, 2026-11-08)
+
+`.github/workflows/tier2-actual-models.yml`의 각 MR-MT3/YourMT3 CPU 검증은 공식 `mt3-infer[torch]==0.2.0` 런타임으로 먼저 실제 추론에 성공한 후, `MT3_CHECKPOINT_DIR`에 내려받은 **같은 실제 체크포인트 파일**을 별도의 임시 ZIP에 넣고 앱의 `install_component_artifact()`로 설치해 다시 추론합니다. 관리형 버전별 SHA-256 전체 파일 검증과 `registered_managed_tool`이 연결된 뒤 `AST_PACKAGED=1`, `PATH=\"\"`, `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1`로 실행합니다. 실행 후에도 설치된 불변 파일의 해시 검증에 통과해야 성공합니다.
+
+검증 종료 시 `managed-real-checkpoint.pending.json`에는 각 체크포인트 상대 경로/해시, 임시 ZIP SHA-256, 실제 추론의 MIDI/MusicXML 해시 및 note count만 기록합니다. **실제 체크포인트 바이트와 관리형 ZIP은 GitHub Actions artifact로 업로드하지 않습니다.**
+
+**제약:** 이 Linux CI 전용 QA는 기존 러너의 Python과 기설치 `mt3-infer` 진입점 스크립트를 ZIP 안에 복사해서 사용합니다. 따라서 호스트 Python/라이브러리 없이 구동하는 frozen Windows/macOS 채보 런타임을 증명하지 않습니다. 결과에도 `qa_launcher_requires_host_python=true`, `clean_windows_macos_verified=false`, `model_redistribution_rights_verified=false`를 명시합니다. 모델 weight 정확한 권리·동일한 checkpoint 내용과 상용 품질 선정(#34), Windows/macOS self-contained executable 패키징 및 #29의 실제 게시/법적 승인은 계속 별도 필요합니다.
+
+
+### MT3-Infer `--no-download` 명시적 강제
+
+실제 CPU 모델 CI가 제공하는 `mt3-infer transcribe --help`에서 `--no-download` 옵션을 확인했습니다. 패키지 모드의 채보 실행은 기존 `MT3_CHECKPOINT_DIR`의 앱 관리형 절대 경로 및 Hugging Face/Transformers offline 환경변수뿐 아니라 **CLI의 `--no-download`**도 반드시 전달합니다. 체크포인트가 누락된 경우 외부 다운로더로 대체할 수 없으며, 개발 모드에서는 기존 upstream 동작을 유지합니다. Windows/macOS의 독립 실행형 frozen runtime과 상업용 가중치 배포 권리는 여전히 별도 #29 출고 조건입니다.

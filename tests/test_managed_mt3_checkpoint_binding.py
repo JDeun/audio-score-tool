@@ -110,6 +110,7 @@ def test_packaged_inference_passes_verified_checkpoint_path_and_forbids_ambient_
     command, args, kwargs = used[0]
     assert command == str(installed / "bin/mt3-infer")
     assert args[args.index("-m") + 1] == "mr_mt3"
+    assert "--no-download" in args
     env = kwargs["env"]
     assert env["MT3_CHECKPOINT_DIR"] == str(installed / "checkpoints")
     assert env["MT3_CHECKPOINT_DIR"] != str(fake_cache)

@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/tier2-actual-models.yml'
       - 'scripts/run_tier2_model_smoke.py'
+      - 'scripts/smoke_real_mt3_managed_checkpoint.py'
       - 'scripts/generate_tier2_smoke_audio.py'
       - 'src/audio_score_tool/sheetsage_hybrid.py'
       - 'tests/test_sheetsage_hybrid.py'
@@ -13,6 +14,7 @@ on:
     paths:
       - '.github/workflows/tier2-actual-models.yml'
       - 'scripts/run_tier2_model_smoke.py'
+      - 'scripts/smoke_real_mt3_managed_checkpoint.py'
       - 'scripts/run_tier2_hybrid_smoke.py'
       - 'scripts/sheetsage2_infer_adapter.py'
       - 'scripts/generate_tier2_smoke_audio.py'
@@ -93,8 +95,25 @@ jobs:
         if: inputs.youtube_url == ''
         run: python scripts/generate_tier2_smoke_audio.py out/chords.wav
       - name: Run real AMT inference
+        env:
+          # The upstream downloader stores the *actual* model files here;
+          # never rely on an implicit user HOME cache in the next step.
+          MT3_CHECKPOINT_DIR: ${{ runner.temp }}/ast-reviewed-mt3-checkpoints
         run: |
           python scripts/run_tier2_model_smoke.py out/chords.wav out/${{ matrix.model }} --model ${{ matrix.model }}
+      - name: Prove real checkpoint through app-managed ZIP and offline packaged inference
+        env:
+          MT3_CHECKPOINT_DIR: ${{ runner.temp }}/ast-reviewed-mt3-checkpoints
+        run: |
+          # This test uses the existing Python interpreter ONLY in CI.
+          # It is not a redistributable frozen runtime or clean-machine proof.
+          # No third-party weights/CLI/archive leave the runner; only a
+          # SHA-256/CPU-inference pending JSON receipt is uploaded below.
+          python scripts/smoke_real_mt3_managed_checkpoint.py \
+            --model ${{ matrix.model }} \
+            --audio out/chords.wav \
+            --checkpoint-dir "$MT3_CHECKPOINT_DIR" \
+            --output out/${{ matrix.model }}/managed-real-checkpoint.pending.json
       - name: Upload outputs and logs
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
