@@ -191,3 +191,56 @@ def test_symlink_executable_is_rejected(tmp_path: Path):
     linked.symlink_to(source)
     with pytest.raises(inv.FrozenInventoryError, match="regular"):
         inv.inspect_frozen_archive(linked, reader_factory=FakeReader)
+
+
+def test_windows_relative_archive_separators_normalize_without_hiding_traversal(
+    tmp_path: Path,
+):
+    exe = tmp_path / "fake-windows-frozen.exe"
+    exe.write_bytes(b"MZ-test")
+    class NativeWindowsReader(FakeReader):
+        def __init__(self, path):
+            super().__init__(path)
+            self.toc["torch\\lib\\libtorch_cpu.dll"] = self.toc.pop("libtorch_cpu.dll")
+            self.toc["mt3_infer\\config\\checkpoints.yaml"] = self.toc.pop(
+                "mt3_infer/config/checkpoints.yaml"
+            )
+
+    result = inv.inspect_frozen_archive(exe, reader_factory=NativeWindowsReader)
+    assert "torch/lib/libtorch_cpu.dll" in result["native_binary_entries"]
+    assert "mt3_infer/config/checkpoints.yaml" in {
+        entry["name"] for entry in result["archive_entries"]
+    }
+    assert all("\\" not in entry["name"] for entry in result["archive_entries"])
+
+
+@pytest.mark.parametrize("name", (
+    "..\\escape.dll", "\\\\server\\share\\escape.dll",
+    "\\rooted.dll", "C:\\windows\\system32\\escape.dll", "lib\\..\\escape.dll",
+    "lib\\\\escape.dll",
+))
+def test_windows_archive_traversal_and_absolute_paths_are_rejected(
+    tmp_path: Path, name: str,
+):
+    exe = tmp_path / "fake-windows-frozen.exe"
+    exe.write_bytes(b"MZ-test")
+    class BrokenWindowsReader(FakeReader):
+        def __init__(self, path):
+            super().__init__(path)
+            self.toc[name] = self.toc.pop("libtorch_cpu.dll")
+
+    with pytest.raises(inv.FrozenInventoryError, match="escape"):
+        inv.inspect_frozen_archive(exe, reader_factory=BrokenWindowsReader)
+
+
+def test_windows_archive_duplicate_normalized_paths_are_rejected(tmp_path: Path):
+    exe = tmp_path / "fake-windows-frozen.exe"
+    exe.write_bytes(b"MZ-test")
+    class DuplicateWindowsReader(FakeReader):
+        def __init__(self, path):
+            super().__init__(path)
+            self.toc["torch\\lib.dll"] = (120, 9, 9, 0, "b")
+            self.toc["torch/lib.dll"] = (140, 11, 11, 0, "b")
+    with pytest.raises(inv.FrozenInventoryError, match="duplicated"):
+        inv.inspect_frozen_archive(exe, reader_factory=DuplicateWindowsReader)
+
