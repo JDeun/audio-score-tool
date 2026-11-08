@@ -267,3 +267,29 @@ test("rollback 409 failure remains an error, does not claim a restored runtime",
   await expect(dialog.getByRole("status")).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: "이전 버전 (1)으로 복원" })).toBeVisible();
 });
+
+
+test("nested Java or model resource corruption displays an integrity failure", async ({ page }) => {
+  const { status, component } = fixture(false);
+  component.managed_status = {
+    ready: false, integrity: "payload-digest-mismatch",
+    rollback: { available: false, reason: "previous-version-unverified" },
+  };
+  await page.route("**/api/setup/center", route => route.fulfill({ json: status }));
+  const dialog = await openSetup(page);
+  await expect(dialog.getByText("내장 JRE·모델·리소스 무결성 실패 · 재설치 또는 복원 필요")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: /이전 버전.*복원/ })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "앱에서 설치" })).toHaveCount(0);
+});
+
+test("legacy managed status is not marked ready without a full payload manifest", async ({ page }) => {
+  const { status, component } = fixture(true);
+  component.managed_status = {
+    ready: false, integrity: "payload-manifest-missing",
+    rollback: { available: false, reason: "no-previous-version" },
+  };
+  await page.route("**/api/setup/center", route => route.fulfill({ json: status }));
+  const dialog = await openSetup(page);
+  await expect(dialog.getByText("전체 런타임 검증 정보 없음 · 재설치 필요")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "앱에서 설치" })).toBeVisible();
+});
