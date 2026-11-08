@@ -16,6 +16,8 @@ on:
       - 'tests/test_mt3_frozen_native_byte_audit.py'
       - 'tests/test_mt3_frozen_file_owners.py'
       - 'scripts/triage_mt3_frozen_dependencies.py'
+      - 'scripts/aggregate_mt3_native_release_review.py'
+      - 'tests/test_mt3_native_release_review.py'
       - 'tests/test_mt3_frozen_license_triage.py'
       - 'tests/test_mt3_frozen_inventory.py'
       - 'tests/test_mt3_private_candidate_audit.py'
@@ -124,4 +126,51 @@ jobs:
             ${{ runner.temp }}/MT3-FROZEN-NATIVE-QA-${{ matrix.target }}.pending.json
             ${{ runner.temp }}/MR-MT3-SOURCE-EVIDENCE.pending.json
           if-no-files-found: warn
+          retention-days: 14
+
+  aggregate-pending-review:
+    name: cross-platform-native-license-review-pending
+    needs: build-and-verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout pending-review aggregator
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Python 3.11 for metadata-only review
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.11'
+
+      - name: Download only Windows native metadata receipts
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: mt3-frozen-native-qa-windows-x86_64
+          path: ${{ runner.temp }}/mt3-native-review/windows
+
+      - name: Download only macOS native metadata receipts
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: mt3-frozen-native-qa-macos-aarch64
+          path: ${{ runner.temp }}/mt3-native-review/macos
+
+      - name: Reconcile exact pinned model and per-file native byte review queues
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m scripts.aggregate_mt3_native_release_review \
+            --windows-native "$RUNNER_TEMP/mt3-native-review/windows/MT3-FROZEN-NATIVE-QA-windows-x86_64.pending.json" \
+            --macos-native "$RUNNER_TEMP/mt3-native-review/macos/MT3-FROZEN-NATIVE-QA-macos-aarch64.pending.json" \
+            --windows-source "$RUNNER_TEMP/mt3-native-review/windows/MR-MT3-SOURCE-EVIDENCE.pending.json" \
+            --macos-source "$RUNNER_TEMP/mt3-native-review/macos/MR-MT3-SOURCE-EVIDENCE.pending.json" \
+            --output "$RUNNER_TEMP/MT3-CROSS-PLATFORM-RELEASE-REVIEW.pending.json"
+
+      - name: Upload only pending cross-platform review JSON
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mt3-cross-platform-release-review-pending
+          path: ${{ runner.temp }}/MT3-CROSS-PLATFORM-RELEASE-REVIEW.pending.json
+          if-no-files-found: error
           retention-days: 14

@@ -173,6 +173,11 @@ def test_native_review_workflow_prohibits_binary_uploads():
     assert "verify_mt3_frozen_native.py" in workflow
     assert "scripts.fetch_pinned_mrmt3_checkpoint" in workflow
     assert "MR-MT3-SOURCE-EVIDENCE.pending.json" in workflow
+    assert "aggregate-pending-review:" in workflow
+    assert "needs: build-and-verify" in workflow
+    assert "scripts.aggregate_mt3_native_release_review" in workflow
+    assert "mt3-cross-platform-release-review-pending" in workflow
+    assert "actions/download-artifact@" in workflow
     assert "mt3_infer.cli download mr_mt3" not in workflow
     uploader = workflow.split("Publish only pending JSON, not the frozen executable", 1)[1]
     assert "pending.json" in uploader

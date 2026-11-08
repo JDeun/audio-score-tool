@@ -214,3 +214,11 @@ SHA-256로 식별한 CI 원본 증빙과 패키지별 일치 건수는 [메타�
 `scripts/hash_mt3_frozen_native_bytes.py`는 native Windows/macOS frozen MT3 내부 PyInstaller CArchive에서 확장자 기준 네이티브 후보 파일을 **메모리에서만 읽어 SHA-256을 측정**합니다. 파일별 `native_file_byte_evidence`에는 바이너리 내부 SHA-256, 원본 빌드 환경의 wheel RECORD SHA-256, 일치·불일치·RECORD 해시 부재·경로 불일치·복수 후보·크기 제한 미검증 상태가 남습니다. 바이트와 원본 라이브러리는 공개 CI 아티팩트에 포함하지 않고, 기존 frozen 인벤토리 SHA-256에 새 증빙을 결속합니다. 새로운 MT3 네이티브 QA는 이 비교를 실제 빌드에서 수행합니다.
 
 **정확한 바이트 일치는 해당 빌더 wheel RECORD 메타데이터와 번들 CArchive 구성요소가 동일하다는 기술적 단서이지**, wheel 공급자의 독립 서명, transitive DLL 로더 의존성, 코드·모델의 상용 재배포 허가, 제3자 notice/소스 제공 의무 충족을 자동 증명하지 않습니다. 미일치·미분류/크기 제한 항목은 법적 검토 큐에서 계속 추적해야 합니다. `complete_sbom_verified=false`, `license_independently_approved=false`, `redistribution_status=pending`을 유지합니다.
+
+## Windows/macOS MT3 네이티브 증빙의 자동 결합 (#29)
+
+네이티브 `MT3 Native Frozen Runtime Review (unapproved)`가 각 OS의 **실제 MR-MT3 CPU 추론 성공** 후 `MT3-FROZEN-NATIVE-QA-<target>.pending.json`과 `MR-MT3-SOURCE-EVIDENCE.pending.json`만 업로드합니다. 뒤이어 `aggregate-pending-review` job이 **동일 workflow run의 두 플랫폼 JSON**을 다운로드하여 `scripts/aggregate_mt3_native_release_review.py`로 검증합니다.
+
+검증은 immutable Hugging Face 모델 revision·checkpoint SHA·다운로드 증빙 및 native QA 내부의 소스 revision, frozen 인벤토리 전체 SHA, 개별 DLL/공유 라이브러리↔wheel RECORD 바이트 비교 상태를 동시에 요구합니다. 결과 `MT3-CROSS-PLATFORM-RELEASE-REVIEW.pending.json`에는 미일치·미분류 파일 우선순위 검토 큐, 각 원본 JSON의 canonical SHA-256, OS별 누락 notice 메타데이터와 전체 third-party review queue가 담깁니다. **어느 OS의 실제 QA 또는 source pin 검증이 실패해도 aggregate job은 성공할 수 없습니다.** 이 보고서는 공개 라이브러리나 모델을 포함하지 않는 메타데이터이며, 개별 파일의 독립 provenance 서명·라이선스 또는 완전한 네이티브 SBOM을 보증하지 않습니다.
+
+생성물은 언제나 `production_catalog_published=false`, `complete_sbom_verified=false`, `license_independently_approved=false`, `model_redistribution_approved=false`, `redistribution_status=pending`입니다. 출고 담당자는 이 파일을 **검토 큐의 입력**으로만 사용해야 하며, 해당 파일로 카탈로그/승인 영수증을 자동 발행하지 않습니다.

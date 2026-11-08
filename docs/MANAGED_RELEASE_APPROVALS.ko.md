@@ -60,3 +60,7 @@
 Windows/macOS `transcription_engine` MR-MT3의 pending 후보에는 로컬 설치 후 재해시한 `model_identity`가 포함됩니다: `model_key=mr_mt3`, `model_revision=sha256:<checkpoint_sha256>`, `runtime_revision=<reviewed upstream_revision>`, `checkpoint_path=checkpoints/mr_mt3/mt3.pth`, `checkpoint_sha256=<full digest>`. 원격 검증 명령은 HTTPS로 가져온 ZIP을 별도 루트에 설치한 뒤 **모델 파일을 다시 해시**하고 `published_model_identity.checkpoint_verified=true`인 pending 기록을 남깁니다. 이 바이트 증빙이 카탈로그와 다르면 설치 승인이 거부됩니다. 단순히 JSON 필드를 추가해 원격 검증을 대체할 수 없습니다.
 
 `check_v1_release_readiness.py`는 #34의 품질 승인 `engine.artifact_sha256`을 **체크포인트 파일 해시**로 간주하여 두 OS의 모델 신원과 대조합니다. 운영체제별 native ZIP `sha256`은 다를 수 있으며 각 ZIP은 기존 독립 SHA-256/도구/라이선스 승인 정책을 그대로 거칩니다. 품질 리포트에 임의 SHA를 넣어도 사람의 승인/벤치마크 재계산 의무는 사라지지 않습니다. MR-MT3 외 모델/런타임은 별도 검증 계약 확장 전 v1 승인하지 않습니다.
+
+## MT3 native 크로스플랫폼 법무 검토 큐 자동 생성 (#29)
+
+`MT3 Native Frozen Runtime Review (unapproved)`가 모두 통과하면 별도 `aggregate-pending-review` job이 Windows/macOS 모델 원본/실제 native 추론 영수증을 함께 검증하고 `MT3-CROSS-PLATFORM-RELEASE-REVIEW.pending.json`을 생성합니다. 이 보고서는 네이티브 파일 SHA-256 일치·불일치·원본 RECORD 해시 없음/매칭 실패, 패키지 로컬 license/notice 메타데이터 누락을 보존하며 양 플랫폼 모델의 고정 SHA·source revision을 검증합니다. **이 자동화는 재배포 승인 절차의 준비 자료일 뿐 승인 주체가 아닙니다.** 보고서의 모든 통과된 byte match도 완전한 source correspondence나 라이선스 부여를 의미하지 않습니다. 담당자의 외부 원본 확인, notices/corresponding-source 배포 준비, independent signoff와 실제 HTTPS byte validation은 기존 출고 절차를 그대로 요구합니다.
