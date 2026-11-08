@@ -1,0 +1,90 @@
+name: MT3 Native Frozen Runtime Review (unapproved)
+
+# Native Windows/macOS frozen PyTorch acceptance, NOT public release. Only
+# SHA-256/provenance JSON is uploaded, never executable/model archives.
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/mt3-frozen-native-review.yml'
+      - 'scripts/mt3_frozen_entry.py'
+      - 'scripts/verify_mt3_frozen_native.py'
+      - 'tests/test_mt3_frozen_native_review.py'
+      - 'src/audio_score_tool/managed_components.py'
+      - 'src/audio_score_tool/managed_tool_resolver.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mt3-frozen-native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-verify:
+    name: native-mt3-frozen-${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 80
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2025
+            target: windows-x86_64
+          - runner: macos-15
+            target: macos-aarch64
+    steps:
+      - name: Checkout reviewed runtime verifier
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup native Python 3.11 (builder only)
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.11'
+
+      - name: Install pinned MR-MT3/PyTorch frozen runtime inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check \
+            'mt3-infer[torch]==0.2.0' \
+            'torch==2.7.1' \
+            'torchaudio==2.7.1' \
+            'torchvision==0.22.1' \
+            'transformers==4.57.6' \
+            'pyinstaller==6.17.0'
+          python - <<'PY'
+          from importlib.metadata import version
+          for package, expected in {
+              "mt3-infer": "0.2.0", "torch": "2.7.1",
+              "torchaudio": "2.7.1", "torchvision": "0.22.1",
+              "transformers": "4.57.6", "PyInstaller": "6.17.0",
+          }.items():
+              actual = version(package)
+              if actual != expected:
+                  raise RuntimeError(f"{package}: expected {expected}, observed {actual}")
+          PY
+
+      - name: Freeze real MT3-Infer and verify app-owned executable
+        shell: bash
+        env:
+          REVIEW_TARGET: ${{ matrix.target }}
+          PYTHONPATH: ${{ github.workspace }}${{ runner.os == 'Windows' && ';' || ':' }}${{ github.workspace }}/src
+        run: |
+          set -euo pipefail
+          # Binary is private and includes the frozen Python runtime.
+          # No official checkpoint or third-party artifact is published.
+          python scripts/verify_mt3_frozen_native.py \
+            --target "$REVIEW_TARGET" \
+            --output "$RUNNER_TEMP/MT3-FROZEN-NATIVE-QA-$REVIEW_TARGET.pending.json"
+
+      - name: Publish only pending JSON, not the frozen executable
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mt3-frozen-native-qa-${{ matrix.target }}
+          path: ${{ runner.temp }}/MT3-FROZEN-NATIVE-QA-${{ matrix.target }}.pending.json
+          if-no-files-found: warn
+          retention-days: 14

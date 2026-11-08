@@ -175,3 +175,8 @@ clean-machine smoke result
 ### 실제 MR-MT3 / YourMT3 체크포인트 SHA 검증 (QA 전용)
 
 `scripts/smoke_real_mt3_managed_checkpoint.py`는 실제 다운로드된 모델 파일을 하나도 생략하지 않고 관리형 ZIP으로 설치한 뒤 Linux CPU에서 offline packaged-mode 추론을 검증하고, 파일·ZIP SHA-256 증빙을 남깁니다. GitHub Actions에는 증빙 JSON만 보존합니다. 테스트에 복사한 MT3 CLI는 **러너의 Python 환경을 필요로 하는 개발용 진입점**이며 Windows/macOS self-contained 런타임이 아닙니다. 실제 checkpoint 재배포 권한이나 품질 baseline은 아직 승인하지 않았고, 정식 `managed-component-catalog.json`의 모든 target은 미게시 상태입니다.
+
+
+### PyInstaller MR-MT3 네이티브 후보 (모델 미포함 QA)
+
+`scripts/verify_mt3_frozen_native.py`와 `.github/workflows/mt3-frozen-native-review.yml`에서 Windows x86_64/macOS arm64 실제 PyTorch·MT3-Infer 런타임을 onefile 네이티브 실행 파일로 빌드하고, ZIP에 등록해 AudioScoreTool 제품 설치기로 설치한 후 `PATH` 없이 모델 registry/명령 기동 및 가중치 부재 시 `--no-download` 실패를 검증합니다. CI 공개물은 해시·실행 결과 JSON뿐이며, 실제 모델 가중치나 복구/업데이트용 배포 URL, 출시용 제3자 고지 및 법적 승인 상태는 여전히 없습니다. 모델 포함 배포 가능 여부는 별도 권리 검토를 거쳐야 합니다.
