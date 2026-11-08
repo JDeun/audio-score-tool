@@ -64,7 +64,7 @@ def test_one_platform_model_substitution_prevents_v1_release(monkeypatch, field)
 @pytest.mark.parametrize("payload", [None, {}, {"model_identity": {}}])
 def test_missing_model_evidence_refuses_release(monkeypatch, payload):
     _catalog(monkeypatch, {"windows-x86_64": payload})
-    with pytest.raises(RuntimeError, match="model identity"):
+    with pytest.raises(RuntimeError, match="v1 model"):
         readiness.verify_release_model_binding(_QUALITY)
 
 
