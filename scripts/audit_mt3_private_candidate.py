@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, BinaryIO
 
 from scripts import verify_mt3_frozen_native as native
+from scripts.collect_mt3_frozen_inventory import _canonical_sha
 
 _ROOT = Path(__file__).resolve().parents[1]
 _SHA256 = re.compile(r"[a-f0-9]{64}\Z")
@@ -85,6 +86,44 @@ def _validate_native_receipt(proof: dict[str, Any]) -> tuple[str, dict[str, Any]
     _expect(proof.get("redistribution_status") == "pending", "Native QA must remain pending")
     _expect(_valid_sha(proof.get("native_executable_sha256")), "Native executable SHA-256 is missing")
     _expect(_valid_sha(proof.get("private_archive_sha256")), "Native initial archive hash is missing")
+    inventory = proof.get("frozen_dependency_inventory")
+    _expect(isinstance(inventory, dict), "Native frozen dependency inventory is missing")
+    snapshot = inventory.get("snapshot")
+    _expect(isinstance(snapshot, dict), "Frozen dependency inventory snapshot is missing")
+    _expect(
+        inventory.get("schema_version") == "1"
+        and snapshot.get("schema_version") == "1"
+        and _valid_sha(inventory.get("inventory_sha256"))
+        and inventory["inventory_sha256"] == _canonical_sha(snapshot)
+        and snapshot.get("target") == target
+        and snapshot.get("frozen_executable_sha256") == proof["native_executable_sha256"],
+        "Native frozen dependency inventory is invalid or does not match tested binary",
+    )
+    _expect(
+        snapshot.get("inventory_is_complete_distributable_sbom") is False
+        and snapshot.get("native_library_dependency_closure_independently_verified") is False
+        and snapshot.get("third_party_license_approval") is False
+        and snapshot.get("redistribution_status") == "pending"
+        and inventory.get("legal_reviewer_signoff") is False
+        and inventory.get("third_party_license_approval") is False
+        and inventory.get("redistribution_status") == "pending",
+        "Native frozen dependency inventory must remain pending and unapproved",
+    )
+    archive_info = snapshot.get("frozen_archive")
+    builder_info = snapshot.get("builder")
+    _expect(
+        isinstance(archive_info, dict)
+        and type(archive_info.get("archive_entry_count")) is int
+        and archive_info["archive_entry_count"] > 0
+        and type(archive_info.get("native_binary_entry_count")) is int
+        and archive_info["native_binary_entry_count"] > 0
+        and type(archive_info.get("pyz_module_count")) is int
+        and archive_info["pyz_module_count"] > 0
+        and isinstance(builder_info, dict)
+        and type(builder_info.get("distribution_count")) is int
+        and builder_info["distribution_count"] > 0,
+        "Native inventory has no embedded dependency or builder distribution evidence",
+    )
     _expect(
         proof.get("private_candidate_filename")
         == f"MT3-MRMT3-{target}-UNAPPROVED.zip",
@@ -198,6 +237,7 @@ def audit_private_candidate(archive: Path, proof: dict[str, Any]) -> dict[str, A
         "model_adapter": "mr_mt3",
         "build_method": "PyInstaller onefile native QA",
         "mt3_wrapper_sha256": proof["native_executable_sha256"],
+        "frozen_inventory_sha256": proof["frozen_dependency_inventory"]["inventory_sha256"],
         "upstream": "https://github.com/openmirlab/mt3-infer/tree/v0.2.0",
         "model_weights_included": True,
         "checkpoint_sha256": native._MR_MT3_SHA256,
@@ -226,6 +266,19 @@ def audit_private_candidate(archive: Path, proof: dict[str, Any]) -> dict[str, A
         "model_checkpoint_sha256": native._MR_MT3_SHA256,
         "provenance_manifest_sha256": sha_by_path["provenance/frozen-native-qa.pending.json"],
         "builder_package_versions": dict(sorted(native._EXPECTED.items())),
+        "frozen_inventory_sha256": proof["frozen_dependency_inventory"]["inventory_sha256"],
+        "embedded_frozen_archive_entries": proof["frozen_dependency_inventory"][
+            "snapshot"
+        ]["frozen_archive"]["archive_entry_count"],
+        "embedded_native_binary_entries": proof["frozen_dependency_inventory"][
+            "snapshot"
+        ]["frozen_archive"]["native_binary_entry_count"],
+        "embedded_pyz_modules": proof["frozen_dependency_inventory"][
+            "snapshot"
+        ]["frozen_archive"]["pyz_module_count"],
+        "builder_distribution_inventory_count": proof["frozen_dependency_inventory"][
+            "snapshot"
+        ]["builder"]["distribution_count"],
         "builder_packages_are_complete_frozen_sbom": False,
         "native_qa_receipt_canonical_sha256": hashlib.sha256(
             json.dumps(proof, sort_keys=True, separators=(",", ":")).encode("utf-8")
