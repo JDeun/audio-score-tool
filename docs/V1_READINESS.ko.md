@@ -197,3 +197,9 @@ v1은 다음 조건을 모두 만족해야 합니다.
 ## GitHub 저장소 보호 정책 코드 감사 (#38, 2026-11-05)
 
 `scripts/audit_branch_governance.py`는 보호 규칙의 API 스냅샷에 PR 강제·`verify` CI 요구·최신 브랜치 강제·force push/삭제 방지·관리자 우회 정책이 있는지 **오프라인으로** 검사합니다. 자세한 절차는 [main 보호 정책](BRANCH_GOVERNANCE.ko.md)에서 확인합니다. 저장소 ruleset은 확인 시점에 비어 있었으며 branch protection 조회에는 HTTP 403이 발생했습니다. 따라서 **실제 보호 활성화는 미검증 운영 과제**이고 출시 준비 완료 주장에 포함하지 않습니다.
+
+### App-managed native 실제 기능 인수시험 (P1)
+
+지원 대상의 게시 승인 메타데이터와 SHA-256이 확보된 뒤, `Desktop Packages --require-managed-delivery`는 단순 파일 설치 상태 외에 **인증된 frozen sidecar API의 WAV 업로드 → 실제 AMT Job 완료 → note-on MIDI/MusicXML 다운로드**를 필수 검증합니다. 제품이 선택한 MT3 모델을 사용하며 무모델·무음 MIDI·잘못된 XML·네이티브 실행 실패는 허용하지 않습니다.
+
+동일 시험에서 Audiveris 배포판 **내장 JRE**가 PATH/JAVA_HOME 없이 시작되는지도 확인합니다. 아직 OMR PDF 실제 인식/편집/출판과 데스크톱 설치·업데이트, 모델 재배포 권한을 완결한 결과가 아닙니다. 카탈로그/라이선스가 미승인 상태에서는 이 테스트가 정식 v1 통과를 보고할 수 없습니다.
