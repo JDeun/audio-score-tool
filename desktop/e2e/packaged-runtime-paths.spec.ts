@@ -99,7 +99,7 @@ test("published packaged MR-MT3 is selected instead of unavailable YourMT3", asy
   await usage.selectOption("commercial");
   const model = dialog.getByRole("combobox", { name: "모델" });
   await expect(model).toHaveValue("mr_mt3");
-  await expect(model.locator('option[value="yourmt3"]')).toBeDisabled();
+  await expect(model.locator('option[value="yourmt3"]')).toHaveJSProperty("disabled", true);
   await dialog.getByRole("button", { name: "엔진 정책 저장" }).click();
   await expect.poll(() => requests.length).toBe(1);
   expect(requests[0]).toMatchObject({
