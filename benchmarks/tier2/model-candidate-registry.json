@@ -1,0 +1,338 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-09",
+  "purpose": "role-separated-research-candidate-shortlist-not-a-model-selection",
+  "automated_model_selection_approved": false,
+  "commercial_baseline_approved": false,
+  "same_corpus_multi_model_benchmark_complete": false,
+  "candidate_status_note": "Evidence labels reflect this repository, not an assertion that external models cannot run elsewhere.",
+  "candidates": [
+    {
+      "id": "mr-mt3",
+      "name": "MR-MT3 (program-preserving output)",
+      "kind": "model",
+      "roles": [
+        "full_instrument_amt"
+      ],
+      "implementation": "real_author_train_measured",
+      "license_gate": "redistribution_review",
+      "issues": [
+        34,
+        154
+      ],
+      "source": "https://github.com/openmirlab/mt3-infer",
+      "note": "Pinned checkpoint actually measured on four author train examples; held-out real songs, rights and product editing not evaluated"
+    },
+    {
+      "id": "yourmt3-yptf-moe",
+      "name": "YourMT3+ / YPTF.MoE+Multi",
+      "kind": "model",
+      "roles": [
+        "full_instrument_amt"
+      ],
+      "implementation": "synthetic_smoke_only",
+      "license_gate": "redistribution_review",
+      "issues": [
+        34
+      ],
+      "source": "https://huggingface.co/spaces/mimbres/YourMT3",
+      "note": "The integrated mt3-infer 'yourmt3' alias maps to YPTF.MoE+Multi (noPS), not the full family of checkpoints"
+    },
+    {
+      "id": "mt3-pytorch",
+      "name": "MT3-PyTorch (kunato port)",
+      "kind": "model",
+      "roles": [
+        "full_instrument_amt"
+      ],
+      "implementation": "not_product_wired",
+      "license_gate": "no_upstream_license",
+      "issues": [
+        34
+      ],
+      "source": "https://github.com/kunato/mt3-pytorch",
+      "note": "Upstream mt3-infer registry reports same checkpoint SHA as MR-MT3; compare output adapter only, not independent checkpoint; upstream code has no declared license"
+    },
+    {
+      "id": "muscriptor-small",
+      "name": "MuScriptor small",
+      "kind": "model",
+      "roles": [
+        "full_instrument_amt"
+      ],
+      "implementation": "auth_runtime_not_verified",
+      "license_gate": "noncommercial_weights",
+      "issues": [
+        34,
+        55
+      ],
+      "source": "https://huggingface.co/MuScriptor/muscriptor-small",
+      "note": "~103M parameters; first feasible CPU-only MuScriptor comparison after user accepts gated license and local auth"
+    },
+    {
+      "id": "muscriptor-medium",
+      "name": "MuScriptor medium",
+      "kind": "model",
+      "roles": [
+        "full_instrument_amt"
+      ],
+      "implementation": "auth_runtime_not_verified",
+      "license_gate": "noncommercial_weights",
+      "issues": [
+        34,
+        55
+      ],
+      "source": "https://huggingface.co/MuScriptor/muscriptor-medium",
+      "note": "~307M parameters; compare against small and large on equivalent capable hardware"
+    },
+    {
+      "id": "muscriptor-large",
+      "name": "MuScriptor large",
+      "kind": "model",
+      "roles": [
+        "full_instrument_amt"
+      ],
+      "implementation": "auth_runtime_not_verified",
+      "license_gate": "noncommercial_weights",
+      "issues": [
+        34,
+        55
+      ],
+      "source": "https://huggingface.co/MuScriptor/muscriptor-large",
+      "note": "~1.4B parameters; personal/research-only candidate requiring suitable GPU/MPS"
+    },
+    {
+      "id": "miros",
+      "name": "MIROS / AI4Musician 2025",
+      "kind": "model",
+      "roles": [
+        "full_instrument_amt"
+      ],
+      "implementation": "unintegrated_research",
+      "license_gate": "unknown",
+      "issues": [
+        34,
+        35
+      ],
+      "source": "https://github.com/amt-os/ai4m-miros",
+      "note": "Challenge-winning model, but upstream runtime/checkpoint and commercial license need independent review"
+    },
+    {
+      "id": "audio-score-native",
+      "name": "AudioScore Native",
+      "kind": "training_scaffold",
+      "roles": [
+        "full_instrument_amt"
+      ],
+      "implementation": "no_pretrained_weights",
+      "license_gate": "own_training_required",
+      "issues": [
+        35
+      ],
+      "source": "https://github.com/JDeun/audio-score-tool",
+      "note": "Long-term project-owned training scaffold, not an executable pretrained competitor in this tournament"
+    },
+    {
+      "id": "sheetsage-classic",
+      "name": "SheetSage (sheetsage-infer legacy adapter)",
+      "kind": "model",
+      "roles": [
+        "lead_sheet",
+        "chord_estimation",
+        "beat_downbeat"
+      ],
+      "implementation": "research_adapter_available",
+      "license_gate": "noncommercial_weights",
+      "issues": [
+        43,
+        53
+      ],
+      "source": "https://github.com/JDeun/audio-score-tool/blob/main/benchmarks/tier2/SHEETSAGE_ADAPTER.md",
+      "note": "Existing historical 'sheetsage2' matrix stage calls the OLDER SheetSage inference adapter, not the new SheetSage2 model"
+    },
+    {
+      "id": "sheetsage2",
+      "name": "SheetSage2 (MERT-v2 lead sheet)",
+      "kind": "model",
+      "roles": [
+        "lead_sheet",
+        "chord_estimation",
+        "beat_downbeat"
+      ],
+      "implementation": "new_adapter_not_integrated",
+      "license_gate": "noncommercial_weights",
+      "issues": [
+        43,
+        53
+      ],
+      "source": "https://huggingface.co/m-a-p/SheetSage2",
+      "note": "Melody/chords/beat/downbeat/key/structure, not a substitute for full-instrument multi-part AMT"
+    },
+    {
+      "id": "chordino-nnls",
+      "name": "Chordino / NNLS Chroma",
+      "kind": "model",
+      "roles": [
+        "chord_estimation"
+      ],
+      "implementation": "not_integrated",
+      "license_gate": "unreviewed",
+      "issues": [
+        53
+      ],
+      "source": "https://music-ir.org/mirex/wiki/2026%3AAudio_Chord_Estimation_Results",
+      "note": "Chord-estimation baseline, not a note-level AMT candidate"
+    },
+    {
+      "id": "chordformer",
+      "name": "ChordFormer",
+      "kind": "model",
+      "roles": [
+        "chord_estimation"
+      ],
+      "implementation": "new_research_candidate",
+      "license_gate": "unreviewed",
+      "issues": [
+        43,
+        53
+      ],
+      "source": "https://huggingface.co/m-a-p/SheetSage2",
+      "note": "Third-party chord recognition specialist listed as SheetSage2 comparator; not yet in project's execution matrix"
+    },
+    {
+      "id": "chordify-manual",
+      "name": "Chordify (manual authorized comparison)",
+      "kind": "external_service",
+      "roles": [
+        "chord_estimation",
+        "beat_downbeat"
+      ],
+      "implementation": "manual_reference_export_only",
+      "license_gate": "service_terms",
+      "issues": [
+        53
+      ],
+      "source": "https://chordify.net/",
+      "note": "Black-box external service without authenticated official automated inference connector; comparison output is prediction, NOT ground truth"
+    },
+    {
+      "id": "beat-this",
+      "name": "Beat This!",
+      "kind": "model",
+      "roles": [
+        "beat_downbeat"
+      ],
+      "implementation": "new_research_candidate",
+      "license_gate": "redistribution_review",
+      "issues": [
+        43
+      ],
+      "source": "https://github.com/CPJKU/beat_this",
+      "note": "MIT code/weights; benchmark beat/downbeat only; third-party training data provenance needs separate review"
+    }
+  ],
+  "comparison_groups": [
+    {
+      "id": "full_instrument_amt",
+      "candidate_ids": [
+        "mr-mt3",
+        "yourmt3-yptf-moe",
+        "mt3-pytorch",
+        "muscriptor-small",
+        "muscriptor-medium",
+        "muscriptor-large",
+        "miros"
+      ],
+      "source_issue": 34,
+      "primary_quality": [
+        "heldout_note_onset_f1",
+        "heldout_onset_offset_f1",
+        "instrument_f1",
+        "part_count_accuracy",
+        "edit_actions",
+        "time_to_publish_seconds",
+        "export_success_rate"
+      ],
+      "constraints": "same exact audio and reference MIDI, same postprocessing, separately isolated consistent hardware, no train/test overlap"
+    },
+    {
+      "id": "chord_estimation",
+      "candidate_ids": [
+        "sheetsage-classic",
+        "sheetsage2",
+        "chordino-nnls",
+        "chordformer",
+        "chordify-manual"
+      ],
+      "source_issue": 53,
+      "primary_quality": [
+        "WCSR_root",
+        "WCSR_majmin",
+        "WCSR_sevenths",
+        "segmentation",
+        "no_chord_coverage"
+      ],
+      "constraints": "same exact authorized audio/annotation spans and independent chord references; Chordify manual import only"
+    },
+    {
+      "id": "beat_downbeat",
+      "candidate_ids": [
+        "sheetsage-classic",
+        "sheetsage2",
+        "chordify-manual",
+        "beat-this"
+      ],
+      "source_issue": 43,
+      "primary_quality": [
+        "beat_f1",
+        "downbeat_f1",
+        "tempo_error",
+        "first_downbeat_error"
+      ],
+      "constraints": "same independently annotated beat grids; halve/double tempo ambiguity reported"
+    },
+    {
+      "id": "lead_sheet",
+      "candidate_ids": [
+        "sheetsage-classic",
+        "sheetsage2"
+      ],
+      "source_issue": 43,
+      "primary_quality": [
+        "melody_note_f1",
+        "chord_wcsr",
+        "beat_f1",
+        "key_accuracy",
+        "structure_accuracy"
+      ],
+      "constraints": "support-specific lead sheet only, never compare as full multi-instrument AMT"
+    }
+  ],
+  "other_pipeline_roles": [
+    {
+      "task": "stem_separation",
+      "tool": "Demucs",
+      "note": "Audio source separation/preprocessing, not standalone multitrack transcription winner"
+    },
+    {
+      "task": "lyrics_alignment",
+      "tool": "WhisperX",
+      "note": "Speech/lyric timing helper, not pitch or chord AMT"
+    },
+    {
+      "task": "omr",
+      "tool": "Audiveris",
+      "note": "Scanned-score OMR, not audio transcription"
+    },
+    {
+      "task": "hybrid_score_enrichment",
+      "tool": "AMT + SheetSage family",
+      "note": "Evaluate compared against unchanged corresponding base AMT; not an independent note model"
+    },
+    {
+      "task": "amt_ensemble",
+      "tool": "YourMT3 + MR-MT3 consensus",
+      "note": "#56: compare precision/recall, extra inference cost, and empty consensus to best single candidate"
+    }
+  ]
+}
