@@ -51,17 +51,21 @@ def _canonical_sha(value: dict[str, Any]) -> str:
 def _safe_archive_name(name: object) -> str:
     if not isinstance(name, str) or not name or len(name) > 1024:
         raise FrozenInventoryError("Frozen archive has an invalid entry name")
+    # PyInstaller's native Windows TOC uses backslashes inside *relative*
+    # archive paths. Normalize these for evidence, while retaining the raw TOC
+    # key for reader.open_embedded_archive(). Never accept drive/UNC paths.
+    normalized = name.replace("\\", "/")
     if (
-        name.startswith(("/", "\\"))
-        or "\\" in name or ":" in name
-        or any(ord(char) < 32 or ord(char) == 127 for char in name)
-        or any(part in {"", ".", ".."} for part in name.split("/"))
+        normalized.startswith("/")
+        or ":" in normalized
+        or any(ord(char) < 32 or ord(char) == 127 for char in normalized)
+        or any(part in {"", ".", ".."} for part in normalized.split("/"))
     ):
         raise FrozenInventoryError("Frozen archive entry may escape its internal namespace")
-    path = PurePosixPath(name)
-    if path.is_absolute() or path.as_posix() != name:
+    path = PurePosixPath(normalized)
+    if path.is_absolute() or path.as_posix() != normalized:
         raise FrozenInventoryError("Frozen archive entry has an unsafe path")
-    return name
+    return normalized
 
 
 def inspect_frozen_archive(
@@ -118,7 +122,7 @@ def inspect_frozen_archive(
             if pyz_found != 1:
                 raise FrozenInventoryError("Frozen CArchive contains duplicate PYZ modules")
             try:
-                pyz = reader.open_embedded_archive(name)
+                pyz = reader.open_embedded_archive(original_name)
             except (OSError, ValueError, TypeError, RuntimeError) as exc:
                 raise FrozenInventoryError("Cannot inspect the embedded Python module table") from exc
             module_table = getattr(pyz, "toc", None)
