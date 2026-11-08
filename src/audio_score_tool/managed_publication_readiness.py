@@ -5,6 +5,7 @@ from typing import Any
 
 from .managed_component_catalog import load_catalog
 from .managed_components import ComponentArtifact, ComponentError
+from .managed_release_approvals import check_release_approval
 
 CORE_COMPONENTS = ("transcription_engine", "youtube_runtime", "audiveris")
 OPTIONAL_COMPONENTS = ("whisperx", "audio_validation")
@@ -68,6 +69,8 @@ def check_publication(component: str, target: str) -> PublicationCheck:
         artifact = ComponentArtifact.from_dict(payload)
     except ComponentError as exc:
         return PublicationCheck(component, target, False, str(exc))
+    if artifact.component != component:
+        return PublicationCheck(component, target, False, "artifact-component-mismatch")
     if not (artifact.license or "").strip():
         return PublicationCheck(component, target, False, "license-missing")
     if not (artifact.provenance or "").strip():
@@ -76,6 +79,10 @@ def check_publication(component: str, target: str) -> PublicationCheck:
         return PublicationCheck(component, target, False, "upstream-revision-missing")
     if str(payload.get("redistribution_status") or "").strip().lower() != "approved":
         return PublicationCheck(component, target, False, "redistribution-not-approved")
+    if str(artifact.license).strip().lower() in {"runtime-specific", "unknown", "tbd", "pending"}:
+        return PublicationCheck(component, target, False, "license-not-reviewed")
+    if str(artifact.provenance).strip().lower() in {"runtime-specific", "unknown", "tbd", "pending"}:
+        return PublicationCheck(component, target, False, "provenance-not-reviewed")
 
     required_tools = _REQUIRED_TOOLS.get(component, frozenset())
     missing_tools = sorted(required_tools - set(artifact.tools))
@@ -86,6 +93,9 @@ def check_publication(component: str, target: str) -> PublicationCheck:
             False,
             "required-tools-missing:" + ",".join(missing_tools),
         )
+    approval_problem = check_release_approval(component, target, payload)
+    if approval_problem is not None:
+        return PublicationCheck(component, target, False, approval_problem)
     return PublicationCheck(component, target, True)
 
 

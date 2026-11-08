@@ -56,6 +56,7 @@ def main() -> None:
     shutil.rmtree(work, ignore_errors=True)
 
     component_catalog = ROOT / "src" / "audio_score_tool" / "managed-component-catalog.json"
+    release_approvals = ROOT / "src" / "audio_score_tool" / "managed-release-approvals.json"
     cmd = [
         sys.executable,
         "-m",
@@ -68,6 +69,8 @@ def main() -> None:
         "verovio",
         "--add-data",
         f"{component_catalog}{os.pathsep}audio_score_tool",
+        "--add-data",
+        f"{release_approvals}{os.pathsep}audio_score_tool",
         "--distpath",
         str(DIST),
         "--workpath",

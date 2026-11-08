@@ -83,3 +83,14 @@ uv run --frozen python scripts/verify_managed_artifact_publication.py \
 메타데이터의 `approved` 문자열만으로 실제 바이너리 설치 및 clean-machine 검증까지 수행했다고 주장하지 않습니다. 최종 릴리스에는 `scripts/check_managed_publication.py --require-ready`와 실물/법적 검증 증거가 모두 필요합니다.
 
 자세한 신뢰 경계 및 배포 승인 요건은 [MANAGED_RUNTIME.ko.md](MANAGED_RUNTIME.ko.md), [THIRD_PARTY_LICENSES.ko.md](THIRD_PARTY_LICENSES.ko.md), [#29](https://github.com/JDeun/audio-score-tool/issues/29)을 참조하십시오.
+
+
+## 5. 별도 출고 승인 기록 게이트 (#29)
+
+원격 게시 파일 자체의 SHA-256 검증은 승인 **필요조건**일 뿐 재배포 허가를 자동으로 생성하지 않습니다. `src/audio_score_tool/managed-release-approvals.json`에는 플랫폼별 독립된 검토 기록을 두며, `check_publication()`과 Setup Center는 다음을 확인합니다.
+
+- 최종 카탈로그 항목 전체의 SHA-256이 출고 승인 기록의 `catalog_sha256`와 일치
+- `verify_managed_artifact_publication.py --fetch`가 만든 미승인 원격 바이트 증빙과 실제 URL/아카이브/도구별 SHA-256·버전·플랫폼이 일치
+- 별도 사람이 승인한 제3자 라이선스 검토자, 일시, 고지 URL·고지 해시, 대응 소스 제공 위치가 기록됨
+
+어느 하나라도 없거나 불일치하면 `published=false`이며 `POST /api/setup/install`도 409로 차단됩니다. 검증 도구나 앱이 라이선스 승인 기록을 자동 작성하지 않습니다. [관리형 런타임 출고 승인 형식](MANAGED_RELEASE_APPROVALS.ko.md)에 승인 기록과 신뢰 한계를 정리했습니다.

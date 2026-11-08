@@ -52,6 +52,8 @@ jobs:
             tests/test_managed_version_rollback.py \
             tests/test_managed_payload_integrity.py \
             tests/test_managed_publication_readiness.py \
+            tests/test_managed_release_approval.py \
+            tests/test_managed_install_publication_gate.py \
             tests/test_managed_artifact_candidate_preparation.py \
             tests/test_managed_artifact_publication_evidence.py \
             tests/test_packaged_runtime_dependencies.py \
