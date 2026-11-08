@@ -27,26 +27,72 @@
       "id": "sheetsage2",
       "kind": "analysis",
       "enabled": false,
-      "blocked_reason": "Separate lead-sheet adapter and NC license isolation required"
+      "blocked_reason": "Separate lead-sheet adapter and NC license isolation required",
+      "model_actual": "SheetSage legacy via sheetsage-infer",
+      "model_is_new_sheetsage2": false
     },
     {
       "id": "yourmt3+sheetsage2",
       "kind": "hybrid",
       "enabled": true,
-      "base_stage": "yourmt3"
+      "base_stage": "yourmt3",
+      "model_actual": "SheetSage legacy via sheetsage-infer",
+      "model_is_new_sheetsage2": false
     },
     {
       "id": "mr-mt3+sheetsage2",
       "kind": "hybrid",
       "enabled": true,
-      "base_stage": "mr-mt3"
+      "base_stage": "mr-mt3",
+      "model_actual": "SheetSage legacy via sheetsage-infer",
+      "model_is_new_sheetsage2": false
     },
     {
       "id": "muscriptor+sheetsage2",
       "kind": "hybrid",
       "enabled": false,
       "base_stage": "muscriptor",
-      "blocked_reason": "MuScriptor weights are NC and its base AMT stage is not configured"
+      "blocked_reason": "MuScriptor weights are NC and its base AMT stage is not configured",
+      "model_actual": "SheetSage legacy via sheetsage-infer",
+      "model_is_new_sheetsage2": false
+    },
+    {
+      "id": "muscriptor-small",
+      "kind": "amt",
+      "engine": "muscriptor",
+      "model": "small",
+      "enabled": false,
+      "blocked_reason": "Accepted HF noncommercial weights + authentication + pinned small CPU runtime not yet verified; #55"
+    },
+    {
+      "id": "muscriptor-medium",
+      "kind": "amt",
+      "engine": "muscriptor",
+      "model": "medium",
+      "enabled": false,
+      "blocked_reason": "Accepted HF noncommercial weights + GPU/MPS runtime and checkpoint not yet verified; #55"
+    },
+    {
+      "id": "mt3-pytorch",
+      "kind": "amt",
+      "engine": "mt3_infer",
+      "model": "mt3_pytorch",
+      "enabled": false,
+      "blocked_reason": "No upstream source-code license and product resolver does not implement this engine option; research-only, not commercial"
+    },
+    {
+      "id": "miros",
+      "kind": "amt",
+      "engine": "miros",
+      "model": "challenge-2025",
+      "enabled": false,
+      "blocked_reason": "Upstream checkpoint/source and model rights not pinned; no validated runtime adapter, #34"
+    },
+    {
+      "id": "sheetsage2-native",
+      "kind": "analysis",
+      "enabled": false,
+      "blocked_reason": "Actual new SheetSage2/MERT-v2 adapter not implemented; current sheetsage2-labelled stage is legacy sheetsage-infer; CC BY-NC-4.0, #43"
     }
   ]
 }
