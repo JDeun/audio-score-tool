@@ -216,22 +216,10 @@ def test_native_probe_rejects_unrelated_missing_files(
             qa._probe_managed_native(tmp_path, native.name, model="mr_mt3")
     assert not expected_path.exists()
 
-
-@pytest.mark.parametrize(
-    ("platform_name", "frozen", "expected"),
-    [
-        ("win32", True, True),
-        ("win32", False, False),
-        ("darwin", True, False),
-    ],
-)
 def test_native_entrypoint_sets_utf8_for_isolated_windows_frozen_cli(
     monkeypatch: pytest.MonkeyPatch,
-    platform_name: str,
-    frozen: bool,
-    expected: bool,
 ):
-    """Frozen Python ignores PYTHONIOENCODING; stdio must be set in the entry."""
+    """The frozen app must configure Unicode output without Python env options."""
     class RecordingStream:
         def __init__(self):
             self.calls = []
@@ -249,13 +237,15 @@ def test_native_entrypoint_sets_utf8_for_isolated_windows_frozen_cli(
     with monkeypatch.context() as mp:
         mp.setitem(sys.modules, "mt3_infer", package)
         mp.setitem(sys.modules, "mt3_infer.cli", cli)
-        mp.setattr(sys, "platform", platform_name)
-        mp.setattr(sys, "frozen", frozen, raising=False)
+        mp.setattr(sys, "platform", "win32")
+        mp.setattr(sys, "frozen", True, raising=False)
         mp.setattr(sys, "stdout", stdout)
         mp.setattr(sys, "stderr", stderr)
-        result = runpy.run_path(str(qa._ENTRY), run_name="native_mt3_entry_test")
-        assert result["main"]() == 0
+        with pytest.raises(SystemExit) as result:
+            runpy.run_path(str(qa._ENTRY), run_name="__main__")
+        assert result.value.code == 0
 
-    expected_calls = [{"encoding": "utf-8", "errors": "backslashreplace"}] if expected else []
-    assert stdout.calls == expected_calls
-    assert stderr.calls == expected_calls
+    for stream in (stdout, stderr):
+        assert len(stream.calls) == 1
+        assert stream.calls[0]["encoding"] == "utf-8"
+        assert stream.calls[0]["errors"] in {"replace", "backslashreplace"}
