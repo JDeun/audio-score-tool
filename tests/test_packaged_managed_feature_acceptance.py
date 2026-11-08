@@ -15,6 +15,7 @@ import pytest
 from scripts import smoke_packaged_sidecar as smoke
 from scripts import verify_packaged_managed_features as features
 from scripts import verify_packaged_omr_pdf as real_omr
+from scripts import verify_packaged_youtube_ingest as real_youtube
 
 _BASE = "http://127.0.0.1:4567"
 _TOKEN = "local-qa-acceptance-token"
@@ -233,10 +234,15 @@ def test_real_managed_audio_to_musicxml_downloads_from_packaged_api(tmp_path, mo
         "actual_pdf_omr_job_completed": True,
         "real_pdf_omr_accepted": True,
     })
+    monkeypatch.setattr(real_youtube, "verify_packaged_youtube_ingest", lambda *_a, **_kw: {
+        "real_managed_youtube_job_completed": True,
+        "youtube_song_source_kind_persisted": True,
+    })
     monkeypatch.setattr(features, "_upload_owned_wav", lambda *_: job_id)
     monkeypatch.setattr(features, "_await_job", lambda *_a, **_kw: {"job_id": job_id, "status": "done", "result": {"midi": "tmp", "musicxml": "tmp"}})
     output = features.verify_packaged_managed_features(
         _BASE, _TOKEN, root, private_workspace=tmp_path / "qa",
+        youtube_review={"video_id": "AbC_dEfGh12", "source_url": "https://www.youtube.com/watch?v=AbC_dEfGh12"},
     )
     assert output["actual_product_audio_job_completed"] is True
     assert output["downloaded_midi_note_ons"] == 1
@@ -244,6 +250,8 @@ def test_real_managed_audio_to_musicxml_downloads_from_packaged_api(tmp_path, mo
     assert output["downloaded_musicxml_parts"] == 1
     assert output["real_pdf_omr_accepted"] is True
     assert output["actual_pdf_omr_job_completed"] is True
+    assert output["real_managed_youtube_job_completed"] is True
+    assert output["youtube_song_source_kind_persisted"] is True
     assert requests == [
         ("GET", "/api/setup/center"),
         ("GET", f"/api/jobs/{job_id}/files/midi"),
@@ -264,6 +272,7 @@ def test_packaged_feature_smoke_does_not_bypass_unapproved_component(tmp_path, m
     with pytest.raises(features.PackagedFeatureAcceptanceError, match="transcription_engine"):
         features.verify_packaged_managed_features(
             _BASE, _TOKEN, tmp_path, private_workspace=tmp_path / "qa",
+            youtube_review={"video_id": "AbC_dEfGh12", "source_url": "https://www.youtube.com/watch?v=AbC_dEfGh12"},
         )
 
 
@@ -285,6 +294,11 @@ def test_package_gate_uses_isolated_appdata_and_empty_host_path(monkeypatch, tmp
     ))
     monkeypatch.setattr(smoke, "_verify_embedded_runtime", lambda *_: None)
     monkeypatch.setattr(smoke, "_verify_managed_delivery", lambda *_: None)
+    monkeypatch.setenv("AST_YOUTUBE_QA_RECEIPT_JSON", "operator-review-stub")
+    monkeypatch.setattr(real_youtube, "reviewed_youtube_source", lambda raw: {
+        "source_url": "https://www.youtube.com/watch?v=AbC_dEfGh12",
+        "video_id": "AbC_dEfGh12", "rights_receipt_sha256": "a" * 64,
+    } if raw == "operator-review-stub" else None)
     seen = {}
     monkeypatch.setattr(
         features, "verify_packaged_managed_features",
@@ -295,6 +309,8 @@ def test_package_gate_uses_isolated_appdata_and_empty_host_path(monkeypatch, tmp
                 "embedded_jre_started_without_system_path": True,
                 "real_pdf_omr_accepted": True,
                 "omr_musicxml_pdf_midi_parts_export_verified": True,
+                "real_managed_youtube_job_completed": True,
+                "youtube_song_source_kind_persisted": True,
             }
         ),
     )
@@ -306,6 +322,7 @@ def test_package_gate_uses_isolated_appdata_and_empty_host_path(monkeypatch, tmp
     env = started["env"]
     assert env["AST_PACKAGED"] == "1"
     assert env["PATH"] == ""
+    assert "AST_YOUTUBE_QA_RECEIPT_JSON" not in env
     assert Path(env["AST_COMPONENT_DIR"]).name == "managed"
     assert Path(env["AST_DATA_DIR"]).name == "app-data"
     assert Path(env["AST_COMPONENT_DIR"]).parent == Path(env["AST_DATA_DIR"]).parent

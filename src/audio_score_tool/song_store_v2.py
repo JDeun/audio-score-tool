@@ -188,6 +188,12 @@ class SongStoreV2:
             return "omr"
         if kind == "notation-import":
             return "notation"
+        # New Jobs carry an explicit, durable source marker. A YouTube title
+        # can contain .mp3, dates or dots and must not determine provenance.
+        # Pre-migration records have NULL and retain the legacy heuristic.
+        declared = job.get("source_kind")
+        if declared in {"local", "youtube"}:
+            return declared
         filename = str(job.get("filename") or "")
         if filename and not Path(filename).suffix:
             return "youtube"

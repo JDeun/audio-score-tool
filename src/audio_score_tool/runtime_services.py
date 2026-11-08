@@ -286,6 +286,7 @@ def _youtube_worker(
         _store.update(
             job_id,
             filename=metadata.title,
+            source_kind="youtube",
             stage="queued",
             progress=10,
         )
@@ -557,6 +558,7 @@ def create_youtube_job(payload: YouTubeJobRequest) -> dict:
         stage="queued",
         progress=0,
         filename="YouTube import",
+        source_kind="youtube",
         language=payload.language,
         skip_lyrics=payload.skip_lyrics,
         preset=payload.preset,

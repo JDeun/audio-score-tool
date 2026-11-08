@@ -340,6 +340,18 @@ def main() -> None:
     args = parser.parse_args()
     if args.managed_mt3_model and not args.require_managed_delivery:
         parser.error("--managed-mt3-model requires --require-managed-delivery")
+    youtube_review = None
+    if args.require_managed_delivery:
+        # An explicit, time-bounded rights claim must exist *before* any
+        # published archive download, source inspection, or YouTube processing.
+        # No public default URL and no CI media artifact are permitted.
+        if str(ROOT) not in sys.path:
+            sys.path.insert(0, str(ROOT))
+        from scripts.verify_packaged_youtube_ingest import reviewed_youtube_source
+
+        youtube_review = reviewed_youtube_source(
+            os.environ.get("AST_YOUTUBE_QA_RECEIPT_JSON"),
+        )
     binary = _sidecar()
     port = _free_port()
     token = "ci-sidecar-smoke-token"
@@ -351,6 +363,9 @@ def main() -> None:
         managed_root.mkdir()
         sandbox_data = component_root / "app-data"
         env = os.environ.copy()
+        # Release rights-review metadata belongs to the QA launcher only;
+        # the packaged service receives only its local HTTP Job parameters.
+        env.pop("AST_YOUTUBE_QA_RECEIPT_JSON", None)
         env["AST_API_PORT"] = str(port)
         env["AST_API_TOKEN"] = token
         env["AST_PACKAGED"] = "1"
@@ -404,19 +419,22 @@ def main() -> None:
                     base_url, token, managed_root,
                     private_workspace=component_root / "original-qa-fixtures",
                     mt3_model=args.managed_mt3_model,
+                    youtube_review=youtube_review,
                 )
                 if (
                     result.get("actual_product_audio_job_completed") is not True
                     or result.get("embedded_jre_started_without_system_path") is not True
                     or result.get("real_pdf_omr_accepted") is not True
                     or result.get("omr_musicxml_pdf_midi_parts_export_verified") is not True
+                    or result.get("real_managed_youtube_job_completed") is not True
+                    or result.get("youtube_song_source_kind_persisted") is not True
                 ):
                     raise RuntimeError(
-                        "Managed product audio/PDF-to-OMR/editable-score acceptance was incomplete"
+                        "Managed product audio/PDF OMR/authorized YouTube acceptance was incomplete"
                     )
             print(
                 f"Packaged sidecar smoke passed on 127.0.0.1:{port}"
-                + (" (managed delivery, real AMT Job, PDF OMR and score export verified)"
+                + (" (managed delivery, real AMT, PDF OMR, and permissioned YouTube score verified)"
                    if args.require_managed_delivery else "")
             )
         finally:

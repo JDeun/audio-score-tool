@@ -80,6 +80,7 @@ async def create_job_v2(
         stage="uploading",
         progress=0,
         filename=file.filename,
+        source_kind="local",
         language=language,
         skip_lyrics=skip_lyrics,
         preset=preset,
