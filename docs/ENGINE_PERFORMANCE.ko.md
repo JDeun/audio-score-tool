@@ -70,6 +70,14 @@ YourMT3+ `YPTF.MoE+M` 계열은 공개 Slakh2100 결과에서 Onset F1 약 **84.
 
 ---
 
+### 실제 동일 음원 정답 기반 MR-MT3 vs YourMT3+ 비교 (2026-11-09)
+
+[실측 GHA run #42535843289](https://github.com/JDeun/audio-score-tool/actions/runs/42535843289)에서 **원본 WAV/정답 MIDI가 동일한 CocoChorales 저자 제공 train 4곡**에 두 모델을 각각 독립 CPU로 실행했습니다. YourMT3+ YPTF.MoE+Multi(noPS)는 평균 **onset F1 83.44%, onset+offset F1 67.41%**로 MR-MT3(각각 **65.21%, 43.91%**)보다 높았습니다. 반면 엄격 GM 악기별 onset+offset F1은 YourMT3+ **4.38%**, MR-MT3 **22.72%**였습니다. 악보 파트 개수도 YourMT3+는 1~3개, MR-MT3는 7~16개로 원본 4성부에 모두 오류가 있습니다. [원본 실측 증빙](research/COCOCHORALES_MRMT3_YOURMT3_HEAD_TO_HEAD_2026-11-09.md).
+
+**기존 ‘정확도 우선 YourMT3+’는 음표 시점 인식에 한정해 확인**된 것입니다. 다중 악기 악보 완성도, 사람 수정시간, 실연·held-out 장르 일반화, 상용 모델/실행파일 권리는 검증 전입니다. 연구용 결과로 기본 엔진/릴리스 승인을 변경하거나 다른 모델을 제거하지 않습니다.
+
+---
+
 ## 3. MR-MT3
 
 MR-MT3는 MT3의 instrument leakage를 줄이기 위해 이전 segment의 memory를 유지하는 구조를 추가합니다. Slakh2100에서 onset F1 개선과 leakage 감소를 보고했습니다.

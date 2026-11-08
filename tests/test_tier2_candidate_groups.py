@@ -60,7 +60,7 @@ def test_commercial_amt_disqualifies_noncommercial_weights_and_unknown_rights():
     for name in ("muscriptor-small", "muscriptor-medium", "muscriptor-large", "miros", "mt3-pytorch"):
         assert statuses[name] == "blocked_rights_or_service_terms"
     assert statuses["mr-mt3"] == "needs_shared_heldout_corpus_and_production_review"
-    assert statuses["yourmt3-yptf-moe"] == "needs_verified_checkpoint_and_execution_adapter"
+    assert statuses["yourmt3-yptf-moe"] == "needs_shared_heldout_corpus_and_production_review"
     assert result["quality_winner"] is None
     assert result["license_approval_inferred_from_score"] is False
 

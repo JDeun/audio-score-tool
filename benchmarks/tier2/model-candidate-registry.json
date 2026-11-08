@@ -21,7 +21,8 @@
         154
       ],
       "source": "https://github.com/openmirlab/mt3-infer",
-      "note": "Pinned checkpoint actually measured on four author train examples; held-out real songs, rights and product editing not evaluated"
+      "note": "Real author TRAIN four-piece evidence (run #42535843289) with program-preserving MIDI; higher GM-aware F1 than YourMT3+ but lower note onset/offset F1. Commercial/default still unapproved.",
+      "measured_research_evidence_url": "https://github.com/JDeun/audio-score-tool/actions/runs/42535843289"
     },
     {
       "id": "yourmt3-yptf-moe",
@@ -30,13 +31,14 @@
       "roles": [
         "full_instrument_amt"
       ],
-      "implementation": "synthetic_smoke_only",
+      "implementation": "real_author_train_measured",
       "license_gate": "redistribution_review",
       "issues": [
         34
       ],
       "source": "https://huggingface.co/spaces/mimbres/YourMT3",
-      "note": "The integrated mt3-infer 'yourmt3' alias maps to YPTF.MoE+Multi (noPS), not the full family of checkpoints"
+      "note": "Actually inferred and SHA-verified on same 4 original CocoChorales TRAIN audio/MIDI examples as MR-MT3 in Actions run #42535843289. Better note F1; lower GM-aware F1; no held-out or commercial approval.",
+      "measured_research_evidence_url": "https://github.com/JDeun/audio-score-tool/actions/runs/42535843289"
     },
     {
       "id": "mt3-pytorch",

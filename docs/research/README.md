@@ -14,3 +14,5 @@ Use [research template](RESEARCH_TEMPLATE.md) for reproducible investigations. I
 - [Four-ensemble real CocoChorales MR-MT3 benchmark](COCOCHORALES_MRMT3_FOUR_ENSEMBLE_2026-11-08.md) — original source/score SHA evidence, GM program/part-collapse diagnosis, per-ensemble F1, explicit train-split limitations; Actions run #42490888388.
 
 - [MR-MT3 program-preserving MIDI before/after evidence](COCOCHORALES_MRMT3_PROGRAM_PRESERVING_2026-11-09.md) — real four-ensemble onset, offset and instrument F1 improvement, exact run/checkpoint/source provenance and remaining over-segmentation.
+
+- [MR-MT3 vs YourMT3+ real same-source A/B](COCOCHORALES_MRMT3_YOURMT3_HEAD_TO_HEAD_2026-11-09.md) — four identical author WAV/MIDI pairs, exact checkpoint SHA, onset/offset versus instrument F1 tradeoffs; paired Actions run #42535843289.
