@@ -80,3 +80,9 @@ uv run --frozen python scripts/ingest_hf_dataset_subset.py \
 선택한 모든 shard에 대해 서버 크기와 기존 파일 SHA-256을 선검사한 후, 하나의 임시 디렉터리에서 검증합니다. 여러 파일 중 하나라도 잘못되면 새 파일은 최종 private dataset 경로에 반영되지 않습니다. 정상 확인된 전체 파일만 덮어쓰기 없는 하드링크로 반영하며, 도중 오류 시 새로 생성한 파일만 롤백합니다. 임시 다운로드 cache는 자동 삭제합니다.
 
 같은 녹음에 속한 여러 주석 파일은 하나의 recording으로 집계합니다. 동일 audio SHA-256이 다른 source/recording identity에 반복되면 split이 같더라도 중복으로 차단합니다. SHA가 제공되지 않은 서로 다른 녹음의 실제 동일성은 별도로 검증해야 하며 자동으로 판정했다고 주장하지 않습니다. 수집 보고서는 저장소 밖에만 기록할 수 있고 모든 라이선스·외부 출처 승인은 여전히 운영자 검토가 필요합니다.
+
+## 2026-11-08 — CocoChorales tiny 페어링 계약 (#154)
+
+공식 [Magenta CocoChorales](https://magenta.tensorflow.org/datasets/cocochorales)는 CC BY 4.0의 4성부 합성 앙상블 오디오와 정렬된 MIDI를 제공하며 [`main_dataset/<ensemble>_track######/mix.wav` 및 `mix.mid`](https://github.com/lukewys/chamber-ensemble-generator/blob/master/data_format.md) 형태로 같은 트랙의 정답을 얻을 수 있습니다. `scripts/prepare_cocochorales_pairs.py`는 **검토된 tiny 로컬 1~16트랙**의 WAV/MIDI/metadata를 안전하게 검사하고 SHA-256 결속된 private:// pair manifest를 만듭니다. 저장소에는 샘플 음원·MIDI를 커밋하지 않으며 실제 official tiny 파일이 입수되기 전에는 `status=planned`을 유지합니다.
+
+추가로 ASAP 저장소는 MIDI/MusicXML과 음원 매핑을 제공하지만 오디오 자체는 별도 MAESTRO에서 가져와야 합니다. 즉 ASAP dataset registry의 `audio_included`는 `false`, license는 `CC-BY-NC-SA-4.0`으로 정정했습니다. GuitarSet은 실제 기타 녹음+JAMS/이벤트, Slakh2100은 합성 mix+MIDI이므로 세 데이터를 같은 음질·권리 조건이라고 취급하지 않습니다. 원본 파일과 HF 미러가 다르면 원본 출처를 기준으로 우선 검토합니다.
