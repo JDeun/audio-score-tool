@@ -4,14 +4,16 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
-from pathlib import Path
 
 import pytest
 
 from scripts import aggregate_mt3_native_release_review as aggregate
 from scripts.collect_mt3_frozen_inventory import _canonical_sha
 from scripts.fetch_pinned_mrmt3_checkpoint import (
-    CHECKPOINT_SHA256, MODEL_REPO, MODEL_REVISION, SOURCE_URL,
+    CHECKPOINT_SHA256,
+    MODEL_REPO,
+    MODEL_REVISION,
+    SOURCE_URL,
 )
 
 
