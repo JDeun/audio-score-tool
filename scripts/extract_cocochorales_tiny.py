@@ -18,8 +18,8 @@ from pathlib import Path
 from typing import Any
 
 from scripts.prepare_cocochorales_pairs import (
-    _ROOT,
     _MAX_BYTES,
+    _ROOT,
     _SOURCE,
     official_split,
     prepare_pairs,
