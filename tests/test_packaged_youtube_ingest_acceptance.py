@@ -5,7 +5,6 @@ third-party executables are included in this test suite.
 """
 from __future__ import annotations
 
-import copy
 import json
 import struct
 import sys
