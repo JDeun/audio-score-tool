@@ -12,6 +12,8 @@ type ManagedModel = {
   parameters: string;
   weight_bytes: number;
   cached_bytes: number;
+  weights_cached: boolean;
+  runtime_ready: boolean;
   ready: boolean;
   selected: boolean;
   allowed_for_usage_mode: boolean;
@@ -205,22 +207,12 @@ export default function ModelManager() {
     setBusy(true);
     setMessage("");
     try {
-      const currentResponse = await fetch(`${API}/api/engines`);
-      if (!currentResponse.ok) throw new Error("현재 엔진 설정을 읽을 수 없습니다.");
-      const current = await currentResponse.json();
-      const response = await fetch(`${API}/api/engines`, {
-        method: "PUT",
+      // Selection has its own server-side cache/runtime/usage-mode checks.
+      // Do not treat a downloaded but unrunnable model as a ready engine.
+      const response = await fetch(`${API}/api/models/select`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          usage_mode: current.usage_mode,
-          transcription_engine: "muscriptor",
-          mt3_infer_cmd: current.mt3_infer_cmd,
-          mt3_model: current.mt3_model,
-          muscriptor_cmd: current.muscriptor_cmd,
-          muscriptor_model: model.variant,
-          native_engine_cmd: current.native_engine_cmd,
-          native_checkpoint: current.native_checkpoint,
-        }),
+        body: JSON.stringify({ family: model.family, variant: model.variant }),
       });
       const body = await response.json().catch(() => null);
       if (!response.ok) throw new Error(body?.detail ?? "모델을 선택하지 못했습니다.");
@@ -269,7 +261,7 @@ export default function ModelManager() {
             </header>
 
             <div className="model-manager-summary">
-              <div><span>현재 모델</span><strong>{selected ? `MuScriptor ${selected.label}` : status.selected_engine}</strong></div>
+              <div><span>현재 모델</span><strong>{selected ? `MuScriptor ${selected.label}${selected.ready ? "" : " (실행 준비 안 됨)"}` : status.selected_engine}</strong></div>
               <div><span>Hugging Face</span><strong className={status.hf_authenticated ? "positive" : "attention"}>{status.hf_authenticated ? (status.hf_identity ?? "인증됨") : "세션 인증 필요"}</strong></div>
               <div><span>남은 디스크</span><strong>{formatBytes(status.disk_free_bytes)}</strong></div>
             </div>
@@ -319,13 +311,16 @@ export default function ModelManager() {
             <div className="model-card-grid">
               {status.models.map((model) => (
                 <article key={model.variant} className={`model-card ${model.selected ? "selected" : ""} ${model.ready ? "installed" : ""}`}>
-                  <div className="model-card-top"><div><span className="model-size-label">{model.parameters}</span><h3>MuScriptor {model.label}</h3></div>{model.selected ? <span className="model-state selected">사용 중</span> : model.ready ? <span className="model-state ready">설치됨</span> : <span className="model-state">미설치</span>}</div>
+                  <div className="model-card-top"><div><span className="model-size-label">{model.parameters}</span><h3>MuScriptor {model.label}</h3></div>{model.selected ? <span className="model-state selected">{model.ready ? "사용 중" : "선택됨 · 실행 불가"}</span> : model.ready ? <span className="model-state ready">실행 준비됨</span> : model.weights_cached ? <span className="model-state">가중치만 준비됨</span> : <span className="model-state">미설치</span>}</div>
                   <p>{model.description}</p>
-                  <dl><div><dt>Weights</dt><dd>약 {formatBytes(model.weight_bytes)}</dd></div><div><dt>License</dt><dd>{model.license}</dd></div><div><dt>Cache</dt><dd>{model.ready ? formatBytes(model.cached_bytes) : "—"}</dd></div></dl>
+                  {model.weights_cached && !model.runtime_ready && (
+                    <p>가중치 캐시는 있지만 MuScriptor 실행 파일이 없습니다. Setup Center에서 실행 환경을 확인하세요.</p>
+                  )}
+                  <dl><div><dt>Weights</dt><dd>약 {formatBytes(model.weight_bytes)}</dd></div><div><dt>License</dt><dd>{model.license}</dd></div><div><dt>Cache</dt><dd>{model.weights_cached ? formatBytes(model.cached_bytes) : "—"}</dd></div></dl>
                   <div className="model-card-actions">
-                    {!model.ready && <button className="model-primary" type="button" disabled={busy || !model.allowed_for_usage_mode || !status.hf_authenticated} onClick={() => void prepare(model)}>모델 준비</button>}
-                    {model.ready && !model.selected && <button className="model-primary" type="button" disabled={busy || !model.allowed_for_usage_mode} onClick={() => void useModel(model)}>이 모델 사용</button>}
-                    {model.ready && !model.selected && <button className="model-secondary" type="button" disabled={busy} onClick={() => void remove(model)}>캐시 삭제</button>}
+                    {!model.weights_cached && <button className="model-primary" type="button" disabled={busy || !model.allowed_for_usage_mode || !status.hf_authenticated} onClick={() => void prepare(model)}>모델 가중치 준비</button>}
+                    {model.weights_cached && !model.selected && <button className="model-primary" type="button" disabled={busy || !model.ready} onClick={() => void useModel(model)}>이 모델 사용</button>}
+                    {model.weights_cached && !model.selected && <button className="model-secondary" type="button" disabled={busy} onClick={() => void remove(model)}>캐시 삭제</button>}
                   </div>
                 </article>
               ))}

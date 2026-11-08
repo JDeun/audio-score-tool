@@ -14,6 +14,8 @@ from pydantic import BaseModel, Field
 from .config import component_dir, packaged_runtime
 from .hf_session import active_token, authenticated, clear_session, identity, set_session
 from .runtime_settings import runtime_settings
+from .runner import command_exists
+from .settings_store import SettingsStore
 
 router = APIRouter(tags=["model-manager"])
 
@@ -45,6 +47,7 @@ _MAX_JOB_HISTORY = 64
 _TERMINAL = {"done", "failed", "cancelled"}
 _jobs_lock = threading.Lock()
 _jobs: dict[str, dict] = {}
+_store = SettingsStore()
 
 
 class DownloadRequest(BaseModel):
@@ -132,11 +135,15 @@ def _model_cached(repo_id: str) -> tuple[bool, int]:
     return has_weights, size
 
 
-def _model_payload(variant: str, settings) -> dict:
+def _model_payload(variant: str, settings, *, runtime_ready: bool) -> dict:
     spec = MUSCRIPTOR_MODELS[variant]
-    ready, cached_bytes = _model_cached(str(spec["repo_id"]))
+    weights_cached, cached_bytes = _model_cached(str(spec["repo_id"]))
     selected = settings.transcription_engine == "muscriptor" and settings.muscriptor_model == variant
     allowed = settings.usage_mode != "commercial"
+    # A downloaded HF snapshot is not an installed, runnable MuScriptor CLI.
+    # This reflects prerequisites only, not a successful model inference or
+    # independent checkpoint rights/hash attestation.
+    ready = weights_cached and runtime_ready and allowed
     return {
         "family": "muscriptor",
         "variant": variant,
@@ -145,6 +152,8 @@ def _model_payload(variant: str, settings) -> dict:
         "parameters": spec["parameters"],
         "weight_bytes": spec["weight_bytes"],
         "cached_bytes": cached_bytes,
+        "weights_cached": weights_cached,
+        "runtime_ready": runtime_ready,
         "ready": ready,
         "selected": selected,
         "allowed_for_usage_mode": allowed,
@@ -161,6 +170,7 @@ def model_manager_status() -> dict:
     home.mkdir(parents=True, exist_ok=True)
     disk_anchor = home.parent if home.parent.exists() else Path.home()
     disk = shutil.disk_usage(disk_anchor)
+    runtime_ready = command_exists(settings.muscriptor_cmd)
     return {
         "usage_mode": settings.usage_mode,
         "selected_engine": settings.transcription_engine,
@@ -170,7 +180,10 @@ def model_manager_status() -> dict:
         "hf_home": str(home),
         "hf_cli_ready": False,
         "disk_free_bytes": disk.free,
-        "models": [_model_payload(variant, settings) for variant in ("large", "medium", "small")],
+        "models": [
+            _model_payload(variant, settings, runtime_ready=runtime_ready)
+            for variant in ("large", "medium", "small")
+        ],
         "policy": {
             "automatic_download": False,
             "explicit_user_action_required": True,
@@ -179,6 +192,8 @@ def model_manager_status() -> dict:
             "auth_token_stored_by_app": False,
             "auth_token_scope": "process-memory-only",
             "download_transport": "huggingface_hub-python-api",
+            "cached_weights_are_not_runnable_runtime": True,
+            "model_cache_independent_hash_attestation": False,
             "selected_or_active_model_removal_blocked": True,
             "background_jobs_cancellable": True,
             "cancellation_mode": "best-effort-after-current-transfer",
@@ -318,6 +333,40 @@ def download_model(payload: DownloadRequest) -> dict:
         }
     threading.Thread(target=_run_download, args=(job_id, payload.variant), daemon=True).start()
     return {"job_id": job_id, "status": "queued"}
+
+
+
+@router.post("/api/models/select")
+def select_model(payload: DownloadRequest) -> dict:
+    """Bind a usable cached model to desktop defaults without a TOCTOU UI guess.
+
+    Never interpret a completed Hugging Face download as the model CLI
+    existing. We explicitly reject absent runtime/weights and commercial mode,
+    even when a caller bypasses the React button's disabled state.
+    """
+    if payload.family != "muscriptor" or payload.variant not in MUSCRIPTOR_MODELS:
+        raise HTTPException(404, "지원하지 않는 모델입니다.")
+    settings = runtime_settings()
+    if settings.usage_mode == "commercial":
+        raise HTTPException(422, "MuScriptor 공개 weights는 비상업 용도에서만 선택할 수 있습니다.")
+    weights_cached, _size = _model_cached(str(MUSCRIPTOR_MODELS[payload.variant]["repo_id"]))
+    if not weights_cached:
+        raise HTTPException(409, "모델 가중치가 준비되지 않았습니다. 먼저 모델을 다운로드하세요.")
+    if not command_exists(settings.muscriptor_cmd):
+        raise HTTPException(
+            409,
+            "모델 가중치는 캐시에 있지만 MuScriptor 실행 런타임이 없습니다. "
+            "Setup Center에서 실행 환경을 확인하세요.",
+        )
+    _store.update({
+        "transcription_engine": "muscriptor",
+        "muscriptor_model": payload.variant,
+    })
+    return {
+        "selected": True,
+        "variant": payload.variant,
+        "status": model_manager_status(),
+    }
 
 
 @router.get("/api/models/jobs/{job_id}")
