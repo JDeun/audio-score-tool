@@ -115,6 +115,8 @@ def inspect_frozen_archive(
             binary_entries.append(name)
         if kind == "z":
             pyz_found += 1
+            if pyz_found != 1:
+                raise FrozenInventoryError("Frozen CArchive contains duplicate PYZ modules")
             try:
                 pyz = reader.open_embedded_archive(name)
             except (OSError, ValueError, TypeError, RuntimeError) as exc:
