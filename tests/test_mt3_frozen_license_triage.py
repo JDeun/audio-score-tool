@@ -256,3 +256,33 @@ def test_without_receipt_or_modified_proof_is_rejected(tmp_path: Path):
     malformed.write_text('{"broken":', encoding="utf-8")
     with pytest.raises(triage.MT3LicenseTriageError):
         triage._read_receipt(malformed)
+
+
+def test_historical_native_license_review_record_is_metadata_only_and_pending():
+    review = (
+        Path(__file__).resolve().parents[1]
+        / "release/review/mt3-native-third-party-pending-2026-11-08.json"
+    )
+    data = json.loads(review.read_text(encoding="utf-8"))
+    assert data["schema"] == 1
+    assert data["source"]["workflow_run"].endswith("/42453842931")
+    assert data["redistribution_status"] == "pending"
+    assert data["reviewed_license_or_model_redistribution_rights"] is False
+    assert data["full_sbom_verified"] is False
+    assert data["model_checkpoint_upstream_revision_pinned"] is False
+    assert data["production_catalog_published"] is False
+    assert set(data["targets"]) == {"windows-x86_64", "macos-aarch64"}
+    for target in data["targets"].values():
+        assert target["pyinstaller_binary_typecode_entries"] == (
+            target["native_library_filename_candidates"]
+            + target["binary_typecode_items_not_identified_as_native_libraries"]
+        )
+        assert target["builder_distributions_without_local_license_notice_file_digest"] == [
+            "tokenizers"
+        ]
+        for key in (
+            "native_receipt_sha256", "frozen_inventory_sha256", "frozen_executable_sha256",
+        ):
+            assert triage._is_sha(target[key])
+        assert target["frozen_executable_bytes"] > 1024 * 1024
+
