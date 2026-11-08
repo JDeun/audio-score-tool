@@ -28,6 +28,11 @@ class FakeReader:
             "transformers.models.t5.modeling_t5": (0, 20, 10),
         }
 
+    def extract(self, name: str):
+        if name == "libtorch_cpu.dll":
+            return b"x" * 20
+        raise AssertionError("Only native members are extracted for hashing")
+
     def open_embedded_archive(self, name: str):
         assert name == "PYZ.pyz"
         return SimpleNamespace(toc=self.modules)
@@ -120,6 +125,11 @@ def test_native_inventory_is_hash_bound_and_never_claims_approval(tmp_path: Path
     assert mapping["unmatched_candidate_count"] == 1
     assert mapping["source_owner_independently_verified"] is False
     assert mapping["binary_payload_equals_record_hash_verified"] is False
+    byte_evidence = snapshot["native_file_byte_evidence"]
+    assert byte_evidence["native_filename_candidate_count"] == 1
+    assert byte_evidence["counts"]["unmatched"] == 1
+    assert byte_evidence["entries"][0]["embedded_sha256"] == hashlib.sha256(b"x" * 20).hexdigest()
+    assert byte_evidence["license_independently_approved"] is False
     assert snapshot["inventory_is_complete_distributable_sbom"] is False
     assert snapshot["native_library_dependency_closure_independently_verified"] is False
     assert snapshot["third_party_license_approval"] is False

@@ -208,3 +208,9 @@ python -m scripts.triage_mt3_frozen_dependencies \
 | RECORD 경로 일치 없음 | 72 | 63 |
 
 SHA-256로 식별한 CI 원본 증빙과 패키지별 일치 건수는 [메타데이터-only 원본 관찰 기록](../release/review/mt3-native-wheel-record-hints-pending-2026-11-08.json)에 고정했습니다. 일치 항목은 여전히 **파일명 기반 후보**일 뿐 실제 번들 바이너리와 wheel 원본 파일의 SHA-256이 같다는 의미가 아닙니다. 미일치 항목에는 Python 런타임 자체의 확장 모듈과 OS 라이브러리가 포함되어 있으므로, 단순히 wheel 소유 패키지를 추정해 승인해서는 안 됩니다. 2개 OS 검증 모두 `redistribution_status=pending`이며 실제 외부 바이너리/모델은 증빙으로 게시하지 않았습니다.
+
+## Frozen 실행 파일 내부 바이너리 바이트와 wheel RECORD 대조 (#29)
+
+`scripts/hash_mt3_frozen_native_bytes.py`는 native Windows/macOS frozen MT3 내부 PyInstaller CArchive에서 확장자 기준 네이티브 후보 파일을 **메모리에서만 읽어 SHA-256을 측정**합니다. 파일별 `native_file_byte_evidence`에는 바이너리 내부 SHA-256, 원본 빌드 환경의 wheel RECORD SHA-256, 일치·불일치·RECORD 해시 부재·경로 불일치·복수 후보·크기 제한 미검증 상태가 남습니다. 바이트와 원본 라이브러리는 공개 CI 아티팩트에 포함하지 않고, 기존 frozen 인벤토리 SHA-256에 새 증빙을 결속합니다. 새로운 MT3 네이티브 QA는 이 비교를 실제 빌드에서 수행합니다.
+
+**정확한 바이트 일치는 해당 빌더 wheel RECORD 메타데이터와 번들 CArchive 구성요소가 동일하다는 기술적 단서이지**, wheel 공급자의 독립 서명, transitive DLL 로더 의존성, 코드·모델의 상용 재배포 허가, 제3자 notice/소스 제공 의무 충족을 자동 증명하지 않습니다. 미일치·미분류/크기 제한 항목은 법적 검토 큐에서 계속 추적해야 합니다. `complete_sbom_verified=false`, `license_independently_approved=false`, `redistribution_status=pending`을 유지합니다.
