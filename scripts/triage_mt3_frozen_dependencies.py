@@ -18,12 +18,10 @@ from pathlib import Path
 from typing import Any
 
 from scripts.collect_mt3_frozen_inventory import _canonical_sha, _safe_archive_name
+from scripts.map_mt3_frozen_file_owners import native_filename_candidate
 
 _TARGETS = ("windows-x86_64", "macos-aarch64")
 _HASH = re.compile(r"[a-f0-9]{64}\Z")
-_NAMED_LIBRARY = re.compile(
-    r"(?:\.dll|\.pyd|\.dylib|\.exe|\.bundle|\.so(?:\.\d+)*)$", re.IGNORECASE,
-)
 _WEIGHT_SHA = "b8a3807ed265059abd25ad7f68142c06c35e8f6144dcaa45bd55946a3745398f"
 _MAX_PROOF_BYTES = 8 * 1024 * 1024
 
@@ -43,11 +41,7 @@ def _is_sha(value: object) -> bool:
 
 def _candidate_native_library(name: str) -> bool:
     """Filename-only conservative review category, not binary format detection."""
-    return bool(
-        _NAMED_LIBRARY.search(name)
-        or ".framework/" in name.lower()
-        or name.lower().endswith(".framework")
-    )
+    return native_filename_candidate(name)
 
 
 def _scope(name: str) -> str:
@@ -98,6 +92,118 @@ def _builder_distributions(data: dict[str, Any]) -> list[dict[str, Any]]:
                      and isinstance(item.get("name"), str),
                      "Builder notice SHA-256 metadata is invalid")
     return distributions
+
+
+
+
+def _native_record_hint_summary(
+    frozen: dict[str, Any], snapshot: dict[str, Any], *, target: str,
+    distributions: list[dict[str, Any]], actual_native: list[str],
+) -> dict[str, Any]:
+    """Validate path hints if present; old metadata is explicitly unclassified.
+
+    Wheel RECORD path equality alone does not prove embedded binary bytes,
+    source authorship or any license right. Cross-platform CI from before
+    this feature remains analyzable but cannot pretend it had path mapping.
+    """
+    hints = snapshot.get("native_file_record_hints")
+    if hints is None:
+        return {
+            "wheel_record_mapping_available": False,
+            "wheel_record_single_path_match_count": None,
+            "wheel_record_ambiguous_count": None,
+            "wheel_record_unmatched_count": None,
+            "wheel_record_file_review_queue": None,
+            "wheel_record_single_path_match_by_distribution": None,
+            "wheel_record_source_owner_verified": False,
+        }
+
+    _require(isinstance(hints, dict), "Wheel RECORD owner hints must be an object")
+    _require(
+        hints.get("schema_version") == "1"
+        and hints.get("target") == target
+        and hints.get("mapping_basis") == "wheel-RECORD-exact-relative-path-only"
+        and hints.get("binary_payload_equals_record_hash_verified") is False
+        and hints.get("dynamic_library_dependency_closure_verified") is False
+        and hints.get("source_owner_independently_verified") is False
+        and hints.get("license_independently_approved") is False
+        and hints.get("redistribution_status") == "pending",
+        "Wheel RECORD hint overstates source ownership or changes its matching contract",
+    )
+    rows = hints.get("native_file_review_queue")
+    _require(isinstance(rows, list) and len(rows) == len(actual_native),
+             "Wheel RECORD queue does not cover all native filename candidates")
+    source_ids = {
+        (re.sub(r"[-_.]+", "-", d["name"]).lower(), d["version"])
+        for d in distributions
+    }
+    names: set[str] = set()
+    counts = {"single_record_path_match": 0, "ambiguous": 0, "unmatched": 0}
+    matched = Counter()
+    for row in rows:
+        _require(isinstance(row, dict), "Wheel RECORD candidate is malformed")
+        name = row.get("archive_path")
+        _require(isinstance(name, str) and name in actual_native and name not in names,
+                 "Wheel RECORD path is missing, duplicated or not a native candidate")
+        names.add(name)
+        paths = row.get("wheel_record_matches")
+        kind = row.get("match_status")
+        _require(isinstance(paths, list) and kind in counts,
+                 "Wheel RECORD match status is invalid")
+        expected = (
+            "unmatched" if not paths else
+            "single_record_path_match" if len(paths) == 1 else "ambiguous"
+        )
+        _require(kind == expected, "Wheel RECORD match status does not match evidence")
+        counts[kind] += 1
+        seen: set[tuple[str, str]] = set()
+        for match in paths:
+            _require(isinstance(match, dict), "Wheel RECORD source candidate is invalid")
+            name_id = match.get("distribution")
+            version = match.get("version")
+            if not isinstance(name_id, str) or not isinstance(version, str):
+                raise MT3LicenseTriageError("Wheel RECORD distribution identity is missing")
+            key = (re.sub(r"[-_.]+", "-", name_id).lower(), version)
+            _require(key in source_ids and key not in seen,
+                     "Wheel RECORD owner candidate is missing or duplicated")
+            seen.add(key)
+            path = match.get("record_relative_path")
+            _require(
+                isinstance(path, str)
+                and (path.casefold() if target.startswith("windows") else path)
+                == (name.casefold() if target.startswith("windows") else name),
+                "Wheel RECORD matching filename is not an exact relative path",
+            )
+            digest = match.get("wheel_record_sha256")
+            size = match.get("wheel_record_bytes")
+            _require(
+                (digest is None or _is_sha(digest))
+                and (size is None or (type(size) is int and size >= 0))
+                and match.get("record_sha256_matches_embedded_payload") is False
+                and match.get("binary_source_independently_verified") is False
+                and match.get("license_independently_approved") is False,
+                "Wheel RECORD file metadata falsely asserts byte or license verification",
+            )
+            if kind == "single_record_path_match":
+                matched[name_id] += 1
+    _require(set(actual_native) == names,
+             "Wheel RECORD hint list is incomplete")
+    _require(
+        hints.get("native_filename_candidate_count") == len(actual_native)
+        and hints.get("matched_candidate_count") == counts["single_record_path_match"]
+        and hints.get("ambiguous_candidate_count") == counts["ambiguous"]
+        and hints.get("unmatched_candidate_count") == counts["unmatched"],
+        "Wheel RECORD summary differs from per-file evidence",
+    )
+    return {
+        "wheel_record_mapping_available": True,
+        "wheel_record_single_path_match_count": counts["single_record_path_match"],
+        "wheel_record_ambiguous_count": counts["ambiguous"],
+        "wheel_record_unmatched_count": counts["unmatched"],
+        "wheel_record_file_review_queue": rows,
+        "wheel_record_single_path_match_by_distribution": dict(sorted(matched.items())),
+        "wheel_record_source_owner_verified": False,
+    }
 
 
 def analyze_native_proof(proof: dict[str, Any]) -> dict[str, Any]:
@@ -202,6 +308,10 @@ def analyze_native_proof(proof: dict[str, Any]) -> dict[str, Any]:
         and not x.get("license_metadata_label")
     )
     scopes = Counter(_scope(x) for x in actual_native)
+    owner_hints = _native_record_hint_summary(
+        frozen, snapshot, target=target,
+        distributions=dists, actual_native=actual_native,
+    )
     # Keep actual recorded metadata and notice hashes in the report so legal
     # reviewers can identify each distribution requiring primary-source review.
     # Never treat labels/classifiers as a license grant or bundled file mapping.
@@ -237,6 +347,7 @@ def analyze_native_proof(proof: dict[str, Any]) -> dict[str, Any]:
         "native_library_file_review_queue": sorted(actual_native),
         "path_scope_is_verified_source_owner": False,
         "native_library_scope_counts": dict(sorted(scopes.items())),
+        **owner_hints,
         "builder_distribution_count": len(dists),
         "builder_distribution_license_review_queue": distribution_review_queue,
         "builder_distribution_names_and_versions": {

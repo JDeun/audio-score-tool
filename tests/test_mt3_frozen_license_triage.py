@@ -286,3 +286,100 @@ def test_historical_native_license_review_record_is_metadata_only_and_pending():
             assert triage._is_sha(target[key])
         assert target["frozen_executable_bytes"] > 1024 * 1024
 
+
+def _proof_with_wheel_path_owner_hints(target: str) -> dict:
+    """Synthetic owner hints: one exact match, one unresolved native file."""
+    proof = _proof(target)
+    snap = proof["frozen_dependency_inventory"]["snapshot"]
+    names = [
+        row["name"] for row in snap["frozen_archive"]["archive_entries"]
+        if row["typecode"] == "b" and triage._candidate_native_library(row["name"])
+    ]
+    rows = []
+    for i, name in enumerate(sorted(names)):
+        match = (
+            [{
+                "distribution": "torch", "version": "2.7.1",
+                "record_relative_path": name,
+                "wheel_record_sha256": None, "wheel_record_bytes": None,
+                "record_sha256_matches_embedded_payload": False,
+                "binary_source_independently_verified": False,
+                "license_independently_approved": False,
+            }] if i == 0 else []
+        )
+        rows.append({
+            "archive_path": name,
+            "match_status": "single_record_path_match" if match else "unmatched",
+            "wheel_record_matches": match,
+        })
+    snap["native_file_record_hints"] = {
+        "schema_version": "1",
+        "mapping_basis": "wheel-RECORD-exact-relative-path-only",
+        "target": target,
+        "native_filename_candidate_count": len(names),
+        "matched_candidate_count": 1,
+        "ambiguous_candidate_count": 0,
+        "unmatched_candidate_count": len(names) - 1,
+        "ignored_nonrelative_wheel_record_paths": 0,
+        "native_file_review_queue": rows,
+        "binary_payload_equals_record_hash_verified": False,
+        "dynamic_library_dependency_closure_verified": False,
+        "source_owner_independently_verified": False,
+        "license_independently_approved": False,
+        "redistribution_status": "pending",
+    }
+    proof["frozen_dependency_inventory"]["inventory_sha256"] = _canonical_sha(snap)
+    return proof
+
+
+def test_wheel_record_filename_source_hints_preserve_unresolved_files():
+    observed = triage.analyze_native_proof(
+        _proof_with_wheel_path_owner_hints("windows-x86_64"),
+    )
+    assert observed["wheel_record_mapping_available"] is True
+    assert observed["wheel_record_single_path_match_count"] == 1
+    assert observed["wheel_record_unmatched_count"] == 1
+    assert observed["wheel_record_ambiguous_count"] == 0
+    assert observed["wheel_record_single_path_match_by_distribution"] == {"torch": 1}
+    assert observed["wheel_record_source_owner_verified"] is False
+    assert all(
+        row["match_status"] in {"single_record_path_match", "unmatched"}
+        for row in observed["wheel_record_file_review_queue"]
+    )
+
+
+def test_old_native_qa_receipt_does_not_falsely_claim_file_mapping():
+    report = triage.analyze_native_proof(_proof("macos-aarch64"))
+    assert report["wheel_record_mapping_available"] is False
+    assert report["wheel_record_single_path_match_count"] is None
+    assert report["wheel_record_file_review_queue"] is None
+    assert report["wheel_record_source_owner_verified"] is False
+
+
+@pytest.mark.parametrize("field,change", (
+    ("matched_candidate_count", 2),
+    ("unmatched_candidate_count", 0),
+    ("source_owner_independently_verified", True),
+    ("license_independently_approved", True),
+    ("binary_payload_equals_record_hash_verified", True),
+    ("native_file_review_queue", []),
+))
+def test_wheel_path_hints_with_inconsistent_or_approved_status_are_rejected(field, change):
+    proof = _proof_with_wheel_path_owner_hints("windows-x86_64")
+    inv = proof["frozen_dependency_inventory"]
+    inv["snapshot"]["native_file_record_hints"][field] = change
+    inv["inventory_sha256"] = _canonical_sha(inv["snapshot"])
+    with pytest.raises(triage.MT3LicenseTriageError):
+        triage.analyze_native_proof(proof)
+
+
+def test_wheel_path_hint_cannot_assign_uninstalled_or_mismatched_package():
+    proof = _proof_with_wheel_path_owner_hints("windows-x86_64")
+    inv = proof["frozen_dependency_inventory"]
+    rows = inv["snapshot"]["native_file_record_hints"]["native_file_review_queue"]
+    match = rows[0]["wheel_record_matches"][0]
+    match["distribution"] = "other-uninstalled-distribution"
+    inv["inventory_sha256"] = _canonical_sha(inv["snapshot"])
+    with pytest.raises(triage.MT3LicenseTriageError, match="missing or duplicated"):
+        triage.analyze_native_proof(proof)
+

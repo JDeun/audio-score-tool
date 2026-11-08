@@ -114,6 +114,12 @@ def test_native_inventory_is_hash_bound_and_never_claims_approval(tmp_path: Path
     assert snapshot["frozen_executable_sha256"] == inv._sha256_file(exe)
     assert snapshot["frozen_archive"]["native_binary_entry_count"] == 1
     assert snapshot["builder"]["distribution_count"] == 6
+    mapping = snapshot["native_file_record_hints"]
+    assert mapping["mapping_basis"] == "wheel-RECORD-exact-relative-path-only"
+    assert mapping["native_filename_candidate_count"] == 1
+    assert mapping["unmatched_candidate_count"] == 1
+    assert mapping["source_owner_independently_verified"] is False
+    assert mapping["binary_payload_equals_record_hash_verified"] is False
     assert snapshot["inventory_is_complete_distributable_sbom"] is False
     assert snapshot["native_library_dependency_closure_independently_verified"] is False
     assert snapshot["third_party_license_approval"] is False
