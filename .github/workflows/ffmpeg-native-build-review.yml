@@ -11,6 +11,10 @@ on:
       - 'tests/test_ffmpeg_native_build.py'
       - 'scripts/smoke_youtube_four_tool_offline.py'
       - 'tests/test_youtube_four_tool_offline.py'
+      - 'scripts/verify_youtube_managed_candidate_native.py'
+      - 'tests/test_youtube_managed_native_candidate.py'
+      - 'src/audio_score_tool/managed_components.py'
+      - 'src/audio_score_tool/managed_payload_integrity.py'
   workflow_dispatch:
 
 permissions:
@@ -167,6 +171,25 @@ jobs:
             --ffmpeg-receipt "$RUNNER_TEMP/ffmpeg-review-$REVIEW_TARGET/NATIVE-FFMPEG-EVIDENCE.pending.json" \
             --output "$RUNNER_TEMP/ffmpeg-review-$REVIEW_TARGET/FOUR-TOOL-OFFLINE-EVIDENCE.pending.json"
 
+      - name: Assemble real four-tool managed ZIP and execute from app-owned install root
+        shell: bash
+        env:
+          REVIEW_TARGET: ${{ matrix.target }}
+          PYTHONPATH: ${{ github.workspace }}${{ runner.os == 'Windows' && ';' || ':' }}${{ github.workspace }}/src
+        run: |
+          set -euo pipefail
+          # Uses the reviewed official yt-dlp/Deno downloads and this runner's
+          # actual pinned FFmpeg build. The exact ZIP stays in RUNNER_TEMP and
+          # is NOT uploaded. The production managed installer, packaged tool
+          # resolver (PATH empty), full payload inventory, and a synthetic
+          # yt-dlp -> FFmpeg/ffprobe media conversion all run on the target OS.
+          uv run --no-project --python 3.12 python scripts/verify_youtube_managed_candidate_native.py \
+            --target "$REVIEW_TARGET" \
+            --youtube-dir "$RUNNER_TEMP/youtube-sources-$REVIEW_TARGET" \
+            --ffmpeg-dir upstream/ffmpeg \
+            --ffmpeg-receipt "$RUNNER_TEMP/ffmpeg-review-$REVIEW_TARGET/NATIVE-FFMPEG-EVIDENCE.pending.json" \
+            --output-dir "$RUNNER_TEMP/managed-youtube-native-$REVIEW_TARGET"
+
       - name: Upload metadata-only FFmpeg provenance evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -180,5 +203,7 @@ jobs:
             ${{ runner.temp }}/ffmpeg-review-${{ matrix.target }}/FOUR-TOOL-OFFLINE-EVIDENCE.pending.json
             ${{ runner.temp }}/youtube-sources-${{ matrix.target }}/SOURCE-EVIDENCE.pending.json
             ${{ runner.temp }}/youtube-sources-${{ matrix.target }}/DOWNLOAD-EVIDENCE.pending.json
+            ${{ runner.temp }}/managed-youtube-native-${{ matrix.target }}/MANAGED-YOUTUBE-NATIVE-E2E.pending.json
+            ${{ runner.temp }}/managed-youtube-native-${{ matrix.target }}/YOUTUBE-MANAGED-NATIVE-QA-ONLY.zip.pending.json
           if-no-files-found: error
           retention-days: 14
