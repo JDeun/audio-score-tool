@@ -319,8 +319,13 @@ def verify_packaged_managed_features(
     private_workspace: Path,
     mt3_model: str | None = None,
     job_timeout_seconds: float = 1200,
+    youtube_review: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Real packaged audio→MIDI/MusicXML and PDF→Audiveris→Song→publish."""
+    """Real packaged audio, PDF OMR, and permissioned YouTube→AMT workflows."""
+    if youtube_review is None:
+        raise PackagedFeatureAcceptanceError(
+            "Managed release acceptance needs an explicitly reviewed owned YouTube source"
+        )
     status, payload = _http(base_url, token, "GET", "/api/setup/center")
     setup = _json_ok(status, payload, name="packaged managed component state")
     items = setup.get("components")
@@ -364,6 +369,19 @@ def verify_packaged_managed_features(
         raise PackagedFeatureAcceptanceError(
             "Real PDF→Audiveris→Song→export product acceptance was incomplete"
         )
+    from scripts.verify_packaged_youtube_ingest import verify_packaged_youtube_ingest
+
+    youtube_result = verify_packaged_youtube_ingest(
+        base_url, token, reviewed=youtube_review,
+        job_timeout_seconds=job_timeout_seconds,
+    )
+    if (
+        youtube_result.get("real_managed_youtube_job_completed") is not True
+        or youtube_result.get("youtube_song_source_kind_persisted") is not True
+    ):
+        raise PackagedFeatureAcceptanceError(
+            "Real permissioned YouTube→managed tools→AMT→Song acceptance was incomplete"
+        )
     return {
         "schema_version": "1",
         "mt3_model": model,
@@ -375,6 +393,7 @@ def verify_packaged_managed_features(
         "system_python_required_for_model_execution": False,
         **omr,
         **omr_accepted,
+        **youtube_result,
         "clean_machine_desktop_installer_verified": False,
         "model_redistribution_approved": False,
         "publication_status": "already-approved-catalog-only",
