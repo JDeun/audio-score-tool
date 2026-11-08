@@ -12,6 +12,7 @@ import os
 import re
 from pathlib import Path, PurePosixPath
 
+from .managed_payload_integrity import verify_payload_inventory
 from .paths import app_data_dir
 
 _SAFE_IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
@@ -110,6 +111,10 @@ def _validated_tool(
         installed_real.relative_to(root)
         tool.resolve().relative_to(installed_real)
         if _sha256(tool) != digest:
+            return None
+        # Tools are not safe to run when their companion model/JRE/resource
+        # bytes have changed, even if the command itself still matches.
+        if verify_payload_inventory(installed, entry.get("payload_files")) is not None:
             return None
     except (OSError, ValueError):
         return None
