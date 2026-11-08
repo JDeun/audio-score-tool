@@ -137,4 +137,20 @@ Windows에서는 `--target windows-x86_64` 및 `--tool mt3-infer=bin/mt3-infer.e
 감사 보고서에는 확인된 SHA-256·빌더 버전/실제 추론 계수와 아래 **미해결 blocker**가 포함됩니다: 모델의 상용 재배포 권한, 고정 upstream 소스, frozen 의존성의 완전한 SBOM, transitive licenses/third-party notices/소스 제공, 실제 HTTPS 게시 및 독립 승인, clean-machine 설치, Tier 2 baseline 및 서명·공증·업데이트. 빌더 패키지 몇 개의 고정 버전만으로 완전한 frozen SBOM을 증명했다고 표시하지 않습니다. 모든 결과는 `redistribution_status=pending`, `publication_ready=false`이며 **독립적인 서명·법적 승인 증명서가 아닙니다**.
 
 모델 ZIP, 실제 음원/악보 및 민감한 경로는 결과 JSON에 포함하지 않으며, CLI는 기존 파일을 덮어쓰거나 저장소 내 경로로 감사 보고서를 기록하지 않습니다. GitHub Actions에는 synthetic fixture 테스트만 실행하며 실제 모델/실행 파일은 그대로 업로드하지 않습니다.
+## 7. Frozen MT3 런타임 의존성 인벤토리와 라이선스 사전 감사 (#29)
+
+`scripts/collect_mt3_frozen_inventory.py`는 `verify_mt3_frozen_native.py`가 **실제로 만든 PyInstaller onefile 실행 파일**에서 CArchive 구성 항목의 이름/타입/압축 여부/크기와 내장 PYZ Python 모듈 목록, 네이티브 binary entry 목록을 수집합니다. 이것은 `pip list`나 설치된 패키지 목록의 단순 전사가 아니라 **최종 frozen 바이너리 내부의 TOC 스냅샷**입니다. 전체 실행 파일 SHA-256과 해당 인벤토리의 canonical JSON SHA-256이 네이티브 검증 `*.pending.json` 및 사설 ZIP의 `provenance/frozen-native-qa.pending.json`에 서로 결속됩니다.
+
+빌더의 `importlib.metadata`에서 추가로 설치 Python distribution 이름/버전, `License-Expression`, legacy `License`, license classifiers, 존재하는 `.dist-info` LICENSE/COPYING/NOTICE 파일의 SHA-256를 수집합니다. 라이선스 전문/모델 가중치/실제 실행 바이너리를 공개 증빙으로 복사하지 않습니다. 메타데이터가 부족한 패키지는 `missing_license_metadata_names`에 표시합니다.
+
+**범위 구분 및 미확정 사항**
+
+- PyInstaller TOC: 최종 실행 파일 안의 *entry 이름·크기·모듈·라이브러리 후보* 증빙입니다. 바이너리 파일별 서명, 동적 로딩, 외부 시스템 라이브러리의 완전한 dependency closure 및 각각의 실제 소스 라이선스를 자동 확인하는 기능은 아닙니다.
+- 빌더 설치 distribution: 빌드 머신의 metadata **전체**이지, frozen 앱에 실제 포함된 의존성의 정확한 집합이나 완전한 SBOM이 아닙니다. 빌드 전용 패키지가 포함될 수 있습니다.
+- 파일의 license 문자열/notice SHA는 **법적 승인**이 아니며, 포함된 정적/동적 코드, C/C++ dependencies, 모델 가중치의 저작권·상용 재배포·고지·소스 제공 의무는 담당자가 파일별로 독립 검토해야 합니다.
+- 현재 출력에는 항상 `inventory_is_complete_distributable_sbom=false`, `native_library_dependency_closure_independently_verified=false`, `third_party_license_approval=false`와 `redistribution_status=pending`이 포함됩니다.
+
+사설 후보 감사 `scripts/audit_mt3_private_candidate.py`는 원본 네이티브 QA 영수증의 인벤토리 SHA-256을 재계산하고, 사설 ZIP provenance에 들어 있는 인벤토리 SHA와 대조합니다. 후보 준비 도구 `prepare_managed_artifact_candidate.py`는 해당 감사 영수증의 인벤토리 결속을 다음 pending 후보에 인계합니다. 단독 JSON은 제3자가 서명한 attestation이 아니므로, 이후 재배포 승인·HTTPS 게시/재다운로드·clean-machine 테스트와 혼동하지 않습니다.
+
+CI에는 사설 모델 가중치·실행 바이너리·ZIP을 업로드하지 않고 **인벤토리가 포함된 메타데이터 JSON만** 남깁니다. 이 CI에서 증빙을 확보한 것만으로 `managed-component-catalog.json`의 artifact나 `managed-release-approvals.json`의 승인 항목을 채울 수 없습니다.
 

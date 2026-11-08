@@ -202,3 +202,9 @@ system Python/Node/Rust/uv/pip
 ```
 
 각 stable release는 설치 artifact에 실제 포함된 구성요소를 다시 inventory하고 해당 version/license/source 정보를 함께 기록해야 합니다.
+## 18. PyInstaller frozen MR-MT3 의존성 인벤토리 (추적 중)
+
+Windows/macOS 네이티브 빌더의 `scripts/collect_mt3_frozen_inventory.py`는 최종 frozen 실행 파일 **내부 CArchive/PYZ 엔트리**와 **빌더 환경의 distribution/license metadata**를 분리해 SHA-256 결속된 pending 영수증으로 남깁니다. CArchive에 포함된 네이티브 라이브러리·모듈 목록은 법무/릴리스 담당자의 후속 source-license 매핑 자료이며, PyInstaller bootloader 자체의 라이선스(bootloader exception), PyTorch/torchaudio 및 기타 C/C++ 라이브러리, 모델 가중치의 저작권과 재배포 권리는 **별도 검토**가 필요합니다.
+
+`License-Expression`과 `.dist-info` LICENSE/NOTICE 해시는 upstream metadata 증빙이지 상용 재배포 허가서가 아닙니다. 패키지 빌더 목록에 있다는 사실만으로 최종 바이너리에 포함됐다고 간주하면 안 됩니다. 현재 완전한 SBOM, 독립적 라이선스 심사, source-offer 및 clean-machine 검증은 모두 미완료이며, `#29`의 공개 배포 승인은 계속 차단합니다.
+
