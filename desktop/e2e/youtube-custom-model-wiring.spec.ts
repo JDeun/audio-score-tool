@@ -9,8 +9,8 @@ const HEALTH = {
   system: { hf_authenticated: true, jobs_bytes: 0, disk_total_bytes: 1024, disk_used_bytes: 0, disk_free_bytes: 1024 },
 };
 
-async function prepareYoutubePage(page: Page, recorded: Record<string, unknown>[]) {
-  await page.route("**/api/health", async (route) => route.fulfill({ json: HEALTH }));
+async function prepareYoutubePage(page: Page, recorded: Record<string, unknown>[], mode: "personal" | "commercial" = "personal") {
+  await page.route("**/api/health", async (route) => route.fulfill({ json: { ...HEALTH, usage_mode: mode } }));
   await page.route("**/api/setup", async (route) => route.fulfill({
     json: { preflight: HEALTH.preflight, tool_paths: {}, instructions: { hf_note: "" } },
   }));
@@ -31,7 +31,12 @@ async function prepareYoutubePage(page: Page, recorded: Record<string, unknown>[
   await page.locator(".youtube-inline-row input").fill("https://www.youtube.com/watch?v=abcdef12345");
   await page.getByRole("button", { name: "링크 확인" }).click();
   await expect(page.locator(".source-preview-row")).toContainText("Owned fixture");
-  await page.locator(".rights-check input").check();
+  if (mode === "commercial") {
+    await page.locator(".rights-check input").check();
+  } else {
+    await expect(page.locator(".rights-check")).toHaveCount(0);
+    await expect(page.locator(".source-usage-note")).toContainText("개인 연습");
+  }
 }
 
 test("YouTube custom preset forwards both explicit model choices to the job API", async ({ page }) => {
@@ -46,7 +51,7 @@ test("YouTube custom preset forwards both explicit model choices to the job API"
   await expect.poll(() => recorded.length).toBe(1);
   expect(recorded[0]).toMatchObject({
     url: "https://www.youtube.com/watch?v=abcdef12345",
-    authorized: true,
+    authorized: false,
     preset: "balanced",
     muscriptor_model: "small",
     whisperx_model: "large-v3",
@@ -68,4 +73,33 @@ test("YouTube built-in presets do not leak previous custom model choices", async
   expect(recorded[0]).toMatchObject({ preset: "quality" });
   expect(recorded[0]).not.toHaveProperty("muscriptor_model");
   expect(recorded[0]).not.toHaveProperty("whisperx_model");
+});
+
+
+
+test("personal YouTube link analysis starts without asserting ownership", async ({ page }) => {
+  const recorded: Record<string, unknown>[] = [];
+  await prepareYoutubePage(page, recorded, "personal");
+
+  await expect(page.getByRole("button", { name: "자동 채보 시작" })).toBeEnabled();
+  await page.getByRole("button", { name: "자동 채보 시작" }).click();
+  await expect.poll(() => recorded.length).toBe(1);
+  expect(recorded[0]).toMatchObject({
+    url: "https://www.youtube.com/watch?v=abcdef12345",
+    authorized: false,
+  });
+});
+
+test("commercial mode keeps explicit rights confirmation", async ({ page }) => {
+  const recorded: Record<string, unknown>[] = [];
+  await prepareYoutubePage(page, recorded, "commercial");
+
+  await expect(page.locator(".rights-check")).toContainText("상용 이용");
+  await page.locator(".rights-check input").uncheck();
+  await expect(page.getByRole("button", { name: "자동 채보 시작" })).toBeDisabled();
+  await page.locator(".rights-check input").check();
+  await expect(page.getByRole("button", { name: "자동 채보 시작" })).toBeEnabled();
+  await page.getByRole("button", { name: "자동 채보 시작" }).click();
+  await expect.poll(() => recorded.length).toBe(1);
+  expect(recorded[0]).toMatchObject({ authorized: true });
 });
