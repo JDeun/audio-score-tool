@@ -210,6 +210,10 @@ class MT3InferEngine(BaseTranscriptionEngine):
                     model,
                     "--device",
                     device,
+                    # Do not rely solely on Hugging Face offline environment
+                    # flags. MT3-Infer itself supports an explicit opt-out
+                    # from its default checkpoint auto-download behavior.
+                    *(["--no-download"] if checkpoint_root is not None else []),
                 ],
                 cancel_event=cancel_event,
                 env=(

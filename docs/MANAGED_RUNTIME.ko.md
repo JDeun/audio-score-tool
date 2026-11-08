@@ -183,3 +183,8 @@ installed/transcription_engine/<version>/
 검증 종료 시 `managed-real-checkpoint.pending.json`에는 각 체크포인트 상대 경로/해시, 임시 ZIP SHA-256, 실제 추론의 MIDI/MusicXML 해시 및 note count만 기록합니다. **실제 체크포인트 바이트와 관리형 ZIP은 GitHub Actions artifact로 업로드하지 않습니다.**
 
 **제약:** 이 Linux CI 전용 QA는 기존 러너의 Python과 기설치 `mt3-infer` 진입점 스크립트를 ZIP 안에 복사해서 사용합니다. 따라서 호스트 Python/라이브러리 없이 구동하는 frozen Windows/macOS 채보 런타임을 증명하지 않습니다. 결과에도 `qa_launcher_requires_host_python=true`, `clean_windows_macos_verified=false`, `model_redistribution_rights_verified=false`를 명시합니다. 모델 weight 정확한 권리·동일한 checkpoint 내용과 상용 품질 선정(#34), Windows/macOS self-contained executable 패키징 및 #29의 실제 게시/법적 승인은 계속 별도 필요합니다.
+
+
+### MT3-Infer `--no-download` 명시적 강제
+
+실제 CPU 모델 CI가 제공하는 `mt3-infer transcribe --help`에서 `--no-download` 옵션을 확인했습니다. 패키지 모드의 채보 실행은 기존 `MT3_CHECKPOINT_DIR`의 앱 관리형 절대 경로 및 Hugging Face/Transformers offline 환경변수뿐 아니라 **CLI의 `--no-download`**도 반드시 전달합니다. 체크포인트가 누락된 경우 외부 다운로더로 대체할 수 없으며, 개발 모드에서는 기존 upstream 동작을 유지합니다. Windows/macOS의 독립 실행형 frozen runtime과 상업용 가중치 배포 권리는 여전히 별도 #29 출고 조건입니다.
