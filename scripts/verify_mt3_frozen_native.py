@@ -15,6 +15,7 @@ import hashlib
 import json
 import os
 import platform
+import shutil
 import stat
 import subprocess
 import sys
@@ -390,11 +391,88 @@ def _probe_native_real_inference(
     }
 
 
+
+def _private_candidate_destination(directory: Path, *, target: str) -> Path:
+    """Opt-in private storage only; never keep unapproved weights in public CI.
+
+    The target is not a public release location. Staging remains separate from
+    the Git checkout so an accidental git add cannot publish pretrained files.
+    """
+    if os.environ.get("GITHUB_ACTIONS", "").strip().lower() == "true":
+        raise FrozenMT3ReviewError("GitHub Actions may not retain unapproved model archives")
+    if target not in _TARGETS:
+        raise FrozenMT3ReviewError("Private candidate target is unsupported")
+    raw = directory.expanduser().absolute()
+    if not raw.is_dir() or raw.is_symlink():
+        raise FrozenMT3ReviewError("Private candidate directory must already exist and not be linked")
+    # Reject symlinks at every ancestor, not only the leaf directory.
+    for ancestor in (raw, *raw.parents):
+        if ancestor.is_symlink():
+            raise FrozenMT3ReviewError("Private candidate directory traverses a symlink")
+    destination_root = raw.resolve()
+    if destination_root.is_relative_to(_ROOT.resolve()):
+        raise FrozenMT3ReviewError("Private model artifacts must remain outside the repository")
+    if not os.access(destination_root, os.W_OK):
+        raise FrozenMT3ReviewError("Private candidate directory is not writable")
+    destination = destination_root / f"MT3-MRMT3-{target}-UNAPPROVED.zip"
+    if destination.exists() or destination.is_symlink():
+        raise FrozenMT3ReviewError("Private candidate already exists; refusing overwrite")
+    return destination
+
+
+def _stage_private_candidate(
+    archive: Path, destination: Path, *, expected_sha256: str,
+) -> None:
+    """Copy verified archive to private storage, atomically without overwrite.
+
+    A same-directory temporary file is written with owner-only permissions.
+    A hard link installs the final name exclusively; there is never a partial
+    final candidate or an overwrite of an operator's existing file.
+    """
+    if archive.is_symlink() or not archive.is_file():
+        raise FrozenMT3ReviewError("Verified private archive is unavailable")
+    if _sha256(archive) != expected_sha256:
+        raise FrozenMT3ReviewError("Private archive changed after real model inference")
+    fd, temporary = tempfile.mkstemp(prefix=".mt3-unapproved-", dir=destination.parent)
+    temporary_path = Path(temporary)
+    linked = False
+    try:
+        with os.fdopen(fd, "wb") as output, archive.open("rb") as source:
+            shutil.copyfileobj(source, output, 1024 * 1024)
+            output.flush()
+            os.fsync(output.fileno())
+        if _sha256(temporary_path) != expected_sha256:
+            raise FrozenMT3ReviewError("Staged candidate SHA-256 mismatch")
+        if destination.exists() or destination.is_symlink():
+            raise FrozenMT3ReviewError("Private candidate already exists; refusing overwrite")
+        # Both paths are on the same filesystem. os.link does not replace an
+        # existing destination, including on Windows; os.replace would.
+        os.link(temporary_path, destination)
+        linked = True
+        if _sha256(destination) != expected_sha256:
+            raise FrozenMT3ReviewError("Staged candidate changed after linking")
+    except BaseException:
+        if linked:
+            destination.unlink(missing_ok=True)
+        raise
+    finally:
+        temporary_path.unlink(missing_ok=True)
+
+
 def build_and_verify_native(
     *, target: str, destination: Path, checkpoint_directory: Path | None = None,
+    private_candidate_dir: Path | None = None,
 ) -> dict:
     _native_target(target)
     packages = _pinned_packages()
+    if private_candidate_dir is not None and checkpoint_directory is None:
+        raise FrozenMT3ReviewError(
+            "Private release staging requires an actual verified model checkpoint"
+        )
+    private_destination = (
+        _private_candidate_destination(private_candidate_dir, target=target)
+        if private_candidate_dir is not None else None
+    )
     checkpoint = _trusted_checkpoint(checkpoint_directory) if checkpoint_directory is not None else None
     if not destination.parent.is_dir() or destination.exists() or destination.is_symlink():
         raise FrozenMT3ReviewError("Native QA evidence must be a new file")
@@ -459,6 +537,17 @@ def build_and_verify_native(
         )
         if _sha256(binary) != executable_sha:
             raise FrozenMT3ReviewError("Frozen CLI changed after native probes")
+        # Only after native inference and full managed payload verification may
+        # an operator deliberately retain an unapproved archive, outside git.
+        # CI never supplies this option and GITHUB_ACTIONS is explicitly denied.
+        if private_destination is not None:
+            if real_evidence is None:
+                raise FrozenMT3ReviewError("Unverified model cannot be staged")
+            _stage_private_candidate(
+                base / "MT3-REAL-WEIGHTS-NOT-PUBLISHED.zip",
+                private_destination,
+                expected_sha256=real_evidence["private_real_archive_sha256"],
+            )
         return {
             "schema": 1, "target": target, "model_adapter": _MODEL,
             "packages": packages,
@@ -477,6 +566,10 @@ def build_and_verify_native(
             "model_license_approved": False,
             "runtime_redistribution_approved": False,
             "binaries_uploaded": False,
+            "private_candidate_staged_locally": private_destination is not None,
+            "private_candidate_filename": (
+                private_destination.name if private_destination is not None else None
+            ),
             "redistribution_status": "pending",
             "checked_at_utc": datetime.now(timezone.utc).isoformat(),
             "probes": probes,
@@ -493,11 +586,19 @@ def main() -> int:
         "--checkpoint-dir", type=Path,
         help="Private, runner-local MR-MT3 download root; enables actual native score inference",
     )
+    parser.add_argument(
+        "--private-candidate-dir", type=Path,
+        help=(
+            "Operator-only: existing private directory outside the repository to retain "
+            "the fully verified, UNAPPROVED native model ZIP. Forbidden in GitHub Actions."
+        ),
+    )
     args = parser.parse_args()
     try:
         proof = build_and_verify_native(
             target=args.target, destination=args.output,
             checkpoint_directory=args.checkpoint_dir,
+            private_candidate_dir=args.private_candidate_dir,
         )
         with args.output.open("x", encoding="utf-8") as report:
             json.dump(proof, report, sort_keys=True, indent=2)
