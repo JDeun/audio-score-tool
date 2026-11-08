@@ -16,8 +16,8 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from defusedxml import ElementTree as ET
 import mido
+from defusedxml import ElementTree as ET
 
 from audio_score_tool.metrics import MidiNote, evaluate_midi_files, midi_notes
 from audio_score_tool.tier2_prediction import load_tier2_prediction_provenance
