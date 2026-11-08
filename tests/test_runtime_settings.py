@@ -76,3 +76,41 @@ def test_packaged_runtime_ignores_persisted_system_command_paths(monkeypatch, tm
     assert Path(settings.yt_dlp_cmd).is_relative_to(component_dir)
     assert Path(settings.audiveris_cmd).is_relative_to(component_dir)
     assert Path(settings.ffmpeg_cmd).is_relative_to(component_dir)
+
+
+
+def test_packaged_approved_mr_mt3_becomes_functional_default_without_muscriptor(
+    monkeypatch, tmp_path: Path,
+):
+    from audio_score_tool import runtime_settings as runtime_module
+    monkeypatch.setenv("AST_PACKAGED", "1")
+    monkeypatch.setenv("AST_COMPONENT_DIR", str(tmp_path / "components"))
+    monkeypatch.setattr(runtime_module, "published_managed_mt3_model", lambda: "mr_mt3")
+    store = SettingsStore(tmp_path / "settings.json")
+
+    first_run = runtime_settings(store=store)
+    assert first_run.usage_mode == "personal"
+    assert first_run.transcription_engine == "mt3_infer"
+    assert first_run.mt3_model == "mr_mt3"
+
+    # Stale preferences from an earlier QA version cannot select a model that
+    # does not exist in the independently approved packaged archive.
+    store.update({
+        "usage_mode": "commercial",
+        "transcription_engine": "mt3_infer",
+        "mt3_model": "yourmt3",
+    })
+    restored = runtime_settings(store=store)
+    assert restored.mt3_model == "mr_mt3"
+    assert store.read()["mt3_model"] == "yourmt3"
+
+
+def test_packaged_unpublished_model_keeps_current_disabled_default(
+    monkeypatch, tmp_path: Path,
+):
+    from audio_score_tool import runtime_settings as runtime_module
+    monkeypatch.setenv("AST_PACKAGED", "1")
+    monkeypatch.setattr(runtime_module, "published_managed_mt3_model", lambda: None)
+    settings = runtime_settings(store=SettingsStore(tmp_path / "settings.json"))
+    assert settings.transcription_engine == "muscriptor"
+    assert settings.mt3_model == "yourmt3"

@@ -1,11 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 
-async function openSettings(page: Page, packaged: boolean, engineRequests: Record<string, unknown>[]) {
+async function openSettings(page: Page, packaged: boolean, engineRequests: Record<string, unknown>[], managedModel: "mr_mt3" | null = null) {
   const engine = {
     packaged_runtime: packaged,
+    managed_mt3_model: managedModel,
     usage_mode: "personal",
     selected: "muscriptor",
-    mt3_model: "yourmt3",
+    mt3_model: managedModel ?? "yourmt3",
     mt3_infer_cmd: "/managed/mt3-infer",
     muscriptor_cmd: "/managed/muscriptor",
     muscriptor_model: "small",
@@ -85,4 +86,25 @@ test("developer desktop still offers explicit command override controls", async 
   await page.locator(".engine-dock-trigger").click();
   const dialog = page.getByRole("dialog", { name: "채보 엔진 설정" });
   await expect(dialog.getByText("MuScriptor 실행 명령")).toBeVisible();
+});
+
+
+
+test("published packaged MR-MT3 is selected instead of unavailable YourMT3", async ({ page }) => {
+  const requests: Record<string, unknown>[] = [];
+  await openSettings(page, true, requests, "mr_mt3");
+  await page.locator(".engine-dock-trigger").click();
+  const dialog = page.getByRole("dialog", { name: "채보 엔진 설정" });
+  const usage = dialog.getByRole("combobox", { name: "사용 목적" });
+  await usage.selectOption("commercial");
+  const model = dialog.getByRole("combobox", { name: "모델" });
+  await expect(model).toHaveValue("mr_mt3");
+  await expect(model.locator('option[value="yourmt3"]')).toHaveJSProperty("disabled", true);
+  await dialog.getByRole("button", { name: "엔진 정책 저장" }).click();
+  await expect.poll(() => requests.length).toBe(1);
+  expect(requests[0]).toMatchObject({
+    usage_mode: "commercial",
+    transcription_engine: "mt3_infer",
+    mt3_model: "mr_mt3",
+  });
 });

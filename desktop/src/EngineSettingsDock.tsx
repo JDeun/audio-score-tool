@@ -20,6 +20,7 @@ type EngineInfo = {
 
 type EngineState = {
   packaged_runtime?: boolean;
+  managed_mt3_model?: "mr_mt3" | "yourmt3" | null;
   usage_mode: UsageMode;
   selected: string;
   mt3_infer_cmd?: string | null;
@@ -68,7 +69,7 @@ export default function EngineSettingsDock() {
       setUsageMode(body.usage_mode ?? "personal");
       setEngine(body.selected === "yourmt3" ? "mt3_infer" : body.selected);
       setMt3Command(body.mt3_infer_cmd ?? "mt3-infer");
-      setMt3Model(body.mt3_model ?? "yourmt3");
+      setMt3Model(body.mt3_model ?? body.managed_mt3_model ?? "yourmt3");
       setMuscriptorCommand(body.muscriptor_cmd ?? "muscriptor");
       setMuscriptorModel(body.muscriptor_model ?? "large");
       setCheckpoint(body.native_checkpoint ?? "");
@@ -85,8 +86,8 @@ export default function EngineSettingsDock() {
   useEffect(() => {
     if (usageMode === "commercial" && engine === "muscriptor") {
       setEngine("mt3_infer");
-      setMt3Model("yourmt3");
-      setMessage("상용 모드에서는 MuScriptor의 CC BY-NC weights를 사용할 수 없어 YourMT3+로 전환했습니다.");
+      setMt3Model(state?.managed_mt3_model ?? "yourmt3");
+      setMessage("상용 모드에서는 MuScriptor의 CC BY-NC weights를 사용할 수 없어 MT3로 전환했습니다.");
     }
   }, [usageMode, engine]);
 
@@ -205,8 +206,8 @@ export default function EngineSettingsDock() {
               <label>
                 <span>모델</span>
                 <select value={mt3Model} onChange={(event) => setMt3Model(event.target.value)}>
-                  <option value="yourmt3">YourMT3+ · MT3 계열 정확도 우선</option>
-                  <option value="mr_mt3">MR-MT3 · 빠른 permissive fallback</option>
+                  <option value="yourmt3" disabled={packaged && Boolean(state?.managed_mt3_model) && state?.managed_mt3_model !== "yourmt3"}>YourMT3+ · MT3 계열 정확도 우선</option>
+                  <option value="mr_mt3" disabled={packaged && Boolean(state?.managed_mt3_model) && state?.managed_mt3_model !== "mr_mt3"}>MR-MT3 · 빠른 permissive fallback</option>
                 </select>
               </label>
               {!packaged && <label>
@@ -235,7 +236,7 @@ export default function EngineSettingsDock() {
             </div>
           )}
 
-          {packaged && <p className="engine-license-note safe">배포 앱에서는 사용자 지정 실행 명령을 적용하지 않습니다. 구성요소 설치·검증·복구는 '구성요소 상태'에서 진행하세요.</p>}
+          {packaged && <p className="engine-license-note safe">배포 앱에서는 사용자 지정 실행 명령을 적용하지 않습니다. 구성요소 설치·검증·복구는 '구성요소 상태'에서 진행하세요.{state?.managed_mt3_model ? ` 이 배포판에서 검증된 MT3 모델은 ${state.managed_mt3_model}입니다.` : ""}</p>}
           {state?.recommendation && (
             <div className="engine-license-note safe">
               권장: {state.recommendation.engine} / {state.recommendation.model} — {state.recommendation.reason}
