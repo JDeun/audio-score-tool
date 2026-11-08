@@ -55,6 +55,7 @@ jobs:
             tests/test_real_mt3_managed_checkpoint_qa.py \
             tests/test_mt3_frozen_native_review.py \
             tests/test_mt3_private_candidate_audit.py \
+            tests/test_mt3_frozen_inventory.py \
             tests/test_managed_publication_readiness.py \
             tests/test_managed_release_approval.py \
             tests/test_managed_install_publication_gate.py \
