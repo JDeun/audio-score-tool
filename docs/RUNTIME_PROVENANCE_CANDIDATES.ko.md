@@ -180,3 +180,9 @@ clean-machine smoke result
 ### PyInstaller MR-MT3 네이티브 후보 (모델 미포함 QA)
 
 `scripts/verify_mt3_frozen_native.py`와 `.github/workflows/mt3-frozen-native-review.yml`에서 Windows x86_64/macOS arm64 실제 PyTorch·MT3-Infer 런타임을 onefile 네이티브 실행 파일로 빌드하고, ZIP에 등록해 AudioScoreTool 제품 설치기로 설치한 후 `PATH` 없이 모델 registry/명령 기동 및 가중치 부재 시 `--no-download` 실패를 검증합니다. CI 공개물은 해시·실행 결과 JSON뿐이며, 실제 모델 가중치나 복구/업데이트용 배포 URL, 출시용 제3자 고지 및 법적 승인 상태는 여전히 없습니다. 모델 포함 배포 가능 여부는 별도 권리 검토를 거쳐야 합니다.
+
+### MR-MT3 frozen native real-checkpoint QA 계획 (2026-11-08)
+
+개발 서버의 호스트 Python을 사용하는 Linux 모델 실행 검증과 Windows/macOS의 체크포인트 없는 frozen 기동 검증 사이의 간극을 메우기 위해, `scripts/verify_mt3_frozen_native.py --checkpoint-dir` 검증을 도입합니다. 공식 `mt3-infer==0.2.0` registry에 기록된 실제 MR-MT3 176 MB `mt3.pth` SHA-256 `b8a3807ed265059abd25ad7f68142c06c35e8f6144dcaa45bd55946a3745398f`를 요구합니다. 다운로드와 `torch.load(weights_only=False)` 실행 전에 검증하고, Windows/macOS 네이티브 PyInstaller 런타임을 통해 실제 앱 내 MusicXML 생성 여부까지 확인하도록 CI를 구성합니다.
+
+이 변경은 재배포 라이선스 허용이나 정식 빌드 아카이브 공개를 승인하지 않습니다. 검증에 사용한 실제 실행 파일/모델 ZIP은 ephemeral runner에만 있으며 로그/업로드에는 pending SHA-256 메타데이터만 남깁니다. 공식 release 카탈로그의 승인 목록 및 아티팩트 항목은 계속 비웁니다.
