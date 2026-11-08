@@ -170,3 +170,8 @@ clean-machine smoke result
 ### 패키지 MT3-Infer 가중치 배선
 
 공식 MT3-Infer는 `MT3_CHECKPOINT_DIR`을 통해 모델 캐시의 루트를 지정할 수 있습니다. AudioScoreTool 패키지 런타임은 외부 자동 다운로드에 의존하지 않고 `installed/transcription_engine/<version>/checkpoints/<selected-model>/`의 검증된 파일로 이를 고정합니다. ZIP에 모델이 포함되지 않았다면 Setup Center는 채보를 사용 가능으로 표시하지 않습니다. YourMT3/MR-MT3 등 모델 코드와 가중치 각각의 정확한 라이선스·revision·체크섬·실제 추론 결과 검토는 계속 #29/#34에서 처리합니다.
+
+
+### 실제 MR-MT3 / YourMT3 체크포인트 SHA 검증 (QA 전용)
+
+`scripts/smoke_real_mt3_managed_checkpoint.py`는 실제 다운로드된 모델 파일을 하나도 생략하지 않고 관리형 ZIP으로 설치한 뒤 Linux CPU에서 offline packaged-mode 추론을 검증하고, 파일·ZIP SHA-256 증빙을 남깁니다. GitHub Actions에는 증빙 JSON만 보존합니다. 테스트에 복사한 MT3 CLI는 **러너의 Python 환경을 필요로 하는 개발용 진입점**이며 Windows/macOS self-contained 런타임이 아닙니다. 실제 checkpoint 재배포 권한이나 품질 baseline은 아직 승인하지 않았고, 정식 `managed-component-catalog.json`의 모든 target은 미게시 상태입니다.
