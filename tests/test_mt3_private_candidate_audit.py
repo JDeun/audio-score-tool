@@ -394,6 +394,7 @@ def test_remote_native_model_publication_proof_hashes_installed_checkpoint(
 ):
     """The remote HTTPS proof covers the actual model file, not just the CLI."""
     import io
+
     from audio_score_tool import managed_components
     from scripts import verify_managed_artifact_publication as publication
 
