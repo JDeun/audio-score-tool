@@ -199,9 +199,18 @@ def _write_new(path: Path, payload: dict) -> None:
         or out.exists() or not out.parent.is_dir()
     ):
         raise ValueError("CocoChorales metadata output must be new and outside the repository")
-    with out.open("x", encoding="utf-8") as target:
-        json.dump(payload, target, ensure_ascii=False, sort_keys=True, indent=2)
-        target.write("\n")
+    created = False
+    try:
+        with out.open("x", encoding="utf-8") as target:
+            created = True
+            json.dump(payload, target, ensure_ascii=False, sort_keys=True, indent=2)
+            target.write("\n")
+    except BaseException:
+        # Do not delete someone else's concurrently created output if the
+        # open('x') itself failed with FileExistsError.
+        if created:
+            out.unlink(missing_ok=True)
+        raise
 
 
 def main() -> int:
