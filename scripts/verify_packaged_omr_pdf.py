@@ -119,7 +119,11 @@ def _export_song(
 
 def _read_generated_file(root: Path, name: str, magic: bytes) -> bytes:
     file = root / name
-    if file.is_symlink() or not file.is_file() or not 100 <= file.stat().st_size <= _PDF_LIMIT:
+    minimum = 22 if name.endswith(".mid") else 100
+    if (
+        file.is_symlink() or not file.is_file()
+        or not minimum <= file.stat().st_size <= _PDF_LIMIT
+    ):
         raise accepted.PackagedFeatureAcceptanceError(f"Packaged export lacks a valid {name}")
     with file.open("rb") as source:
         header = source.read(len(magic))
@@ -210,7 +214,12 @@ def verify_real_pdf_omr(
         raise accepted.PackagedFeatureAcceptanceError("OMR published score lacks real notes/parts")
     part_root = published / "parts"
     part_scores = list(part_root.glob("*.musicxml")) if part_root.is_dir() else []
-    if not part_scores or any(not item.with_suffix(".pdf").is_file() for item in part_scores):
+    if not part_scores or any(
+        item.is_symlink() or not item.is_file()
+        or item.with_suffix(".pdf").is_symlink()
+        or not item.with_suffix(".pdf").is_file()
+        for item in part_scores
+    ):
         raise accepted.PackagedFeatureAcceptanceError("OMR part exports are incomplete")
 
     return {
