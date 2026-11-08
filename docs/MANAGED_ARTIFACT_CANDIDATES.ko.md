@@ -153,4 +153,32 @@ Windows에서는 `--target windows-x86_64` 및 `--tool mt3-infer=bin/mt3-infer.e
 사설 후보 감사 `scripts/audit_mt3_private_candidate.py`는 원본 네이티브 QA 영수증의 인벤토리 SHA-256을 재계산하고, 사설 ZIP provenance에 들어 있는 인벤토리 SHA와 대조합니다. 후보 준비 도구 `prepare_managed_artifact_candidate.py`는 해당 감사 영수증의 인벤토리 결속을 다음 pending 후보에 인계합니다. 단독 JSON은 제3자가 서명한 attestation이 아니므로, 이후 재배포 승인·HTTPS 게시/재다운로드·clean-machine 테스트와 혼동하지 않습니다.
 
 CI에는 사설 모델 가중치·실행 바이너리·ZIP을 업로드하지 않고 **인벤토리가 포함된 메타데이터 JSON만** 남깁니다. 이 CI에서 증빙을 확보한 것만으로 `managed-component-catalog.json`의 artifact나 `managed-release-approvals.json`의 승인 항목을 채울 수 없습니다.
+## 8. MT3 frozen 의존성 실측 분류 및 제3자 라이선스 검토 큐 (#29, 2026-11-08)
 
+Windows/macOS에서 실제 MR-MT3 추론에 성공한 [네이티브 CI #148 증빙](https://github.com/JDeun/audio-score-tool/actions/runs/42453842931)의 **metadata-only pending JSON 두 개**를 분석했습니다. CLI `scripts/triage_mt3_frozen_dependencies.py`는 이 JSON들의 기존 SHA-256 증빙을 재검증하고, PyInstaller의 `BINARY` typecode를 실제 네이티브 DLL/공유 라이브러리로 잘못 집계하지 않도록 파일명 기준 후보 목록과 라이선스 검토 작업 항목을 분리합니다.
+
+| 항목 | Windows x86_64 | macOS ARM64 |
+|---|---:|---:|
+| PyInstaller CArchive `BINARY` typecode 항목 | 5,905 | 337 |
+| 확장자/파일명상 네이티브 실행 파일·공유 라이브러리 **후보** | 341 | 333 |
+| `BINARY` typecode지만 위 후보가 아닌 자료·소스 등 | 5,564 | 4 |
+| 빌더의 Python 배포 패키지 메타데이터 | 74 | 73 |
+| SPDX `License-Expression` 없는 빌더 배포 패키지 | 43 | 40 |
+| 로컬 `.dist-info` LICENSE/NOTICE 해시가 없는 패키지 | `tokenizers` | `tokenizers` |
+
+**주의:** 이 수치는 PyInstaller 아카이브 TOC의 filename/typecode 분류이며 PE/Mach-O 매직·디스어셈블·OS 로더 종속성을 검사한 완전한 네이티브 SBOM이 아닙니다. Windows는 PyInstaller가 `.py` 소스와 일부 실행 속성 데이터도 `b` typecode로 포함해 기존 `native_binary_entry_count=5905`라는 *역사적 필드 이름이 잘못된 인상*을 주었습니다. 이 보고서에서는 해당 수치를 명시적으로 `pyinstaller_binary_typecode_entry_count`로 취급하며, `recognizable_native_library_filename_count`만 별도 후보 수로 기록합니다.
+
+`tokenizers`는 빌더 메타데이터에 Apache 관련 license classifier가 있지만 해당 설치본의 로컬 notice SHA가 확인되지 않은 상태입니다. 이는 **누락된 로컬 메타데이터·검토 필요**를 뜻하며 재배포 위반이나 무라이선스임을 뜻하지 않습니다. SPDX 표현식 미기록 또한 legacy license/classifier가 별도로 존재할 수 있으므로 무허가로 단정하지 않습니다. 각 패키지의 실제 포함 여부, wheel/원본 source commit, 해당 버전 LICENSE 및 notice, 네이티브 바이너리의 정적/동적 라이브러리 provenance와 대응 소스 제공 의무를 별도로 확인해야 합니다.
+
+기존 CI 아티팩트의 ZIP에서 `MT3-FROZEN-NATIVE-QA-windows-x86_64.pending.json` 및 `MT3-FROZEN-NATIVE-QA-macos-aarch64.pending.json`를 **사설 검토 위치에만** 추출한 뒤 다음을 실행합니다.
+
+```bash
+python -m scripts.triage_mt3_frozen_dependencies \
+  --windows-proof /private/review/MT3-FROZEN-NATIVE-QA-windows-x86_64.pending.json \
+  --macos-proof /private/review/MT3-FROZEN-NATIVE-QA-macos-aarch64.pending.json \
+  --output /private/review/mt3-native-license-triage.pending.json
+```
+
+출력에는 경로 그룹별 네이티브 라이브러리 파일명 **후보**와 OS별 빌더 패키지 license expression/legacy label/classifiers/notice SHA 목록, 정확한 출처 체크섬, 플랫폼 간 패키지 버전 차이, 검토 우선순위가 포함됩니다. 원본 모델/바이너리/zip 바이트는 불러오거나 업로드하지 않습니다. 결과는 `publication_ready=false`, `complete_sbom_verified=false`, `redistribution_status=pending`이므로 배포 승인을 자동 활성화할 수 없습니다.
+
+**현재 검토 순서:** PyTorch `torch/lib` 및 기타 네이티브 라이브러리의 실제 bundled 소스/동적 의존성을 추적 → `tokenizers` 고지·대응 소스 확인 → Windows BINARY typecode로 동봉된 소스/자산의 권리 목록 확보 → MR-MT3 checkpoint의 고정 upstream revision과 권리 확인 → 독립 법적 승인 및 clean-machine 재설치 검증. `main`의 catalog/approval 파일은 이 과정을 완료하기 전까지 그대로 비워 둡니다.
