@@ -31,12 +31,13 @@ class PinnedCheckpointError(ValueError):
 
 
 def _private_directory(path: Path) -> Path:
-    path = path.expanduser().resolve()
-    if path.is_relative_to(_ROOT):
-        raise PinnedCheckpointError("Checkpoint/cache must remain outside the Git repository.")
-    if path.is_symlink():
+    expanded = path.expanduser().absolute()
+    if expanded.is_symlink():
         raise PinnedCheckpointError("Checkpoint/cache directory cannot be linked.")
-    return path
+    resolved = expanded.resolve()
+    if resolved.is_relative_to(_ROOT):
+        raise PinnedCheckpointError("Checkpoint/cache must remain outside the Git repository.")
+    return resolved
 
 
 def _sha256(path: Path) -> str:
