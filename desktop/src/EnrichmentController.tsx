@@ -10,12 +10,16 @@ type Candidate = {
   artist?: string | null;
   first_release_date?: string | null;
   album?: string | null;
+  composer?: string | null;
+  lyricist?: string | null;
+  songwriters_verified?: boolean;
   score: number;
 };
 type Report = {
   metadata: { candidates: Candidate[]; selected?: Candidate | null; applied: boolean; error?: string | null };
   lyrics?: { provider: string; lyrics: string; synced: boolean } | null;
   lyrics_error?: string | null;
+  lyrics_source?: "external_api" | "whisperx" | "unavailable";
   lyric_application?: {
     applied: boolean;
     reason?: string;
@@ -45,7 +49,7 @@ export default function EnrichmentController() {
   const [lyricsProvider, setLyricsProvider] = useState("");
   const [lyricsUrl, setLyricsUrl] = useState("");
   const [lyricsKeyEnv, setLyricsKeyEnv] = useState("");
-  const [applyReferenceLyrics, setApplyReferenceLyrics] = useState(false);
+  const [applyReferenceLyrics, setApplyReferenceLyrics] = useState(true);
   const [busy, setBusy] = useState(false);
   const [identifying, setIdentifying] = useState(false);
   const [report, setReport] = useState<Report | null>(null);
@@ -136,7 +140,8 @@ export default function EnrichmentController() {
           lyrics_provider_name: advanced && lyricsProvider ? lyricsProvider : null,
           lyrics_url_template: advanced && lyricsUrl ? lyricsUrl : null,
           lyrics_api_key_env: advanced && lyricsKeyEnv ? lyricsKeyEnv : null,
-          apply_reference_lyrics: advanced && applyReferenceLyrics,
+          apply_reference_lyrics: applyReferenceLyrics,
+          auto_lyrics: true,
         }),
       });
       const body = await response.json().catch(() => null);
@@ -147,7 +152,9 @@ export default function EnrichmentController() {
       }
       if (body.lyric_application?.applied) setMessage("메타데이터를 확인하고 외부 가사를 WhisperX 타이밍에 맞춰 악보에 반영했습니다.");
       else if (body.metadata?.applied) setMessage("신뢰도가 높은 메타데이터를 곡 정보에 반영했습니다.");
-      else setMessage("후보를 찾았습니다. 자동 적용 기준을 넘지 않은 정보는 저장하지 않았습니다.");
+      else if (body.lyrics_source === "whisperx") setMessage("외부 가사를 확인하지 못해 기존 WhisperX 음성 인식 가사를 유지했습니다.");
+      else if (body.lyrics_source === "external_api") setMessage("외부 가사를 확보했습니다. WhisperX 시간 정보가 있으면 악보에 정렬합니다.");
+      else setMessage("확인 가능한 곡 정보와 가사를 찾지 못했습니다. 수동 편집 또는 WhisperX 구성을 확인하세요.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -164,7 +171,7 @@ export default function EnrichmentController() {
         <div className="enrichment-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setOpen(false)}>
           <section className="enrichment-modal" role="dialog" aria-modal="true" aria-label="곡 정보 보강">
             <header><div><span>DATA ENRICHMENT</span><h2>곡 정보 보강</h2><p>외부 네트워크 조회는 이 화면에서 사용자가 실행할 때만 시작됩니다.</p></div><button type="button" aria-label="곡 정보 보강 닫기" onClick={() => setOpen(false)}>×</button></header>
-            <div className="enrichment-policy"><strong>원본 식별은 명시적 실행, 메타데이터는 MusicBrainz, 가사는 허용된 provider만</strong><p>원본 식별은 embedded tag와 필요 시 AcoustID/MusicBrainz를 사용합니다. 앱이 백그라운드에서 음원 정보를 외부로 보내지 않습니다.</p></div>
+            <div className="enrichment-policy"><strong>MusicBrainz 앨범·작사·작곡 / 가사 API 우선 / WhisperX 대체</strong><p>이 버튼을 실행할 때 MusicBrainz의 확인된 관계 정보와 개인용 LRCLIB 가사를 조회합니다. API 조회 실패 시 기존 WhisperX 가사를 유지합니다. 앱이 음원 파일 자체를 외부에 업로드하지는 않습니다.</p></div>
             {usageMode === "commercial" && <><label className="enrichment-commercial-check"><input type="checkbox" checked={commercialEntitlement} onChange={(event) => setCommercialEntitlement(event.target.checked)} /><span>MusicBrainz Web Service의 상용 이용 자격/계약을 확인했습니다.</span></label><label className="enrichment-commercial-check"><input type="checkbox" checked={acoustidCommercialEntitlement} onChange={(event) => setAcoustidCommercialEntitlement(event.target.checked)} /><span>AcoustID 서비스의 상용 이용 자격/계약을 확인했습니다.</span></label></>}
             <button className="enrichment-run" type="button" disabled={identifying || busy} onClick={() => void identifyOriginal()}>{identifying ? "원본 식별 중…" : "원본 음원 자동 식별"}</button>
             {usageMode === "commercial" && (
@@ -174,11 +181,12 @@ export default function EnrichmentController() {
             )}
             {identification?.selected && <div className="enrichment-message"><strong>{identification.selected.title ?? "제목 미상"}</strong>{identification.selected.artist ? ` · ${identification.selected.artist}` : ""}{typeof identification.selected_confidence === "number" ? ` · ${Math.round(identification.selected_confidence * 100)}%` : ""}</div>}
             <div className="enrichment-fields"><label><span>곡명</span><input value={title} onChange={(event) => setTitle(event.target.value)} /></label><label><span>아티스트</span><input value={artist} onChange={(event) => setArtist(event.target.value)} placeholder="알고 있다면 입력" /></label></div>
-            <button className="enrichment-advanced-toggle" type="button" onClick={() => setAdvanced((value) => !value)}>{advanced ? "가사 API 설정 닫기" : "선택 사항 · 가사 API 연결"}</button>
-            {advanced && <div className="enrichment-fields advanced"><label><span>Provider 이름</span><input value={lyricsProvider} onChange={(event) => setLyricsProvider(event.target.value)} placeholder="예: licensed-lyrics" /></label><label><span>HTTPS URL template</span><input value={lyricsUrl} onChange={(event) => setLyricsUrl(event.target.value)} placeholder="https://api.example/lyrics?artist={artist}&title={title}" /></label><label><span>API key 환경변수명</span><input value={lyricsKeyEnv} onChange={(event) => setLyricsKeyEnv(event.target.value)} placeholder="LYRICS_API_KEY" /></label><label className="enrichment-reference-check"><input type="checkbox" checked={applyReferenceLyrics} onChange={(event) => setApplyReferenceLyrics(event.target.checked)} /><span><strong>가사 텍스트를 악보에 반영</strong><small>외부 가사는 문자열 교정에만 쓰고, 노래 타이밍은 WhisperX의 원음 기반 timing을 유지합니다.</small></span></label></div>}
-            <button className="enrichment-run" type="button" disabled={busy || identifying || !title.trim() || (usageMode === "commercial" && !commercialEntitlement)} onClick={() => void run()}>{busy ? "조회 중…" : "제목·아티스트로 외부 데이터 확인"}</button>
+            <label className="enrichment-reference-check"><input type="checkbox" checked={applyReferenceLyrics} onChange={(event) => setApplyReferenceLyrics(event.target.checked)} /><span><strong>외부 가사를 악보에 반영</strong><small>원문은 API에서 가져오고 단어별 시점은 WhisperX의 음성 정렬을 사용합니다. 없으면 API 원문만 보존합니다.</small></span></label>
+            <button className="enrichment-advanced-toggle" type="button" onClick={() => setAdvanced((value) => !value)}>{advanced ? "별도 가사 API 설정 닫기" : "선택 사항 · 별도 가사 API 연결"}</button>
+            {advanced && <div className="enrichment-fields advanced"><label><span>Provider 이름</span><input value={lyricsProvider} onChange={(event) => setLyricsProvider(event.target.value)} placeholder="예: licensed-lyrics" /></label><label><span>HTTPS URL template</span><input value={lyricsUrl} onChange={(event) => setLyricsUrl(event.target.value)} placeholder="https://api.example/lyrics?artist={artist}&title={title}" /></label><label><span>API key 환경변수명</span><input value={lyricsKeyEnv} onChange={(event) => setLyricsKeyEnv(event.target.value)} placeholder="LYRICS_API_KEY" /></label></div>}
+            <button className="enrichment-run" type="button" disabled={busy || identifying || !title.trim()} onClick={() => void run()}>{busy ? "조회 중…" : "곡 정보·가사 자동 조회"}</button>
             {message && <div className="enrichment-message" role="status">{message}</div>}
-            {report && <div className="enrichment-results">{report.metadata.error && <p>MusicBrainz 조회 오류: {report.metadata.error}</p>}{report.metadata.candidates.map((item, index) => <article key={item.recording_mbid ?? index} className={report.metadata.selected?.recording_mbid === item.recording_mbid ? "selected" : ""}><div><strong>{item.title ?? "제목 없음"}</strong><span>{item.score}% match</span></div><p>{item.artist ?? "아티스트 미상"}{item.album ? ` · ${item.album}` : ""}{item.first_release_date ? ` · ${item.first_release_date}` : ""}</p>{item.recording_mbid && <small>MBID {item.recording_mbid}</small>}</article>)}{report.lyrics && <div className="enrichment-lyrics"><strong>가사 provider: {report.lyrics.provider}</strong><span>{report.lyrics.synced ? "동기화 가사" : "일반 가사"}를 provenance와 함께 확보했습니다.</span>{report.lyric_application?.applied && <span>악보 적용 완료 · {report.lyric_application.attached_tokens ?? 0} tokens</span>}{report.lyric_application && !report.lyric_application.applied && <span>악보 미적용: {report.lyric_application.reason}</span>}</div>}{report.lyrics_error && <small>가사 API: {report.lyrics_error}</small>}</div>}
+            {report && <div className="enrichment-results">{report.metadata.error && <p>MusicBrainz 조회 오류: {report.metadata.error}</p>}{report.metadata.candidates.map((item, index) => <article key={item.recording_mbid ?? index} className={report.metadata.selected?.recording_mbid === item.recording_mbid ? "selected" : ""}><div><strong>{item.title ?? "제목 없음"}</strong><span>{item.score}% match</span></div><p>{item.artist ?? "아티스트 미상"}{item.album ? ` · 앨범: ${item.album}` : ""}{item.composer ? ` · 작곡: ${item.composer}` : ""}{item.lyricist ? ` · 작사: ${item.lyricist}` : ""}{item.first_release_date ? ` · ${item.first_release_date}` : ""}</p>{item.recording_mbid && <small>MBID {item.recording_mbid}</small>}</article>)}{report.lyrics && <div className="enrichment-lyrics"><strong>가사 provider: {report.lyrics.provider}</strong><span>{report.lyrics.synced ? "동기화 가사" : "일반 가사"}를 provenance와 함께 확보했습니다.</span>{report.lyric_application?.applied && <span>악보 적용 완료 · {report.lyric_application.attached_tokens ?? 0} tokens</span>}{report.lyric_application && !report.lyric_application.applied && <span>악보 미적용: {report.lyric_application.reason}</span>}</div>}{report.lyrics_source === "whisperx" && <small>가사: 외부 API 대신 WhisperX 음성 인식 결과 사용</small>}{report.lyrics_source === "unavailable" && <small>가사: 외부 API와 WhisperX 결과 없음</small>}{report.lyrics_error && <small>가사 API: {report.lyrics_error}</small>}</div>}
           </section>
         </div>
       )}
