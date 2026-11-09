@@ -168,7 +168,7 @@ function toggleValue(values: string[], value: string) {
 }
 
 export default function SongWorkspace() {
-  const { setTarget: setSelectedSong, songChange } = useSelectedSong();
+  const { setTarget: setSelectedSong, songChange, openMetadataEditor } = useSelectedSong();
   const [songs, setSongs] = useState<Song[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [song, setSong] = useState<Song | null>(null);
@@ -309,6 +309,18 @@ export default function SongWorkspace() {
   const selectedNote = useMemo(
     () => score?.notes.find((note) => note.note_id === selectedNoteId) ?? null,
     [score, selectedNoteId],
+  );
+
+  const unresolvedMetadata = Boolean(
+    song && [
+      song.title,
+      song.artist,
+      publication.album,
+      publication.performer,
+      publication.composer,
+      publication.lyricist,
+      publication.release_date,
+    ].some((value) => (value ?? "").trim().toLowerCase() === "unknown")
   );
 
   const chordMap = useMemo(() => {
@@ -657,6 +669,15 @@ export default function SongWorkspace() {
                   <button className="run-button export-button" disabled={busy} onClick={() => void postAction("export")}>최종 파일 생성</button>
                 </div>
               </div>
+              {unresolvedMetadata && (
+                <div className="metadata-review-notice" role="status">
+                  <div><strong>곡 정보 확인이 필요합니다.</strong><p>자동 식별되지 않은 항목은 Unknown으로 표시됩니다. 제목·가수·작곡·작사 등을 확인한 뒤 재조회할 수 있습니다.</p></div>
+                  <div className="metadata-review-actions">
+                    <button className="secondary" type="button" onClick={() => setInspectorTab("credits")}>악보 정보 직접 수정</button>
+                    <button className="secondary" type="button" onClick={() => openMetadataEditor(song.song_id)}>메타데이터 관리·재조회</button>
+                  </div>
+                </div>
+              )}
               <div className="export-links">
                 <span>Full Score</span>
                 <a href={`${API}/api/songs/${song.song_id}/files/musicxml`} target="_blank">MusicXML</a>
@@ -832,6 +853,7 @@ export default function SongWorkspace() {
               <span className="field-section-title">글자 크기</span>
               <div className="layout-three"><label><span>제목</span><input type="number" min="14" max="48" value={publication.title_font_size} onChange={(event) => setPublication((current) => ({ ...current, title_font_size: Number(event.target.value) }))} /></label><label><span>부제</span><input type="number" min="8" max="28" value={publication.subtitle_font_size} onChange={(event) => setPublication((current) => ({ ...current, subtitle_font_size: Number(event.target.value) }))} /></label><label><span>크레딧</span><input type="number" min="7" max="18" step="0.5" value={publication.credit_font_size} onChange={(event) => setPublication((current) => ({ ...current, credit_font_size: Number(event.target.value) }))} /></label></div>
               <button className="run-button" disabled={busy} onClick={() => void saveCredits()}>제목 영역 적용</button>
+              <button className="secondary" type="button" disabled={busy} onClick={() => openMetadataEditor(song.song_id)}>메타데이터 관리·외부 API 재조회</button>
               <button className="delete-song-button" disabled={busy} onClick={() => void deleteSong()}>이 곡을 라이브러리에서 삭제</button>
             </div>
           )}
