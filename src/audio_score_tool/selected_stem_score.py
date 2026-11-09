@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import bisect
 import copy
-import math
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -25,6 +24,7 @@ from .musicxml_parts import extract_part_musicxml
 from .notation_backend import musicxml_to_midi
 from .runner import CommandCancelled, CommandError, command_exists, run_command
 from .score_requests import validate_score_mode
+from .score_timing import score_time_clocks
 from .selected_stem_timeline import align_selected_role_scores
 from .transcription_engine import (
     BaseTranscriptionEngine,
@@ -95,32 +95,6 @@ def _main_part(score_path: Path, destination: Path, *, part_name: str):
     return selected
 
 
-def _score_clock(score):
-    """Map score quarters to/from elapsed seconds, including every tempo change."""
-    quarters, seconds, rates = [], [], []
-    elapsed = 0.0
-    for start, end, mark in score.metronomeMarkBoundaries():
-        bpm = mark.getQuarterBPM()
-        if bpm is None or not math.isfinite(bpm) or bpm <= 0:
-            raise SelectedScoreError("Selected score contains an invalid tempo")
-        quarters.append(float(start))
-        seconds.append(elapsed)
-        rates.append(60.0 / bpm)
-        elapsed += float(end - start) * rates[-1]
-    if not quarters:
-        raise SelectedScoreError("Selected score has no usable time axis")
-
-    def to_seconds(position):
-        index = max(0, bisect.bisect_right(quarters, position) - 1)
-        return seconds[index] + (position - quarters[index]) * rates[index]
-
-    def to_quarters(position):
-        index = max(0, bisect.bisect_right(seconds, position) - 1)
-        return quarters[index] + (position - seconds[index]) / rates[index]
-
-    return to_seconds, to_quarters
-
-
 def _annotate_chords(source: Path, backing: Path, destination: Path, stage: Path) -> None:
     """Project backing harmony by elapsed audio time onto unchanged vocal notes."""
     from music21 import converter, harmony, note, stream
@@ -128,8 +102,11 @@ def _annotate_chords(source: Path, backing: Path, destination: Path, stage: Path
     parsed = converter.parse(str(source))
     accompaniment = converter.parse(str(backing))
     backing_measures = list(accompaniment.parts[0].getElementsByClass(stream.Measure))
-    backing_seconds, _ = _score_clock(accompaniment)
-    _, vocal_quarters = _score_clock(parsed)
+    try:
+        backing_seconds, _ = score_time_clocks(accompaniment)
+        _, vocal_quarters = score_time_clocks(parsed)
+    except ValueError as exc:
+        raise SelectedScoreError(str(exc)) from exc
     measures = list(parsed.parts[0].getElementsByClass(stream.Measure))
     starts = [float(m.getOffsetBySite(parsed.parts[0])) for m in measures]
     overlay = stream.Score()

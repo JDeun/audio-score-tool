@@ -68,13 +68,79 @@ def test_adapter_rejects_unsorted_events(tmp_path):
         load_sheetsage_events(events)
 
 
-def test_variable_tempo_beat_alignment():
-    from audio_score_tool.sheetsage_hybrid import _quarter_offset
+def test_analysis_annotations_follow_unchanged_score_clock_despite_other_beat_grid(tmp_path):
+    import xml.etree.ElementTree as ET
 
-    beats = [{"time_seconds": 0.0}, {"time_seconds": 0.4},
-             {"time_seconds": 1.0}, {"time_seconds": 1.8}]
-    assert _quarter_offset(0.7, bpm=120, beats=beats) == pytest.approx(1.5)
-    assert _quarter_offset(1.4, bpm=120, beats=beats) == pytest.approx(2.5)
+    from music21 import meter, tempo
+
+    score = stream.Score()
+    part = stream.Part()
+    for number, bpm in ((1, 60), (2, 120)):
+        measure = stream.Measure(number=number)
+        if number == 1:
+            measure.insert(0, meter.TimeSignature("3/4"))
+        measure.insert(0, tempo.MetronomeMark(number=bpm))
+        for pitch in (60, 62, 64):
+            measure.append(note.Note(pitch, quarterLength=1))
+        part.append(measure)
+    score.insert(0, part)
+    source = tmp_path / "source.musicxml"
+    score.write("musicxml", fp=str(source))
+    events = tmp_path / "events.json"
+    events.write_text(json.dumps({
+        "schema_version": 1,
+        "beats": [{"time_seconds": at} for at in (0, 0.25, 0.5, 0.75)],
+        "chords": [{"time_seconds": 4, "label": "G:7"}],
+    }))
+    target = tmp_path / "merged.musicxml"
+    report = merge_sheetsage_musicxml(source, events, target)
+    parsed = converter.parse(str(target))
+    symbol = list(parsed.recurse().getElementsByClass(harmony.ChordSymbol))[0]
+    assert symbol.getOffsetInHierarchy(parsed) == 5
+    for tag in ("note", "time", "direction"):
+        assert [ET.tostring(n) for n in ET.parse(source).iter(tag)] == [
+            ET.tostring(n) for n in ET.parse(target).iter(tag)
+        ]
+    assert report["alignment"] == "source_score_tempo_map"
+    assert report["beat_grid_applied"] is False
+
+
+def test_lead_sheet_normalization_preserves_minor_mode_and_tempo_changes(tmp_path):
+    from music21 import key, tempo
+
+    from audio_score_tool.sheetsage_hybrid import normalize_lead_sheet_musicxml
+
+    score = stream.Score()
+    part = stream.Part()
+    part.insert(0, key.Key("a"))
+    part.insert(0, tempo.MetronomeMark(number=60))
+    part.insert(2, tempo.MetronomeMark(number=120))
+    part.insert(0, note.Note(60, quarterLength=4))
+    part.insert(3, harmony.ChordSymbol("Am"))
+    score.insert(0, part)
+    source = tmp_path / "minor.musicxml"
+    score.write("musicxml", fp=str(source))
+    report = normalize_lead_sheet_musicxml(source, tmp_path / "events.json")
+    assert report["keys"] == [{"time_seconds": 0, "label": "A:minor"}]
+    assert report["chords"][0]["time_seconds"] == 2.5
+
+
+def test_score_clock_uses_fallback_only_until_first_explicit_tempo():
+    from music21 import tempo
+
+    from audio_score_tool.score_timing import score_time_clocks
+
+    score = stream.Score()
+    part = stream.Part()
+    part.insert(2, tempo.MetronomeMark(number=120))
+    part.insert(0, note.Note(60, quarterLength=4))
+    score.insert(0, part)
+    seconds, quarters = score_time_clocks(score, fallback_bpm=60)
+    assert seconds(3) == 2.5
+    assert quarters(2.5) == 3
+    part.insert(2, tempo.MetronomeMark(number=90))
+    with pytest.raises(ValueError, match="conflicting"):
+        score_time_clocks(score)
 
 
 def test_nonfinite_beat_is_rejected(tmp_path):
