@@ -61,4 +61,6 @@ def test_real_gated_muscriptor_only_uploads_metadata_evidence():
     for disallowed in ("out/**/*.mid", "out/**/*.musicxml", "out/muscriptor/score"):
         assert disallowed not in upload
     assert "HF_TOKEN: ''" in content
-    assert "MuScriptorEngine" in content
+    assert "scripts.run_muscriptor_source_qa" in content
+    product_runner = Path("scripts/run_muscriptor_source_qa.py").read_text(encoding="utf-8")
+    assert "MuScriptorEngine" in product_runner
