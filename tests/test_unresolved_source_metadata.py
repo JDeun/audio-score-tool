@@ -179,3 +179,86 @@ def test_opted_out_job_does_not_overwrite_metadata_or_call_api(prepared, monkeyp
     assert automatic.enrich_completed_job(job)["status"] == "disabled"
     assert store.get("song-1")["title"] == "nonsense"
     assert store.get("song-1")["revision"] == 1
+
+
+
+def test_multiple_matching_musicbrainz_recordings_confirm_names_but_not_creators(
+    prepared, monkeypatch,
+):
+    """Real-world recordings share a song identity but not necessarily a Work."""
+    store, publication, _job = prepared("Green Day - American Idiot.mp3")
+    monkeypatch.setattr(
+        enrichment_api, "runtime_settings",
+        lambda: SimpleNamespace(usage_mode="personal"),
+    )
+    candidates = [
+        {
+            "provider": "musicbrainz", "title": "American Idiot",
+            "artist": "Green Day", "album": "Promotional Single",
+            "first_release_date": "2004-01-01",
+            "score": 100, "recording_mbid": "00000000-0000-0000-0000-000000000001",
+        },
+        {
+            "provider": "musicbrainz", "title": "American Idiot",
+            "artist": "Green Day", "album": "Studio Album",
+            "first_release_date": "2004-09-21",
+            "score": 99, "recording_mbid": "00000000-0000-0000-0000-000000000002",
+        },
+    ]
+    monkeypatch.setattr(enrichment_api, "search_musicbrainz", lambda *_a: candidates)
+    monkeypatch.setattr(
+        enrichment_api, "lookup_musicbrainz_work_credits",
+        lambda *_args: pytest.fail("A recording was arbitrarily selected from ambiguous matches"),
+    )
+    result = enrichment_api.enrich_song(
+        "song-1", enrichment_api.EnrichRequest(
+            title="American Idiot", artist="Green Day",
+            require_exact_match=True, auto_lyrics=False, apply_reference_lyrics=False,
+        ),
+    )
+    selected = result["metadata"]["selected"]
+    assert result["metadata"]["applied"] is True
+    assert selected["match_scope"] == "song_identity_only_ambiguous_recording"
+    assert selected["ambiguous_recording_count"] == 2
+    assert selected["recording_mbid"] is None
+    assert store.get("song-1")["title"] == "American Idiot"
+    assert store.get("song-1")["artist"] == "Green Day"
+    fields = publication.read("song-1")
+    assert fields["performer"] == "Green Day"
+    for key in ("album", "release_date", "composer", "lyricist"):
+        assert fields[key] == "Unknown"
+    assert "recognized ASR word" in store.score_xml("song-1")
+
+
+def test_one_high_confidence_recording_can_fill_album_without_lower_score_noise(
+    prepared, monkeypatch,
+):
+    store, publication, _job = prepared("Album artist - Song.mp3")
+    monkeypatch.setattr(
+        enrichment_api, "runtime_settings",
+        lambda: SimpleNamespace(usage_mode="personal"),
+    )
+    monkeypatch.setattr(
+        enrichment_api, "search_musicbrainz",
+        lambda *_a: [
+            {
+                "provider": "musicbrainz", "title": "Song",
+                "artist": "Album artist", "album": "Real Album",
+                "recording_mbid": None, "score": 100,
+            },
+            {
+                "provider": "musicbrainz", "title": "Song",
+                "artist": "Album artist", "album": "Noise Album",
+                "recording_mbid": None, "score": 40,
+            },
+        ],
+    )
+    result = enrichment_api.enrich_song(
+        "song-1", enrichment_api.EnrichRequest(
+            title="Song", artist="Album artist", require_exact_match=True,
+            auto_lyrics=False, apply_reference_lyrics=False,
+        ),
+    )
+    assert result["metadata"]["selected"]["album"] == "Real Album"
+    assert result["metadata"]["applied"] is True
+    assert publication.read("song-1")["album"] == "Real Album"
