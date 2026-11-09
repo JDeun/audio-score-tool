@@ -83,6 +83,18 @@ def test_comparison_prioritizes_publish_time_before_note_f1(tmp_path: Path):
     assert result["case_fingerprint"] == "c" * 64
 
 
+def test_comparison_rejects_mixing_legacy_counts_with_timed_annotation_metrics(tmp_path):
+    paths = [tmp_path / "old.json", tmp_path / "new.json"]
+    for index, path in enumerate(paths):
+        _write_report(path, engine_id=str(index), publish_time=100, edits=10,
+                      note_f1=0.9, export_rate=1.0, all_exports=True)
+    payload = json.loads(paths[1].read_text())
+    payload["annotation_metric_protocol"] = "timed-v2"
+    paths[1].write_text(json.dumps(payload))
+    with pytest.raises(Tier2ComparisonError, match="same annotation metric protocol"):
+        compare_tier2_reports(paths)
+
+
 def test_failed_export_disqualifies_candidate_even_if_faster(tmp_path: Path):
     failed = tmp_path / "failed.json"
     stable = tmp_path / "stable.json"

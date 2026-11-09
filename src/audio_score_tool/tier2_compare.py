@@ -141,6 +141,9 @@ def compare_tier2_reports(paths: list[Path]) -> dict[str, Any]:
     case_fingerprints = {str(report.get("case_fingerprint")) for report in reports}
     if len(case_fingerprints) != 1:
         raise Tier2ComparisonError("Tier 2 reports must use the exact same case set and order")
+    annotation_protocols = {report.get("annotation_metric_protocol", "legacy-count-sequence-v1") for report in reports}
+    if len(annotation_protocols) != 1:
+        raise Tier2ComparisonError("Tier 2 reports must use the same annotation metric protocol")
 
     candidates = [_candidate(report) for report in reports]
     engine_ids = [candidate["engine_id"] for candidate in candidates]
@@ -169,6 +172,7 @@ def compare_tier2_reports(paths: list[Path]) -> dict[str, Any]:
         "corpus_version": next(iter(corpus_versions)),
         "manifest_sha256": next(iter(manifest_digests)),
         "case_fingerprint": next(iter(case_fingerprints)),
+        "annotation_metric_protocol": next(iter(annotation_protocols)),
         "selection_priority": [
             "all_exports_successful",
             "complete_applicable_metric_coverage",
