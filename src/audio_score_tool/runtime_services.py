@@ -125,6 +125,7 @@ class YouTubeJobRequest(BaseModel):
     skip_lyrics: bool = False
     preset: str = "auto"
     score_mode: str = "full"
+    auto_enrich: bool = True
     muscriptor_model: str | None = None
     whisperx_model: str | None = None
 
