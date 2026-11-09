@@ -205,3 +205,13 @@ LRCLIB 클라이언트는 `/api/get`에서 지정된 버전/앨범의 데이터�
 [실제 공개 API probe](https://github.com/JDeun/audio-score-tool/actions/runs/42570489256)에서 `Green Day - American Idiot`에 대해 제목·아티스트가 동일하고 높은 점수 기준을 충족한 녹음 **5개 모두 최고점 동률**이었으며, 후보의 **앨범명은 5종**이었습니다. 어느 녹음을 첫 번째로 받는지에 따라 `work-rels`의 작사·작곡 정보 존재 여부도 달랐습니다. 따라서 `require_exact_match=true` 자동 조회에서는 임계값 이상의 **서로 다른 recording ID가 2개 이상**이면 곡명·가수만 확정하고 album/release_date/composer/lyricist는 명시적 `Unknown`을 남깁니다. 단 하나의 고신뢰도 recording이 있는 경우에만 녹음별 앨범 및 독립 Work 크레딧을 채웁니다. 사용자가 직접 입력한 값은 덮어쓰지 않습니다.
 
 MusicBrainz가 `HTTP 502/503/504`로 일시적으로 실패하면 1회만 대기 후 재시도합니다. `429 Too Many Requests` 및 403에는 자동 반복 호출하지 않고 `Unknown`/사용자 수동 재조회로 넘깁니다. 공개 서비스의 간헐적 오류는 오디오 채보의 성공 여부와 별도입니다.
+
+### 여러 녹음·앨범의 사용자 명시 선택 및 검증 (#187)
+
+MusicBrainz는 같은 곡명·아티스트로 여러 recording/album을 반환할 수 있습니다(실측 Green Day – American Idiot에서도 여러 recording/album). 이전에는 모호한 경우 곡명과 가수만 확인하고 앨범·작사·작곡을 Unknown으로 유지했습니다.
+
+메타데이터 관리·재조회 팝업의 검색 후보에서는 이제 **앨범·발매일·녹음 MBID·앨범 MBID를 표시**하고, 사용자가 해당 후보의 **‘이 버전 적용’**을 명시적으로 선택할 수 있습니다. 검색 결과 자체가 앨범·작곡가의 진실이라는 뜻은 아닙니다. 클릭하면 앱은 `POST /api/songs/{song_id}/select-recording`으로 두 MBID와 `expected_revision`만 전송합니다. 서버는 MusicBrainz의 **recording/{MBID}**를 별도 조회해 실제 곡명·아티스트가 현재 Song과 정확히 일치하는지 검증하고, 선택한 **release/{MBID}**가 해당 recording의 연결된 release 목록에 존재하는지 확인한 후에만 앨범·발매일을 적용합니다. 검색 결과에 나온 텍스트를 서버에서 믿지 않습니다. Work의 작곡가/작사가는 기존 별도 관계 검증 경로를 거치며 관계가 없으면 Unknown 그대로입니다.
+
+Song revision이 사이에 바뀌었거나 다른 recording/artist/album ID가 전달된 경우 409 또는 422 오류를 반환하고 아무 값도 쓰지 않습니다. 선택된 녹음의 크레딧은 기존 `commit_identified_metadata` 트랜잭션, MusicXML 수정, export 무효화, Undo를 그대로 사용합니다. 사용자가 직접 입력한 앨범·작사·작곡·편곡·권리 정보는 자동으로 덮어쓰지 않으며, 비어 있거나 자동 생성된 Unknown만 보충합니다. 선택한 MBID·release MBID·확인된 writer 존재 여부는 **메타데이터만** Song analysis에 기록하고 원본 오디오/가사 원문은 포함하지 않습니다.
+
+MusicBrainz API recording lookup이 반환하는 release 목록은 최대 25개 등 범위 제한이 있을 수 있으므로, 사용자가 선택한 release가 해당 응답에 없으면 연결을 추정하지 않고 적용을 거절합니다. 이 경우 직접 편집하거나 다른 검증 가능한 후보를 고를 수 있습니다. 상용 MusicBrainz API 이용 조건과 외부 API 장애(429, 5xx)는 별도 오류로 처리합니다.
