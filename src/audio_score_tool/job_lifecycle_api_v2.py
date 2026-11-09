@@ -136,6 +136,7 @@ def create_youtube_job_v2(payload: base_api.YouTubeJobRequest) -> dict:
         skip_lyrics=payload.skip_lyrics,
         preset=payload.preset,
         score_mode=score_mode,
+        auto_enrich=payload.auto_enrich,
         muscriptor_model=resolved_muscriptor,
         whisperx_model=resolved_whisperx,
     )
@@ -223,6 +224,7 @@ def retry_job_v2(job_id: str) -> dict:
         "language": source.get("language"),
         "preset": source.get("preset") or default_presets[kind],
         "score_mode": source.get("score_mode") or "full",
+        "auto_enrich": source.get("auto_enrich", False),
         "skip_lyrics": source.get("skip_lyrics", False) if kind == "transcription" else kind != "benchmark",
     }
     if kind == "transcription":
