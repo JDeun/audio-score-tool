@@ -97,7 +97,13 @@ def _apply_metadata(
 
         def fillable(field: str) -> bool:
             current = str(updated_publication.get(field) or "").strip()
-            return not current or (auto_unknown and current == "Unknown")
+            return not current or (
+                current == "Unknown"
+                and (
+                    auto_unknown
+                    or selected.get("match_scope") == "explicit_verified_recording"
+                )
+            )
 
         # Unknown is an explicit unresolved marker, not an artist/author
         # guess. Missing credits can later be filled by verified API matches;
