@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .config import Settings
+from .demucs_runtime import demucs_ready
 from .notation_backend import backend_status
 from .omr import audiveris_status
 from .runner import command_exists
@@ -18,7 +19,7 @@ def preflight(settings: Settings | None = None, *, require_lyrics: bool = False)
         "muscriptor": command_exists(settings.muscriptor_cmd),
         "native_engine": command_exists(settings.native_engine_cmd),
         "transcription_engine": engine.ready(),
-        "demucs": command_exists(settings.demucs_cmd),
+        "demucs": demucs_ready(settings),
         "whisperx": command_exists(settings.whisperx_cmd),
         "music21": notation["music21"],
         "verovio": notation["verovio"],

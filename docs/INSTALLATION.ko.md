@@ -153,3 +153,8 @@ signing뿐 아니라 **독립 실행성**을 실제로 검증해야 합니다.
 11. [`SYSTEM_REQUIREMENTS.ko.md`](SYSTEM_REQUIREMENTS.ko.md)의 최소/권장 등급을 대표하는 clean machine에서 기본 workflow와 공식 지원 AI 기능의 peak RAM/VRAM/RTF를 기록
 
 코드 signing/notarization과 updater credential 작업은 [#22](https://github.com/JDeun/audio-score-tool/issues/22)에서 추적합니다. dependency별 배포 방식과 라이선스는 [`DEPENDENCIES.ko.md`](DEPENDENCIES.ko.md), [`THIRD_PARTY_LICENSES.ko.md`](THIRD_PARTY_LICENSES.ko.md)를 함께 확인합니다.
+
+
+### Demucs 선택 악기 분리 (#185)
+
+Setup Center는 `demucs`를 독립 선택형 구성요소로 표시하고, **허가된 관리형 아티팩트가 실제로 게시되었을 때만** 설치 버튼을 제공합니다. packaged 환경에서는 `htdemucs`와 `htdemucs_6s`의 앱 소유·검증된 로컬 모델만 `--repo`로 실행하며 PATH/uvx/사용자 캐시 폴백은 허용하지 않습니다. 현재 카탈로그와 승인 기록에 실제 아티팩트가 없으므로 분리 기능은 정식 설치 가능 상태가 아닙니다. 이 상태에서 전체 악보 채보는 유지되지만 Lead Sheet·기타+보컬의 stem 채보는 구성요소 설치 필요 메시지를 표시합니다.

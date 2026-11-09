@@ -8,7 +8,7 @@ from .managed_components import ComponentArtifact, ComponentError
 from .managed_release_approvals import check_release_approval
 
 CORE_COMPONENTS = ("transcription_engine", "youtube_runtime", "audiveris")
-OPTIONAL_COMPONENTS = ("whisperx", "audio_validation")
+OPTIONAL_COMPONENTS = ("whisperx", "demucs", "audio_validation")
 STABLE_TARGETS = ("windows-x86_64", "macos-aarch64")
 
 _REQUIRED_TOOLS: dict[str, frozenset[str]] = {
@@ -21,6 +21,7 @@ _REQUIRED_TOOLS: dict[str, frozenset[str]] = {
     # Audiveris distributions may carry their JVM internally; only the stable
     # application launcher is part of AudioScoreTool's executable contract.
     "audiveris": frozenset({"audiveris"}),
+    "demucs": frozenset({"demucs"}),
 }
 
 

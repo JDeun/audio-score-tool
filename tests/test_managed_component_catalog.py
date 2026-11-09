@@ -18,6 +18,7 @@ def test_bundled_catalog_declares_all_managed_product_components():
         "youtube_runtime",
         "audiveris",
         "whisperx",
+        "demucs",
         "audio_validation",
     } <= set(catalog["components"])
 

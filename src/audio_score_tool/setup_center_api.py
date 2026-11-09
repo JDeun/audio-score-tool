@@ -28,6 +28,7 @@ router = APIRouter(tags=["setup-center"])
 _MANAGED_COMPONENTS = {
     "transcription_engine",
     "whisperx",
+    "demucs",
     "youtube_runtime",
     "audiveris",
     "audio_validation",
@@ -144,6 +145,19 @@ def setup_center_status() -> dict:
             role="가사를 인식하고 보컬 음표에 정렬합니다.",
             required_for=["lyrics"],
             note="설치된 component는 앱 관리 root 밖의 executable을 참조할 수 없습니다.",
+        ),
+        _component(
+            "demucs",
+            "보컬·악기 분리 엔진 (Demucs)",
+            bool(tools.get("demucs")),
+            tier="optional",
+            delivery="managed-component",
+            role="Lead Sheet, 기타+보컬 악보와 선택적 보컬 분리에 사용합니다.",
+            required_for=["lead_sheet", "guitar_vocal", "vocal_separation"],
+            note=(
+                "앱 검증된 실행 파일과 htdemucs/htdemucs_6s 모델을 함께 설치해야 합니다. "
+                "가중치 및 재배포 검토가 끝나지 않은 플랫폼에서는 설치할 수 없습니다."
+            ),
         ),
         _component(
             "youtube_runtime",

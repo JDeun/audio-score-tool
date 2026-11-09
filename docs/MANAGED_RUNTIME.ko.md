@@ -114,7 +114,7 @@ Setup Center의 `catalog.published` 및 `auto_install`은 별도 릴리스 게�
 - 설치 버튼은 trust policy에 따라 `catalog.published == true`일 때만 노출하고, 클라이언트는 주소·해시·경로를 제공하지 않습니다.
 - `managed_status.ready`는 실제 설치 파일의 무결성이 확인된 상태이며, 관련 실행 명령의 서비스 준비 상태(`component.ready`)와 구분됩니다.
 - 데스크톱 Playwright 테스트는 공개 catalog의 설치 가능 여부를 모의 응답으로 확인합니다. 이 테스트가 실제 배포 파일을 발행하거나 라이선스를 승인하지는 않습니다.
-- **현시점 번들 catalog의 다섯 component 모두 `artifacts: {}`** 입니다. 따라서 Windows/macOS의 실사용 AMT/YouTube/OMR 런타임을 준비했다고 선언할 수 없습니다. 게시 아티팩트의 라이선스·checksum·패키징을 확인하는 #29와 정식 서명/업데이트 인수시험 #22는 별도로 필요합니다.
+- **현시점 번들 catalog의 여섯 component 모두 `artifacts: {}`** 입니다. 따라서 Windows/macOS의 실사용 AMT/YouTube/OMR 런타임을 준비했다고 선언할 수 없습니다. 게시 아티팩트의 라이선스·checksum·패키징을 확인하는 #29와 정식 서명/업데이트 인수시험 #22는 별도로 필요합니다.
 
 
 ## 2026-11-08 — 이름이 겹치는 실행 도구의 소유 컴포넌트 분리 (#29)
@@ -296,3 +296,12 @@ GitHub Actions의 운영자 설정 **Repository Variable `YOUTUBE_QA_SOURCE_REVI
 관리형 배포가 실제로 승인되기 전에는 기존 source/development 모델 선택을 유지하며, 미게시 MR-MT3를 자동 준비 완료로 표시하지 않습니다. `AST_PACKAGED=1`에서 해당 플랫폼 `transcription_engine`이 **독립 승인 기록까지 통과하여 게시된 경우에만**, `model_identity.model_key=mr_mt3`를 새 설치의 AMT 기본 모델로 채택합니다. 개인 모드 새 설치에서도 제공되지 않는 MuScriptor 대신 게시된 MT3를 기본 선택합니다. 과거 설정에 YourMT3가 남아 있더라도 지원되지 않는 모델 파일을 실행하려 하지 않고 승인된 모델을 유효 선택으로 사용합니다(사용자 저장 파일 자체는 임의 수정하지 않음). 배포판 UI는 미포함 모델 선택을 비활성화하고 API는 직접 잘못된 요청을 HTTP 422로 거부합니다.
 
 이 기본값 배선은 게시 승인·SHA/서명·실제 추론 품질의 **대체가 아닙니다**. `managed_mt3_model` API 값이 `null`이면 독립 승인된 릴리스 모델이 없다는 의미입니다. 다음 단계에서는 실제 Windows/macOS 승인 아티팩트로 설정→설치→음원 채보·출력까지 검증해야 합니다.
+
+
+## 선택 악기 분리: Demucs 구성요소와 오프라인 모델 바인딩 (#185, 2026-11-09)
+
+Demucs는 `demucs`라는 독립 관리형 구성요소입니다. 설치 대상은 Setup Center의 `POST /api/setup/install` 계약에 등록되어 있지만, **현재 공개 catalog의 `demucs.artifacts`는 비어 있고 서명/재배포 승인을 받지 않았습니다.** 설치 버튼은 게시 승인 검증 전 표시되지 않으며, 모델이 없는데도 선택 악보를 준비 완료로 표시하지 않습니다. 일반 전체 악보 채보·MusicXML 편집·출판은 Demucs 부재와 관계없이 동작합니다.
+
+packaged 실행에서는 `registered_managed_tool('demucs', component='demucs')`와 전체 설치 payload SHA-256 인벤토리로 실행 파일의 소유와 바이트를 확인합니다. `htdemucs`(vocal/no-vocals)와 `htdemucs_6s`(vocal/guitar) 각각의 로컬 YAML 모델 서명과 고정 이름의 `.th` 파일도 요구합니다. `--repo <앱 소유 verified component>/models` 옵션을 분리 명령에 명시해, **사용자 홈 캐시 또는 네트워크 모델 다운로드에 의존하지 않습니다.** 복구/삭제/롤백은 기존 managed component 공통 API를 사용하며, 실행 전에도 전체 payload 무결성을 확인합니다.
+
+해당 배선과 합성 아티팩트 테스트는 실제 Demucs/PyTorch 바이너리의 self-contained Windows/macOS 실행, 진짜 모델 가중치의 유효성, 저작권 및 상용 재배포 권리, 실제 노래 stem 품질 또는 악보 정확도를 증명하지 않습니다. 이를 증명한 배포 바이트와 검토 문서가 준비되기 전까지 `artifacts: {}` 및 `approvals: {}`를 유지하고 #29 / #34를 열어 둡니다.

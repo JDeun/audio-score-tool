@@ -30,6 +30,12 @@
       "license": "runtime-specific",
       "provenance": "AudioScoreTool release managed runtime",
       "artifacts": {}
+    },
+    "demucs": {
+      "version": "0.8-runtime-1",
+      "license": "runtime-specific",
+      "provenance": "AudioScoreTool release managed separator (pending rights and acceptance)",
+      "artifacts": {}
     }
   }
 }

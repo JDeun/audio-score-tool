@@ -9,6 +9,8 @@ from threading import Thread
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from . import api as base_api
+from .config import packaged_runtime
+from .demucs_runtime import managed_demucs_repository
 from .job_admission import JobCapacityError, reserve_job
 from .job_transcription_settings import transcription_job_selection
 from .paths import jobs_dir
@@ -85,7 +87,10 @@ async def create_job_v2(
             "채보 필수 실행환경이 준비되지 않았습니다: " + ", ".join(readiness["missing"]),
         )
 
-    if needs_stem_separation(score_mode) and not command_exists(defaults.demucs_cmd):
+    if needs_stem_separation(score_mode) and (
+        not command_exists(defaults.demucs_cmd)
+        or (packaged_runtime() and managed_demucs_repository(defaults) is None)
+    ):
         raise HTTPException(503, "선택 악기 채보에는 Demucs가 필요합니다. 구성요소 상태에서 설치하세요.")
 
     job_id = uuid.uuid4().hex
