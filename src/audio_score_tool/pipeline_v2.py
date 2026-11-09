@@ -22,6 +22,8 @@ from .paths import song_assets_dir
 from .pickup_normalization import normalize_pickup_measure
 from .pipeline import PipelineCancelled, PipelineError, _find_one, _find_whisper_json
 from .runner import CommandCancelled, CommandError, command_exists, run_command
+from .score_requests import validate_score_mode
+from .selected_stem_score import SelectedScoreError, transcribe_selected_stems
 from .transcription_engine import (
     TranscriptionEngineCancelled,
     TranscriptionEngineError,
@@ -58,6 +60,7 @@ def transcribe(
     *,
     language: str | None = None,
     skip_lyrics: bool = False,
+    score_mode: str = "full",
     choir_mode: str = "auto",
     settings: Settings | None = None,
     progress: Callable[[str, int], None] | None = None,
@@ -67,7 +70,10 @@ def transcribe(
     """Transcribe to editable canonical score data without creating final exports."""
 
     settings = settings or Settings()
+    score_mode = validate_score_mode(score_mode)
     choir_mode = choir_mode.strip().lower()
+    if score_mode != "full":
+        choir_mode = "off"  # Never reinterpret selected stem roles as a choir.
     if choir_mode not in {"auto", "choir", "off"}:
         raise PipelineError("choir_mode must be auto, choir, or off")
 
@@ -115,17 +121,28 @@ def transcribe(
             f"{structure.music_start_seconds:.2f}s (confidence {structure.start_confidence:.2f})."
         )
 
-    emit("transcription", 8)
+    selected_vocals_path: Path | None = None
+    emit("stem_separation" if score_mode != "full" else "transcription", 8)
     try:
-        artifacts = engine.transcribe(
-            transcription_audio,
-            score_dir,
-            device=device.muscriptor_device,
-            cancel_event=cancel_event,
-        )
+        if score_mode == "full":
+            artifacts = engine.transcribe(
+                transcription_audio,
+                score_dir,
+                device=device.muscriptor_device,
+                cancel_event=cancel_event,
+            )
+        else:
+            artifacts, selected_vocals_path, selected_warnings = transcribe_selected_stems(
+                transcription_audio, score_dir, stems_dir,
+                score_mode=score_mode, settings=settings, engine=engine,
+                device=device.muscriptor_device,
+                demucs_device=device.demucs_device,
+                cancel_event=cancel_event,
+            )
+            warnings.extend(selected_warnings)
     except TranscriptionEngineCancelled as exc:
         raise PipelineCancelled("Transcription cancelled.") from exc
-    except TranscriptionEngineError as exc:
+    except (TranscriptionEngineError, SelectedScoreError) as exc:
         raise PipelineError(f"{engine.display_name} failed.\n{exc}") from exc
 
     midi_path = artifacts.midi_path
@@ -178,7 +195,7 @@ def transcribe(
     chord_report = work_dir / "chords.json"
     try:
         inferred_chords = apply_inferred_chords(musicxml_path, report_path=chord_report)
-        if not inferred_chords:
+        if not inferred_chords and score_mode != "lead_sheet":
             warnings.append(
                 "Automatic chord analysis did not find sufficiently confident chord changes. "
                 "The score remains editable in the Chord inspector."
@@ -216,10 +233,12 @@ def transcribe(
 
     def run_optional_lyrics() -> PipelineResult:
         emit("vocal_separation", 65)
-        stems_dir.mkdir()
-        vocals_path: Path | None = None
-        lyrics_audio = transcription_audio
-        if command_exists(settings.demucs_cmd):
+        stems_dir.mkdir(exist_ok=True)
+        vocals_path: Path | None = selected_vocals_path
+        lyrics_audio = vocals_path or transcription_audio
+        if vocals_path is not None:
+            pass  # Reuse the already isolated vocal stem.
+        elif command_exists(settings.demucs_cmd):
             try:
                 run_command(
                     settings.demucs_cmd,
