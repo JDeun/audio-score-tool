@@ -81,3 +81,12 @@
 .workspace-message { margin: 0; border-radius: 9px; padding: 9px 10px; background: #f4f3ed; color: #666a62; font-size: 11px; line-height: 1.5; white-space: pre-wrap; flex: 0 0 auto; }
 @media (max-width: 1300px) { .song-layout { grid-template-columns: 210px minmax(500px, 1fr); } .score-inspector { grid-column: 1 / -1; max-height: none; } .note-list { max-height: 240px; } }
 @media (max-width: 940px) { .song-layout { grid-template-columns: 1fr; } .song-library { max-height: 260px; } .song-list { max-height: 190px; } .song-header { align-items: start; flex-direction: column; } .score-toolbar { align-items: start; flex-direction: column; } .score-actions { justify-content: flex-start; } }
+
+/* Visible completion work for scores with auto-generated Unknown credits. */
+.metadata-review-notice { display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap; margin: 12px 0; padding: 14px 16px; border-radius: 13px;
+  border: 1px solid #d7dccd; background: #f4f6ef; color: #3d4b3c; }
+.metadata-review-notice strong { font-size: 12px; }
+.metadata-review-notice p { font-size: 11px; line-height: 1.55; margin: 4px 0 0; }
+.metadata-review-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.metadata-review-actions button { white-space: nowrap; }

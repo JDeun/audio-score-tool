@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from audio_score_tool import enrichment_api, revision_api_v2
+from audio_score_tool import credits_api, enrichment_api, revision_api_v2
 from audio_score_tool.api import app
 from audio_score_tool.publication_store_v2 import PublicationStoreV2
 from audio_score_tool.song_store_v2 import SongStoreV2
@@ -285,3 +286,120 @@ def test_failed_publication_metadata_write_rolls_back_all_fields(state):
     assert store.score_xml("song-1") == old
     assert publication.read("song-1")["album"] == ""
     assert _snapshot_count(store) == 0
+
+
+
+def test_manual_metadata_save_then_exact_api_requery_preserves_user_edits(
+    state, monkeypatch,
+):
+    """A recovered Unknown score can be edited, saved and enriched in one Song."""
+    store, publication = state
+    original = store.get("song-1")
+    assert original is not None
+
+    store.set_analysis("song-1", "automatic_enrichment", {"status": "unknown"})
+    assert enrichment_api._apply_metadata(
+        "song-1", original,
+        {"provider": "unresolved", "title": "Unknown", "artist": "Unknown"},
+        original["title"], original["artist"],
+    )
+    assert store.get("song-1")["revision"] == 2
+    assert publication.read("song-1")["album"] == "Unknown"
+    assert publication.read("song-1")["composer"] == "Original composer"
+
+    def require_song(song_id):
+        row = store.get(song_id)
+        if row is None:
+            raise HTTPException(404, "Song not found")
+        return row
+
+    monkeypatch.setattr(credits_api, "_song_store", store)
+    monkeypatch.setattr(credits_api, "_publication_store", publication)
+    monkeypatch.setattr(credits_api, "_require_song", require_song)
+    client = TestClient(app)
+    saved = client.patch("/api/songs/song-1/credits", json={
+        "title": "American Idiot",
+        "artist": "Green Day",
+        "expected_revision": 2,
+        "album": "User-entered album",
+    })
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["song"]["revision"] == 3
+    assert store.get("song-1")["title"] == "American Idiot"
+
+    query_calls = []
+    def search(title, artist):
+        query_calls.append((title, artist))
+        return [
+            {"provider": "musicbrainz", "title": "Another Song",
+             "artist": "Another Band", "recording_mbid": None, "score": 100},
+            {"provider": "musicbrainz", "title": "American Idiot",
+             "artist": "Green Day", "album": "Verified album",
+             "recording_mbid": "01234567-89ab-cdef-0123-456789abcdef",
+             "score": 99},
+        ]
+
+    monkeypatch.setattr(enrichment_api, "search_musicbrainz", search)
+    monkeypatch.setattr(enrichment_api, "lookup_musicbrainz_work_credits",
+                        lambda *_args: {
+                            "composer": "Verified songwriter",
+                            "lyricist": "Verified lyricist",
+                            "work_mbid": "abcdef01-2345-6789-abcd-ef0123456789",
+                            "status": "verified_work_relations",
+                        })
+    monkeypatch.setattr(enrichment_api, "runtime_settings",
+                        lambda: SimpleNamespace(usage_mode="personal"))
+    enriched = client.post("/api/songs/song-1/enrich", json={
+        "title": "American Idiot",
+        "artist": "Green Day",
+        "require_exact_match": True,
+        "apply_reference_lyrics": False,
+        "auto_lyrics": False,
+    })
+    assert enriched.status_code == 200, enriched.text
+    assert query_calls == [("American Idiot", "Green Day")]
+    assert enriched.json()["metadata"]["selected"]["title"] == "American Idiot"
+    assert enriched.json()["metadata"]["applied"] is True
+    assert len(enriched.json()["metadata"]["candidates"]) == 1
+    assert store.get("song-1")["revision"] == 4
+    actual = publication.read("song-1")
+    assert actual["album"] == "User-entered album"
+    assert actual["composer"] == "Original composer"
+    assert actual["lyricist"] == "Verified lyricist"
+    assert actual["performer"] == "Green Day"
+    assert "Verified lyricist" in store.score_xml("song-1")
+
+    # Revert only the API enrichment; the user's manual metadata survives.
+    undone = client.post("/api/songs/song-1/undo")
+    assert undone.status_code == 200, undone.text
+    assert store.get("song-1")["revision"] == 3
+    assert publication.read("song-1")["album"] == "User-entered album"
+    assert publication.read("song-1")["lyricist"] == "Unknown"
+
+
+def test_metadata_popup_stale_revision_returns_409_without_partial_changes(
+    state, monkeypatch,
+):
+    store, publication = state
+
+    def require_song(song_id):
+        row = store.get(song_id)
+        if row is None:
+            raise HTTPException(404, "Song not found")
+        return row
+
+    monkeypatch.setattr(credits_api, "_song_store", store)
+    monkeypatch.setattr(credits_api, "_publication_store", publication)
+    monkeypatch.setattr(credits_api, "_require_song", require_song)
+    old_xml = store.score_xml("song-1")
+    prior = publication.read("song-1")
+    response = TestClient(app).patch("/api/songs/song-1/credits", json={
+        "title": "Stale title",
+        "artist": "Stale artist",
+        "album": "Stale album",
+        "expected_revision": 19,
+    })
+    assert response.status_code == 409
+    assert store.get("song-1")["revision"] == 1
+    assert store.score_xml("song-1") == old_xml
+    assert publication.read("song-1") == prior
