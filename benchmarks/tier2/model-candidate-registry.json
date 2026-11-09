@@ -22,7 +22,17 @@
       ],
       "source": "https://github.com/openmirlab/mt3-infer",
       "note": "Real author TRAIN four-piece evidence (run #42535843289) with program-preserving MIDI; higher GM-aware F1 than YourMT3+ but lower note onset/offset F1. Commercial/default still unapproved.",
-      "measured_research_evidence_url": "https://github.com/JDeun/audio-score-tool/actions/runs/42535843289"
+      "measured_research_evidence_url": "https://github.com/JDeun/audio-score-tool/actions/runs/42535843289",
+      "vocal_evaluation": {
+        "dataset": "vocadito-v3",
+        "recordings": 40,
+        "annotators": 2,
+        "onset_f1": 0.18263075,
+        "onset_offset_f1": 0.07705163,
+        "training_overlap": "unknown",
+        "publishing_quality_approved": false,
+        "evidence": "docs/research/VOCADITO_VOCAL_BASELINES_2026-11-09.json"
+      }
     },
     {
       "id": "yourmt3-yptf-moe",
@@ -38,7 +48,17 @@
       ],
       "source": "https://huggingface.co/spaces/mimbres/YourMT3",
       "note": "Actually inferred and SHA-verified on same 4 original CocoChorales TRAIN audio/MIDI examples as MR-MT3 in Actions run #42535843289. Better note F1; lower GM-aware F1; no held-out or commercial approval.",
-      "measured_research_evidence_url": "https://github.com/JDeun/audio-score-tool/actions/runs/42535843289"
+      "measured_research_evidence_url": "https://github.com/JDeun/audio-score-tool/actions/runs/42535843289",
+      "vocal_evaluation": {
+        "dataset": "vocadito-v3",
+        "recordings": 40,
+        "annotators": 2,
+        "onset_f1": 0.54308287,
+        "onset_offset_f1": 0.30861178,
+        "training_overlap": "unknown",
+        "publishing_quality_approved": false,
+        "evidence": "docs/research/VOCADITO_VOCAL_BASELINES_2026-11-09.json"
+      }
     },
     {
       "id": "mt3-pytorch",

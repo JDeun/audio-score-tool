@@ -1,9 +1,10 @@
 # Experiment registry
 
-Status: code-contract history indexed; Last reviewed: 2026-11-05
+Status: code-contract history and local vocal evaluation indexed; Last reviewed: 2026-11-09
 
 | Experiment | Tracking | Evidence state |
 | --- | --- | --- |
+| Vocadito v3 40 solo vocal recordings, both human annotators | [local measured report](../../research/VOCADITO_VOCAL_BASELINES_2026-11-09.md) | both models 40/40 complete; final model and commercial quality unapproved |
 | Real-audio Tier 2 | [#34](https://github.com/JDeun/audio-score-tool/issues/34) | pending |
 | SheetSage2 hybrid analysis | [#43](https://github.com/JDeun/audio-score-tool/issues/43) | hypothesis; pending |
 

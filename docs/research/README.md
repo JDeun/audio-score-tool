@@ -4,6 +4,8 @@ Use [research template](RESEARCH_TEMPLATE.md) for reproducible investigations. I
 
 ## Research inventory
 
+- [실제 보컬 40개 MR-MT3 / YourMT3+ 평가](VOCADITO_VOCAL_BASELINES_2026-11-09.md) — 원본 체크섬·두 독립 주석자·곡별 실제 F1; 두 모델 각 40/40 완료, 최종 모델 미승인. [Metadata-only 원본 결과](VOCADITO_VOCAL_BASELINES_2026-11-09.json).
+
 - [AMT provider landscape](AMT_PROVIDER_LANDSCAPE_2026.md) — published vs reproduced evidence, license constraints
 - [Experiment/failure audit ledger](EXPERIMENT_LEDGER_2026.md) — workstream status and missing evidence
 
