@@ -11,6 +11,8 @@ from . import api as base_api
 from .job_admission import JobCapacityError, reserve_job
 from .paths import jobs_dir
 from .preflight_v2 import preflight
+from .runner import command_exists
+from .score_requests import needs_stem_separation, validate_score_mode
 from .presets import resolve_job_models
 from .runtime_settings import runtime_settings
 from .upload_storage import UploadStorageError, persist_stream_atomic
@@ -51,11 +53,13 @@ async def create_job_v2(
     language: str | None = Form(None),
     skip_lyrics: bool = Form(False),
     preset: str = Form("auto"),
+    score_mode: str = Form("full"),
     muscriptor_model: str | None = Form(None),
     whisperx_model: str | None = Form(None),
 ) -> dict:
     try:
         defaults = runtime_settings()
+        score_mode = validate_score_mode(score_mode)
         resolved_muscriptor, resolved_whisperx = resolve_job_models(
             preset,
             selected_muscriptor_model=defaults.muscriptor_model,
@@ -73,6 +77,9 @@ async def create_job_v2(
             "채보 필수 실행환경이 준비되지 않았습니다: " + ", ".join(readiness["missing"]),
         )
 
+    if needs_stem_separation(score_mode) and not command_exists(defaults.demucs_cmd):
+        raise HTTPException(503, "선택 악기 채보에는 Demucs가 필요합니다. 구성요소 상태에서 설치하세요.")
+
     job_id = uuid.uuid4().hex
     _reserve_or_429(
         job_id,
@@ -84,6 +91,7 @@ async def create_job_v2(
         language=language,
         skip_lyrics=skip_lyrics,
         preset=preset,
+        score_mode=score_mode,
         muscriptor_model=resolved_muscriptor,
         whisperx_model=resolved_whisperx,
     )
