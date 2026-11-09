@@ -10,8 +10,8 @@ import sys
 from pathlib import Path
 
 import mido
-import pytest
 from music21 import converter, note
+import pytest
 
 from audio_score_tool import model_manager_api, preflight_v2, transcription_engine
 from audio_score_tool.config import Settings
