@@ -216,7 +216,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-muscriptor:
+  muscriptor:
     name: MuScriptor small CPU transcription (credential-gated, research-only)
     # The official CocoChorales author sample is an existing, provenance-pinned
     # WAV + independent MIDI pair (#154). This is an explicit MANUAL opt-in,
