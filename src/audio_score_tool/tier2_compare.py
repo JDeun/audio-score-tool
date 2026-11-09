@@ -92,7 +92,7 @@ def _candidate(payload: dict[str, Any]) -> dict[str, Any]:
         disqualifiers.append("not_all_exports_successful")
     if publish_time is None:
         disqualifiers.append("missing_publish_time")
-    if isinstance(case_count, int) and case_count > 0 and evaluated_publish_cases != case_count:
+    if type(evaluated_publish_cases) is not int or evaluated_publish_cases != case_count:
         disqualifiers.append("incomplete_publish_time_coverage")
     if edit_actions is None:
         disqualifiers.append("missing_edit_actions")

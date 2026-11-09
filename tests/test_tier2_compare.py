@@ -108,6 +108,17 @@ def test_invalid_metrics_cannot_qualify_as_final_model(tmp_path, field, value):
     assert invalid["qualified"] is False
 
 
+def test_publish_coverage_cannot_use_boolean_as_one_completed_case(tmp_path):
+    paths = [tmp_path / "invalid.json", tmp_path / "valid.json"]
+    for index, path in enumerate(paths):
+        _write_report(path, engine_id=str(index), publish_time=100, edits=10,
+                      note_f1=0.9, export_rate=1, all_exports=True, case_count=1)
+    payload = json.loads(paths[0].read_text())
+    payload["summary"]["evaluated_publish_cases"] = True
+    paths[0].write_text(json.dumps(payload))
+    assert compare_tier2_reports(paths)["recommended_engine"] == "1"
+
+
 def test_comparison_rejects_mixing_legacy_counts_with_timed_annotation_metrics(tmp_path):
     paths = [tmp_path / "old.json", tmp_path / "new.json"]
     for index, path in enumerate(paths):
