@@ -68,9 +68,12 @@ test("rapid A→B selection ignores late A responses and targets the right song 
     if (id === "song-b" && kind === "detail") bDetailReads += 1;
     if (kind === "validate") {
       validationTargets.push(id);
+      expect(route.request().postDataJSON().use_audio).toBe(true);
       await route.fulfill({
         json: {
-          song_id: id, revision: 1, ok: true, issues: [],
+          song_id: id, revision: 1, ok: true,
+          issues: [{ severity: "warning", source: "vocal_acoustic", category: "octave discrepancy", message: "보컬 음역 재검토", start_seconds: 12, end_seconds: 13 }],
+          acoustic: { melody: { predicted_notes: 100, compared_notes: 10, octave_suspects: 2 }, chords: { compared_intervals: 20, spectral_warnings: 3 } },
           policy: { llm_is_advisory: true, auto_edit: false },
         },
       });
@@ -105,8 +108,12 @@ test("rapid A→B selection ignores late A responses and targets the right song 
   await page.getByRole("button", { name: "악보 검증" }).click();
   const validation = page.getByRole("dialog", { name: "악보 검증" });
   await expect(validation).toContainText("Song B");
+  await validation.getByRole("checkbox", { name: "원음 ↔ 현재 악보 · 보컬 음역·코드·재합성 대조" }).check();
   await validation.getByRole("button", { name: "현재 악보 검증" }).click();
   await expect.poll(() => validationTargets).toEqual(["song-b"]);
+  await expect(validation).toContainText("보컬 대조 10/100음");
+  await expect(validation).toContainText("전곡 정확도가 아닙니다");
+  await expect(validation.locator(".validation-issue")).toContainText("Audio evidence");
   await validation.getByRole("button", { name: "닫기" }).click();
 
   const previousReads = bDetailReads;
