@@ -23,5 +23,13 @@ def requested_parts_for_mode(value: str) -> list[str]:
     return list(SCORE_PARTS[validate_score_mode(value)])
 
 
-def needs_stem_separation(value: str) -> bool:
-    return validate_score_mode(value) != "full"
+def validate_engine_score_mode(value: str, engine: str) -> str:
+    mode = validate_score_mode(value)
+    if engine == "sheetsage2" and mode != "lead_sheet":
+        raise ValueError("SheetSage2 supports lead_sheet only")
+    return mode
+
+
+def needs_stem_separation(value: str, *, engine: str | None = None) -> bool:
+    mode = validate_engine_score_mode(value, engine or "")
+    return mode != "full" and engine != "sheetsage2"

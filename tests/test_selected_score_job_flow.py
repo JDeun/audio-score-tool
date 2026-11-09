@@ -5,6 +5,7 @@ All tests use local synthetic fixtures and never download YouTube content.
 from __future__ import annotations
 
 import sqlite3
+from dataclasses import replace
 
 from fastapi.testclient import TestClient
 
@@ -92,6 +93,27 @@ def test_youtube_score_request_can_choose_lead_sheet_without_ownership_proof(
     assert store.get(response.json()["job_id"])["score_mode"] == "lead_sheet"
     assert store.get(response.json()["job_id"])["auto_enrich"] is True
     assert store.get(response.json()["job_id"])["source_kind"] == "youtube"
+
+
+def test_sheetsage2_admission_needs_no_demucs_but_requires_lead_sheet(tmp_path, monkeypatch):
+    store = _prepare(tmp_path, monkeypatch, separator=False)
+    defaults = upload.runtime_settings()
+    settings = replace(defaults, transcription_engine="sheetsage2")
+    monkeypatch.setattr(upload, "runtime_settings", lambda: settings)
+    monkeypatch.setattr(lifecycle, "runtime_settings", lambda: settings)
+    client = TestClient(app)
+    response = client.post("/api/jobs", files={"file": ("vocal.wav", b"fixture", "audio/wav")},
+                           data={"score_mode": "lead_sheet", "skip_lyrics": "true"})
+    assert response.status_code == 202, response.text
+    assert store.get(response.json()["job_id"])["transcription_engine"] == "sheetsage2"
+    youtube = client.post("/api/jobs/youtube", json={
+        "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "score_mode": "lead_sheet"})
+    assert youtube.status_code == 202, youtube.text
+    for mode in ("full", "guitar_vocal"):
+        invalid = client.post("/api/jobs", files={"file": ("vocal.wav", b"fixture", "audio/wav")},
+                              data={"score_mode": mode})
+        assert invalid.status_code == 422
+    assert len(store.list()) == 2
 
 
 def test_invalid_mode_or_missing_demucs_fails_before_job_or_youtube_download(

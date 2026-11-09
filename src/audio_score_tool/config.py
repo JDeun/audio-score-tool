@@ -218,6 +218,8 @@ class Settings:
     muscriptor_model: str = field(default_factory=_saved_muscriptor_model)
     native_engine_cmd: str = field(default_factory=lambda: _command_setting("native_engine_cmd", "AST_NATIVE_ENGINE_CMD", "audio-score-native"))
     native_checkpoint: Path | None = field(default_factory=lambda: _optional_path("native_checkpoint", "AST_NATIVE_CHECKPOINT"))
+    sheetsage2_cmd: str = field(default_factory=lambda: _saved_or_env("sheetsage2_cmd", "AST_SHEETSAGE2_CMD", "") or "")
+    sheetsage2_snapshot: Path | None = field(default_factory=lambda: _optional_path("sheetsage2_snapshot", "AST_SHEETSAGE2_SNAPSHOT"))
     demucs_cmd: str = field(default_factory=lambda: _command_setting("demucs_cmd", "AST_DEMUCS_CMD", "demucs"))
     whisperx_cmd: str = field(default_factory=lambda: _command_setting("whisperx_cmd", "AST_WHISPERX_CMD", "whisperx"))
     yt_dlp_cmd: str = field(default_factory=lambda: _command_setting("yt_dlp_cmd", "AST_YT_DLP_CMD", "yt-dlp"))

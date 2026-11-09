@@ -43,6 +43,7 @@ const fallbackEngines: EngineInfo[] = [
 const engineDescription = (key: string) => {
   if (key === "muscriptor") return "품질 최우선 · 개인/비상업 전용";
   if (key === "mt3_infer") return "YourMT3+ / MR-MT3 · 상용 후보";
+  if (key === "sheetsage2") return "보컬 멜로디+코드 · 개인/비상업 전용";
   return "장기 R&D · 프로젝트 소유 체크포인트";
 };
 
@@ -84,10 +85,10 @@ export default function EngineSettingsDock() {
   }, []);
 
   useEffect(() => {
-    if (usageMode === "commercial" && engine === "muscriptor") {
+    if (usageMode === "commercial" && ["muscriptor", "sheetsage2"].includes(engine)) {
       setEngine("mt3_infer");
       setMt3Model(state?.managed_mt3_model ?? "yourmt3");
-      setMessage("상용 모드에서는 MuScriptor의 CC BY-NC weights를 사용할 수 없어 MT3로 전환했습니다.");
+      setMessage("상용 모드에서는 선택한 모델의 비상업 전용 weights를 사용할 수 없어 MT3로 전환했습니다.");
     }
   }, [usageMode, engine]);
 
@@ -162,7 +163,7 @@ export default function EngineSettingsDock() {
 
           <div className="engine-choice-grid">
             {(state?.engines ?? fallbackEngines).map((item) => {
-              const disabled = (usageMode === "commercial" && item.key === "muscriptor") || (packaged && item.key === "native");
+              const disabled = (usageMode === "commercial" && ["muscriptor", "sheetsage2"].includes(item.key)) || (packaged && ["native", "sheetsage2"].includes(item.key));
               return (
                 <button
                   key={item.key}

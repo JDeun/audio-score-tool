@@ -25,7 +25,7 @@ from .pickup_normalization import normalize_pickup_measure
 from .pipeline import PipelineCancelled, PipelineError, _find_one, _find_whisper_json
 from .reference_lyrics import align_reference_lyrics
 from .runner import CommandCancelled, CommandError, command_exists, run_command
-from .score_requests import validate_score_mode
+from .score_requests import validate_engine_score_mode, validate_score_mode
 from .selected_stem_score import SelectedScoreError, transcribe_selected_stems
 from .transcription_engine import (
     TranscriptionEngineCancelled,
@@ -107,6 +107,7 @@ def transcribe(
 
     device = detect_device_plan()
     engine = resolve_transcription_engine(settings)
+    validate_engine_score_mode(score_mode, engine.key)
 
     emit("music_structure", 3)
     try:
@@ -128,7 +129,7 @@ def transcribe(
     selected_vocals_path: Path | None = None
     emit("stem_separation" if score_mode != "full" else "transcription", 8)
     try:
-        if score_mode == "full":
+        if score_mode == "full" or engine.key == "sheetsage2":
             artifacts = engine.transcribe(
                 transcription_audio,
                 score_dir,
@@ -155,6 +156,14 @@ def transcribe(
     emit("music_structure", 48)
 
     structure = analyze_midi_meter_and_pickup(midi_path, structure)
+    if engine.key == "sheetsage2":
+        analysis = json.loads((score_dir / "analysis.json").read_text())
+        structure.meter_source = "sheetsage2_audio_model"
+        structure.tempo_source = "sheetsage2_audio_grid"
+        downbeats = analysis.get("downbeats", [])
+        structure.first_downbeat_seconds = downbeats[0]["time_seconds"] if downbeats else None
+        # The model's notation is already metrical; do not apply a second MIDI heuristic.
+        structure.pickup_confidence = 0.0
     warnings.extend(warning for warning in structure.warnings if warning not in warnings)
     pickup_result = normalize_pickup_measure(
         musicxml_path,
@@ -199,7 +208,11 @@ def transcribe(
     emit("chord_analysis", 55)
     chord_report = work_dir / "chords.json"
     try:
-        inferred_chords = apply_inferred_chords(musicxml_path, report_path=chord_report)
+        if engine.key == "sheetsage2":
+            inferred_chords = analysis.get("chords", [])
+            chord_report.write_text(json.dumps({"source": "sheetsage2", "chords": inferred_chords}))
+        else:
+            inferred_chords = apply_inferred_chords(musicxml_path, report_path=chord_report)
         if not inferred_chords and score_mode != "lead_sheet":
             warnings.append(
                 "Automatic chord analysis did not find sufficiently confident chord changes. "

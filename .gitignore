@@ -19,6 +19,7 @@ desktop/node_modules/
 desktop/test-results/
 desktop/playwright-report/
 desktop/dist/
+desktop/*.tsbuildinfo
 desktop/src-tauri/target/
 dist-sidecar/
 build-sidecar/

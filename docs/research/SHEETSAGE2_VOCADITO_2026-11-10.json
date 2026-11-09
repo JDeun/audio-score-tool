@@ -1,0 +1,1861 @@
+{
+  "schema_version": 1,
+  "model": "sheetsage2",
+  "dataset": "vocadito-v3",
+  "archive_sha256": "e0d6b99d3f9c594afe5ae5c4d7bdacebe569e53b809e90b89d1c771c4f9990e3",
+  "runtime": {
+    "torch": "2.8.0",
+    "torchaudio": "2.8.0",
+    "transformers": "4.45.2",
+    "numpy": "1.24.3",
+    "mir-eval": "0.8.2"
+  },
+  "python": "3.11.15",
+  "device": "cpu",
+  "dtype": "float32",
+  "seed": 0,
+  "threads": 4,
+  "preset": "default",
+  "window_seconds": 300,
+  "training_overlap": "unknown",
+  "five_acceptance_songs_used": false,
+  "commercial_release_quality_approved": false,
+  "cases": [
+    {
+      "id": "vocadito_1",
+      "audio_sha256": "b509768315efad8120183b48e01d6090f1649d5bcc691241940dc7a100274ab8",
+      "reference_sha256": {
+        "A1": "974fdcddce8db5c7bca52e2752d70f6f60efac105a46a6536a11c6f02d33c7b3",
+        "A2": "726bc1527d766e85a9cfbb013c5393be7f93814fdd4ab3bb77f0783232484786"
+      },
+      "status": "scored",
+      "predicted_note_count": 62,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 59,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 64,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 39.83365050051361
+    },
+    {
+      "id": "vocadito_2",
+      "audio_sha256": "8dcc99c3b08a9a5800b793e3d65cccfb4464961f15cf8ccde25bd4c8b853d519",
+      "reference_sha256": {
+        "A1": "c9dd07779b2c942361f3fee38a068d581ce18928a20e9ff68e66f96fde8ee114",
+        "A2": "db98b481f36997e8382285232e1ab07223cb11e0aac43bc71075e2f3b4f96bf6"
+      },
+      "status": "scored",
+      "predicted_note_count": 54,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 76,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 63,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 36.39860108308494
+    },
+    {
+      "id": "vocadito_3",
+      "audio_sha256": "73b6fe13bc3435ae9173ee1bdec247e2943526c70cd9b69ab2b35002fa4cb04d",
+      "reference_sha256": {
+        "A1": "6aa99d9b80ec65d1dda047ba76288c2e4c06b17cd0eb0d0a8a1fd03b3980c071",
+        "A2": "3987965477be9f046b4a4a4685b9d3131030e61fe1b63e947dc917476104a0f6"
+      },
+      "status": "scored",
+      "predicted_note_count": 46,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 51,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 46,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 34.558972500264645
+    },
+    {
+      "id": "vocadito_4",
+      "audio_sha256": "fc07b202eb609c975d1549be5320db116a49be1bd1fc6904e70e31cd7e44ec23",
+      "reference_sha256": {
+        "A1": "0cd829c1a8742b08258dc9b4eeb92fc1caeae87f5229d1c254adf2596c5a7c3d",
+        "A2": "c9bc1dc4a6a39554053ce28e99420770c3d34a2acd2eb9f9e8a2163c6b642c84"
+      },
+      "status": "scored",
+      "predicted_note_count": 48,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 69,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 51,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 35.057184709236026
+    },
+    {
+      "id": "vocadito_5",
+      "audio_sha256": "7cecfd126a9437f88db0a297cdab3075bb38faeef10f1a98f22ba22a2a939220",
+      "reference_sha256": {
+        "A1": "d38fbbe4d9440e238e4d24ba2cd7106e73586c636455a500909566f4f4e75142",
+        "A2": "ce0c21977483e3b078bf956859855779bc0704499de951bedaf2e518083d3018"
+      },
+      "status": "scored",
+      "predicted_note_count": 72,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 96,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 72,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 34.89547533262521
+    },
+    {
+      "id": "vocadito_6",
+      "audio_sha256": "13816752a6366f2d66f21e71a70d55e22b6a44f0d1712d97abff5390bc0c1f3b",
+      "reference_sha256": {
+        "A1": "b0463b3989564152ab5dabdb2c1948823d3d46f711d6c17d4901da584be4d550",
+        "A2": "978f0e0e56d9b3559b6290b5ef21449363df75862d5b0e0dccf79ffeacfecd2e"
+      },
+      "status": "scored",
+      "predicted_note_count": 44,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 73,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 50,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 34.4633568758145
+    },
+    {
+      "id": "vocadito_7",
+      "audio_sha256": "db9542f0626f4c43ab1e4f26ae9e40834bcfe5f061b07c75a3925d95aaa79676",
+      "reference_sha256": {
+        "A1": "bd10de5b425de91cde98783c929636fdac9ec36d4d0b8dad5d517e2cc52f8a5f",
+        "A2": "809d896f9166dd8688477c41955eea96381bee967b81a425a4583c10b5fa12b5"
+      },
+      "status": "scored",
+      "predicted_note_count": 38,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 47,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 42,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 35.77913412544876
+    },
+    {
+      "id": "vocadito_8",
+      "audio_sha256": "05ce2b3f1991035d08db269df1c39b198d9ddc22130ce88f9a8d97e46cd7a310",
+      "reference_sha256": {
+        "A1": "57a24cd8a3f64575e600447219406a6040fa95c2df02fd69d5426c3492646efa",
+        "A2": "200e1923b492e6402643586a0ffa0e09c6804d5f839e8615d739ec400ac9a1d2"
+      },
+      "status": "scored",
+      "predicted_note_count": 37,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 40,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 37,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 34.85364016704261
+    },
+    {
+      "id": "vocadito_9",
+      "audio_sha256": "f980cc7df935c0c9e839b25759de72fadad6763c069be96645be46f8dd3ffd32",
+      "reference_sha256": {
+        "A1": "aa4bdb1c8de042a812be20503d2c271f9696a2de15f88ab27b96bdfab1666a63",
+        "A2": "99a0d7069b98e29aaa70547bbf04a87c4ee08c49f0ad20898603e71d048aa270"
+      },
+      "status": "scored",
+      "predicted_note_count": 58,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 62,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 59,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 35.669217833317816
+    },
+    {
+      "id": "vocadito_10",
+      "audio_sha256": "0978bde1c130ae26a9cfcd90012f12fdaf9877bbe45cf21c5237ba7ac9b8703b",
+      "reference_sha256": {
+        "A1": "3bbf478d96c05de2897513fce653825f9a4fc06642a7a89cd00ab98679f96f9d",
+        "A2": "2e8abe09284725a9c95fbc4d83b77ec287fe2cd1fe73381909b1cc64411295af"
+      },
+      "status": "scored",
+      "predicted_note_count": 26,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 35,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 27,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 36.777028917334974
+    },
+    {
+      "id": "vocadito_11",
+      "audio_sha256": "c4d669eca7e25c5037b191805b54b2c990d5e31bc77c9c77188b140100297197",
+      "reference_sha256": {
+        "A1": "2fd689cc3e81a559ae89c7fc53e234b2442cb4fdea17b82b1450e9f1cd7745ee",
+        "A2": "05c7687bd79ea17444b64237387666e17a34c0e3861e9de6ea38160c4053c15a"
+      },
+      "status": "scored",
+      "predicted_note_count": 30,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 37,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 30,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 33.952589167281985
+    },
+    {
+      "id": "vocadito_12",
+      "audio_sha256": "5a342e32b20b3764a9ab9784abbf7bac6db69583ec529fc9027f96c69df04e00",
+      "reference_sha256": {
+        "A1": "2b5a525560ffda6ce1d039eb2f2b309b496394b42a9879fda53bda612e894f82",
+        "A2": "cca41b5ed7c55b00f0003ecacbe03f4118bde0642970f92a390f21acf6ed5789"
+      },
+      "status": "scored",
+      "predicted_note_count": 28,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 27,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 24,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 40.24111979082227
+    },
+    {
+      "id": "vocadito_13",
+      "audio_sha256": "5a26861f99c4d02a3efe2355215de2774fb51257cc2d2bf6021827b64e25ec94",
+      "reference_sha256": {
+        "A1": "7dabefde6a83eeb507d74b26dfbe3c3c714514589e11515bb40edbee1bbb2ebc",
+        "A2": "1adf0b17a23b4a1bf77e842059e361db80f0bb9a5d1190469a7701cdd2f8155d"
+      },
+      "status": "scored",
+      "predicted_note_count": 43,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 74,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 52,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 40.88849487528205
+    },
+    {
+      "id": "vocadito_14",
+      "audio_sha256": "a41e814df6ee5840f0beaea5da2ab3ad6b38be62b169da08962a722bcc06cdd1",
+      "reference_sha256": {
+        "A1": "de1ebd5833738412c0a36aef74ad63b1bbf12a59414c836aaf54288a5483cbb1",
+        "A2": "e084576f11841bda92d7302a7dfcffab236dad91fafa96fd032a8a13eceb8734"
+      },
+      "status": "scored",
+      "predicted_note_count": 26,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 34,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 26,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 37.627917625010014
+    },
+    {
+      "id": "vocadito_15",
+      "audio_sha256": "0bc39b00e14881b20756f48530a4688e1bb7aa1c24ee09d4351a327e3acce28d",
+      "reference_sha256": {
+        "A1": "aae8be7a70cb5a920e640f17f6eb5d6fb777f4bf08b9428c0ed23a0410b6f455",
+        "A2": "fde13ab37625c39437584d6f4c2d3f8273b84b7c27171854607c92ef99ae8009"
+      },
+      "status": "scored",
+      "predicted_note_count": 38,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 47,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 41,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 37.25834995880723
+    },
+    {
+      "id": "vocadito_16",
+      "audio_sha256": "595e80b5382812702e64d5b6a8f453d9744391166d47c7020cc1d6e71e310e25",
+      "reference_sha256": {
+        "A1": "2facdef04874e71354a6210fe722ab444a929c412851f5e719f973ed907ca730",
+        "A2": "5395348e5d559c048d8f4ace1ffe0c5a2f9684fdaffb19f572cb7062ad534a61"
+      },
+      "status": "scored",
+      "predicted_note_count": 36,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 47,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 36,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 34.37757820915431
+    },
+    {
+      "id": "vocadito_17",
+      "audio_sha256": "4b144cdbbcdb318f19c0aa5ac1e2675dbe8d6cb8941286d251959f25e4c96998",
+      "reference_sha256": {
+        "A1": "4acb413062e640f81a3dab73faf1f78e86b33d2cfab23b587144763ce3e6a66c",
+        "A2": "7efd9b7d52ca77f473e3b4727f6ca099ed0495cceb8cd5a35368357c70c706a9"
+      },
+      "status": "scored",
+      "predicted_note_count": 50,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 54,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 47,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 36.89503487478942
+    },
+    {
+      "id": "vocadito_18",
+      "audio_sha256": "4f2a3712dd912b235990f3505593200172da3f386c80db91dfaeb04fc641c929",
+      "reference_sha256": {
+        "A1": "8f74ec4102da088280be6a783080b3a1cfb9537125e3905d1b3f5297074ea610",
+        "A2": "caeaa7a9cfb4bbd853f6ff9a7270d5ae5aa4df1c994151f2e10f989e4c8b841f"
+      },
+      "status": "scored",
+      "predicted_note_count": 39,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 45,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 34,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 51.73736562486738
+    },
+    {
+      "id": "vocadito_19",
+      "audio_sha256": "8f6d828d65f723ca602abaf8b28a5e8bdc510d37951556b86ff8b6d07889af28",
+      "reference_sha256": {
+        "A1": "7c4bcd2a79d6274d98cf94679c404c92eec00940daa07668f449fa3a62a88e28",
+        "A2": "b7005b43df8014e9c897be66f76bd867faad10ffc7671a8e6908df2dd4fa41e2"
+      },
+      "status": "scored",
+      "predicted_note_count": 61,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 73,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 61,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 41.79683070909232
+    },
+    {
+      "id": "vocadito_20",
+      "audio_sha256": "feb3c31e77b7779bdfb302c7819644535804f22a90a8e21f63c393d667ec5181",
+      "reference_sha256": {
+        "A1": "c9e11250dfcc301cbc7ac30c4151d3616c5c82a475ee8dba1ce22e387b1181ee",
+        "A2": "367e9b247422a10ddf2688d7935f6e216aaeefb85c11de5821a09d56fe33dff7"
+      },
+      "status": "scored",
+      "predicted_note_count": 27,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 31,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 30,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 38.54882970824838
+    },
+    {
+      "id": "vocadito_21",
+      "audio_sha256": "d9d3c20794fd3b42e8f7693b91e8194844a6b80b3932ae4fc06d8e0e277687a7",
+      "reference_sha256": {
+        "A1": "cd69f37df06a757c42dafb4796f0e6695b2af8fbdfde73ba59cd07c42a3f4a06",
+        "A2": "0322ce2ba882eb86551d48bbc0592cdbd8742a2d04a6ac7eabcff84c0250b6ea"
+      },
+      "status": "scored",
+      "predicted_note_count": 61,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 97,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 62,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 38.404566292651
+    },
+    {
+      "id": "vocadito_22",
+      "audio_sha256": "6629d0ecd7acddd1ce2877d00bc7ef80dc01fdd20f3225b9c2ed907da12f989e",
+      "reference_sha256": {
+        "A1": "94be440d29605c81ef2b9fdd152adc1ef97f92c758db41a38a98ce6617b82ce8",
+        "A2": "820322e8e927110fff5326963f6a03cfcbc0d023504d754e4eb56012c22e9fc8"
+      },
+      "status": "scored",
+      "predicted_note_count": 46,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 45,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 47,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 34.498585290275514
+    },
+    {
+      "id": "vocadito_23",
+      "audio_sha256": "3cade4af7d869e3175e3684075782a23f6af936942a8684bfbb4fdbe3a4f10e7",
+      "reference_sha256": {
+        "A1": "6b94984dd167decd7ca5ce06811702738786466784dd0a6955ee59407b82c66c",
+        "A2": "a35434b1755c7c13be0307240940d7a907a5d91fe43fc9c752762e77c2d27a43"
+      },
+      "status": "scored",
+      "predicted_note_count": 51,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 53,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 51,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 34.2893683752045
+    },
+    {
+      "id": "vocadito_24",
+      "audio_sha256": "22fb2df57dc7b68987cda67b30171c626a7818b9ab7db02185e8ea0a0a6db7ee",
+      "reference_sha256": {
+        "A1": "7894c0aafc0f416fdb17b38a52b389dafda1848556cb6a20a0cb50e8e44927db",
+        "A2": "712bc9354989cc18a5e2c1fb1ed50dd37de1f6e209c9654ee354a8fc91a02b67"
+      },
+      "status": "scored",
+      "predicted_note_count": 28,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 39,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 30,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 33.38876937516034
+    },
+    {
+      "id": "vocadito_25",
+      "audio_sha256": "cf155e4fd681331d34f316e421803255c449acb0393fa55cd23079ed103b37af",
+      "reference_sha256": {
+        "A1": "060dfefe06e2cb42225bf98fb340620a7bc9bbf53a910581dc9b5266c44c7b49",
+        "A2": "f2b485a6a1150d1699c747e9c1a9bfc87768d60b65385b5e544310dec456cf72"
+      },
+      "status": "scored",
+      "predicted_note_count": 32,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 38,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 33,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 33.16101704258472
+    },
+    {
+      "id": "vocadito_26",
+      "audio_sha256": "27fcfb7c6150b412be3f22199202dfc2aab46e59e16cddd675b71c8325b3f66d",
+      "reference_sha256": {
+        "A1": "d2b944ced2755339090a56f01f402531dcaaf5048b322a1348a25ff53c57664d",
+        "A2": "d502c4ce590c897d8fa8efcd8728e6f54e30884b502d32f64484e8299df9e86b"
+      },
+      "status": "scored",
+      "predicted_note_count": 49,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 73,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 56,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 34.56894254218787
+    },
+    {
+      "id": "vocadito_27",
+      "audio_sha256": "6300e1fc5981ea458074a24a1c32a1011a095df4162fbc8911d6b0240d182419",
+      "reference_sha256": {
+        "A1": "ebec697217004efae66358d21d8a764f78a5626f3435da12cd12832464abe51a",
+        "A2": "a798f329aa52b7aa02ff027f8082908ee64f5dc44afd8de887259b253b846974"
+      },
+      "status": "scored",
+      "predicted_note_count": 28,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 34,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 28,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 34.68569291755557
+    },
+    {
+      "id": "vocadito_28",
+      "audio_sha256": "f50830862faff98314bb7b28de452754ef2d939e187a6d89e5fb1ad56749aeb6",
+      "reference_sha256": {
+        "A1": "a87545d7b1da301e10e749f024c98d3d13dfd7397f19161d65e92494acdc48cf",
+        "A2": "99e763e1d4c04dbcdeb9739077cc68d2f649cdba6033a494d051b3c06afcd498"
+      },
+      "status": "scored",
+      "predicted_note_count": 43,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 44,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 43,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 33.512245416641235
+    },
+    {
+      "id": "vocadito_29",
+      "audio_sha256": "46a831ed09f60728c6bfb051e27582d2d47021805ea8c4500bf4b2d6396a71cb",
+      "reference_sha256": {
+        "A1": "156aa0cce6087f3ad37fc34d0137bae9acdfbbb9a0768e07a0ac5f5dd414b272",
+        "A2": "bdb43c9ea7d75e9d62cbb11321a2f0f8ee3a53584ec6fb49a3b418ee101922b7"
+      },
+      "status": "scored",
+      "predicted_note_count": 30,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 36,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 32,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 32.72913079056889
+    },
+    {
+      "id": "vocadito_30",
+      "audio_sha256": "ce2128d9bfcd434a9c1507d1f2fcd504677e0b1e0fb5fe8bbe07406158df144f",
+      "reference_sha256": {
+        "A1": "9c99908e60468d1a65ee0ba384f7b94d9054048719f89ea125fa95bf06da9db2",
+        "A2": "6fb7188315da7ce5268bea284d8160eb1dadf968d2ff0d8f5bd1e8a64514ee93"
+      },
+      "status": "scored",
+      "predicted_note_count": 33,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 58,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 40,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 32.7478592088446
+    },
+    {
+      "id": "vocadito_31",
+      "audio_sha256": "c3e68dddd4d6a6d34d135042f76ed74cf4b85208c2483a2d4a331d717af99356",
+      "reference_sha256": {
+        "A1": "618cb9eaf1776a308a8e470f52b758231b9fa28a075586b4b7ef00231eee317e",
+        "A2": "48270b2b4110f3d1cd9761641868a70af16c9a4ef6fbc716441b54f4ab7753fb"
+      },
+      "status": "scored",
+      "predicted_note_count": 0,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 47,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 38,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 33.583698875270784
+    },
+    {
+      "id": "vocadito_32",
+      "audio_sha256": "1776573e0a80e0618258501c1fa877a75c36c3368ab24014aaebb522f92768b7",
+      "reference_sha256": {
+        "A1": "64f87b9f3371ba6be2b426dec6ac3874f43a98c60f5b245fa2b5a86d3d15962e",
+        "A2": "6cb3cf5866e6b42b9a2669164a39b8af8d979310a9e5097e6400c9c2545035d6"
+      },
+      "status": "scored",
+      "predicted_note_count": 55,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 57,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 55,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 41.97785683348775
+    },
+    {
+      "id": "vocadito_33",
+      "audio_sha256": "896ae8828bfdc7eefc46a4781c328b979f519fea310c04c32cf5859c54ba4c7a",
+      "reference_sha256": {
+        "A1": "5af132105ca175dd7ac109019ed42b19e69bebf9133a399e60ab18ae48561245",
+        "A2": "5c302aa61fe3c510e6fe1e386ea84488e8e3f465c9012fa350f9e74705cf01be"
+      },
+      "status": "scored",
+      "predicted_note_count": 75,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 80,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 87,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 44.44491450022906
+    },
+    {
+      "id": "vocadito_34",
+      "audio_sha256": "60cefc716230c7783889b1b46f8dcfba48669cf5be6cddb522c04e810c8d38d8",
+      "reference_sha256": {
+        "A1": "c4fe28f788e85beb57accc7e38a2bac5661c71423a9f11b318eaec228e65ede5",
+        "A2": "c4a129e94006751f051741a0a8febd9f6d236bafcc7bba013ef10468b1549e2e"
+      },
+      "status": "scored",
+      "predicted_note_count": 92,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 89,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 95,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 42.77738866675645
+    },
+    {
+      "id": "vocadito_35",
+      "audio_sha256": "85c1c4268527cc53240e9f4f0d557d92f3bf9856d6d42ca50e80c7cbb02bea72",
+      "reference_sha256": {
+        "A1": "61ba54a7ccd700b1332d5877d13681b3c2ebfe6a90294b21bb6ced84857f21f5",
+        "A2": "86ab58cb4c0a382144a4b96a2539f3d667ba4ca9137a1ea976d71f4206b52967"
+      },
+      "status": "scored",
+      "predicted_note_count": 26,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 37,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 26,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 39.7965725408867
+    },
+    {
+      "id": "vocadito_36",
+      "audio_sha256": "2e4eacabc71019752feb17da9e1b0228b9b5ba0ae97ec41107f80dac65750dbb",
+      "reference_sha256": {
+        "A1": "024c7122fa0d6b609f06a1f27f0e7eb3772b19f85c076fead9423fe5749dd1df",
+        "A2": "e757a4374ba6d50bf908b7ee0adeeb117736b1f82f64e4fc0fa21468181111ba"
+      },
+      "status": "scored",
+      "predicted_note_count": 48,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 67,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 54,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 37.49842762481421
+    },
+    {
+      "id": "vocadito_37",
+      "audio_sha256": "53cb202ddabf1cb7591be49da9160f508cb81c6078c50c7e41a13efe109a0622",
+      "reference_sha256": {
+        "A1": "c9d896c5de7a9b7e19a5f480e5c75774c064616722151109360de4ba081fe182",
+        "A2": "f8379ab7ff11165607af89dc835786a3a0ff49e0145976a2246c9f0bf0ad0dc7"
+      },
+      "status": "scored",
+      "predicted_note_count": 38,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 51,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 41,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 35.10131595749408
+    },
+    {
+      "id": "vocadito_38",
+      "audio_sha256": "2113abf18ddfb0e789021b8e2a2e42743b80d82c51aaca5fe9d228636883a239",
+      "reference_sha256": {
+        "A1": "48f60d13067d464b4938b4b9a4364624bd9f17d02a8b1d7b982e6c9ff2cb24be",
+        "A2": "e9f2d8d34535f5ff48f8eabca20019d4217b6d25a457cf76c8133b8d783bb9fd"
+      },
+      "status": "scored",
+      "predicted_note_count": 63,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 78,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 64,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 34.40149529185146
+    },
+    {
+      "id": "vocadito_39",
+      "audio_sha256": "23badef22642b2e00b676cf3b998d2f2d2d1ee9949888dcd6f038b0b6621b9db",
+      "reference_sha256": {
+        "A1": "de208e06029e114efb9e16384f54b6e7abf35adc9d5d2cb1675d96f73ab78d28",
+        "A2": "b6747d8f1d5dd641e7dbd5f47202aab6362747cb7d622813bd32be0821dedb64"
+      },
+      "status": "scored",
+      "predicted_note_count": 65,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 92,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 66,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 35.317931833676994
+    },
+    {
+      "id": "vocadito_40",
+      "audio_sha256": "add1fc90659541163158bf025eeb0c09b7f738bdfcc812a835654ca1e8544b04",
+      "reference_sha256": {
+        "A1": "573a10539ebdc2ea8b685722eab2619ff810e40f41f9210e75499c1dbd50fddb",
+        "A2": "c50474c9929a229da906c372411467893678e679d90d441eacce8f01250617fc"
+      },
+      "status": "scored",
+      "predicted_note_count": 36,
+      "abc_error": null,
+      "annotators": {
+        "A1": {
+          "reference_note_count": 45,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "reference_note_count": 36,
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      },
+      "inference_seconds": 34.022354166954756
+    }
+  ],
+  "all_cases_complete": true,
+  "macro_f1": {
+    "onset_f1": 0.0,
+    "onset_offset_f1": 0.0
+  },
+  "model_pins": {
+    "schema_version": 1,
+    "license": "CC-BY-NC-4.0",
+    "commercial_approved": false,
+    "model": {
+      "repository": "m-a-p/SheetSage2",
+      "revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "files": {
+        "model.safetensors": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+        "audio_sheetsage2.py": "ecce56e7bb8a08cbca9eb27a74d9aeff17f55e80efcc7c48f7436440f610ccc1",
+        "modeling_mert2.py": "b1a3174e5649c4b26b0c90d8626f0adacfbbba111a58ed3bb72ad651945a2f5c",
+        "chord_spelling_sheetsage2.py": "5a673e3c8caa6d0a4cda19227ce5587c611a2bf85343f6bc623e3d66d99ed8b1",
+        "tensors_sheetsage2.py": "51f72b51ed5a22c751d5adf915198490b1a95ec8959fcf9a38ee71b4444fc8b3",
+        "LICENSE": "73593d6cad4ca80f3ab1448a4908f92ab802dfffe029561e3b12fa7d07c8b87c",
+        "requirements.txt": "fc3172be36722d75ae679ec9ffcf100baaa3d6ce4b6fdfefa9b24608810fc6a2",
+        "durations_sheetsage2.py": "abbc297b70b63a86f8509b1db74d0e85d7b46dcb83867cf33741c43f9d49db83",
+        "tokenization_sheetsage2.py": "2ad9f7734e3d9f750fe575f22fd9ec03a9a4ab52497a6314e76f53ed9024fa75",
+        "render.py": "446b18e0ba7250c8584c14bda241f8d063083cd10b1432de82c3cf56736af9de",
+        "exports_sheetsage2.py": "11782cff50f96dac1bf1eedefed86b3cd60222e31b8456bee366eeb373b6a7e5",
+        "config.json": "a986e63f5d831ecb823c11d19cfb371d763f25ae2e614ec9acd714c0b8bb87fd",
+        "notation_sheetsage2.py": "f75f0e8b268cd9e9c622d791d3fd77d2e68ad355a4e67018c7e15aeb2bc05af7",
+        "generation_sheetsage2.py": "b58dbbfaebfba2a441a79b8c36183f0e4956acdd3aaf7c655c559933b4c20afd",
+        "__init__.py": "19539a965cabf22d08231688efc15547d005e6345745f48684c2f02d010f82fd",
+        "midi_sheetsage2.py": "32f80d13592c669e56683ebb4c415f13bf8278c8ad1fe43afa500347bed35099",
+        "processor_config.json": "1eed73513a74029fe74c71faba70f8cff002ae7be23ac1c926125846d1b29817",
+        "processing_sheetsage2.py": "ec5ef34ad61455437c750dd5ffb92142f7309638559e74114c639b57da56263c",
+        "pipeline_sheetsage2.py": "0ae572554ca375323e2aa4ea1fb25ba27e7f4d520c0ba5b101d74930c0a66c33",
+        "modeling_sheetsage2.py": "f1c45346dd76329fcbeadc5c721312836509326310c034634bc12d75263688bb",
+        "rendering_sheetsage2.py": "ddbcaf314139d67727cb5df6840d7d60d671d5c67f6b185a26b840df1e2d9288",
+        "io_sheetsage2.py": "afb5b4d4a52b513b11cfdad40e7b9d2286dd4ff6585b89688dbb31b3d5376da6",
+        "schema_sheetsage2.py": "3ee069f0d4dcfb8080f730c43676318d471ab6b3cfef86c6c225aa63a9db182f",
+        "configuration_mert2.py": "77b53ec9d7ee31a599d744fb006e812c7eeaf7390deb46e2f460cf8c17b00bd6",
+        "infer.py": "20e6b23c910bfdecf012a8ee8d45efcb31cb6cb21351da5921d95fb877e70de6",
+        "setup_render.py": "8ee1004067f8e50443005a761d86435337f6ee71eeabf447d543eb5f3ad5561d",
+        "configuration_sheetsage2.py": "36d174331b3721d984608252830179bf3516d77b7225f413acc85bdf5efb3bec",
+        "labels_sheetsage2.py": "4a80870695dd91da6070e7d8d0ce6b50f3bf71c3f629417a86cf12f4ef4f97e0"
+      }
+    },
+    "mert": {
+      "repository": "m-a-p/MERT-v2-FullSong",
+      "revision": "d8ba1c745e733b3908ce6ad16ebeb17ac7600a42",
+      "files": {
+        "model.safetensors": "e6dd2ab187d6dd62b6521cd7d8f932e237acf0c5757745a7232082e28391350d",
+        "modeling_mert2.py": "b1a3174e5649c4b26b0c90d8626f0adacfbbba111a58ed3bb72ad651945a2f5c",
+        "LICENSE": "73593d6cad4ca80f3ab1448a4908f92ab802dfffe029561e3b12fa7d07c8b87c",
+        "config.json": "f2e194895f58be3ddba327255db129ff0e3bee550cc0ecf08e4d22d79ce3bca3",
+        "configuration_mert2.py": "77b53ec9d7ee31a599d744fb006e812c7eeaf7390deb46e2f460cf8c17b00bd6",
+        "preprocessor_config.json": "fc7337f113b71062b8efd03f8a43a07aa769ce85c6a53fdc0b3bb90c299fe63f"
+      }
+    }
+  },
+  "execution_source": {
+    "commit": "bebae1158aa10cb783b8a116d4c2e9441648d64a",
+    "files": {
+      "scripts/run_sheetsage2_vocadito.py": "b828efcdc0bed6a7cd59ca4abc69582ae9d1c1ddec9f4c04b196fb83cdbf1dd0",
+      "scripts/sheetsage2_infer_adapter.py": "4b5b43fd6e0ceb44c3ecf85bf300d96f5e32d8b1b95531a7304dc7f6b15fb43e",
+      "scripts/fetch_pinned_sheetsage2.py": "e831f0d78ce37792bd0cd5cf77c4fb3e767f8d00d2b54a101067dd0ac0a24c93",
+      "scripts/vocadito_reference.py": "2ee6f18518e0f4887b9f0c163fff6cfcb964a05d21da1eddd6fcf8e031259194",
+      "benchmarks/tier2/sheetsage2-pins.json": "a336e8e3b87e06685689154a7767c79b070b6b45ac17abfdf66a2bab03fe852d",
+      "src/audio_score_tool/metrics.py": "476fdb3dcebf8660a83b258263a2719193590eee5135d40f79b87ceab313df4f"
+    }
+  },
+  "secondary_pitch_class": {
+    "protocol": "pitch_class_50cents_onset50ms_no_offset_secondary_only",
+    "macro_f1": 0.39836785058592766,
+    "cases": [
+      {
+        "id": "vocadito_1",
+        "annotators": {
+          "A1": 0.4462809917355372,
+          "A2": 0.6031746031746031
+        }
+      },
+      {
+        "id": "vocadito_2",
+        "annotators": {
+          "A1": 0.2769230769230769,
+          "A2": 0.34188034188034183
+        }
+      },
+      {
+        "id": "vocadito_3",
+        "annotators": {
+          "A1": 0.6185567010309279,
+          "A2": 0.6956521739130435
+        }
+      },
+      {
+        "id": "vocadito_4",
+        "annotators": {
+          "A1": 0.39316239316239315,
+          "A2": 0.46464646464646464
+        }
+      },
+      {
+        "id": "vocadito_5",
+        "annotators": {
+          "A1": 0.28571428571428575,
+          "A2": 0.3333333333333333
+        }
+      },
+      {
+        "id": "vocadito_6",
+        "annotators": {
+          "A1": 0.13675213675213674,
+          "A2": 0.23404255319148937
+        }
+      },
+      {
+        "id": "vocadito_7",
+        "annotators": {
+          "A1": 0.44705882352941173,
+          "A2": 0.6749999999999999
+        }
+      },
+      {
+        "id": "vocadito_8",
+        "annotators": {
+          "A1": 0.5714285714285715,
+          "A2": 0.5945945945945946
+        }
+      },
+      {
+        "id": "vocadito_9",
+        "annotators": {
+          "A1": 0.4666666666666667,
+          "A2": 0.5299145299145299
+        }
+      },
+      {
+        "id": "vocadito_10",
+        "annotators": {
+          "A1": 0.29508196721311475,
+          "A2": 0.4528301886792453
+        }
+      },
+      {
+        "id": "vocadito_11",
+        "annotators": {
+          "A1": 0.5373134328358209,
+          "A2": 0.7333333333333333
+        }
+      },
+      {
+        "id": "vocadito_12",
+        "annotators": {
+          "A1": 0.43636363636363634,
+          "A2": 0.4615384615384615
+        }
+      },
+      {
+        "id": "vocadito_13",
+        "annotators": {
+          "A1": 0.27350427350427353,
+          "A2": 0.37894736842105264
+        }
+      },
+      {
+        "id": "vocadito_14",
+        "annotators": {
+          "A1": 0.16666666666666669,
+          "A2": 0.23076923076923078
+        }
+      },
+      {
+        "id": "vocadito_15",
+        "annotators": {
+          "A1": 0.3058823529411765,
+          "A2": 0.37974683544303794
+        }
+      },
+      {
+        "id": "vocadito_16",
+        "annotators": {
+          "A1": 0.5060240963855422,
+          "A2": 0.75
+        }
+      },
+      {
+        "id": "vocadito_17",
+        "annotators": {
+          "A1": 0.34615384615384615,
+          "A2": 0.4536082474226804
+        }
+      },
+      {
+        "id": "vocadito_18",
+        "annotators": {
+          "A1": 0.21428571428571427,
+          "A2": 0.2191780821917808
+        }
+      },
+      {
+        "id": "vocadito_19",
+        "annotators": {
+          "A1": 0.3134328358208955,
+          "A2": 0.3770491803278688
+        }
+      },
+      {
+        "id": "vocadito_20",
+        "annotators": {
+          "A1": 0.3793103448275862,
+          "A2": 0.38596491228070173
+        }
+      },
+      {
+        "id": "vocadito_21",
+        "annotators": {
+          "A1": 0.35443037974683544,
+          "A2": 0.43902439024390244
+        }
+      },
+      {
+        "id": "vocadito_22",
+        "annotators": {
+          "A1": 0.24175824175824176,
+          "A2": 0.3655913978494624
+        }
+      },
+      {
+        "id": "vocadito_23",
+        "annotators": {
+          "A1": 0.4807692307692308,
+          "A2": 0.5686274509803921
+        }
+      },
+      {
+        "id": "vocadito_24",
+        "annotators": {
+          "A1": 0.537313432835821,
+          "A2": 0.6206896551724138
+        }
+      },
+      {
+        "id": "vocadito_25",
+        "annotators": {
+          "A1": 0.34285714285714286,
+          "A2": 0.49230769230769234
+        }
+      },
+      {
+        "id": "vocadito_26",
+        "annotators": {
+          "A1": 0.26229508196721313,
+          "A2": 0.3047619047619047
+        }
+      },
+      {
+        "id": "vocadito_27",
+        "annotators": {
+          "A1": 0.5806451612903226,
+          "A2": 0.75
+        }
+      },
+      {
+        "id": "vocadito_28",
+        "annotators": {
+          "A1": 0.3448275862068966,
+          "A2": 0.46511627906976744
+        }
+      },
+      {
+        "id": "vocadito_29",
+        "annotators": {
+          "A1": 0.303030303030303,
+          "A2": 0.38709677419354843
+        }
+      },
+      {
+        "id": "vocadito_30",
+        "annotators": {
+          "A1": 0.19780219780219782,
+          "A2": 0.32876712328767127
+        }
+      },
+      {
+        "id": "vocadito_31",
+        "annotators": {
+          "A1": 0,
+          "A2": 0
+        }
+      },
+      {
+        "id": "vocadito_32",
+        "annotators": {
+          "A1": 0.3571428571428571,
+          "A2": 0.5272727272727272
+        }
+      },
+      {
+        "id": "vocadito_33",
+        "annotators": {
+          "A1": 0.2967741935483871,
+          "A2": 0.3703703703703704
+        }
+      },
+      {
+        "id": "vocadito_34",
+        "annotators": {
+          "A1": 0.44198895027624313,
+          "A2": 0.6310160427807486
+        }
+      },
+      {
+        "id": "vocadito_35",
+        "annotators": {
+          "A1": 0.15873015873015872,
+          "A2": 0.38461538461538464
+        }
+      },
+      {
+        "id": "vocadito_36",
+        "annotators": {
+          "A1": 0.19130434782608696,
+          "A2": 0.2549019607843137
+        }
+      },
+      {
+        "id": "vocadito_37",
+        "annotators": {
+          "A1": 0.38202247191011235,
+          "A2": 0.4556962025316456
+        }
+      },
+      {
+        "id": "vocadito_38",
+        "annotators": {
+          "A1": 0.3404255319148936,
+          "A2": 0.42519685039370075
+        }
+      },
+      {
+        "id": "vocadito_39",
+        "annotators": {
+          "A1": 0.2929936305732484,
+          "A2": 0.4122137404580153
+        }
+      },
+      {
+        "id": "vocadito_40",
+        "annotators": {
+          "A1": 0.3950617283950617,
+          "A2": 0.4722222222222222
+        }
+      }
+    ]
+  },
+  "notation_import": [
+    {
+      "id": "vocadito_1",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 22,
+      "vocal_notes": 64,
+      "chord_symbols": 27,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_10",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 5,
+      "vocal_notes": 26,
+      "chord_symbols": 5,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_11",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 9,
+      "vocal_notes": 30,
+      "chord_symbols": 14,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_12",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 8,
+      "vocal_notes": 30,
+      "chord_symbols": 0,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_13",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 9,
+      "vocal_notes": 43,
+      "chord_symbols": 0,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.02,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_14",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 8,
+      "vocal_notes": 26,
+      "chord_symbols": 0,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_15",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 9,
+      "vocal_notes": 41,
+      "chord_symbols": 9,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_16",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 12,
+      "vocal_notes": 36,
+      "chord_symbols": 0,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_17",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 12,
+      "vocal_notes": 51,
+      "chord_symbols": 12,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.01,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_18",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 14,
+      "vocal_notes": 40,
+      "chord_symbols": 0,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_19",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 17,
+      "vocal_notes": 61,
+      "chord_symbols": 0,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_2",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 14,
+      "vocal_notes": 58,
+      "chord_symbols": 14,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_20",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 4,
+      "vocal_notes": 27,
+      "chord_symbols": 0,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_21",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 9,
+      "vocal_notes": 61,
+      "chord_symbols": 11,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_22",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 10,
+      "vocal_notes": 46,
+      "chord_symbols": 10,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_23",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 10,
+      "vocal_notes": 51,
+      "chord_symbols": 0,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_24",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 5,
+      "vocal_notes": 28,
+      "chord_symbols": 5,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_25",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 7,
+      "vocal_notes": 32,
+      "chord_symbols": 0,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_26",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 8,
+      "vocal_notes": 50,
+      "chord_symbols": 0,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_27",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 6,
+      "vocal_notes": 28,
+      "chord_symbols": 5,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_28",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 8,
+      "vocal_notes": 43,
+      "chord_symbols": 0,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_29",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 5,
+      "vocal_notes": 30,
+      "chord_symbols": 0,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_3",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 7,
+      "vocal_notes": 47,
+      "chord_symbols": 11,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_30",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 5,
+      "vocal_notes": 33,
+      "chord_symbols": 0,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_31",
+      "status": "failed",
+      "error": "SheetSage2 did not produce a vocal melody"
+    },
+    {
+      "id": "vocadito_32",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 14,
+      "vocal_notes": 55,
+      "chord_symbols": 0,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_33",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 14,
+      "vocal_notes": 76,
+      "chord_symbols": 0,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_34",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 15,
+      "vocal_notes": 95,
+      "chord_symbols": 18,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_35",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 7,
+      "vocal_notes": 26,
+      "chord_symbols": 8,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_36",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 9,
+      "vocal_notes": 48,
+      "chord_symbols": 14,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_37",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 17,
+      "vocal_notes": 41,
+      "chord_symbols": 19,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_38",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 18,
+      "vocal_notes": 63,
+      "chord_symbols": 18,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_39",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 19,
+      "vocal_notes": 65,
+      "chord_symbols": 17,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_4",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 10,
+      "vocal_notes": 48,
+      "chord_symbols": 11,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_40",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 12,
+      "vocal_notes": 36,
+      "chord_symbols": 16,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_5",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 17,
+      "vocal_notes": 73,
+      "chord_symbols": 0,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_6",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 9,
+      "vocal_notes": 48,
+      "chord_symbols": 9,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_7",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 10,
+      "vocal_notes": 38,
+      "chord_symbols": 11,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_8",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 10,
+      "vocal_notes": 37,
+      "chord_symbols": 8,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    },
+    {
+      "id": "vocadito_9",
+      "status": "imported",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+      "measures": 10,
+      "vocal_notes": 58,
+      "chord_symbols": 14,
+      "timing": "model_notation_with_per_measure_audio_clock",
+      "initial_audio_offset_seconds": 0.0,
+      "padding_clock_epsilon_seconds_per_quarter": 1e-06,
+      "raw_predictions_preserved": true
+    }
+  ],
+  "failed_hardware_attempts": [
+    {
+      "device": "mps",
+      "dtype": "float32",
+      "window_seconds": 300,
+      "status": "terminated_during_encoding_for_memory_pressure",
+      "quality_metrics": null
+    }
+  ]
+}

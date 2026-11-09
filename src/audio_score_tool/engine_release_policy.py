@@ -21,6 +21,11 @@ class EngineReleasePolicy:
 
 
 _POLICIES = {
+    "sheetsage2": EngineReleasePolicy(
+        engine_key="sheetsage2", maturity="experimental", default_eligible=False,
+        commercial_eligible=False, requires_tier2_approval=True,
+        note="Pinned noncommercial lead-sheet model; actual publishing-quality approval pending.",
+    ),
     "muscriptor": EngineReleasePolicy(
         engine_key="muscriptor",
         maturity="personal_stable",

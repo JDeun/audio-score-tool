@@ -30,7 +30,10 @@ def run(archive: Path, snapshot: Path, output: Path):
     if output.exists() or output.is_symlink() or output.resolve().is_relative_to(Path(__file__).resolve().parents[1]):
         raise ValueError("Use a new private output directory outside the Git repository")
     output.mkdir(parents=True)
-    random.seed(0); np.random.seed(0); torch.manual_seed(0); torch.set_num_threads(4)
+    random.seed(0)
+    np.random.seed(0)
+    torch.manual_seed(0)
+    torch.set_num_threads(4)
     model = load_native_model(snapshot / "model", snapshot / "mert")
     report = {
         "schema_version": 1, "model": "sheetsage2", "dataset": "vocadito-v3",
@@ -44,9 +47,11 @@ def run(archive: Path, snapshot: Path, output: Path):
     with zipfile.ZipFile(archive) as package:
         for index in range(1, 41):
             case_id = f"vocadito_{index}"
-            work = output / case_id; work.mkdir()
+            work = output / case_id
+            work.mkdir()
             audio_bytes = package.read(f"Audio/{case_id}.wav")
-            source = work / "source.wav"; source.write_bytes(audio_bytes)
+            source = work / "source.wav"
+            source.write_bytes(audio_bytes)
             references = {ann: package.read(f"Annotations/Notes/{case_id}_notes{ann}.csv") for ann in ("A1", "A2")}
             row = {"id": case_id, "audio_sha256": hashlib.sha256(audio_bytes).hexdigest(),
                    "reference_sha256": {ann: hashlib.sha256(raw).hexdigest() for ann, raw in references.items()}}

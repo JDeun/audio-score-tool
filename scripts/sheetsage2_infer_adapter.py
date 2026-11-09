@@ -1,10 +1,11 @@
-"""Run the genuine SheetSage2 backend via the pinned OpenMIRLab facade."""
+"""Official pinned SheetSage2, plus the existing OpenMIRLab protocol adapter."""
 from __future__ import annotations
 
 import argparse
 import json
 import math
 import os
+import sys
 from pathlib import Path
 
 
@@ -81,6 +82,7 @@ def normalize_native_result(result: dict) -> dict:
 
     payload = {"schema_version": 1, "provider": "official-huggingface-sheetsage2",
                "model": "sheetsage2", "model_revision": PINS["model"]["revision"],
+               "checkpoint_sha256": PINS["model"]["files"]["model.safetensors"],
                "base_model_revision": PINS["mert"]["revision"],
                "chords": [], "keys": [], "beats": [], "downbeats": [], "meters": []}
     for name, target in (("chord", "chords"), ("key", "keys")):
@@ -116,6 +118,8 @@ def normalize_native_result(result: dict) -> dict:
 
 
 def main() -> int:
+    if not __package__:
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     parser = argparse.ArgumentParser()
     parser.add_argument("audio", type=Path)
     parser.add_argument("output", type=Path)
@@ -132,10 +136,11 @@ def main() -> int:
         import torch
 
         torch.set_num_threads(4)
+        torch.manual_seed(0)
         model = load_native_model(args.model_dir, args.base_model_dir).to(args.device)
         audio, rate = sf.read(args.audio, dtype="float32", always_2d=True)
         result = model.transcribe(audio.T, sampling_rate=rate,
-                                  output_dir=args.output.parent / "native", dtype="fp32")
+                                  output_dir=args.output.parent / "native", dtype="fp32", preset="default")
         payload = normalize_native_result(result)
     else:
         from sheetsage import SheetSageTranscriber

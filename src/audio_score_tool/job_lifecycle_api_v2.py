@@ -21,7 +21,7 @@ from .preflight_v2 import preflight
 from .presets import resolve_job_models
 from .runner import command_exists
 from .runtime_settings import runtime_settings
-from .score_requests import needs_stem_separation, validate_score_mode
+from .score_requests import needs_stem_separation, validate_engine_score_mode, validate_score_mode
 from .song_store_v2 import SongStoreV2
 from .youtube import (
     YouTubeSourceError,
@@ -127,6 +127,7 @@ def create_youtube_job_v2(payload: base_api.YouTubeJobRequest) -> dict:
             whisperx_model=resolved_whisperx,
         )
         selection = transcription_job_selection(selected)
+        validate_engine_score_mode(score_mode, selected.transcription_engine)
     except (YouTubeSourceError, ValueError) as exc:
         raise HTTPException(422, str(exc)) from exc
 
@@ -139,7 +140,7 @@ def create_youtube_job_v2(payload: base_api.YouTubeJobRequest) -> dict:
     if not youtube_tool_status(defaults)["ready"]:
         raise HTTPException(503, "YouTube 가져오기 구성요소가 준비되지 않았습니다.")
 
-    if needs_stem_separation(score_mode) and (
+    if needs_stem_separation(score_mode, engine=selected.transcription_engine) and (
         not command_exists(defaults.demucs_cmd)
         or (packaged_runtime() and managed_demucs_repository(defaults) is None)
     ):
@@ -277,6 +278,7 @@ def retry_job_v2(job_id: str) -> dict:
         try:
             selected = restore_transcription_job_settings(settings, source)
             selection = transcription_job_selection(selected)
+            validate_engine_score_mode(values["score_mode"], selected.transcription_engine)
             if (
                 source.get("native_checkpoint_sha256") is not None
                 and selection["native_checkpoint_sha256"] != source["native_checkpoint_sha256"]
@@ -290,7 +292,7 @@ def retry_job_v2(job_id: str) -> dict:
                 503,
                 "이 작업에 저장된 채보 모델이 준비되지 않았습니다: " + ", ".join(readiness["missing"]),
             )
-        if needs_stem_separation(values["score_mode"]) and (
+        if needs_stem_separation(values["score_mode"], engine=selected.transcription_engine) and (
             not command_exists(settings.demucs_cmd)
             or (packaged_runtime() and managed_demucs_repository(settings) is None)
         ):

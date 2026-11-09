@@ -18,7 +18,7 @@ from .preflight_v2 import preflight
 from .presets import resolve_job_models
 from .runner import command_exists
 from .runtime_settings import runtime_settings
-from .score_requests import needs_stem_separation, validate_score_mode
+from .score_requests import needs_stem_separation, validate_engine_score_mode, validate_score_mode
 from .upload_storage import UploadStorageError, persist_stream_atomic
 
 router = APIRouter(tags=["uploads-v2"])
@@ -77,6 +77,7 @@ async def create_job_v2(
             whisperx_model=resolved_whisperx,
         )
         selection = transcription_job_selection(selected)
+        validate_engine_score_mode(score_mode, selected.transcription_engine)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     suffix = base_api._validate_upload(file.filename, base_api._AUDIO_EXTENSIONS, "audio")
@@ -87,7 +88,7 @@ async def create_job_v2(
             "채보 필수 실행환경이 준비되지 않았습니다: " + ", ".join(readiness["missing"]),
         )
 
-    if needs_stem_separation(score_mode) and (
+    if needs_stem_separation(score_mode, engine=selected.transcription_engine) and (
         not command_exists(defaults.demucs_cmd)
         or (packaged_runtime() and managed_demucs_repository(defaults) is None)
     ):

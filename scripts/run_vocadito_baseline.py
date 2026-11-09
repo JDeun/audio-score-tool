@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import platform
 import subprocess
@@ -17,8 +18,6 @@ from importlib.metadata import version
 from pathlib import Path
 from statistics import mean
 
-from scripts.vocadito_reference import read_notes, score_annotations
-
 from scripts import fetch_pinned_mrmt3_checkpoint as mr
 from scripts import fetch_pinned_yourmt3_checkpoint as your
 from scripts.run_cocochorales_stem_ablation import (
@@ -26,6 +25,7 @@ from scripts.run_cocochorales_stem_ablation import (
     infer_raw_midi,
     sha256,
 )
+from scripts.vocadito_reference import read_notes, score_annotations
 
 SOURCE_URL = "https://zenodo.org/records/5578807"
 ARCHIVE_MD5 = "dea40fd18f14d899643c4ba221b33a46"

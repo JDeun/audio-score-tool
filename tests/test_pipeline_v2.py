@@ -1,4 +1,7 @@
+import json
 from pathlib import Path
+
+import pytest
 
 from audio_score_tool import pipeline_v2
 from audio_score_tool.config import Settings
@@ -51,3 +54,27 @@ def test_transcription_defers_pdf_and_part_exports(tmp_path: Path, monkeypatch):
     assert result.pdf_path is None
     assert result.part_pdfs == []
     assert list(result.score_dir.rglob("*.pdf")) == []
+
+
+def test_sheetsage2_lead_sheet_preserves_native_analysis_without_demucs(tmp_path, monkeypatch):
+    class LeadEngine(FakeEngine):
+        key = "sheetsage2"
+
+        def transcribe(self, audio, output_dir, **kwargs):
+            artifacts = super().transcribe(audio, output_dir, **kwargs)
+            (output_dir / "analysis.json").write_text(json.dumps({
+                "chords": [{"time_seconds": 0, "label": "C:maj"}],
+                "downbeats": [{"time_seconds": 0}],
+            }))
+            return artifacts
+
+    audio = tmp_path / "song.wav"
+    audio.write_bytes(b"synthetic")
+    monkeypatch.setattr(pipeline_v2, "resolve_transcription_engine", lambda _: LeadEngine())
+    monkeypatch.setattr(pipeline_v2, "transcribe_selected_stems", lambda *a, **k: pytest.fail("must not separate"))
+    monkeypatch.setattr(pipeline_v2, "apply_inferred_chords", lambda *a, **k: pytest.fail("must not replace native chords"))
+    result = pipeline_v2.transcribe(audio, tmp_path / "out", score_mode="lead_sheet",
+                                    skip_lyrics=True, preserve_source_audio=False)
+    assert json.loads(result.chord_report_path.read_text())["source"] == "sheetsage2"
+    structure = json.loads(result.structure_report_path.read_text())
+    assert structure["meter_source"] == "sheetsage2_audio_model"

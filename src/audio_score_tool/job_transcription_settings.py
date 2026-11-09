@@ -14,7 +14,7 @@ from typing import Any
 
 from .config import Settings, packaged_runtime
 
-ENGINES = frozenset({"mt3_infer", "muscriptor", "native"})
+ENGINES = frozenset({"mt3_infer", "muscriptor", "native", "sheetsage2"})
 MT3_MODELS = frozenset({"mr_mt3", "yourmt3"})
 MUSCRIPTOR_MODELS = frozenset({"small", "medium", "large"})
 _SHA256 = re.compile(r"[0-9a-f]{64}")
@@ -65,14 +65,14 @@ def _native_checkpoint_sha256(settings: Settings) -> str:
 
 
 def _check_current_policy(settings: Settings) -> None:
-    if settings.transcription_engine == "muscriptor" and settings.usage_mode == "commercial":
+    if settings.transcription_engine in {"muscriptor", "sheetsage2"} and settings.usage_mode == "commercial":
         raise ValueError(
-            "This job selected MuScriptor, which cannot run in the current commercial mode. "
+            f"This job selected {settings.transcription_engine}, which cannot run in the current commercial mode. "
             "Choose personal mode or create a new job with a permitted engine."
         )
     if packaged_runtime():
-        if settings.transcription_engine == "native":
-            raise ValueError("This job's Native engine is not supported in the packaged app")
+        if settings.transcription_engine in {"native", "sheetsage2"}:
+            raise ValueError(f"This job's {settings.transcription_engine} engine is not supported in the packaged app")
         if settings.transcription_engine == "mt3_infer":
             from .runtime_settings import published_managed_mt3_model
 

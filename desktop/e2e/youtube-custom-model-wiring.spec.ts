@@ -12,10 +12,10 @@ const HEALTH = {
   system: { hf_authenticated: true, jobs_bytes: 0, disk_total_bytes: 1024, disk_used_bytes: 0, disk_free_bytes: 1024 },
 };
 
-async function prepareYoutubePage(page: Page, recorded: Record<string, unknown>[], mode: "personal" | "commercial" = "personal") {
+async function prepareYoutubePage(page: Page, recorded: Record<string, unknown>[], mode: "personal" | "commercial" = "personal", sheetSage = false) {
   const preflight = {
     ...HEALTH.preflight,
-    engine: mode === "commercial" ? { key: "mt3_infer", model: "mr_mt3", name: "MT3-Infer" } : HEALTH.preflight.engine,
+    engine: sheetSage ? { key: "sheetsage2", name: "SheetSage2" } : mode === "commercial" ? { key: "mt3_infer", model: "mr_mt3", name: "MT3-Infer" } : HEALTH.preflight.engine,
   };
   await page.route("**/api/health", async (route) => route.fulfill({ json: { ...HEALTH, preflight, usage_mode: mode } }));
   await page.route("**/api/setup", async (route) => route.fulfill({
@@ -42,9 +42,22 @@ async function prepareYoutubePage(page: Page, recorded: Record<string, unknown>[
     await page.locator(".rights-check input").check();
   } else {
     await expect(page.locator(".rights-check")).toHaveCount(0);
-    await expect(page.locator(".source-usage-note")).toContainText("개인 연습");
+    await expect(page.locator(".source-usage-note").filter({ hasText: "개인 연습" })).toBeVisible();
   }
 }
+
+test("SheetSage2 requests its supported lead sheet without requiring Demucs", async ({ page }) => {
+  const recorded: Record<string, unknown>[] = [];
+  await prepareYoutubePage(page, recorded, "personal", true);
+  await expect(page.locator(".transcription-model")).toContainText("SheetSage2");
+  await expect(page.getByRole("radio", { name: "보컬 멜로디 + 코드" })).toBeChecked();
+  await expect(page.getByRole("radio", { name: "전체 악보" })).toBeDisabled();
+  await expect(page.getByRole("radio", { name: "기타 + 보컬" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "자동 채보 시작" })).toBeEnabled();
+  await page.getByRole("button", { name: "자동 채보 시작" }).click();
+  await expect.poll(() => recorded.length).toBe(1);
+  expect(recorded[0]).toMatchObject({ score_mode: "lead_sheet" });
+});
 
 test("YouTube custom preset forwards both explicit model choices to the job API", async ({ page }) => {
   const recorded: Record<string, unknown>[] = [];
