@@ -11,10 +11,10 @@ from . import api as base_api
 from .job_admission import JobCapacityError, reserve_job
 from .paths import jobs_dir
 from .preflight_v2 import preflight
-from .runner import command_exists
-from .score_requests import needs_stem_separation, validate_score_mode
 from .presets import resolve_job_models
+from .runner import command_exists
 from .runtime_settings import runtime_settings
+from .score_requests import needs_stem_separation, validate_score_mode
 from .upload_storage import UploadStorageError, persist_stream_atomic
 
 router = APIRouter(tags=["uploads-v2"])
