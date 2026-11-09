@@ -95,6 +95,6 @@ def cached_muscriptor_checkpoint(
             return None
         # Preserve the snapshot location: upstream loads adjacent config.json.
         # Returning weights.resolve() would relocate it into blobs/ and break that.
-        return weights
+        return weights.absolute()
     except (OSError, RuntimeError, UnicodeError, ValueError, TypeError):
         return None
