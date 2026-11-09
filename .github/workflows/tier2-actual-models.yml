@@ -30,6 +30,15 @@ on:
         description: 'Permitted YouTube video URL (max 300 seconds)'
         required: false
         type: string
+      muscriptor_source:
+        description: 'Opt-in gated MuScriptor QA source; pinned author WAV/MIDI requires no YouTube URL'
+        required: false
+        type: choice
+        default: none
+        options:
+          - none
+          - cocochorales-author-train
+          - authorized-youtube
 
 permissions:
   contents: read
@@ -207,11 +216,13 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-  muscriptor:
+muscriptor:
     name: MuScriptor small CPU transcription (credential-gated, research-only)
-    # Never report a "successful model smoke" on a PR without an authorized
-    # audio input. Enable deliberately through workflow_dispatch + repo variable.
-    if: ${{ github.event_name == 'workflow_dispatch' && vars.ENABLE_MUSCRIPTOR == 'true' && inputs.youtube_url != '' }}
+    # The official CocoChorales author sample is an existing, provenance-pinned
+    # WAV + independent MIDI pair (#154). This is an explicit MANUAL opt-in,
+    # not a public checkpoint download or held-out quality approval. The other
+    # supported source is an operator-reviewed YouTube URL, never a default.
+    if: ${{ github.event_name == 'workflow_dispatch' && vars.ENABLE_MUSCRIPTOR == 'true' && ((inputs.muscriptor_source == 'cocochorales-author-train' && inputs.youtube_url == '') || (inputs.muscriptor_source == 'authorized-youtube' && inputs.youtube_url != '')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 100
     env:
@@ -235,19 +246,14 @@ jobs:
           sudo apt-get update && sudo apt-get install -y ffmpeg
           python -m pip install --disable-pip-version-check \
             'muscriptor @ git+https://github.com/muscriptor/muscriptor.git@8a1ef88672cc23c26619adaff37ec48d82c0b906' \
-            'yt-dlp'
+            'defusedxml==0.7.1' 'yt-dlp'
           python -m pip install --disable-pip-version-check -e .
-      - name: Download user-reviewed audio for research only
-        env:
-          BENCHMARK_URL: ${{ inputs.youtube_url }}
-        run: python scripts/download_youtube_benchmark.py "$BENCHMARK_URL" out/chords.wav
       - name: Explicitly fetch approved private weights into the app-managed cache
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
           import os
-          from pathlib import Path
           from huggingface_hub import snapshot_download
           from audio_score_tool.muscriptor_cache import cached_muscriptor_checkpoint, hub_root
           token = os.environ.get("HF_TOKEN")
@@ -262,62 +268,57 @@ jobs:
               raise SystemExit("Blocked: incomplete MuScriptor small checkpoint/config")
           print("Approved private small checkpoint and adjacent config available locally")
           PY
-      - name: Run actual product engine with offline weights and embedded MusicXML
+      - name: Verify pinned CocoChorales author WAV and independent reference MIDI
+        if: inputs.muscriptor_source == 'cocochorales-author-train'
+        shell: bash
+        run: |
+          set -euo pipefail
+          track=string_track001010
+          archive="$RUNNER_TEMP/$track.zip"
+          corpus="$RUNNER_TEMP/muscriptor-private-source-$track"
+          evidence="$RUNNER_TEMP/muscriptor-private-evidence-$track"
+          curl --fail --location --silent --show-error \
+            --proto '=https' --proto-redir '=https' \
+            --connect-timeout 30 --max-time 600 --retry 3 --retry-delay 3 \
+            --output "$archive" \
+            "https://raw.githubusercontent.com/lukewys/lukewys.github.io/7a0b15e7be365a6b062027c38ce0f8d57ed1d98a/cocochorales/assets/sample_examples/pieces/$track.zip"
+          python -m scripts.prepare_cocochorales_official_sample \
+            --archive "$archive" --track-id "$track" \
+            --corpus-root "$corpus" --metadata-root "$evidence"
+          echo "AST_MUSCRIPTOR_AUDIO=$corpus/$track/mix.wav" >> "$GITHUB_ENV"
+          echo "AST_MUSCRIPTOR_CORPUS_ROOT=$corpus" >> "$GITHUB_ENV"
+          echo "AST_MUSCRIPTOR_EVIDENCE_ROOT=$evidence" >> "$GITHUB_ENV"
+      - name: Download separately authorized YouTube audio for research only
+        if: inputs.muscriptor_source == 'authorized-youtube'
+        shell: bash
+        env:
+          BENCHMARK_URL: ${{ inputs.youtube_url }}
+        run: |
+          set -euo pipefail
+          python scripts/download_youtube_benchmark.py "$BENCHMARK_URL" "$RUNNER_TEMP/muscriptor-private-youtube.wav"
+          echo "AST_MUSCRIPTOR_AUDIO=$RUNNER_TEMP/muscriptor-private-youtube.wav" >> "$GITHUB_ENV"
+      - name: Run actual product engine and independent reference scorer when available
         shell: bash
         env:
           HF_TOKEN: ''
+          MUSCRIPTOR_SOURCE: ${{ inputs.muscriptor_source }}
         run: |
           set -euo pipefail
-          python - <<'PY'
-          import hashlib
-          import json
-          from pathlib import Path
-          import mido
-          from audio_score_tool.config import Settings
-          from audio_score_tool.muscriptor_cache import cached_muscriptor_checkpoint
-          from audio_score_tool.transcription_engine import MuScriptorEngine
-          weight = cached_muscriptor_checkpoint("small")
-          if weight is None:
-              raise SystemExit("Checkpoint disappeared before inference")
-          engine = MuScriptorEngine(Settings(
-              usage_mode="personal", transcription_engine="muscriptor",
-              muscriptor_cmd="muscriptor", muscriptor_model="small",
-          ))
-          artifacts = engine.transcribe(Path("out/chords.wav"), Path("out/muscriptor"), device="cpu")
-          midi = mido.MidiFile(str(artifacts.midi_path))
-          notes = sum(
-              msg.type == "note_on" and msg.velocity > 0
-              for track in midi.tracks for msg in track
-          )
-          if notes <= 0:
-              raise SystemExit("MuScriptor reported success without any performed notes")
-          digest = hashlib.sha256()
-          with weight.open("rb") as stream:
-              for chunk in iter(lambda: stream.read(8 * 1024 * 1024), b""):
-                  digest.update(chunk)
-          report = {
-              "schema_version": 1,
-              "status": "executed",
-              "task": "private-noncommercial-multi-instrument-amt",
-              "model": "MuScriptor/muscriptor-small",
-              "snapshot_revision": weight.parent.name,
-              "checkpoint_sha256": digest.hexdigest(),
-              "upstream_runtime_commit": "8a1ef88672cc23c26619adaff37ec48d82c0b906",
-              "midi_sha256": hashlib.sha256(artifacts.midi_path.read_bytes()).hexdigest(),
-              "musicxml_sha256": hashlib.sha256(artifacts.musicxml_path.read_bytes()).hexdigest(),
-              "midi_note_on_events": notes,
-              "performed_with_embedded_midi_converter": True,
-              "redistribution_approved": False,
-              "commercial_default_selected": False,
-          }
-          Path("out/muscriptor/verification.pending.json").write_text(
-              json.dumps(report, indent=2) + "\n", encoding="utf-8",
-          )
-          print(json.dumps({
-              "status": "executed", "midi_note_on_events": notes,
-              "commercial_default_selected": False,
-          }))
-          PY
+          if [[ "$MUSCRIPTOR_SOURCE" == 'cocochorales-author-train' ]]; then
+            python -m scripts.run_muscriptor_source_qa \
+              --source-kind cocochorales-author-train \
+              --audio "$AST_MUSCRIPTOR_AUDIO" \
+              --corpus-root "$AST_MUSCRIPTOR_CORPUS_ROOT" \
+              --evidence-root "$AST_MUSCRIPTOR_EVIDENCE_ROOT" \
+              --predictions-root "$RUNNER_TEMP/muscriptor-private-predictions" \
+              --output out/muscriptor/verification.pending.json
+          else
+            python -m scripts.run_muscriptor_source_qa \
+              --source-kind authorized-youtube \
+              --audio "$AST_MUSCRIPTOR_AUDIO" \
+              --predictions-root "$RUNNER_TEMP/muscriptor-private-predictions" \
+              --output out/muscriptor/verification.pending.json
+          fi
       - name: Upload metadata-only MuScriptor research evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -326,3 +327,4 @@ jobs:
           path: out/muscriptor/verification.pending.json
           if-no-files-found: warn
           retention-days: 7
+
