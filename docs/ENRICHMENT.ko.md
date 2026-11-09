@@ -214,4 +214,6 @@ MusicBrainz는 같은 곡명·아티스트로 여러 recording/album을 반환�
 
 Song revision이 사이에 바뀌었거나 다른 recording/artist/album ID가 전달된 경우 409 또는 422 오류를 반환하고 아무 값도 쓰지 않습니다. 선택된 녹음의 크레딧은 기존 `commit_identified_metadata` 트랜잭션, MusicXML 수정, export 무효화, Undo를 그대로 사용합니다. 사용자가 직접 입력한 앨범·작사·작곡·편곡·권리 정보는 자동으로 덮어쓰지 않으며, 비어 있거나 자동 생성된 Unknown만 보충합니다. 선택한 MBID·release MBID·확인된 writer 존재 여부는 **메타데이터만** Song analysis에 기록하고 원본 오디오/가사 원문은 포함하지 않습니다.
 
+실제 MusicBrainz provider contract용 GitHub Actions 테스트는 이제 검색된 recording/release MBID를 사용해 사용자가 고르는 것과 동일한 **lookup_musicbrainz_recording_choice** 함수도 실행합니다. 공개 metadata-only report에는 해당 recording/release의 신원이 검증됐는지 여부만 기록합니다. 작품/앨범/가사 본문을 출력하지 않습니다.
+
 MusicBrainz API recording lookup이 반환하는 release 목록은 최대 25개 등 범위 제한이 있을 수 있습니다. 사용자가 선택한 release가 이 목록에 없으면 **release/{MBID}?inc=recordings** 상세를 별도로 조회해 실제 수록 track의 recording ID가 선택한 녹음 ID와 일치하는지 역방향으로 확인합니다. 이 두 방법 모두 연결이 입증되지 않으면 적용을 거절하며, 직접 편집하거나 다른 후보를 고를 수 있습니다. 상용 MusicBrainz API 이용 조건과 외부 API 장애(429, 5xx)는 별도 오류로 처리합니다.
