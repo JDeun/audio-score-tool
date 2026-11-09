@@ -23,6 +23,7 @@ from .presets import list_presets, resolve_job_models
 from .runtime_settings import runtime_settings
 from .score_requests import validate_score_mode
 from .settings_store import SettingsStore
+from .source_metadata_hints import title_artist_hints
 from .setup_info import setup_instructions
 from .system_status import storage_status
 from .youtube import (
@@ -202,22 +203,50 @@ def _execute_transcription(
             mapped = percent
         _store.update(job_id, stage=stage, progress=min(100, mapped))
 
+    completed_for_enrichment: dict | None = None
     try:
         stored = _store.get(job_id) or {}
         mode = validate_score_mode(stored.get("score_mode", "full"))
+        settings = _runtime_settings(
+            muscriptor_model=muscriptor_model,
+            whisperx_model=whisperx_model,
+        )
+        hint = (
+            title_artist_hints(stored.get("filename"))
+            if stored.get("auto_enrich") is True else None
+        )
+        api_lyrics = None
+        api_warning = None
+        # Explicit user opt-in: query only the title/artist hint. Never send
+        # original audio to an external service. API lookup comes BEFORE ASR.
+        if hint and not skip_lyrics and getattr(settings, "usage_mode", "personal") == "personal":
+            from .enrichment import EnrichmentError, fetch_lrclib_lyrics
+
+            try:
+                title, artist = hint
+                api_lyrics = fetch_lrclib_lyrics(title, artist)
+            except EnrichmentError as exc:
+                api_warning = (
+                    f"External lyric API unavailable ({type(exc).__name__}); "
+                    "falling back to WhisperX transcription."
+                )
+        extra_args = {}
+        if mode != "full":
+            extra_args["score_mode"] = mode
+        if api_lyrics is not None:
+            extra_args["reference_lyrics"] = api_lyrics
         result = transcribe(
             audio,
             jobs_dir() / job_id / "outputs",
             language=language,
             skip_lyrics=skip_lyrics,
-            settings=_runtime_settings(
-                muscriptor_model=muscriptor_model,
-                whisperx_model=whisperx_model,
-            ),
+            settings=settings,
             progress=report_progress,
             cancel_event=cancel_event,
-            **({"score_mode": mode} if mode != "full" else {}),
+            **extra_args,
         )
+        if api_warning:
+            result.warnings.append(api_warning)
         if cancel_event.is_set():
             _store.update(job_id, status="cancelled", stage="cancelled")
         else:
@@ -228,12 +257,27 @@ def _execute_transcription(
                 progress=100,
                 result=result.as_dict(),
             )
+            if hint and stored.get("auto_enrich") is True:
+                completed_for_enrichment = _store.get(job_id)
     except PipelineCancelled:
         _store.update(job_id, status="cancelled", stage="cancelled")
     except Exception as exc:
         _store.update(job_id, status="failed", stage="failed", error=str(exc))
     finally:
         _inference_lock.release()
+
+    # The score is already finished and its inference lock is released.
+    # Enrichment is best-effort; no remote API error can turn a valid Song
+    # into a failed transcription or overwrite a newer user revision.
+    if completed_for_enrichment is not None:
+        try:
+            from .automatic_song_enrichment import enrich_completed_job
+
+            enrich_completed_job(completed_for_enrichment)
+        except Exception:
+            # Song editing can always retry explicit enrichment from the UI.
+            # Avoid logging raw media, provider credentials or lyric content.
+            pass
 
 
 def _worker(
