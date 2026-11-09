@@ -78,7 +78,7 @@ test("successful external enrichment refreshes the selected song without a manua
   await expect(page.locator(".song-item").first()).toContainText("Identified song");
 
   const readsAfterIdentify = noteReads;
-  await dialog.getByRole("button", { name: "제목·아티스트로 외부 데이터 확인" }).click();
+  await dialog.getByRole("button", { name: "곡 정보·가사 자동 조회" }).click();
   await expect(page.locator(".score-toolbar h2")).toHaveText("Enriched song");
   await expect(page.locator(".song-item").first()).toContainText("Enriched song");
   expect(noteReads).toBeGreaterThan(readsAfterIdentify);
