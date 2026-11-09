@@ -102,6 +102,35 @@ def test_pickup_padding_uses_audio_span_without_stretching_rest(tmp_path):
     assert events == [(0, 240), (2, 60)]
 
 
+def test_meter_and_key_changes_survive_musicxml_reload_without_extra_beats(tmp_path):
+    (tmp_path / "score.abc").write_text('''X:1
+M:3/4
+L:1/8
+K:G
+V: Vocal
+G2 A2 B2 |
+M:1/4
+K:C
+f2 |
+M:3/4
+c2 B2 A2 |]
+''')
+    mapping = [dict(start=0,end=1.5,score_start=0,score_end=.75),
+               dict(start=1.5,end=2,score_start=.75,score_end=1),
+               dict(start=2,end=3.5,score_start=1,score_end=1.75)]
+    (tmp_path / "playback.json").write_text(json.dumps({"measures": mapping}))
+    target = tmp_path / "changes.musicxml"
+    import_native_lead_sheet(tmp_path, target)
+    score = converter.parse(target)
+    assert [m.ratioString for m in score.recurse().getElementsByClass(meter.TimeSignature)] == ["3/4", "1/4", "3/4"]
+    assert [k.sharps for k in score.recurse().getElementsByClass(key.KeySignature)] == [1, 0]
+    from audio_score_tool.metrics import midi_notes
+    from audio_score_tool.notation_backend import musicxml_to_midi
+
+    events = midi_notes(musicxml_to_midi(target, tmp_path / "changes.mid"))
+    assert [(n.pitch, n.onset) for n in events] == [(67, 0), (69, .5), (71, 1), (77, 1.5), (72, 2), (71, 2.5), (69, 3)]
+
+
 def test_official_lab_preserves_inversion_and_meter_changes():
     payload = normalize_native_result({"labs": {
         "chord": "0\t1\tC:maj/3\n1\t2\tG:sus4(b7)",

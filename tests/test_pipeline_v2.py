@@ -65,6 +65,9 @@ def test_sheetsage2_lead_sheet_preserves_native_analysis_without_demucs(tmp_path
             (output_dir / "analysis.json").write_text(json.dumps({
                 "chords": [{"time_seconds": 0, "label": "C:maj"}],
                 "downbeats": [{"time_seconds": 0}],
+                "meter": "3/4",
+                "beats": [{"time_seconds": at, "beat": beat, "numerator": 3, "denominator": 4}
+                          for at, beat in ((0, 1), (.5, 2), (1, 3), (1.5, 1))],
             }))
             return artifacts
 
@@ -73,8 +76,11 @@ def test_sheetsage2_lead_sheet_preserves_native_analysis_without_demucs(tmp_path
     monkeypatch.setattr(pipeline_v2, "resolve_transcription_engine", lambda _: LeadEngine())
     monkeypatch.setattr(pipeline_v2, "transcribe_selected_stems", lambda *a, **k: pytest.fail("must not separate"))
     monkeypatch.setattr(pipeline_v2, "apply_inferred_chords", lambda *a, **k: pytest.fail("must not replace native chords"))
+    monkeypatch.setattr(pipeline_v2, "analyze_midi_meter_and_pickup", lambda *a: pytest.fail("must not infer tempo from padding MIDI"))
     result = pipeline_v2.transcribe(audio, tmp_path / "out", score_mode="lead_sheet",
                                     skip_lyrics=True, preserve_source_audio=False)
     assert json.loads(result.chord_report_path.read_text())["source"] == "sheetsage2"
     structure = json.loads(result.structure_report_path.read_text())
     assert structure["meter_source"] == "sheetsage2_audio_model"
+    assert structure["tempo_bpm"] == 120
+    assert structure["meter_numerator"] == 3

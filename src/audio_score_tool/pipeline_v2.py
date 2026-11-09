@@ -5,6 +5,7 @@ import shutil
 import xml.etree.ElementTree as ET
 from collections.abc import Callable
 from pathlib import Path
+from statistics import median
 from threading import Event
 from typing import Any
 
@@ -155,15 +156,31 @@ def transcribe(
     _remove_eager_render_artifacts(score_dir, artifacts.initial_pdf_path)
     emit("music_structure", 48)
 
-    structure = analyze_midi_meter_and_pickup(midi_path, structure)
     if engine.key == "sheetsage2":
         analysis = json.loads((score_dir / "analysis.json").read_text())
+        beats = analysis.get("beats", [])
+        try:
+            numerator, denominator = map(int, analysis["meter"].split("/"))
+            periods = [
+                (b["time_seconds"] - a["time_seconds"]) * a["denominator"] / 4
+                for a, b in zip(beats, beats[1:])
+                if a["numerator"] == b["numerator"] and a["denominator"] == b["denominator"]
+                and b["beat"] == a["beat"] % a["numerator"] + 1
+                and b["time_seconds"] > a["time_seconds"]
+            ]
+            structure.tempo_bpm = round(60 / median(periods), 2)
+        except (KeyError, TypeError, ValueError, ZeroDivisionError) as exc:
+            raise PipelineError("SheetSage2 has no valid audio beat/meter clock") from exc
+        structure.meter_numerator, structure.meter_denominator = numerator, denominator
         structure.meter_source = "sheetsage2_audio_model"
         structure.tempo_source = "sheetsage2_audio_grid"
         downbeats = analysis.get("downbeats", [])
-        structure.first_downbeat_seconds = downbeats[0]["time_seconds"] if downbeats else None
+        origin = structure.music_start_seconds if structure.trimmed else 0.0
+        structure.first_downbeat_seconds = origin + downbeats[0]["time_seconds"] if downbeats else None
         # The model's notation is already metrical; do not apply a second MIDI heuristic.
         structure.pickup_confidence = 0.0
+    else:
+        structure = analyze_midi_meter_and_pickup(midi_path, structure)
     warnings.extend(warning for warning in structure.warnings if warning not in warnings)
     pickup_result = normalize_pickup_measure(
         musicxml_path,

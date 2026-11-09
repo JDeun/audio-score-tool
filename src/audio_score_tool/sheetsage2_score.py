@@ -13,6 +13,20 @@ CHECKPOINT_SHA256 = "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1
 BASE_REVISION = "d8ba1c745e733b3908ce6ad16ebeb17ac7600a42"
 
 
+def _parse_vocal_abc(text):
+    from music21 import abcFormat
+    from music21.abcFormat import translate
+
+    class NativeABCHandler(abcFormat.ABCHandler):
+        def tokensToBarIndices(self):
+            # Upstream treats mid-song metadata as a bar boundary and drops it.
+            return [i for i, token in enumerate(self.tokens) if isinstance(token, abcFormat.ABCBar)]
+
+    handler = NativeABCHandler()
+    handler.process(text)
+    return translate.abcToStreamScore(handler)
+
+
 def vocal_abc(text: str) -> str:
     """music21 splits repeated V: declarations into new parts; collect one voice."""
     header, body = [], []
@@ -62,7 +76,8 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
            for p in (abc, playback)):
         raise ValueError("Official notated score/playback is absent or unsafe")
     try:
-        score = converter.parseData(vocal_abc(abc.read_text()), format="abc")
+        text = vocal_abc(abc.read_text())
+        score = _parse_vocal_abc(text)
         if not list(score.recurse().getElementsByClass(stream.Measure)):
             score.makeMeasures(inPlace=True)
     except Music21Exception as exc:
@@ -127,15 +142,24 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
             visible_index = 1 if mapping[0].get("leading_rest", 0) else 0
             visible = measure_index == 0 and tempo_index == visible_index
             if visible:
-                metronome.find("per-minute").text = str(round(float(sound.get("tempo"))))
+                metronome.find("per-minute").text = f"{float(sound.get('tempo')):.2f}".rstrip("0").rstrip(".")
             else:
                 metronome.set("print-object", "no")
             tempo_index += 1
     tree.write(target, encoding="utf-8", xml_declaration=True)
+    restored = converter.parse(str(target))
+    restored_measures = list(restored.parts[0].getElementsByClass(stream.Measure))
+    if len(restored_measures) != len(mapping) or any(
+        abs(float(m.getOffsetBySite(restored.parts[0])) - float(row["score_start"]) * 4) > 1e-6
+        or abs(float(m.duration.quarterLength) - (float(row["score_end"]) - float(row["score_start"])) * 4) > 1e-6
+        for m, row in zip(restored_measures, mapping, strict=True)
+    ):
+        raise ValueError("MusicXML serialization changed the model's measure grid")
     return {"model_revision": MODEL_REVISION, "checkpoint_sha256": CHECKPOINT_SHA256,
             "measures": len(measures), "vocal_notes": len(list(part.recurse().getElementsByClass(note.Note))),
             "chord_symbols": len(list(part.recurse().getElementsByClass(harmony.ChordSymbol))),
             "timing": "model_notation_with_per_measure_audio_clock",
             "initial_audio_offset_seconds": initial_offset,
             "padding_clock_epsilon_seconds_per_quarter": 1e-6,
+            "visible_tempo_decimal_places": 2,
             "raw_predictions_preserved": True}

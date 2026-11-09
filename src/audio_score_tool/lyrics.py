@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .models import WordTiming
+from .score_timing import score_time_clocks
 
 _HANGUL_RE = re.compile(r"[가-힣]")
 
@@ -101,8 +102,10 @@ def _part_names(root: ET.Element) -> dict[str, str]:
 
 
 def _part_notes(root: ET.Element) -> dict[str, list[NoteRef]]:
-    bpm = _tempo_bpm(root)
-    seconds_per_quarter = 60.0 / bpm
+    from music21 import converter
+
+    score = converter.parseData(ET.tostring(root, encoding="unicode"), format="musicxml")
+    to_seconds, _ = score_time_clocks(score, fallback_bpm=_tempo_bpm(root))
     names = _part_names(root)
     result: dict[str, list[NoteRef]] = {}
 
@@ -156,7 +159,7 @@ def _part_notes(root: ET.Element) -> dict[str, list[NoteRef]]:
                     notes.append(
                         NoteRef(
                             note=child,
-                            onset_seconds=(measure_cursor_q + onset_q) * seconds_per_quarter,
+                            onset_seconds=to_seconds(measure_cursor_q + onset_q),
                             part_id=part_id,
                             part_name=part_name,
                         )
