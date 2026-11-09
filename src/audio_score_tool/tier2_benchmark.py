@@ -9,7 +9,7 @@ from statistics import mean
 from typing import Any
 
 from .metrics import evaluate_midi_files, midi_notes
-from .tier2_structure_metrics import evaluate_musicxml_structure
+from .tier2_structure_metrics import ANNOTATION_METRIC_PROTOCOL, evaluate_musicxml_structure
 
 _SAFE_CASE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$")
 
@@ -110,6 +110,7 @@ class Tier2Report:
             "corpus_version": self.corpus_version,
             "manifest_sha256": self.manifest_sha256,
             "case_fingerprint": self.case_fingerprint,
+            "annotation_metric_protocol": ANNOTATION_METRIC_PROTOCOL,
             "engine": asdict(self.engine),
             "cases": [case.as_dict() for case in self.cases],
             "summary": self.summary,

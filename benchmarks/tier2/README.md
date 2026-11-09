@@ -69,11 +69,25 @@ MusicXML이 있으면 runner가 다음 구조 지표를 자동 계산합니다.
 - meter correctness
 - pickup/anacrusis error
 - part-count correctness
-- chord accuracy/coverage where applicable
-- lyrics alignment/coverage where applicable
+- chord accuracy: 독립 reference가 주석한 구간의 실제 초 단위 지속 시간으로 가중한 root/bass/pitch-class 정확도. 코드 반복 기입은 정확도에 영향을 주지 않으며, 전위·변경 시점·예측 조기 종료 오류를 반영
+- lyrics alignment coverage: NFC 정규화한 가사 텍스트·절 번호와 onset 50ms 이내의 일대일 일치율. 글자/가사 개수 비율로 대체하지 않음
 - SATB part-count / voice-order correctness where applicable
 
 MIDI reference가 있으면 note/onset/offset/instrument metrics를 기존 canonical evaluator로 계산합니다.
+
+위 코드·가사 지표는 각 MusicXML의 tempo map과 동일한 0초 원점을 사용하며, 정답을 보고 시간 이동·템포 보정을 하지 않습니다. 미표기 구간을 임의의 no-chord 정답으로 만들지 않고, 명시적 no-chord 기호는 평가합니다. 정답이 없으면 존재 여부만 보고하며 정확도를 채우지 않습니다. `annotation_metric_protocol`이 다른 과거 개수/순서 기반 보고서와 새 보고서를 섞어 모델을 선정할 수 없습니다.
+
+## 별도 보컬 모델 개발 검증
+
+[run_vocadito_baseline.py](../../scripts/run_vocadito_baseline.py)는 Bittner et al.의 [vocadito v3](https://zenodo.org/records/5578807), CC BY 4.0, 원본 MD5 `dea40fd18f14d899643c4ba221b33a46`를 검증하고 40개 원음 모두를 동일 조건으로 채보합니다. 원래 Hz 음높이를 반올림하지 않고 두 독립 주석자 A1/A2 모두에 대해 onset 50ms/pitch 50cents, offset max(50ms, 20%)로 별도 평가합니다. 빈 예측은 0점, 실행 실패는 실패로 유지하며 전곡 완료 전 macro 점수·기본 모델 승격을 만들지 않습니다. 원음·예측·로그는 Git 밖에 저장합니다.
+
+```bash
+python -m scripts.run_vocadito_baseline \
+  --archive /private/vocadito.zip --checkpoint-root /private/checkpoints \
+  --model mr_mt3 --output /private/new-vocadito-mr-run
+```
+
+MR-MT3와 YourMT3+는 고정된 별도 runtime으로 같은 하드웨어에서 순차 실행합니다. 이는 단성 보컬의 개발 검증이며 혼합 팝 음원, 보컬 분리, 코드·박자·조성, 사람 수정량, 최종 5곡의 제품 인수와 구분합니다. 사전학습 중복은 미확인으로 기록합니다.
 
 `product.json` 예시:
 
