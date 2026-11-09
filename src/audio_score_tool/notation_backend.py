@@ -185,7 +185,7 @@ def _flatten_svg_text(document, namespace: str) -> bool:
                     span = document.createElementNS(namespace, "tspan")
                     for name, value in {**styles, **pending}.items():
                         span.setAttribute(name, value)
-                    if any("\u2e80" <= c <= "\ud7af" or "\uf900" <= c <= "\uffef" for c in child.data):
+                    if any(c == "♩" or "\u2e80" <= c <= "\ud7af" or "\uf900" <= c <= "\uffef" for c in child.data):
                         span.setAttribute("font-family", "NotoSansKR")
                     span.appendChild(document.createTextNode(child.data))
                     runs.append(span)

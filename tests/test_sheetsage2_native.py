@@ -55,15 +55,18 @@ def test_vocal_import_keeps_chords_key_meter_and_audio_clock(tmp_path):
     assert [k.sharps for k in score.recurse().getElementsByClass(key.KeySignature)] == [1]
     assert [m.number for m in score.recurse().getElementsByClass(tempo.MetronomeMark)] == [60, 120]
     xml = ET.parse(target)
-    assert len(xml.findall(".//metronome[@print-object='no']")) == 1
+    assert len(xml.findall(".//metronome[@print-object='no']")) == 2
     assert len(xml.findall(".//sound[@tempo]")) == 2
+    assert "".join(w.text or "" for w in xml.findall(".//words")) == "♩ ≈ 120"
     from audio_score_tool.notation_backend import _verovio_toolkit
 
     toolkit = _verovio_toolkit()
     assert toolkit.loadFile(str(target))
     svg = ET.fromstring(toolkit.renderToSVG(1))
     assert len([g for g in svg.iter()
-                if "tempo" in g.get("class", "").split() and "".join(g.itertext()).strip()]) == 1
+                if "tempo" in g.get("class", "").split() and "".join(g.itertext()).strip()]) == 0
+    rendered = "".join(svg.itertext())
+    assert "♩" in rendered and "≈ 120" in rendered
 
 
 def test_voice_and_changed_bar_grid_fail_explicitly(tmp_path):
@@ -89,7 +92,7 @@ def test_abc_multi_measure_rests_keep_following_note_and_chord_positions(tmp_pat
     assert score.parts[0].measure(3).offset == 6
 
 
-def test_pickup_padding_uses_audio_span_without_stretching_rest(tmp_path):
+def test_pickup_padding_uses_audio_span_without_stretching_rest(tmp_path, caplog):
     mapping = _native(tmp_path)
     (tmp_path / "score.abc").write_text(ABC.replace('"G"G2 A2 B2 |', 'z4 "G"B2 |'))
     mapping[0].update(start=.5, end=1.5, leading_rest=.5)
@@ -100,6 +103,11 @@ def test_pickup_padding_uses_audio_span_without_stretching_rest(tmp_path):
     score = converter.parse(target)
     events = [(m.offset, m.number) for m in score.parts[0].measure(1).getElementsByClass(tempo.MetronomeMark)]
     assert events == [(0, 240), (2, 60)]
+    from audio_score_tool.notation_backend import render_pdf
+
+    render_pdf(target, tmp_path / "pickup.pdf")
+    assert not any("missing" in record.getMessage() and "glyph" in record.getMessage()
+                   for record in caplog.records)
 
 
 def test_meter_and_key_changes_survive_musicxml_reload_without_extra_beats(tmp_path):
