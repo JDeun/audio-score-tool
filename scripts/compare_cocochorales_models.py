@@ -108,6 +108,34 @@ def _verified_report(document: dict[str, Any], model_key: str) -> dict[str, Any]
         document.get("macro_metrics_successful_only") == expected_macro,
         f"{model_key} claimed macro metrics differ from observed cases",
     )
+    score_macro = document.get("score_musicxml_macro_successful_only")
+    if score_macro is not None:
+        evaluated = [case for case in cases if case["status"] == "scored"]
+        score_fields = ("onset_f1", "onset_offset_f1", "instrument_onset_offset_f1")
+        _expect(
+            len(evaluated) > 0 and all(
+                isinstance(case.get("score_musicxml_reference_fidelity"), dict)
+                for case in evaluated
+            ),
+            f"{model_key} claimed MusicXML metrics without complete scored cases",
+        )
+        calculated = {
+            against: {
+                metric: round(mean(
+                    case["score_musicxml_reference_fidelity"][against][metric]
+                    for case in evaluated
+                ), 8)
+                for metric in score_fields
+            }
+            for against in ("against_reference", "against_prediction_midi")
+        }
+        calculated["part_count_absolute_error"] = round(
+            mean(case["score_part_count_absolute_error"] for case in evaluated), 8
+        )
+        _expect(
+            score_macro == calculated,
+            f"{model_key} claimed MusicXML macro differs from observed scores",
+        )
     return by_track
 
 
@@ -138,17 +166,32 @@ def compare_same_source_models(mr: dict, your: dict) -> dict:
                 "inference_seconds": left.get("inference_seconds"),
                 "musicxml": left.get("musicxml"),
                 "metrics": {key: left.get(key) for key in _METRICS},
+                "score_musicxml_reference_fidelity": left.get("score_musicxml_reference_fidelity"),
+                "score_part_count_absolute_error": left.get("score_part_count_absolute_error"),
             },
             "yourmt3": {
                 "status": right["status"], "prediction_notes": right.get("prediction_note_count"),
                 "inference_seconds": right.get("inference_seconds"),
                 "musicxml": right.get("musicxml"),
                 "metrics": {key: right.get(key) for key in _METRICS},
+                "score_musicxml_reference_fidelity": right.get("score_musicxml_reference_fidelity"),
+                "score_part_count_absolute_error": right.get("score_part_count_absolute_error"),
             },
             "both_scored": pair_scored,
             "yourmt3_minus_mrmt3": {
                 key: round(right[key] - left[key], 8) for key in _METRICS
             } if pair_scored else None,
+            "yourmt3_minus_mrmt3_musicxml_reference": {
+                key: round(
+                    right["score_musicxml_reference_fidelity"]["against_reference"][key]
+                    - left["score_musicxml_reference_fidelity"]["against_reference"][key], 8
+                )
+                for key in ("onset_f1", "onset_offset_f1", "instrument_onset_offset_f1")
+            } if (
+                pair_scored
+                and left.get("score_musicxml_reference_fidelity") is not None
+                and right.get("score_musicxml_reference_fidelity") is not None
+            ) else None,
         })
 
     complete = all(x["both_scored"] for x in rows)
@@ -181,6 +224,10 @@ def compare_same_source_models(mr: dict, your: dict) -> dict:
             name: source["macro_metrics_successful_only"] for name, source in (
                 ("mr_mt3", mr), ("yourmt3", your),
             )
+        },
+        "observed_musicxml_score_macro_by_candidate": {
+            name: source.get("score_musicxml_macro_successful_only")
+            for name, source in (("mr_mt3", mr), ("yourmt3", your))
         },
         "research_only_order_if_complete": rank,
         "selection_basis": "4 upstream TRAIN-split author-generated ensemble examples",
