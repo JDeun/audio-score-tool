@@ -22,7 +22,10 @@ from .runtime_settings import runtime_settings
 from .score_requests import needs_stem_separation, validate_score_mode
 from .song_store_v2 import SongStoreV2
 from .youtube import (
-    YouTubeSourceError, canonical_youtube_url, youtube_tool_status, youtube_video_id,
+    YouTubeSourceError,
+    canonical_youtube_url,
+    youtube_tool_status,
+    youtube_video_id,
 )
 
 router = APIRouter(tags=["jobs-v2"])
