@@ -5,6 +5,7 @@ const API = "http://127.0.0.1:8080";
 
 type Section = "new" | "history" | "benchmark" | "settings";
 type SourceMode = "file" | "youtube";
+type ScoreMode = "full" | "lead_sheet" | "guitar_vocal";
 
 type DevicePlan = {
   muscriptor_device: string;
@@ -53,6 +54,7 @@ type Job = {
   filename?: string;
   language?: string;
   preset?: string;
+  score_mode?: ScoreMode;
   muscriptor_model?: string;
   whisperx_model?: string;
   created_at?: string;
@@ -91,6 +93,7 @@ const stageLabel: Record<string, string> = {
   queued: "대기 중",
   starting: "준비 중",
   transcription: "악보 채보 중",
+  stem_separation: "선택 악기 분리·채보 중",
   vocal_separation: "보컬 분리 중",
   lyrics_asr: "가사 인식 중",
   lyric_alignment: "가사·노트 정렬 중",
@@ -170,6 +173,7 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
   const [youtubeInspecting, setYoutubeInspecting] = useState(false);
   const [youtubeAuthorized, setYoutubeAuthorized] = useState(false);
   const [preset, setPreset] = useState("auto");
+  const [scoreMode, setScoreMode] = useState<ScoreMode>("full");
   const [language, setLanguage] = useState("ko");
   const [lyrics, setLyrics] = useState(false);
   const lyricsPreferenceTouched = useRef(false);
@@ -349,6 +353,7 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
         body.append("file", file);
         body.append("language", language);
         body.append("skip_lyrics", String(!lyrics));
+        body.append("score_mode", scoreMode);
         if (preset === "custom") {
           body.append("preset", "balanced");
           body.append("muscriptor_model", muscriptorModel);
@@ -368,6 +373,7 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
             authorized: !personalYoutube && youtubeAuthorized,
             language,
             skip_lyrics: !lyrics,
+            score_mode: scoreMode,
             preset: preset === "custom" ? "balanced" : preset,
             ...(preset === "custom" ? {
               muscriptor_model: muscriptorModel,
@@ -577,8 +583,36 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
             <label><span>가사 언어</span><select value={language} disabled={!lyrics} onChange={(event) => setLanguage(event.target.value)}><option value="ko">한국어</option><option value="en">영어</option><option value="">자동 감지</option></select><small>가사 정렬 정확도를 높이려면 언어를 직접 지정하세요.</small></label>
             <label className="switch-field"><span>가사 인식·정렬</span><button className={`product-switch ${lyrics ? "on" : ""}`} disabled={!whisperxReady} onClick={() => { lyricsPreferenceTouched.current = true; setLyrics((value) => !value); }} aria-pressed={lyrics}><i />{lyrics ? "포함" : "악보만"}</button><small>{whisperxReady ? "보컬 파트에 인식한 가사를 자동 배치합니다." : "WhisperX 미설치: 가사 없이 악보를 생성합니다."}</small></label>
           </div>
+          <fieldset className="score-mode-choices" aria-label="만들 악보 종류">
+            <legend>어떤 악보를 만들까요?</legend>
+            <div className="premium-form-grid">
+              {([
+                ["full", "전체 악보", "기존 전체 음원 기반 다중 악기 채보"],
+                ["lead_sheet", "보컬 멜로디 + 코드", "보컬·반주 분리 → 독립 채보 → 코드 심벌 결합 (실험적)"],
+                ["guitar_vocal", "기타 + 보컬", "Demucs 6-stem 기타·보컬 추출 → 각 파트 채보 (실험적, TAB 아님)"],
+              ] as const).map(([value, label, description]) => (
+                <label key={value} className="score-mode-option">
+                  <input
+                    type="radio"
+                    name="score-mode"
+                    checked={scoreMode === value}
+                    onChange={() => setScoreMode(value)}
+                    disabled={active}
+                  />
+                  <span><strong>{label}</strong><small>{description}</small></span>
+                </label>
+              ))}
+            </div>
+            {scoreMode !== "full" && (
+              <p className="source-usage-note">
+                선택 악기 채보는 Demucs가 필요하며 결과는 검토·수정 가능한 초안입니다.
+                기타 TAB 및 상용 악보 수준의 자동 복원은 아직 지원하지 않습니다.
+                {health?.preflight.tools.demucs !== true && " Demucs가 미설치 상태입니다. 구성요소 상태에서 확인하세요."}
+              </p>
+            )}
+          </fieldset>
           {preset === "custom" && <div className="custom-model-row"><label><span>MuScriptor</span><select value={muscriptorModel} onChange={(event) => setMuscriptorModel(event.target.value)}><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></label><label><span>WhisperX</span><select value={whisperxModel} disabled={!lyrics} onChange={(event) => setWhisperxModel(event.target.value)}><option value="small">Small</option><option value="medium">Medium</option><option value="large-v3">Large v3</option></select></label></div>}
-          <div className="primary-action-row">{!health?.preflight.ok && <span className="setup-needed">일부 실행 환경을 확인해야 합니다. 설정 메뉴에서 상태를 확인하세요.</span>}<button className="primary-button large" disabled={busy || active || offline || !health?.preflight.ok || (sourceMode === "youtube" && health?.youtube?.ready === false) || (sourceMode === "file" ? !file : !youtubeMetadata || (!personalYoutube && !youtubeAuthorized))} onClick={() => void startTranscription()}>{active ? "작업 진행 중" : "자동 채보 시작"}</button></div>
+          <div className="primary-action-row">{!health?.preflight.ok && <span className="setup-needed">일부 실행 환경을 확인해야 합니다. 설정 메뉴에서 상태를 확인하세요.</span>}<button className="primary-button large" disabled={busy || active || offline || !health?.preflight.ok || (sourceMode === "youtube" && health?.youtube?.ready === false) || (sourceMode === "file" ? !file : !youtubeMetadata || (!personalYoutube && !youtubeAuthorized)) || (scoreMode !== "full" && health?.preflight.tools.demucs !== true)} onClick={() => void startTranscription()}>{active ? "작업 진행 중" : "자동 채보 시작"}</button></div>
         </section>
         {currentJobCard}
         <section className="workflow-strip" aria-label="자동 채보 과정"><div><b>1</b><span>음원 분석</span></div><i /><div><b>2</b><span>파트별 채보</span></div><i /><div><b>3</b><span>코드·가사</span></div><i /><div><b>4</b><span>악보 편집</span></div><i /><div><b>5</b><span>PDF 내보내기</span></div></section>
@@ -589,7 +623,7 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
       <div className="operations-page">
         <section className="work-card history-panel">
           <div className="section-title-row"><div><span className="card-kicker">로컬 작업 기록</span><h2>최근 작업</h2><p>채보와 성능 비교 작업은 이 컴퓨터에만 저장됩니다.</p></div><button className="secondary-button" onClick={() => void refreshJobs()}>새로고침</button></div>
-          {jobs.length === 0 ? <div className="premium-empty"><div>⌁</div><h3>아직 작업 내역이 없습니다</h3><p>새 악보에서 첫 번째 음원을 채보해 보세요.</p></div> : <div className="premium-job-list">{jobs.map((item) => <article key={item.job_id} className="premium-job-row"><div className="job-type-icon">{item.kind === "benchmark" ? "⌁" : "♫"}</div><div className="job-row-main"><strong>{item.filename ?? (item.kind === "benchmark" ? "성능 비교" : "이름 없는 음원")}</strong><span>{item.kind === "benchmark" ? `성능 비교 · ${item.preset ?? "전체"}` : `${item.muscriptor_model ?? "자동"} · ${item.whisperx_model ?? "자동"} · ${item.language || "언어 자동"}`}</span><small>{item.created_at ? new Date(item.created_at).toLocaleString() : ""}</small></div><StatusPill status={item.status} /><div className="job-row-actions">{item.status === "done" && renderArtifacts(item)}{["queued", "running"].includes(item.status) && <button className="text-action danger" onClick={() => void cancelJob(item)}>작업 취소</button>}{!["queued", "running", "cancelling"].includes(item.status) && <button className="text-action" onClick={() => void retryJob(item)}>다시 실행</button>}{!["queued", "running", "cancelling"].includes(item.status) && <button className="text-action danger" onClick={() => deleteJob(item)}>삭제</button>}</div></article>)}</div>}
+          {jobs.length === 0 ? <div className="premium-empty"><div>⌁</div><h3>아직 작업 내역이 없습니다</h3><p>새 악보에서 첫 번째 음원을 채보해 보세요.</p></div> : <div className="premium-job-list">{jobs.map((item) => <article key={item.job_id} className="premium-job-row"><div className="job-type-icon">{item.kind === "benchmark" ? "⌁" : "♫"}</div><div className="job-row-main"><strong>{item.filename ?? (item.kind === "benchmark" ? "성능 비교" : "이름 없는 음원")}</strong><span>{item.kind === "benchmark" ? `성능 비교 · ${item.preset ?? "전체"}` : `${({full:"전체 악보",lead_sheet:"보컬+코드",guitar_vocal:"기타+보컬"} as Record<string,string>)[item.score_mode ?? "full"] ?? "전체 악보"} · ${item.muscriptor_model ?? "자동"} · ${item.language || "언어 자동"}`}</span><small>{item.created_at ? new Date(item.created_at).toLocaleString() : ""}</small></div><StatusPill status={item.status} /><div className="job-row-actions">{item.status === "done" && renderArtifacts(item)}{["queued", "running"].includes(item.status) && <button className="text-action danger" onClick={() => void cancelJob(item)}>작업 취소</button>}{!["queued", "running", "cancelling"].includes(item.status) && <button className="text-action" onClick={() => void retryJob(item)}>다시 실행</button>}{!["queued", "running", "cancelling"].includes(item.status) && <button className="text-action danger" onClick={() => deleteJob(item)}>삭제</button>}</div></article>)}</div>}
         </section>
       </div>
     );
