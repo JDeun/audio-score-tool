@@ -1,0 +1,575 @@
+{
+  "schema_version": 1,
+  "report_type": "five_song_diagnostic_execution_and_source_consistency",
+  "acceptance_status": "not_approved",
+  "quality_approved": false,
+  "expert_reference_available": false,
+  "source_model": "sheetsage2",
+  "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+  "base_model_revision": "d8ba1c745e733b3908ce6ad16ebeb17ac7600a42",
+  "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+  "inference_source_commit": "ff777ceba6c8c74ddf74c84922355ab7c2285112",
+  "inference_source_sha256": {
+    "scripts/run_sheetsage2_product_qa.py": "d7325557d7a33af8b6e2864c1829fba7974fe4c16312f9b722148bdc8aadf218",
+    "scripts/sheetsage2_infer_adapter.py": "ea5690fd6ef8d3c3be5ae69f040d8582316dea8b47fa13c226c5a5d20db2de28",
+    "src/audio_score_tool/sheetsage2_score.py": "ab8bb0105212bfb2d36bf1bf66d7c7d5568dd3e71e5565738b049edce1029112",
+    "src/audio_score_tool/transcription_engine.py": "24a9f237993773ac2723eaad03833a152204f8b2d0900dcf124a7aabb45c195d",
+    "src/audio_score_tool/pipeline_v2.py": "3424ac2ebc1da2657795bfa14a009c6191f110072cb7fe48ec6ba8ae917b0a2a"
+  },
+  "repair_source_commit": "5a482d05f72d8a97401fb5c7717e36e574d52040",
+  "repair_source_sha256": {
+    "src/audio_score_tool/sheetsage2_score.py": "cfee2c1e9d3127331534095fedebf7b10b38d02bb6dffadbf4939b3a066d61ed",
+    "src/audio_score_tool/pipeline_v2.py": "922b9018e909abff5064f3beb2a45ca8d9b65b96acdac7c12019e1fa3e52b0d9",
+    "src/audio_score_tool/lyrics.py": "76c80be47ab638a4a63551b57c8d2f5f483cbb560dd9e1db66fc54af383a2087"
+  },
+  "private_qa_script_sha256": {
+    "separate_sources.py": "e55cdc152d8da94827623e551ed052debc19a8f260052d5c133fdeff51ce084d",
+    "compare_acoustic_evidence.py": "a4a37b20cfd928948ec0945d96e92e60f3defe95b8ecf46880e10c4993b0f205",
+    "reimport_meter_key_fixed.py": "4a9e29d29f69d58c32ff682b8eb00a304667639a494e072903c9dc2769be27b8",
+    "replay_corrected_pipeline.py": "8e9761da5749f1b5448c55d0e41a895e59b360084a5687a68824f8ecea9da407"
+  },
+  "attempts": [
+    {
+      "source_commit": "61560ef",
+      "stage": "admission",
+      "cases": 5,
+      "success": 0,
+      "model_inference_executed": false,
+      "reason": "explicit environment engine ignored; fixed in ff777ce"
+    },
+    {
+      "source_commit": "ff777ceba6c8c74ddf74c84922355ab7c2285112",
+      "stage": "real_upload_job_song_export",
+      "cases": 5,
+      "success": 5
+    },
+    {
+      "stage": "corrected_import_revision_and_export",
+      "cases": 5,
+      "success": 5,
+      "model_output_reused": true
+    }
+  ],
+  "acoustic_protocol": {
+    "protocol": "independent_demucs_pyin_chroma_consistency_not_accuracy",
+    "expert_reference": false,
+    "absolute_note_f1": null,
+    "chord_wcsr": null,
+    "source_audio_is_original_frozen_input": true,
+    "release_quality_approved": false,
+    "limitations": [
+      "mono input",
+      "separator bleed",
+      "pYIN octave/melody ambiguity",
+      "chroma cannot prove chord extensions or inversion",
+      "no human listening verdict"
+    ],
+    "sample_rate": 11025,
+    "hop": 256,
+    "voiced_probability_minimum": 0.9
+  },
+  "separator": {
+    "model": "demucs-htdemucs",
+    "checkpoint_sha256": "8726e21a993978c7ba086d3872e7608d7d5bfca646ca4aca459ffda844faa8b4",
+    "runtime": {
+      "demucs": "4.0.1",
+      "torch": "2.7.1",
+      "torchaudio": "2.7.1",
+      "soundfile": "0.14.0"
+    },
+    "device": "cpu",
+    "threads": 4,
+    "shifts": 0,
+    "overlap": 0.25,
+    "seed": 0,
+    "input_channels": 1,
+    "channels_duplicated_for_separator": true,
+    "reference_quality": false
+  },
+  "cases": [
+    {
+      "id": "tinashe-me-so-bad",
+      "audio_sha256": "f39788b3075e9117661481470289c6e79ce25171f7a256936a2167bdae49fd65",
+      "e2e_status": "exported",
+      "e2e_elapsed_seconds": 93.465,
+      "original_exports": {
+        ".musicxml": {
+          "bytes": 196158,
+          "sha256": "aeadb78eec4c85d2ebb199ee0c8a7eb8c7342f0b1c4210dbe41724ce80b4aabf"
+        },
+        ".pdf": {
+          "bytes": 130476,
+          "sha256": "1f02c5ed2ebacee558746a38da6041d64fd9cceb857ed7d1b06f8f079c0700aa"
+        },
+        ".mid": {
+          "bytes": 4676,
+          "sha256": "a5e3a438e492845c783b2a771570004019989bec31b917a54804d236bf9f7f11"
+        }
+      },
+      "corrected_revision": 3,
+      "corrected_exports": {
+        ".musicxml": {
+          "bytes": 197912,
+          "sha256": "2d90781d85cb7be8e9b6451faae52eaf5183963233b3f52533a709ede4441a71"
+        },
+        ".pdf": {
+          "bytes": 127581,
+          "sha256": "df1a43323971f6639e02b575960a9ebb1532cf0049c7019d2ed7c0fa7c988b58"
+        },
+        ".mid": {
+          "bytes": 4691,
+          "sha256": "de5bc6952c2c1b8e484eef4b86651d503a6815774d59ed08e852999397999a97"
+        }
+      },
+      "model_prediction_to_notation_before": {
+        "note_precision": 0.28536585365853656,
+        "note_recall": 0.28536585365853656,
+        "note_f1": 0.28536585365853656,
+        "onset_mae_ms": 18.9066951565548,
+        "offset_mae_ms": 32.86769943007006,
+        "matched_notes": 117,
+        "predicted_notes": 410,
+        "reference_notes": 410,
+        "instrument_precision": 0.28536585365853656,
+        "instrument_recall": 0.28536585365853656,
+        "instrument_f1": 0.28536585365853656,
+        "instrument_matched_notes": 117
+      },
+      "model_prediction_to_notation_after": {
+        "note_precision": 0.9341463414634147,
+        "note_recall": 0.9341463414634147,
+        "note_f1": 0.9341463414634147,
+        "onset_mae_ms": 14.143323759537019,
+        "offset_mae_ms": 14.519506091995376,
+        "matched_notes": 383,
+        "predicted_notes": 410,
+        "reference_notes": 410,
+        "instrument_precision": 0.9341463414634147,
+        "instrument_recall": 0.9341463414634147,
+        "instrument_f1": 0.9341463414634147,
+        "instrument_matched_notes": 383
+      },
+      "acoustic_consistency": {
+        "raw_vocal_notes": 410,
+        "stable_notes_with_waveform_evidence": 4,
+        "stable_note_categories": {
+          "consistent": 2,
+          "octave_conflict": 1,
+          "pitch_conflict": 1
+        },
+        "reliable_voiced_seconds": 5.108390022675737,
+        "chord_intervals_checked": 156,
+        "low_chord_support_intervals": 47
+      },
+      "pipeline_replay": {
+        "id": "tinashe-me-so-bad",
+        "tempo_bpm": 107.14,
+        "first_downbeat_seconds": 0.01,
+        "trimmed": false,
+        "raw_to_score_fidelity": {
+          "note_precision": 0.9341463414634147,
+          "note_recall": 0.9341463414634147,
+          "note_f1": 0.9341463414634147,
+          "onset_mae_ms": 14.143323759537019,
+          "offset_mae_ms": 14.519506091995376,
+          "matched_notes": 383,
+          "predicted_notes": 410,
+          "reference_notes": 410,
+          "instrument_precision": 0.9341463414634147,
+          "instrument_recall": 0.9341463414634147,
+          "instrument_f1": 0.9341463414634147,
+          "instrument_matched_notes": 383
+        }
+      }
+    },
+    {
+      "id": "twice-fancy",
+      "audio_sha256": "5e1b5613b3863ea3babd2dc22bc9fa8ba62deb2ae44d48c8885f832ab56f01ec",
+      "e2e_status": "exported",
+      "e2e_elapsed_seconds": 100.889,
+      "original_exports": {
+        ".musicxml": {
+          "bytes": 245104,
+          "sha256": "e5a0fed322f8d8af70c6c2ed18c1024d25f31f0031d433dc8b14266910a3ef76"
+        },
+        ".pdf": {
+          "bytes": 168325,
+          "sha256": "035fe63bf711a834636beba974569c6ea7ff16799fc089579087073d50c92776"
+        },
+        ".mid": {
+          "bytes": 6478,
+          "sha256": "481358f194e7e82226266f0bfb3feaec43a362d7b857b840cef9dc720beff1f3"
+        }
+      },
+      "corrected_revision": 3,
+      "corrected_exports": {
+        ".musicxml": {
+          "bytes": 247943,
+          "sha256": "68c52c0d2ce2dd439b89dbd2af1aed7fa050659e4c5f3376250ea90d0243005e"
+        },
+        ".pdf": {
+          "bytes": 165444,
+          "sha256": "a969233d9278ee17bcbd2dc10700977a058660fd09837232dd0593dcac3dc948"
+        },
+        ".mid": {
+          "bytes": 6550,
+          "sha256": "0db465e0c470b104b8b881dee2899261a10dc595ad2a18176b02d4bf9d96720e"
+        }
+      },
+      "model_prediction_to_notation_before": {
+        "note_precision": 0.24607329842931938,
+        "note_recall": 0.24607329842931938,
+        "note_f1": 0.24607329842931938,
+        "onset_mae_ms": 23.272886524819963,
+        "offset_mae_ms": 48.86020921985853,
+        "matched_notes": 141,
+        "predicted_notes": 573,
+        "reference_notes": 573,
+        "instrument_precision": 0.24607329842931938,
+        "instrument_recall": 0.24607329842931938,
+        "instrument_f1": 0.24607329842931938,
+        "instrument_matched_notes": 141
+      },
+      "model_prediction_to_notation_after": {
+        "note_precision": 0.8464223385689355,
+        "note_recall": 0.8464223385689355,
+        "note_f1": 0.8464223385689355,
+        "onset_mae_ms": 23.632782989696707,
+        "offset_mae_ms": 26.23069278351027,
+        "matched_notes": 485,
+        "predicted_notes": 573,
+        "reference_notes": 573,
+        "instrument_precision": 0.8464223385689355,
+        "instrument_recall": 0.8464223385689355,
+        "instrument_f1": 0.8464223385689355,
+        "instrument_matched_notes": 485
+      },
+      "acoustic_consistency": {
+        "raw_vocal_notes": 573,
+        "stable_notes_with_waveform_evidence": 4,
+        "stable_note_categories": {
+          "consistent": 0,
+          "octave_conflict": 4,
+          "pitch_conflict": 0
+        },
+        "reliable_voiced_seconds": 3.645532879818594,
+        "chord_intervals_checked": 138,
+        "low_chord_support_intervals": 18
+      },
+      "pipeline_replay": {
+        "id": "twice-fancy",
+        "tempo_bpm": 133.33,
+        "first_downbeat_seconds": 0.02,
+        "trimmed": false,
+        "raw_to_score_fidelity": {
+          "note_precision": 0.8464223385689355,
+          "note_recall": 0.8464223385689355,
+          "note_f1": 0.8464223385689355,
+          "onset_mae_ms": 23.632782989696707,
+          "offset_mae_ms": 26.23069278351027,
+          "matched_notes": 485,
+          "predicted_notes": 573,
+          "reference_notes": 573,
+          "instrument_precision": 0.8464223385689355,
+          "instrument_recall": 0.8464223385689355,
+          "instrument_f1": 0.8464223385689355,
+          "instrument_matched_notes": 485
+        }
+      }
+    },
+    {
+      "id": "green-day-american-idiot",
+      "audio_sha256": "aedb875ba145c1f5cd21a0a86713d11dff1de9701512b8f1c7e4a40fa4fdf680",
+      "e2e_status": "exported",
+      "e2e_elapsed_seconds": 112.339,
+      "original_exports": {
+        ".musicxml": {
+          "bytes": 225624,
+          "sha256": "5e890f841c2dcf5e70d74ee0b7d594c996360a22419051efc9bb1b3241d42bc2"
+        },
+        ".pdf": {
+          "bytes": 175965,
+          "sha256": "a918a76bce9ed094c0b9426b5c463f20962feae32ba742d8d1cad0c89181d4bb"
+        },
+        ".mid": {
+          "bytes": 4772,
+          "sha256": "64edc9a924b5cf87dd5c262a71c3d7b4feb2943ee1cf140a82e4567d28d960f6"
+        }
+      },
+      "corrected_revision": 3,
+      "corrected_exports": {
+        ".musicxml": {
+          "bytes": 228828,
+          "sha256": "37663cd26d7df61b8f9f8e048aca2d38b0d1cf4ef6d40ab511e2faa7bfd5a781"
+        },
+        ".pdf": {
+          "bytes": 171450,
+          "sha256": "48d49cdce493b7bb0cf48f920af8dda5e21d7de4fc62b554faf3c4dc8c6b4aa1"
+        },
+        ".mid": {
+          "bytes": 4817,
+          "sha256": "2e6dd46424263b9f69b423a3e116576e4dff00d9de1206569ed62f000679713e"
+        }
+      },
+      "model_prediction_to_notation_before": {
+        "note_precision": 0.3220338983050847,
+        "note_recall": 0.3220338983050847,
+        "note_f1": 0.3220338983050847,
+        "onset_mae_ms": 9.945175438606517,
+        "offset_mae_ms": 15.272295321639852,
+        "matched_notes": 114,
+        "predicted_notes": 354,
+        "reference_notes": 354,
+        "instrument_precision": 0.3220338983050847,
+        "instrument_recall": 0.3220338983050847,
+        "instrument_f1": 0.3220338983050847,
+        "instrument_matched_notes": 114
+      },
+      "model_prediction_to_notation_after": {
+        "note_precision": 0.9548022598870056,
+        "note_recall": 0.9548022598870056,
+        "note_f1": 0.9548022598870056,
+        "onset_mae_ms": 6.1791464497030315,
+        "offset_mae_ms": 6.617931459568586,
+        "matched_notes": 338,
+        "predicted_notes": 354,
+        "reference_notes": 354,
+        "instrument_precision": 0.9548022598870056,
+        "instrument_recall": 0.9548022598870056,
+        "instrument_f1": 0.9548022598870056,
+        "instrument_matched_notes": 338
+      },
+      "acoustic_consistency": {
+        "raw_vocal_notes": 354,
+        "stable_notes_with_waveform_evidence": 2,
+        "stable_note_categories": {
+          "consistent": 0,
+          "octave_conflict": 1,
+          "pitch_conflict": 1
+        },
+        "reliable_voiced_seconds": 1.3931972789115645,
+        "chord_intervals_checked": 89,
+        "low_chord_support_intervals": 13
+      },
+      "pipeline_replay": {
+        "id": "green-day-american-idiot",
+        "tempo_bpm": 250.0,
+        "first_downbeat_seconds": 0.0,
+        "trimmed": false,
+        "raw_to_score_fidelity": {
+          "note_precision": 0.9548022598870056,
+          "note_recall": 0.9548022598870056,
+          "note_f1": 0.9548022598870056,
+          "onset_mae_ms": 6.1791464497030315,
+          "offset_mae_ms": 6.617931459568586,
+          "matched_notes": 338,
+          "predicted_notes": 354,
+          "reference_notes": 354,
+          "instrument_precision": 0.9548022598870056,
+          "instrument_recall": 0.9548022598870056,
+          "instrument_f1": 0.9548022598870056,
+          "instrument_matched_notes": 338
+        }
+      }
+    },
+    {
+      "id": "ham-boo-young-my-song",
+      "audio_sha256": "871118a06f5021b94f6e56c9066fca50670582f5e530bcee9290e2db270d8ac7",
+      "e2e_status": "exported",
+      "e2e_elapsed_seconds": 154.693,
+      "original_exports": {
+        ".musicxml": {
+          "bytes": 232897,
+          "sha256": "314fb1238318995698787af22a4f83b79e460e2236f1554a4c577850ebcc25fa"
+        },
+        ".pdf": {
+          "bytes": 143454,
+          "sha256": "c28478a8a6fc6dba6c4fbf49326885eb1e1673aa59e83ed72640b2a6401d90a2"
+        },
+        ".mid": {
+          "bytes": 5695,
+          "sha256": "59402d3724adb2681529a49a41506e7739ce7d9455fcd102d6012f731f683a10"
+        }
+      },
+      "corrected_revision": 3,
+      "corrected_exports": {
+        ".musicxml": {
+          "bytes": 234641,
+          "sha256": "91930731f7a03da2b44ea206cec6f7821e1b3f21d45d6678e8d150b517dfa507"
+        },
+        ".pdf": {
+          "bytes": 140237,
+          "sha256": "edef65d1f3d1c3bfec9a37a2c2b8a812efe821d3a8effc400e92829e89efd7d5"
+        },
+        ".mid": {
+          "bytes": 5716,
+          "sha256": "63d46391fdf4104f712093c563c7c930afd59f4061b7e6be5a6f4b39bc3104f4"
+        }
+      },
+      "model_prediction_to_notation_before": {
+        "note_precision": 0.2655367231638418,
+        "note_recall": 0.2655367231638418,
+        "note_f1": 0.2655367231638418,
+        "onset_mae_ms": 11.99737706855144,
+        "offset_mae_ms": 45.1039326240995,
+        "matched_notes": 141,
+        "predicted_notes": 531,
+        "reference_notes": 531,
+        "instrument_precision": 0.2655367231638418,
+        "instrument_recall": 0.2655367231638418,
+        "instrument_f1": 0.2655367231638418,
+        "instrument_matched_notes": 141
+      },
+      "model_prediction_to_notation_after": {
+        "note_precision": 0.928436911487759,
+        "note_recall": 0.928436911487759,
+        "note_f1": 0.928436911487759,
+        "onset_mae_ms": 9.894064908727698,
+        "offset_mae_ms": 11.213282961464108,
+        "matched_notes": 493,
+        "predicted_notes": 531,
+        "reference_notes": 531,
+        "instrument_precision": 0.928436911487759,
+        "instrument_recall": 0.928436911487759,
+        "instrument_f1": 0.928436911487759,
+        "instrument_matched_notes": 493
+      },
+      "acoustic_consistency": {
+        "raw_vocal_notes": 531,
+        "stable_notes_with_waveform_evidence": 20,
+        "stable_note_categories": {
+          "consistent": 0,
+          "octave_conflict": 11,
+          "pitch_conflict": 9
+        },
+        "reliable_voiced_seconds": 19.52798185941043,
+        "chord_intervals_checked": 170,
+        "low_chord_support_intervals": 15
+      },
+      "pipeline_replay": {
+        "id": "ham-boo-young-my-song",
+        "tempo_bpm": 62.5,
+        "first_downbeat_seconds": 1.1,
+        "trimmed": false,
+        "raw_to_score_fidelity": {
+          "note_precision": 0.928436911487759,
+          "note_recall": 0.928436911487759,
+          "note_f1": 0.928436911487759,
+          "onset_mae_ms": 9.894064908727698,
+          "offset_mae_ms": 11.213282961464108,
+          "matched_notes": 493,
+          "predicted_notes": 531,
+          "reference_notes": 531,
+          "instrument_precision": 0.928436911487759,
+          "instrument_recall": 0.928436911487759,
+          "instrument_f1": 0.928436911487759,
+          "instrument_matched_notes": 493
+        }
+      }
+    },
+    {
+      "id": "younha-event-horizon",
+      "audio_sha256": "2d84bd77253c96851db8bde4cd76de0b7bf7101cf07f79ff8dbf2d03f1d23dce",
+      "e2e_status": "exported",
+      "e2e_elapsed_seconds": 176.585,
+      "original_exports": {
+        ".musicxml": {
+          "bytes": 229932,
+          "sha256": "7f157a1f470574ae3a4688981443be153f734ef6b1c874e28b20998cb91ee1a7"
+        },
+        ".pdf": {
+          "bytes": 172254,
+          "sha256": "849133bf632112431177b02c9d53a863a7dd3a1827c92ffe7164325695fdb2ac"
+        },
+        ".mid": {
+          "bytes": 6443,
+          "sha256": "8f590056821248c48069b17ea330b76285fdeb3cacd835302a56affa86a659ca"
+        }
+      },
+      "corrected_revision": 3,
+      "corrected_exports": {
+        ".musicxml": {
+          "bytes": 232526,
+          "sha256": "26e2921da18a1d131ef7fd4b05a3197cae8de631e6a69136377d4d36d4b9ab65"
+        },
+        ".pdf": {
+          "bytes": 167631,
+          "sha256": "9028c083ca6ee65412428e12c10808667415ffba7c29e6620129364d09b07be1"
+        },
+        ".mid": {
+          "bytes": 6489,
+          "sha256": "79f6e9ca55c147a3e165fa9db6e3d10e89c618b75cd50212a1b57ea79652a2f8"
+        }
+      },
+      "model_prediction_to_notation_before": {
+        "note_precision": 0.537521815008726,
+        "note_recall": 0.537521815008726,
+        "note_f1": 0.537521815008726,
+        "onset_mae_ms": 14.960829004328579,
+        "offset_mae_ms": 21.90346807359071,
+        "matched_notes": 308,
+        "predicted_notes": 573,
+        "reference_notes": 573,
+        "instrument_precision": 0.537521815008726,
+        "instrument_recall": 0.537521815008726,
+        "instrument_f1": 0.537521815008726,
+        "instrument_matched_notes": 308
+      },
+      "model_prediction_to_notation_after": {
+        "note_precision": 0.944153577661431,
+        "note_recall": 0.944153577661431,
+        "note_f1": 0.944153577661431,
+        "onset_mae_ms": 14.545529266782951,
+        "offset_mae_ms": 15.271110597644164,
+        "matched_notes": 541,
+        "predicted_notes": 573,
+        "reference_notes": 573,
+        "instrument_precision": 0.944153577661431,
+        "instrument_recall": 0.944153577661431,
+        "instrument_f1": 0.944153577661431,
+        "instrument_matched_notes": 541
+      },
+      "acoustic_consistency": {
+        "raw_vocal_notes": 573,
+        "stable_notes_with_waveform_evidence": 38,
+        "stable_note_categories": {
+          "consistent": 0,
+          "octave_conflict": 31,
+          "pitch_conflict": 7
+        },
+        "reliable_voiced_seconds": 32.60081632653061,
+        "chord_intervals_checked": 148,
+        "low_chord_support_intervals": 15
+      },
+      "pipeline_replay": {
+        "id": "younha-event-horizon",
+        "tempo_bpm": 98.36,
+        "first_downbeat_seconds": 0.0,
+        "trimmed": false,
+        "raw_to_score_fidelity": {
+          "note_precision": 0.944153577661431,
+          "note_recall": 0.944153577661431,
+          "note_f1": 0.944153577661431,
+          "onset_mae_ms": 14.545529266782951,
+          "offset_mae_ms": 15.271110597644164,
+          "matched_notes": 541,
+          "predicted_notes": 573,
+          "reference_notes": 573,
+          "instrument_precision": 0.944153577661431,
+          "instrument_recall": 0.944153577661431,
+          "instrument_f1": 0.944153577661431,
+          "instrument_matched_notes": 541
+        }
+      }
+    }
+  ],
+  "limits": [
+    "Waveform pitch/chroma are estimates, not expert transcription references",
+    "Only 68 stable predicted notes met strict pYIN confidence/coverage criteria; 2441 raw vocal notes total",
+    "Chord support alerts are not incorrect-chord counts or WCSR",
+    "Timing preservation F1 measures own model MIDI versus score, not accuracy against original music",
+    "Lyrics and human correction effort were not evaluated",
+    "No live YouTube ingestion repeat; original prepared YouTube WAVs used through real upload API",
+    "Keep the five user songs for acceptance/regression; after tuning on them, do not claim their scores are independent held-out generalization evidence"
+  ]
+}
