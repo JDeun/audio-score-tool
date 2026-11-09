@@ -10,7 +10,6 @@ from __future__ import annotations
 import copy
 from pathlib import Path
 from threading import Event
-from typing import Any
 
 import mido
 
@@ -24,6 +23,7 @@ from .transcription_engine import (
     TranscriptionEngineCancelled,
     TranscriptionEngineError,
 )
+
 
 class SelectedScoreError(RuntimeError):
     pass
