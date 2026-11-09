@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import threading
 import time
 import unicodedata
@@ -127,6 +128,69 @@ def search_musicbrainz_by_isrc(isrc: str, *, limit: int = 5) -> list[dict[str, A
         item["score"] = max(98, int(item.get("score") or 0))
     return results
 
+
+
+
+_MUSICBRAINZ_ID = re.compile(r"[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}")
+
+
+def lookup_musicbrainz_recording_choice(
+    recording_mbid: str,
+    *,
+    release_mbid: str | None = None,
+) -> dict[str, Any]:
+    """Re-verify the exact recording and optional *release* the user selected.
+
+    MusicBrainz search scores are not proof of a specific album edition:
+    multiple recordings can have the same title, artist and score. Never use
+    the first linked release as an implicit album. The release must be explicitly
+    chosen by MBID AND found among this recording's authenticated source data.
+    No user-controlled URLs or metadata are trusted as server-side facts.
+    """
+    recording_id = recording_mbid.strip().lower()
+    if not _MUSICBRAINZ_ID.fullmatch(recording_id):
+        raise EnrichmentError("Invalid MusicBrainz recording identifier")
+    release_id = release_mbid.strip().lower() if release_mbid is not None else None
+    if release_id is not None and not _MUSICBRAINZ_ID.fullmatch(release_id):
+        raise EnrichmentError("Invalid MusicBrainz release identifier")
+
+    response = _musicbrainz_request(
+        f"recording/{recording_id}", {"inc": "artist-credits+releases"},
+    )
+    if not isinstance(response, dict) or response.get("id") != recording_id:
+        raise EnrichmentError("MusicBrainz recording identity did not match")
+    candidate = _recording_candidate(response)
+    if not candidate.get("title") or not candidate.get("artist"):
+        raise EnrichmentError("Selected recording has no verified title/artist")
+
+    # The MusicBrainz recording lookup may return only a paged subset of all
+    # releases. If a selected release is absent we fail *closed* rather than
+    # accepting the album name the client displayed in an old search result.
+    album = None
+    release_date = None
+    if release_id is not None:
+        releases = response.get("releases")
+        if not isinstance(releases, list):
+            raise EnrichmentError("MusicBrainz did not provide linked releases")
+        matching = [
+            release for release in releases if isinstance(release, dict)
+            and release.get("id") == release_id
+        ]
+        if len(matching) != 1 or not matching[0].get("title"):
+            raise EnrichmentError(
+                "Requested album release is not verified as linked to the recording"
+            )
+        album = str(matching[0]["title"])[:500]
+        release_date = str(matching[0].get("date") or "")[:50] or None
+
+    return {
+        **candidate,
+        "album": album,
+        "release_mbid": release_id,
+        "first_release_date": release_date,
+        "match_scope": "explicit_verified_recording",
+        "recording_mbid": recording_id,
+    }
 
 
 def lookup_musicbrainz_work_credits(recording_mbid: str) -> dict[str, Any]:
