@@ -211,9 +211,63 @@ def aggregate_official_samples(
             "instrument_onset_offset_f1": case.get("instrument_onset_offset_f1"),
             "inference_seconds": case.get("model_inference_seconds"),
             "musicxml": case.get("musicxml"),
+            "score_musicxml_reference_fidelity": case.get("score_musicxml_reference_fidelity"),
+            "score_part_count_absolute_error": case.get("score_part_count_absolute_error"),
             "instrument_part_diagnostics": case.get("instrument_part_diagnostics"),
         })
     success = [entry for entry in observed if entry["status"] == "scored"]
+    score_available = bool(success) and all(
+        case.get("score_musicxml_reference_fidelity") is not None for case in success
+    )
+    # A partially measured group must never present selective MusicXML results
+    # as an average over the full four-source sample set.
+    _require(
+        not any(case.get("score_musicxml_reference_fidelity") is not None for case in success)
+        or score_available,
+        "Partial MusicXML ground-truth coverage cannot produce a model average",
+    )
+    score_metrics = ("onset_f1", "onset_offset_f1", "instrument_onset_offset_f1")
+    for case in success if score_available else ():
+        fidelity = case["score_musicxml_reference_fidelity"]
+        _require(
+            fidelity.get("method") == "music21_musicxml_to_midi_temp_roundtrip"
+            and fidelity.get("reference_note_count") == case["reference_note_count"]
+            and fidelity.get("predicted_midi_note_count") == case["prediction_note_count"]
+            and type(fidelity.get("score_playable_note_count")) is int
+            and fidelity["score_playable_note_count"] > 0
+            and type(case.get("score_part_count_absolute_error")) is int
+            and case["score_part_count_absolute_error"] >= 0
+            and fidelity.get("reference_part_count") == 4,
+            "MusicXML ground-truth receipt is incomplete or mismatched",
+        )
+        for against in ("against_reference", "against_prediction_midi"):
+            values = fidelity.get(against)
+            _require(
+                isinstance(values, dict)
+                and all(
+                    type(values.get(metric)) in (int, float)
+                    and math.isfinite(values[metric])
+                    and 0 <= values[metric] <= 1
+                    for metric in score_metrics
+                ),
+                "MusicXML accuracy metrics are invalid",
+            )
+
+    score_macro = None
+    if score_available:
+        score_macro = {
+            against: {
+                metric: round(mean(
+                    case["score_musicxml_reference_fidelity"][against][metric]
+                    for case in success
+                ), 8)
+                for metric in score_metrics
+            }
+            for against in ("against_reference", "against_prediction_midi")
+        }
+        score_macro["part_count_absolute_error"] = round(
+            mean(case["score_part_count_absolute_error"] for case in success), 8
+        )
     return {
         "schema_version": 1,
         "purpose": "four-ensemble-author-sample-real-mt3-review",
@@ -230,6 +284,10 @@ def aggregate_official_samples(
             metric: round(mean(case[metric] for case in success), 8) if success else None
             for metric in _METRICS
         },
+        # Separate score (MusicXML) metrics from raw model MIDI metrics.
+        # None means the historical report did not measure the final score;
+        # it does NOT imply perfect fidelity or zero accuracy.
+        "score_musicxml_macro_successful_only": score_macro,
         "dataset_is_author_generated_not_recorded_commercial_music": True,
         "all_samples_in_train_split": True,
         "heldout_generalization_measured": False,
