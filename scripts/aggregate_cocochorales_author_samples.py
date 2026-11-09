@@ -227,10 +227,11 @@ def aggregate_official_samples(
         "Partial MusicXML ground-truth coverage cannot produce a model average",
     )
     score_metrics = ("onset_f1", "onset_offset_f1", "instrument_onset_offset_f1")
-    for case in success if score_available else ():
+    for case in (success if score_available else []):
         fidelity = case["score_musicxml_reference_fidelity"]
         _require(
-            fidelity.get("method") == "music21_musicxml_to_midi_temp_roundtrip"
+            isinstance(fidelity, dict)
+            and fidelity.get("method") == "music21_musicxml_to_midi_temp_roundtrip"
             and fidelity.get("reference_note_count") == case["reference_note_count"]
             and fidelity.get("predicted_midi_note_count") == case["prediction_note_count"]
             and type(fidelity.get("score_playable_note_count")) is int
