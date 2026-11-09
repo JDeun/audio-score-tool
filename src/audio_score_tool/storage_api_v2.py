@@ -78,6 +78,9 @@ def cleanup_storage_v2(keep: int = 30) -> dict:
             # confirmed; retain it so a transient parse/storage problem is recoverable.
             protected += 1
             continue
+        if canonical_song is not None and not _songs.preserve_job_evidence(job):
+            protected += 1
+            continue
 
         original, staged = _stage_workspace(job_id)
         if original is not None and staged is None:

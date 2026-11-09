@@ -14,6 +14,7 @@ from pathlib import Path
 from threading import Lock, get_ident
 from typing import Any
 
+from .model_evidence import preserve_model_evidence
 from .paths import cache_dir, database_path, exports_dir, jobs_dir, song_assets_dir
 from .score_requests import requested_parts_for_mode, validate_score_mode
 from .settings_store import SettingsStore
@@ -291,13 +292,26 @@ class SongStoreV2:
             return
         self.set_analysis(song_id, kind, payload)
 
+    def preserve_job_evidence(self, job: dict[str, Any]) -> bool:
+        """A model Job is disposable only after its observations are durably owned."""
+        try:
+            report = preserve_model_evidence(job, jobs_root=jobs_dir(), asset_root=self.asset_root)
+        except (OSError, ValueError, KeyError, TypeError):
+            return False
+        if self._exists_by_job(str(job.get("job_id") or "")):
+            self.set_analysis(str(job["job_id"]), "model_evidence", report)
+        return True
+
     def sync_completed_jobs(self, jobs: list[dict[str, Any]]) -> int:
         created = 0
         for job in jobs:
             if job.get("kind") == "benchmark" or job.get("status") != "done":
                 continue
             job_id = str(job.get("job_id") or "")
-            if not job_id or self._exists_by_job(job_id):
+            if not job_id:
+                continue
+            if self._exists_by_job(job_id):
+                self.preserve_job_evidence(job)
                 continue
             result = job.get("result") or {}
             source_value = result.get("lyric_musicxml") or result.get("musicxml")
@@ -309,6 +323,8 @@ class SongStoreV2:
             try:
                 score_xml = _valid_score_xml(source.read_text(encoding="utf-8"))
             except (OSError, ValueError, ET.ParseError):
+                continue
+            if not self.preserve_job_evidence(job):
                 continue
             now = _now()
             midi_asset = self._copy_midi_asset(job_id, result.get("midi"))
@@ -333,6 +349,7 @@ class SongStoreV2:
             if not inserted:
                 continue
             created += 1
+            self.preserve_job_evidence(job)
             audio = None
             if self._source_kind(job) in {"local", "youtube"}:
                 audio = self._preserve_original_audio(job_id)
