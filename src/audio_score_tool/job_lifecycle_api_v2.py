@@ -11,6 +11,8 @@ from . import api as base_api
 from .job_admission import JobCapacityError, reserve_job
 from .paths import jobs_dir, song_assets_dir
 from .preflight_v2 import preflight
+from .runner import command_exists
+from .score_requests import needs_stem_separation, validate_score_mode
 from .presets import resolve_job_models
 from .runtime_settings import runtime_settings
 from .song_store_v2 import SongStoreV2
@@ -93,6 +95,7 @@ def create_youtube_job_v2(payload: base_api.YouTubeJobRequest) -> dict:
     try:
         url = validate_youtube_url(payload.url)
         defaults = runtime_settings()
+        score_mode = validate_score_mode(payload.score_mode)
         # The desktop default is private, noncommercial practice; do not ask
         # users to affirm ownership of every streamed public-video analysis.
         # Commercial jobs still require explicit user confirmation. This does
@@ -118,6 +121,9 @@ def create_youtube_job_v2(payload: base_api.YouTubeJobRequest) -> dict:
     if not youtube_tool_status(defaults)["ready"]:
         raise HTTPException(503, "YouTube 가져오기 구성요소가 준비되지 않았습니다.")
 
+    if needs_stem_separation(score_mode) and not command_exists(defaults.demucs_cmd):
+        raise HTTPException(503, "선택 악기 채보에는 Demucs가 필요합니다. 구성요소 상태에서 설치하세요.")
+
     job_id = uuid.uuid4().hex
     _reserve_or_429(
         job_id,
@@ -129,6 +135,7 @@ def create_youtube_job_v2(payload: base_api.YouTubeJobRequest) -> dict:
         language=payload.language,
         skip_lyrics=payload.skip_lyrics,
         preset=payload.preset,
+        score_mode=score_mode,
         muscriptor_model=resolved_muscriptor,
         whisperx_model=resolved_whisperx,
     )
@@ -215,9 +222,13 @@ def retry_job_v2(job_id: str) -> dict:
         "source_kind": source.get("source_kind"),
         "language": source.get("language"),
         "preset": source.get("preset") or default_presets[kind],
+        "score_mode": source.get("score_mode") or "full",
         "skip_lyrics": source.get("skip_lyrics", False) if kind == "transcription" else kind != "benchmark",
     }
     if kind == "transcription":
+        validate_score_mode(values["score_mode"])
+        if needs_stem_separation(values["score_mode"]) and not command_exists(settings.demucs_cmd):
+            raise HTTPException(503, "재실행할 선택 악기 분리 도구가 준비되지 않았습니다.")
         values["muscriptor_model"] = source.get("muscriptor_model") or settings.muscriptor_model
         values["whisperx_model"] = source.get("whisperx_model") or settings.whisperx_model
 
