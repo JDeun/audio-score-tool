@@ -98,3 +98,63 @@ def test_live_probe_rejects_empty_lyrics_contract():
         },
     )
     assert result["providers"]["lrclib"]["reason"] == "invalid_lyrics_contract"
+
+
+
+def test_live_probe_checks_selected_recording_release_identity_without_response_payload():
+    calls = []
+    recording = "00000000-0000-0000-0000-000000000001"
+    release = "11111111-1111-1111-1111-111111111111"
+
+    def search(title, artist, *, limit):
+        return [{
+            "title": title, "artist": artist, "score": 100,
+            "recording_mbid": recording, "release_mbid": release,
+        }]
+
+    def choice(mbid, *, release_mbid):
+        calls.append((mbid, release_mbid))
+        return {
+            "title": "American Idiot", "artist": "Green Day",
+            "recording_mbid": mbid, "release_mbid": release_mbid,
+            "album": "Sensitive album title stays out of public metadata",
+        }
+
+    def writer(_mbid):
+        return {"status": "ambiguous_or_missing_work", "composer": None, "lyricist": None}
+
+    def lyric(_title, _artist, **_kwargs):
+        return {
+            "provider": "lrclib", "lyrics": "private lyric content remains local",
+            "source_payload": {}, "synced": True,
+        }
+
+    result = check_live_providers(
+        recording_search=search, work_lookup=writer,
+        recording_choice_lookup=choice, lyrics_fetch=lyric,
+    )
+    assert calls == [(recording, release)]
+    assert result["both_provider_contracts_live"] is True
+    assert result["providers"]["musicbrainz"]["recording_choice_binding_verified"] is True
+    assert "Sensitive album" not in json.dumps(result)
+    assert "private lyric" not in json.dumps(result)
+
+
+def test_live_probe_does_not_call_untrusted_recording_choice_on_mismatched_search_result():
+    def bad_search(*_args, **_kwargs):
+        return [{
+            "title": "Wrong Song", "artist": "Different Artist",
+            "score": 100, "recording_mbid": "00000000-0000-0000-0000-000000000001",
+        }]
+
+    def fail(*_args, **_kwargs):
+        raise AssertionError("Must not fetch an unrelated recording")
+
+    result = check_live_providers(
+        recording_search=bad_search,
+        work_lookup=fail,
+        recording_choice_lookup=fail,
+        lyrics_fetch=lambda *_args, **_kwargs: None,
+    )
+    assert result["providers"]["musicbrainz"]["high_confidence_selected"] is False
+    assert "recording_choice_binding_verified" not in result["providers"]["musicbrainz"]
