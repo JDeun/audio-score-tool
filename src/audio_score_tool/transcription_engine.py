@@ -353,7 +353,7 @@ class MuScriptorEngine(BaseTranscriptionEngine):
         except CommandCancelled as exc:
             raise TranscriptionEngineCancelled("MuScriptor transcription cancelled.") from exc
         except (CommandError, NotationBackendError) as exc:
-            raise TranscriptionEngineError(f"MuScriptor failed.\\n{exc}") from exc
+            raise TranscriptionEngineError(f"MuScriptor failed.\n{exc}") from exc
         if not musicxml_path.is_file() or musicxml_path.is_symlink():
             raise TranscriptionEngineError(
                 "The embedded MIDI converter did not produce score.musicxml."
