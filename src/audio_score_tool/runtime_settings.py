@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from .config import Settings, packaged_runtime
@@ -54,7 +55,7 @@ def runtime_settings(
     if usage_mode not in {"personal", "commercial"}:
         usage_mode = "personal"
 
-    explicit_engine = saved.get("transcription_engine")
+    explicit_engine = saved.get("transcription_engine") or os.getenv("AST_TRANSCRIPTION_ENGINE")
     if explicit_engine:
         engine = explicit_engine.strip().lower()
         if engine == "yourmt3":
@@ -66,7 +67,7 @@ def runtime_settings(
             "muscriptor" if usage_mode == "personal" else "mt3_infer"
         )
 
-    if usage_mode == "commercial" and engine == "muscriptor":
+    if usage_mode == "commercial" and engine in {"muscriptor", "sheetsage2"}:
         engine = "mt3_infer"
 
     def command_value(key: str, default: str, *legacy_keys: str) -> str:

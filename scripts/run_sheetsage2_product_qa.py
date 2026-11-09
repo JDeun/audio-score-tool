@@ -121,7 +121,9 @@ def main():
                            outputs={p.suffix: {"bytes": p.stat().st_size, "sha256": sha256(p)} for p in files})
             except Exception as exc:
                 row.update(status="failed", error_type=type(exc).__name__)
-                (args.output / f"{case['id']}-failure.txt").write_text(str(exc))
+                response = getattr(exc, "response", None)
+                detail = str(exc) + ("\n" + response.text if response is not None else "")
+                (args.output / f"{case['id']}-failure.txt").write_text(detail)
             row["elapsed_seconds"] = round(time.perf_counter() - started, 3)
             receipt.write_text(json.dumps(report, indent=2) + "\n")
             print(f"{case['id']}: {row['status']} ({row['elapsed_seconds']}s)", flush=True)
