@@ -89,6 +89,9 @@ type PublicationSettings = {
   subtitle_font_size: number;
   credit_font_size: number;
   subtitle: string;
+  album: string;
+  performer: string;
+  release_date: string;
   composer: string;
   lyricist: string;
   arranger: string;
@@ -112,6 +115,9 @@ const fallbackPublication: PublicationSettings = {
   subtitle_font_size: 12,
   credit_font_size: 9.5,
   subtitle: "",
+  album: "",
+  performer: "",
+  release_date: "",
   composer: "",
   lyricist: "",
   arranger: "",
@@ -532,6 +538,9 @@ export default function SongWorkspace() {
           artist,
           expected_revision: song.revision,
           subtitle: publication.subtitle,
+          album: publication.album,
+          performer: publication.performer,
+          release_date: publication.release_date,
           composer: publication.composer,
           lyricist: publication.lyricist,
           arranger: publication.arranger,
@@ -810,6 +819,11 @@ export default function SongWorkspace() {
               <div className="inspector-intro"><strong>첫 페이지 제목 영역</strong><p>상용 악보처럼 제목, 부제, 작사·작곡·편곡 및 저작권 정보를 배치합니다.</p></div>
               <label><span>곡 제목</span><input value={title} onChange={(event) => setTitle(event.target.value)} /></label>
               <label><span>부제 / 버전</span><input value={publication.subtitle} onChange={(event) => setPublication((current) => ({ ...current, subtitle: event.target.value }))} placeholder="예: Piano & Vocal / Original Key" /></label>
+              <div className="layout-two">
+                <label><span>앨범명</span><input value={publication.album} onChange={(event) => setPublication((current) => ({ ...current, album: event.target.value }))} /></label>
+                <label><span>가수 / 연주자</span><input value={publication.performer} onChange={(event) => setPublication((current) => ({ ...current, performer: event.target.value }))} /></label>
+              </div>
+              <label><span>발매 정보</span><input value={publication.release_date} onChange={(event) => setPublication((current) => ({ ...current, release_date: event.target.value }))} placeholder="예: 2004-09-21" /></label>
               <label><span>라이브러리 아티스트 / 메모</span><input value={artist} onChange={(event) => setArtist(event.target.value)} /></label>
               <div className="layout-two"><label><span>작곡</span><input value={publication.composer} onChange={(event) => setPublication((current) => ({ ...current, composer: event.target.value }))} /></label><label><span>작사</span><input value={publication.lyricist} onChange={(event) => setPublication((current) => ({ ...current, lyricist: event.target.value }))} /></label></div>
               <label><span>편곡</span><input value={publication.arranger} onChange={(event) => setPublication((current) => ({ ...current, arranger: event.target.value }))} /></label>
