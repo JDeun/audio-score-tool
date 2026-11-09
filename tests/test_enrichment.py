@@ -1,5 +1,6 @@
 import pytest
 
+from audio_score_tool import enrichment
 from audio_score_tool.enrichment import (
     EnrichmentError,
     LyricsProvider,
@@ -39,3 +40,35 @@ def test_lyrics_provider_rejects_non_url_template():
             title="Song",
             artist="Artist",
         )
+
+
+
+def test_musicbrainz_transient_503_retries_once_without_retrying_rate_limits(monkeypatch):
+    monkeypatch.setattr(enrichment, "_last_mb_request", 0.0)
+    delays = []
+    monkeypatch.setattr(enrichment.time, "sleep", lambda duration: delays.append(duration))
+    seen = []
+
+    def temporarily_unavailable(*_args, **_kwargs):
+        seen.append("attempt")
+        if len(seen) == 1:
+            raise EnrichmentError("HTTP Error 503: Service Unavailable")
+        return {"recordings": []}
+
+    monkeypatch.setattr(enrichment, "_json_request", temporarily_unavailable)
+    assert enrichment.search_musicbrainz("Any", "Artist") == []
+    assert len(seen) == 2
+    assert any(delay >= 2.0 for delay in delays)
+
+    seen.clear()
+    delays.clear()
+    monkeypatch.setattr(enrichment, "_last_mb_request", 0.0)
+    def throttled(*_args, **_kwargs):
+        seen.append("attempt")
+        raise EnrichmentError("HTTP Error 429: Too Many Requests")
+
+    monkeypatch.setattr(enrichment, "_json_request", throttled)
+    with pytest.raises(EnrichmentError, match="429"):
+        enrichment.search_musicbrainz("Any", "Artist")
+    assert len(seen) == 1
+    assert not any(delay >= 2.0 for delay in delays)
