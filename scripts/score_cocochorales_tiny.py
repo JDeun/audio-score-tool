@@ -12,6 +12,7 @@ import hashlib
 import json
 import math
 import re
+import tempfile
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,7 @@ import mido
 from defusedxml import ElementTree as ET
 
 from audio_score_tool.metrics import MidiNote, evaluate_midi_files, midi_notes
+from audio_score_tool.notation_backend import NotationBackendError, musicxml_to_midi
 from audio_score_tool.tier2_prediction import load_tier2_prediction_provenance
 from scripts.extract_cocochorales_tiny import (
     _OFFICIAL_FORMAT_COMMIT,
@@ -108,6 +110,87 @@ def _musicxml_summary(path: Path) -> dict[str, int]:
     if not parts or not note_count:
         raise ValueError("prediction MusicXML is empty")
     return {"parts": len(parts), "notes": note_count}
+
+
+
+def _score_musicxml_fidelity(
+    musicxml: Path, predicted_midi: Path, reference_midi: Path, *,
+    scratch_root: Path, original_part_count: int,
+) -> dict[str, Any]:
+    """Compare the *rendered notation* to ground truth, separately from raw MIDI.
+
+    The app's own music21 MusicXML -> MIDI conversion gives a common,
+    tempo-aware note-event representation. The ephemeral round-trip MIDI is
+    never published. This detects note loss, wrong pitch/offset, and changed
+    GM program during score serialization; it is not a PDF/engraving or human
+    edit-time quality metric.
+    """
+    with tempfile.TemporaryDirectory(prefix=".coco-score-roundtrip-", dir=scratch_root) as temp:
+        roundtrip = Path(temp) / "roundtrip.mid"
+        musicxml_to_midi(musicxml, roundtrip)
+        xml_notes = midi_notes(roundtrip)
+        if not xml_notes:
+            raise ValueError("MusicXML is parseable but has no playable notes")
+        reference_notes = midi_notes(reference_midi)
+        prediction_notes = midi_notes(predicted_midi)
+        if not reference_notes or not prediction_notes:
+            raise ValueError("MIDI or reference has no performed notes")
+
+        def compare(notes: list[MidiNote], target: list[MidiNote]) -> dict[str, Any]:
+            onset = _score_matching(
+                notes, target, require_instrument=False,
+            )  # full offset-aware match, separately named below
+            instrument = _score_matching(notes, target, require_instrument=True)
+            # Direct onset-only matching uses the exact same 50 ms tolerance
+            # as evaluate_midi_files; note-offset validation stays separate.
+            onset_only = _onset_note_f1(notes, target)
+            return {
+                "onset_f1": onset_only,
+                "onset_offset_f1": onset["f1"],
+                "instrument_onset_offset_f1": instrument["f1"],
+                "matched_onset_offset_notes": onset["matched"],
+                "matched_instrument_notes": instrument["matched"],
+            }
+
+        # Reuse the original raw MIDI and reference to expose serialization
+        # loss separately from model transcription errors.
+        return {
+            "method": "music21_musicxml_to_midi_temp_roundtrip",
+            "note_onset_tolerance_seconds": 0.05,
+            "reference_note_count": len(reference_notes),
+            "score_playable_note_count": len(xml_notes),
+            "predicted_midi_note_count": len(prediction_notes),
+            "against_reference": compare(xml_notes, reference_notes),
+            "against_prediction_midi": compare(xml_notes, prediction_notes),
+            "reference_part_count": original_part_count,
+        }
+
+
+def _onset_note_f1(predicted: list[MidiNote], reference: list[MidiNote]) -> float:
+    """Onset-only F1 with maximum one-to-one pitch+50 ms pairs.
+
+    Matches the existing note-onset evaluator's tolerance and matching
+    convention, without writing another comparison MIDI to disk.
+    """
+    claimed: set[int] = set()
+    matched = 0
+    for ref in reference:
+        best_index = None
+        best_error = float("inf")
+        for i, pred in enumerate(predicted):
+            if i in claimed or pred.pitch != ref.pitch:
+                continue
+            error = abs(pred.onset - ref.onset)
+            if error <= 0.05 and error < best_error:
+                best_index, best_error = i, error
+        if best_index is not None:
+            claimed.add(best_index)
+            matched += 1
+    precision = matched / len(predicted) if predicted else 0.0
+    recall = matched / len(reference) if reference else 0.0
+    return round(
+        2 * precision * recall / (precision + recall) if precision + recall else 0.0, 8
+    )
 
 
 def _midi_program_diagnostics(
@@ -297,6 +380,10 @@ def score_cocochorales(
             predicted_notes = midi_notes(pred_midi)
             reference_notes = midi_notes(reference)
             xml_summary = _musicxml_summary(xml)
+            score_fidelity = _score_musicxml_fidelity(
+                xml, pred_midi, reference,
+                scratch_root=root, original_part_count=len(original["instruments"]),
+            )
             onset = evaluate_midi_files(pred_midi, reference).as_dict()
             full = _score_matching(predicted_notes, reference_notes, require_instrument=False)
             instrument = _score_matching(predicted_notes, reference_notes, require_instrument=True)
@@ -306,7 +393,7 @@ def score_cocochorales(
                 musicxml_parts=xml_summary["parts"],
                 strict_note_matches=instrument["matched"],
             )
-        except (OSError, ValueError, EOFError):
+        except (OSError, ValueError, EOFError, NotationBackendError):
             measured.append({"case_id": case_id, "status": "failed",
                              "failure_reason": "invalid-prediction-midi-or-musicxml"})
             continue
@@ -324,6 +411,10 @@ def score_cocochorales(
             "onset_mae_ms": onset["onset_mae_ms"],
             "offset_mae_ms": onset["offset_mae_ms"],
             "musicxml": xml_summary,
+            "score_musicxml_reference_fidelity": score_fidelity,
+            "score_part_count_absolute_error": abs(
+                xml_summary["parts"] - len(original["instruments"])
+            ),
             "instrument_part_diagnostics": diagnostics,
             "prediction_midi_sha256": _sha(pred_midi),
             "prediction_musicxml_sha256": _sha(xml),

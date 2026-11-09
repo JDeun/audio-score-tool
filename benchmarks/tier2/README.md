@@ -480,3 +480,38 @@ This first gated run is only the small/CPU/author-train engineering gate.
 Medium/large GPU or MPS, held-out real-genre quality, user edit-to-publish
 time, independent checkpoint redistribution provenance, and platform packages
 remain separate blockers (#55, #34, #29).
+
+## Ground-truth evaluation of the *final MusicXML score* (#34, #154)
+
+The earlier CocoChorales four-pair benchmark reported note/pitch/onset/offset
+and instrument-aware F1 **from predicted MIDI**, but inspected MusicXML mainly
+for structural validity and part count. A model can therefore score well in raw
+MIDI while losing or changing playable notes when converting to sheet music.
+
+The source-bound scorer now retains all historical raw MIDI metrics and adds:
+
+- `score_musicxml_reference_fidelity.against_reference`: independent F1 for the
+  final **MusicXML score**, interpreted as playable notes by the app's music21
+  MusicXML→temporary MIDI converter, against the same pinned reference MIDI
+- `score_musicxml_reference_fidelity.against_prediction_midi`: conversion
+  fidelity between the final score and the model's own unmodified MIDI
+- `score_part_count_absolute_error`: absolute difference between MusicXML
+  parts and four original SATB voices; useful as a warning, not a true
+  voice-assignment accuracy measure
+- `score_musicxml_macro_successful_only` and
+  `observed_musicxml_score_macro_by_candidate`: separately audited full-case
+  model comparison; historical no-score reports use `null`, not zero
+
+The temporary score round-trip MIDI is deleted after parsing and never enters
+public artifacts. A MusicXML file that merely contains `<note>` tags but
+cannot produce playable notes is a failed score, not a passed benchmark.
+All comparisons use the same original WAV and independent source MIDI hashes.
+
+**Interpretation:** This is a *playback-event proxy* for sheet similarity.
+It measures pitches, note timing/duration and GM instrument assignment, but
+does not score engraving layout, notation spelling, beaming, rests, staff
+distribution or manual editing burden. music21 MIDI round-tripping itself
+can quantize offsets and alter program mapping; compare against the raw MIDI
+and investigate deltas before attributing every discrepancy to the model.
+Author-supplied CocoChorales 4 tracks are **train** samples; held-out real
+genre F1 and time-to-publish remain mandatory before choosing a release model.

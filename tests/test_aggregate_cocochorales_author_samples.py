@@ -101,6 +101,22 @@ def _fixture(tmp_path: Path) -> Path:
                 "instrument_onset_offset_f1": 0.0,
                 "model_inference_seconds": 1.4,
                 "musicxml": {"parts": 1, "notes": 3},
+                "score_musicxml_reference_fidelity": {
+                    "method": "music21_musicxml_to_midi_temp_roundtrip",
+                    "reference_note_count": 2,
+                    "predicted_midi_note_count": 3,
+                    "score_playable_note_count": 3,
+                    "reference_part_count": 4,
+                    "against_reference": {
+                        "onset_f1": 0.6, "onset_offset_f1": 0.4,
+                        "instrument_onset_offset_f1": 0.2,
+                    },
+                    "against_prediction_midi": {
+                        "onset_f1": 0.8, "onset_offset_f1": 0.7,
+                        "instrument_onset_offset_f1": 0.5,
+                    },
+                },
+                "score_part_count_absolute_error": 3,
                 "instrument_part_diagnostics": diagnostic,
             }],
             "source_media_published": False,
@@ -135,6 +151,17 @@ def test_four_real_ensemble_evidence_aggregates_without_approval(tmp_path):
     assert result["macro_metrics_successful_only"] == {
         "note_onset_f1": 0.5, "note_onset_offset_f1": 0.25,
         "instrument_onset_offset_f1": 0.0,
+    }
+    assert result["score_musicxml_macro_successful_only"] == {
+        "against_reference": {
+            "onset_f1": 0.6, "onset_offset_f1": 0.4,
+            "instrument_onset_offset_f1": 0.2,
+        },
+        "against_prediction_midi": {
+            "onset_f1": 0.8, "onset_offset_f1": 0.7,
+            "instrument_onset_offset_f1": 0.5,
+        },
+        "part_count_absolute_error": 3.0,
     }
     assert result["model_redistribution_approved"] is False
     assert result["commercial_release_quality_approved"] is False
@@ -276,3 +303,26 @@ def test_yourmt3_model_receipt_uses_distinct_checkpoint_runtime_and_same_cases(t
         batch.aggregate_official_samples(root, model_key="mr_mt3")
     with pytest.raises(batch.AuthorSampleAggregateError, match="Unsupported"):
         batch.aggregate_official_samples(root, model_key="mt3_pytorch")
+
+
+
+def test_incomplete_musicxml_score_coverage_does_not_generate_a_selective_macro(tmp_path):
+    root = _fixture(tmp_path)
+    path = root / batch.TRACKS[0] / "mt3-real-score.pending.json"
+    report = json.loads(path.read_text(encoding="utf-8"))
+    report["cases"][0].pop("score_musicxml_reference_fidelity")
+    path.write_text(json.dumps(report), encoding="utf-8")
+    with pytest.raises(batch.AuthorSampleAggregateError, match="Partial MusicXML"):
+        batch.aggregate_official_samples(root)
+
+
+def test_invalid_final_musicxml_accuracy_cannot_be_claimed(tmp_path):
+    root = _fixture(tmp_path)
+    path = root / batch.TRACKS[0] / "mt3-real-score.pending.json"
+    report = json.loads(path.read_text(encoding="utf-8"))
+    report["cases"][0]["score_musicxml_reference_fidelity"]["against_reference"][
+        "onset_f1"
+    ] = 2.0
+    path.write_text(json.dumps(report), encoding="utf-8")
+    with pytest.raises(batch.AuthorSampleAggregateError, match="MusicXML accuracy"):
+        batch.aggregate_official_samples(root)

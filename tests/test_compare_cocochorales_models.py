@@ -135,3 +135,54 @@ def test_same_original_reference_does_not_mean_same_checkpoint():
     result = comparison.compare_same_source_models(copy.deepcopy(first), copy.deepcopy(second))
     assert result["model_checkpoints"]["mr_mt3"]["checkpoint_sha256"] == first["checkpoint_sha256"]
     assert result["model_checkpoints"]["yourmt3"]["checkpoint_sha256"] == second["checkpoint_sha256"]
+
+
+
+def _with_score_fidelity(report: dict, *, quality: float) -> dict:
+    # A synthetic metadata receipt for score-vs-reference comparisons.
+    metrics = {
+        "onset_f1": quality,
+        "onset_offset_f1": quality,
+        "instrument_onset_offset_f1": quality,
+    }
+    fidelity = {
+        "method": "music21_musicxml_to_midi_temp_roundtrip",
+        "reference_note_count": 109,
+        "predicted_midi_note_count": 130,
+        "score_playable_note_count": 130,
+        "reference_part_count": 4,
+        "against_reference": metrics,
+        "against_prediction_midi": metrics,
+    }
+    for case in report["cases"]:
+        case["score_musicxml_reference_fidelity"] = copy.deepcopy(fidelity)
+        case["score_part_count_absolute_error"] = 0
+    report["score_musicxml_macro_successful_only"] = {
+        "against_reference": copy.deepcopy(metrics),
+        "against_prediction_midi": copy.deepcopy(metrics),
+        "part_count_absolute_error": 0.0,
+    }
+    return report
+
+
+def test_score_musicxml_is_compared_separately_from_raw_model_midi():
+    mr = _with_score_fidelity(_fixture("mr_mt3"), quality=0.6)
+    your = _with_score_fidelity(_fixture("yourmt3"), quality=0.4)
+    result = comparison.compare_same_source_models(mr, your)
+    assert result["observed_macro_by_candidate"]["yourmt3"]["note_onset_f1"] == 0.74
+    assert result["observed_musicxml_score_macro_by_candidate"]["yourmt3"][
+        "against_reference"
+    ]["onset_f1"] == 0.4
+    assert result["tracks"][0]["yourmt3_minus_mrmt3_musicxml_reference"][
+        "onset_f1"
+    ] == pytest.approx(-0.2)
+    # Research-only MIDI ranking must not be confused with full score quality.
+    assert result["release_quality_approved"] is False
+
+
+def test_claimed_musicxml_macro_must_equal_actual_case_values():
+    mr = _with_score_fidelity(_fixture("mr_mt3"), quality=0.6)
+    your = _with_score_fidelity(_fixture("yourmt3"), quality=0.4)
+    your["score_musicxml_macro_successful_only"]["against_reference"]["onset_f1"] = 0.99
+    with pytest.raises(comparison.ModelComparisonError, match="MusicXML macro"):
+        comparison.compare_same_source_models(mr, your)

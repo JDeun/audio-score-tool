@@ -12,6 +12,7 @@ from pathlib import Path
 import mido
 import pytest
 
+from audio_score_tool.notation_backend import midi_to_musicxml
 from scripts import prepare_cocochorales_official_sample as sample
 from scripts.score_cocochorales_tiny import score_cocochorales
 
@@ -157,11 +158,11 @@ def test_real_sample_source_proof_is_consumable_by_existing_note_scorer(
     predicted.mkdir()
     case = pairs["cases"][0]["id"]
     (predicted / f"{case}.mid").write_bytes((corpus / "string_track001010/mix.mid").read_bytes())
-    (predicted / f"{case}.musicxml").write_text(
-        '<score-partwise version="4.0"><part id="P1"><measure number="1">'
-        '<note><pitch><step>C</step><octave>4</octave></pitch><duration>480</duration></note>'
-        '</measure></part></score-partwise>',
-        encoding="utf-8",
+    # Score-level regression now requires playable MusicXML, not a mere
+    # hand-written XML <note> tag with missing notation structure.
+    midi_to_musicxml(
+        corpus / "string_track001010" / "mix.mid",
+        predicted / f"{case}.musicxml",
     )
     (predicted / "tier2-prediction-provenance.json").write_text(json.dumps({
         "schema_version": "1", "corpus_version": manifest["corpus_version"],
