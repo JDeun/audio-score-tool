@@ -43,7 +43,10 @@ def title_artist_hints(filename: str | None) -> tuple[str, str] | None:
         not 1 <= len(artist) <= 300
         or not 1 <= len(title) <= 300
         or artist.lower() in {"unknown", "youtube", "official", "artist"}
-        or title.lower() in {"untitled", "song", "video"}
+        or title.lower() in {
+            "untitled", "song", "video", "official video",
+            "official music video", "official audio",
+        }
     ):
         return None
     return title, artist
