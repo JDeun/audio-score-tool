@@ -11,6 +11,7 @@ from pathlib import Path
 import mido
 import pytest
 
+from audio_score_tool.notation_backend import midi_to_musicxml
 from scripts import score_cocochorales_tiny as scoring
 from scripts.validate_tier2_dataset_pairs import validate_pairs
 
@@ -91,14 +92,9 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict, dict, Path, Path]:
     predictions = tmp_path / "private-model-predictions"
     predictions.mkdir()
     shutil.copyfile(reference, predictions / f"{case_id}.mid")
-    (predictions / f"{case_id}.musicxml").write_text(
-        '<score-partwise version="4.0"><part-list>'
-        '<score-part id="P1"><part-name>Violin</part-name></score-part>'
-        '</part-list><part id="P1"><measure number="1">'
-        '<note><pitch><step>C</step><octave>4</octave></pitch>'
-        '<duration>480</duration></note></measure></part></score-partwise>',
-        encoding="utf-8",
-    )
+    # A real music21 MIDI→MusicXML score is needed: validating only that XML
+    # contains <note> is not the same as checking whether it can be rendered.
+    midi_to_musicxml(reference, predictions / f"{case_id}.musicxml")
     _verified, manifest = validate_pairs(pairs, registry, corpus_root=root)
     (predictions / "tier2-prediction-provenance.json").write_text(
         json.dumps({
@@ -136,6 +132,13 @@ def test_identical_original_midi_predictions_reach_perfect_onset_offset_f1(tmp_p
     assert case["instrument_onset_offset_f1"] == pytest.approx(1.0)
     assert case["matched_onset_offset_notes"] == 1
     assert case["musicxml"] == {"parts": 1, "notes": 1}
+    fidelity = case["score_musicxml_reference_fidelity"]
+    assert fidelity["method"] == "music21_musicxml_to_midi_temp_roundtrip"
+    assert fidelity["score_playable_note_count"] == 1
+    assert fidelity["against_reference"]["onset_f1"] == pytest.approx(1.0)
+    assert fidelity["against_reference"]["onset_offset_f1"] == pytest.approx(1.0)
+    assert fidelity["against_prediction_midi"]["onset_f1"] == pytest.approx(1.0)
+    assert case["score_part_count_absolute_error"] == 3
     diagnostic = case["instrument_part_diagnostics"]
     assert diagnostic["source_declared_gm_programs"] == [40]
     assert diagnostic["reference_gm_program_note_counts"] == [
@@ -333,3 +336,48 @@ def test_unrecognized_model_does_not_enter_source_bound_scoring(tmp_path):
     provenance.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(ValueError, match="Actual AMT prediction provenance"):
         _score(pairs, registry, source, root, predictions)
+
+
+
+def test_final_musicxml_can_be_wrong_even_when_predicted_midi_f1_is_perfect(tmp_path):
+    """Report distinct score quality: XML note corruption must not be masked by MIDI F1."""
+    p, registry, source, root, predictions = _fixture(tmp_path)
+    xml = predictions / "coco-string_track000001.musicxml"
+    content = xml.read_text(encoding="utf-8")
+    assert "<step>C</step>" in content
+    xml.write_text(content.replace("<step>C</step>", "<step>D</step>", 1), encoding="utf-8")
+
+    result = _score(p, registry, source, root, predictions)
+    case = result["cases"][0]
+    assert case["status"] == "scored"
+    assert case["note_onset_f1"] == pytest.approx(1.0)
+    assert case["note_onset_offset_f1"] == pytest.approx(1.0)
+    score = case["score_musicxml_reference_fidelity"]["against_reference"]
+    assert score["onset_f1"] == pytest.approx(0.0)
+    assert score["onset_offset_f1"] == pytest.approx(0.0)
+    assert case["score_musicxml_reference_fidelity"]["against_prediction_midi"]["onset_f1"] == 0
+    assert list(predictions.glob(".coco-score-roundtrip-*")) == []
+
+
+def test_unplayable_musicxml_is_not_counted_as_scored_even_if_xml_has_note_tag(tmp_path):
+    """An XML <note> without sufficient time/pitch structure is not a playable score."""
+    p, registry, source, root, predictions = _fixture(tmp_path)
+    xml = predictions / "coco-string_track000001.musicxml"
+    xml.write_text(
+        '<score-partwise version="4.0"><part-list><score-part id="P1">'
+        '<part-name>Violin</part-name></score-part></part-list>'
+        '<part id="P1"><measure number="1"><note><pitch><step>C</step>'
+        '<octave>4</octave></pitch></note></measure></part></score-partwise>',
+        encoding="utf-8",
+    )
+    result = _score(p, registry, source, root, predictions)
+    assert result["scored_case_count"] == 0
+    assert result["cases"][0]["failure_reason"] == "invalid-prediction-midi-or-musicxml"
+
+
+def test_musicxml_part_count_error_tracks_original_four_voice_reference(tmp_path):
+    p, registry, source, root, predictions = _fixture(tmp_path)
+    result = _score(p, registry, source, root, predictions)["cases"][0]
+    assert result["score_musicxml_reference_fidelity"]["reference_part_count"] == 4
+    assert result["score_part_count_absolute_error"] == 3
+    assert result["score_musicxml_reference_fidelity"]["score_playable_note_count"] >= 1
