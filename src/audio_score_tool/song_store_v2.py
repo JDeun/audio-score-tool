@@ -11,8 +11,8 @@ from threading import Lock, get_ident
 from typing import Any
 
 from .paths import cache_dir, database_path, exports_dir, jobs_dir, song_assets_dir
-from .settings_store import SettingsStore
 from .score_requests import requested_parts_for_mode, validate_score_mode
+from .settings_store import SettingsStore
 from .sqlite_runtime import connect_sqlite
 
 
