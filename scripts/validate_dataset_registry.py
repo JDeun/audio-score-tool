@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 KNOWN_TASKS = {
     "chord", "chord_beat", "multi_instrument_amt", "piano_amt",
     "guitar_amt", "ensemble_amt", "classical_amt", "drum_amt",
-    "bass_amt", "pop_amt",
+    "bass_amt", "pop_amt", "vocal_amt",
 }
 REQUIRED = {"id", "task", "source", "audio_included", "license", "status"}
 

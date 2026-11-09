@@ -1,0 +1,2314 @@
+{
+  "schema_version": 1,
+  "purpose": "private_real_vocal_baseline_research_not_final_model_selection",
+  "source_url": "https://zenodo.org/records/5578807",
+  "dataset_license": "CC-BY-4.0",
+  "source_attribution": "Rachel Bittner, Katherine Pasalo, Juan Jose Bosch, Gabriel Meseguer-Brocal, David Rubinstein (2021), vocadito v3, doi:10.5281/zenodo.5578807",
+  "dataset_archive_sha256": "e0d6b99d3f9c594afe5ae5c4d7bdacebe569e53b809e90b89d1c771c4f9990e3",
+  "source_code_commit": "6b467b726cd92c16084150eaa02ac3b7e2f50dde",
+  "source_code_receipt": {
+    "parent_commit": "51402273b5c6fb613c7d14d6622a92f9c1cfc490",
+    "source_files": {
+      "scripts/run_vocadito_baseline.py": "6870a2be5c49b5de6fa42ead432797539415af5845022c0e1c3928a4a7788f3c",
+      "scripts/run_cocochorales_stem_ablation.py": "5de5a19aecb57509e82a7a027521fc83a918fbda366213caa31def35f166e001",
+      "src/audio_score_tool/mt3_program_midi.py": "0575a499ab9e9d3b3528f0fce6a88a13416d31286c934312af20173d7bf419cc"
+    },
+    "source_audio_publicly_uploaded": false,
+    "hardware": {
+      "system": "Darwin",
+      "machine": "arm64",
+      "logical_cpus": 10,
+      "processor": "Apple M4"
+    },
+    "execution_policy": "same_machine_sequential_models_torch_threads_2"
+  },
+  "private_report_sha256": {
+    "mr_mt3": "590060e10f613d6636b58719d725778fac6286bf4b3728b036e0ee2d2eed3a76",
+    "yourmt3": "01bfcce527f74cecfd1ce640a153a141f5186b5c4f6271e89dd101ded30c30e2"
+  },
+  "summary": {
+    "mr_mt3": {
+      "macro_f1": {
+        "onset_f1": 0.18263075,
+        "onset_offset_f1": 0.07705163
+      },
+      "annotator_macro": {
+        "A1": {
+          "onset_f1": 0.17322665,
+          "onset_offset_f1": 0.07616162
+        },
+        "A2": {
+          "onset_f1": 0.19203485,
+          "onset_offset_f1": 0.07794165
+        }
+      },
+      "scored_cases": 40,
+      "failed_cases": 0,
+      "inference_seconds": 1444.990727,
+      "empty_predictions": 0
+    },
+    "yourmt3": {
+      "macro_f1": {
+        "onset_f1": 0.54308287,
+        "onset_offset_f1": 0.30861178
+      },
+      "annotator_macro": {
+        "A1": {
+          "onset_f1": 0.49555492,
+          "onset_offset_f1": 0.27104559
+        },
+        "A2": {
+          "onset_f1": 0.59061081,
+          "onset_offset_f1": 0.34617797
+        }
+      },
+      "scored_cases": 40,
+      "failed_cases": 0,
+      "inference_seconds": 809.701433,
+      "empty_predictions": 0
+    }
+  },
+  "model_reports": {
+    "mr_mt3": {
+      "schema_version": 1,
+      "dataset": "vocadito-v3",
+      "source_url": "https://zenodo.org/records/5578807",
+      "archive_sha256": "e0d6b99d3f9c594afe5ae5c4d7bdacebe569e53b809e90b89d1c771c4f9990e3",
+      "archive_md5_verified": true,
+      "model": "mr_mt3",
+      "checkpoint_sha256": "b8a3807ed265059abd25ad7f68142c06c35e8f6144dcaa45bd55946a3745398f",
+      "model_revision": "7bd24c3e1dc26468a6a9354c0a4f174405c9bad8",
+      "runtime": {
+        "mt3-infer": "0.2.0",
+        "torch": "2.7.1",
+        "torchaudio": "2.7.1",
+        "transformers": "4.57.6",
+        "mir-eval": "0.8.2"
+      },
+      "python": "3.11.15",
+      "device": "cpu",
+      "seed": 0,
+      "torch_threads": 2,
+      "planned_case_ids": [
+        "vocadito_1",
+        "vocadito_2",
+        "vocadito_3",
+        "vocadito_4",
+        "vocadito_5",
+        "vocadito_6",
+        "vocadito_7",
+        "vocadito_8",
+        "vocadito_9",
+        "vocadito_10",
+        "vocadito_11",
+        "vocadito_12",
+        "vocadito_13",
+        "vocadito_14",
+        "vocadito_15",
+        "vocadito_16",
+        "vocadito_17",
+        "vocadito_18",
+        "vocadito_19",
+        "vocadito_20",
+        "vocadito_21",
+        "vocadito_22",
+        "vocadito_23",
+        "vocadito_24",
+        "vocadito_25",
+        "vocadito_26",
+        "vocadito_27",
+        "vocadito_28",
+        "vocadito_29",
+        "vocadito_30",
+        "vocadito_31",
+        "vocadito_32",
+        "vocadito_33",
+        "vocadito_34",
+        "vocadito_35",
+        "vocadito_36",
+        "vocadito_37",
+        "vocadito_38",
+        "vocadito_39",
+        "vocadito_40"
+      ],
+      "cases": [
+        {
+          "id": "vocadito_1",
+          "audio_sha256": "b509768315efad8120183b48e01d6090f1649d5bcc691241940dc7a100274ab8",
+          "duration_seconds": 33.21224489795918,
+          "reference_sha256": {
+            "A1": "974fdcddce8db5c7bca52e2752d70f6f60efac105a46a6536a11c6f02d33c7b3",
+            "A2": "726bc1527d766e85a9cfbb013c5393be7f93814fdd4ab3bb77f0783232484786"
+          },
+          "prediction_midi_sha256": "8046ad23776fd7d82f0acf17093125559feabfafb0a142836e5ae929bb1a7484",
+          "inference_seconds": 10.983744,
+          "predicted_note_count": 72,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 59,
+              "onset_f1": 0.03809524,
+              "onset_offset_f1": 0.01904762
+            },
+            "A2": {
+              "reference_note_count": 64,
+              "onset_f1": 0.03636364,
+              "onset_offset_f1": 0.01818182
+            }
+          }
+        },
+        {
+          "id": "vocadito_2",
+          "audio_sha256": "8dcc99c3b08a9a5800b793e3d65cccfb4464961f15cf8ccde25bd4c8b853d519",
+          "duration_seconds": 35.208004535147396,
+          "reference_sha256": {
+            "A1": "c9dd07779b2c942361f3fee38a068d581ce18928a20e9ff68e66f96fde8ee114",
+            "A2": "db98b481f36997e8382285232e1ab07223cb11e0aac43bc71075e2f3b4f96bf6"
+          },
+          "prediction_midi_sha256": "e303b9d1a8a0e613fc9938366b8e5ba72e97baec870eb0120d7d337d139cc119",
+          "inference_seconds": 11.236331,
+          "predicted_note_count": 66,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 76,
+              "onset_f1": 0.08547009,
+              "onset_offset_f1": 0.01709402
+            },
+            "A2": {
+              "reference_note_count": 63,
+              "onset_f1": 0.13461538,
+              "onset_offset_f1": 0.03846154
+            }
+          }
+        },
+        {
+          "id": "vocadito_3",
+          "audio_sha256": "73b6fe13bc3435ae9173ee1bdec247e2943526c70cd9b69ab2b35002fa4cb04d",
+          "duration_seconds": 21.736326530612246,
+          "reference_sha256": {
+            "A1": "6aa99d9b80ec65d1dda047ba76288c2e4c06b17cd0eb0d0a8a1fd03b3980c071",
+            "A2": "3987965477be9f046b4a4a4685b9d3131030e61fe1b63e947dc917476104a0f6"
+          },
+          "prediction_midi_sha256": "c3520aa500e5a9a03d53b2e8f2758480afb83d75bb9c7a0190f5c0a34e28af60",
+          "inference_seconds": 11.253209,
+          "predicted_note_count": 70,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 51,
+              "onset_f1": 0.1978022,
+              "onset_offset_f1": 0.13186813
+            },
+            "A2": {
+              "reference_note_count": 46,
+              "onset_f1": 0.23255814,
+              "onset_offset_f1": 0.13953488
+            }
+          }
+        },
+        {
+          "id": "vocadito_4",
+          "audio_sha256": "fc07b202eb609c975d1549be5320db116a49be1bd1fc6904e70e31cd7e44ec23",
+          "duration_seconds": 18.456009070294783,
+          "reference_sha256": {
+            "A1": "0cd829c1a8742b08258dc9b4eeb92fc1caeae87f5229d1c254adf2596c5a7c3d",
+            "A2": "c9bc1dc4a6a39554053ce28e99420770c3d34a2acd2eb9f9e8a2163c6b642c84"
+          },
+          "prediction_midi_sha256": "2e4e19f65267fff0c817c13239dcc3190bc42399ecf33cec9af7f9197ea01130",
+          "inference_seconds": 12.330306,
+          "predicted_note_count": 67,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 69,
+              "onset_f1": 0.15267176,
+              "onset_offset_f1": 0.07633588
+            },
+            "A2": {
+              "reference_note_count": 51,
+              "onset_f1": 0.17699115,
+              "onset_offset_f1": 0.12389381
+            }
+          }
+        },
+        {
+          "id": "vocadito_5",
+          "audio_sha256": "7cecfd126a9437f88db0a297cdab3075bb38faeef10f1a98f22ba22a2a939220",
+          "duration_seconds": 23.23199546485261,
+          "reference_sha256": {
+            "A1": "d38fbbe4d9440e238e4d24ba2cd7106e73586c636455a500909566f4f4e75142",
+            "A2": "ce0c21977483e3b078bf956859855779bc0704499de951bedaf2e518083d3018"
+          },
+          "prediction_midi_sha256": "7244c5c5898ccce54830838bc7fb686c0b7c4a84471da60ff16dac2cc55957dd",
+          "inference_seconds": 12.935512,
+          "predicted_note_count": 120,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 96,
+              "onset_f1": 0.28070175,
+              "onset_offset_f1": 0.09356725
+            },
+            "A2": {
+              "reference_note_count": 72,
+              "onset_f1": 0.34013605,
+              "onset_offset_f1": 0.13605442
+            }
+          }
+        },
+        {
+          "id": "vocadito_6",
+          "audio_sha256": "13816752a6366f2d66f21e71a70d55e22b6a44f0d1712d97abff5390bc0c1f3b",
+          "duration_seconds": 23.831995464852607,
+          "reference_sha256": {
+            "A1": "b0463b3989564152ab5dabdb2c1948823d3d46f711d6c17d4901da584be4d550",
+            "A2": "978f0e0e56d9b3559b6290b5ef21449363df75862d5b0e0dccf79ffeacfecd2e"
+          },
+          "prediction_midi_sha256": "c6eb584bf4f0cdd7e087e3f4f53b5df430b5ba36438bebfce64f289d6432bc5b",
+          "inference_seconds": 94.86973,
+          "predicted_note_count": 202,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 73,
+              "onset_f1": 0.10294118,
+              "onset_offset_f1": 0.02205882
+            },
+            "A2": {
+              "reference_note_count": 50,
+              "onset_f1": 0.09638554,
+              "onset_offset_f1": 0.03212851
+            }
+          }
+        },
+        {
+          "id": "vocadito_7",
+          "audio_sha256": "db9542f0626f4c43ab1e4f26ae9e40834bcfe5f061b07c75a3925d95aaa79676",
+          "duration_seconds": 19.46734693877551,
+          "reference_sha256": {
+            "A1": "bd10de5b425de91cde98783c929636fdac9ec36d4d0b8dad5d517e2cc52f8a5f",
+            "A2": "809d896f9166dd8688477c41955eea96381bee967b81a425a4583c10b5fa12b5"
+          },
+          "prediction_midi_sha256": "f3fb38b7b144c7f8bf4846af69e73b7b57faf9aae1502d990fcbad8bd3542daa",
+          "inference_seconds": 8.815479,
+          "predicted_note_count": 42,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 47,
+              "onset_f1": 0.05063291,
+              "onset_offset_f1": 0.02531646
+            },
+            "A2": {
+              "reference_note_count": 42,
+              "onset_f1": 0.05405405,
+              "onset_offset_f1": 0.02702703
+            }
+          }
+        },
+        {
+          "id": "vocadito_8",
+          "audio_sha256": "05ce2b3f1991035d08db269df1c39b198d9ddc22130ce88f9a8d97e46cd7a310",
+          "duration_seconds": 17.041632653061225,
+          "reference_sha256": {
+            "A1": "57a24cd8a3f64575e600447219406a6040fa95c2df02fd69d5426c3492646efa",
+            "A2": "200e1923b492e6402643586a0ffa0e09c6804d5f839e8615d739ec400ac9a1d2"
+          },
+          "prediction_midi_sha256": "02f53c3eac5b19a2a54206ecafbdcf9f3d95c7ca0db43eb6b41bb69643748abd",
+          "inference_seconds": 26.38136,
+          "predicted_note_count": 149,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 40,
+              "onset_f1": 0.17647059,
+              "onset_offset_f1": 0.14705882
+            },
+            "A2": {
+              "reference_note_count": 37,
+              "onset_f1": 0.18461538,
+              "onset_offset_f1": 0.15384615
+            }
+          }
+        },
+        {
+          "id": "vocadito_9",
+          "audio_sha256": "f980cc7df935c0c9e839b25759de72fadad6763c069be96645be46f8dd3ffd32",
+          "duration_seconds": 20.375011337868482,
+          "reference_sha256": {
+            "A1": "aa4bdb1c8de042a812be20503d2c271f9696a2de15f88ab27b96bdfab1666a63",
+            "A2": "99a0d7069b98e29aaa70547bbf04a87c4ee08c49f0ad20898603e71d048aa270"
+          },
+          "prediction_midi_sha256": "0ceab72e23bab9dbc61ebddd6427851ead6359abd15048c05f4f77f5d464d1de",
+          "inference_seconds": 31.88024,
+          "predicted_note_count": 75,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 62,
+              "onset_f1": 0.07352941,
+              "onset_offset_f1": 0.04411765
+            },
+            "A2": {
+              "reference_note_count": 59,
+              "onset_f1": 0.07518797,
+              "onset_offset_f1": 0.03007519
+            }
+          }
+        },
+        {
+          "id": "vocadito_10",
+          "audio_sha256": "0978bde1c130ae26a9cfcd90012f12fdaf9877bbe45cf21c5237ba7ac9b8703b",
+          "duration_seconds": 9.097823129251701,
+          "reference_sha256": {
+            "A1": "3bbf478d96c05de2897513fce653825f9a4fc06642a7a89cd00ab98679f96f9d",
+            "A2": "2e8abe09284725a9c95fbc4d83b77ec287fe2cd1fe73381909b1cc64411295af"
+          },
+          "prediction_midi_sha256": "d437c0d18e70ce0a5af74fb045811d80ac94b085c645564e6abe2fb7e83dd500",
+          "inference_seconds": 15.115916,
+          "predicted_note_count": 62,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 35,
+              "onset_f1": 0.05479452,
+              "onset_offset_f1": 0.0
+            },
+            "A2": {
+              "reference_note_count": 27,
+              "onset_f1": 0.09230769,
+              "onset_offset_f1": 0.0
+            }
+          }
+        },
+        {
+          "id": "vocadito_11",
+          "audio_sha256": "c4d669eca7e25c5037b191805b54b2c990d5e31bc77c9c77188b140100297197",
+          "duration_seconds": 12.983990929705216,
+          "reference_sha256": {
+            "A1": "2fd689cc3e81a559ae89c7fc53e234b2442cb4fdea17b82b1450e9f1cd7745ee",
+            "A2": "05c7687bd79ea17444b64237387666e17a34c0e3861e9de6ea38160c4053c15a"
+          },
+          "prediction_midi_sha256": "3b6eac565fadf0df0e1bcac9779b25240ad0717a0d55da6d420e6d01055a031a",
+          "inference_seconds": 9.627095,
+          "predicted_note_count": 33,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 37,
+              "onset_f1": 0.28125,
+              "onset_offset_f1": 0.03125
+            },
+            "A2": {
+              "reference_note_count": 30,
+              "onset_f1": 0.31578947,
+              "onset_offset_f1": 0.0
+            }
+          }
+        },
+        {
+          "id": "vocadito_12",
+          "audio_sha256": "5a342e32b20b3764a9ab9784abbf7bac6db69583ec529fc9027f96c69df04e00",
+          "duration_seconds": 15.153492063492063,
+          "reference_sha256": {
+            "A1": "2b5a525560ffda6ce1d039eb2f2b309b496394b42a9879fda53bda612e894f82",
+            "A2": "cca41b5ed7c55b00f0003ecacbe03f4118bde0642970f92a390f21acf6ed5789"
+          },
+          "prediction_midi_sha256": "a940b2cfd4d5bf872c5ffb9893a273e5741e8fce7dbcbdf4acf7e5b443e1e599",
+          "inference_seconds": 24.411596,
+          "predicted_note_count": 71,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 27,
+              "onset_f1": 0.29268293,
+              "onset_offset_f1": 0.04878049
+            },
+            "A2": {
+              "reference_note_count": 24,
+              "onset_f1": 0.27848101,
+              "onset_offset_f1": 0.05063291
+            }
+          }
+        },
+        {
+          "id": "vocadito_13",
+          "audio_sha256": "5a26861f99c4d02a3efe2355215de2774fb51257cc2d2bf6021827b64e25ec94",
+          "duration_seconds": 22.36,
+          "reference_sha256": {
+            "A1": "7dabefde6a83eeb507d74b26dfbe3c3c714514589e11515bb40edbee1bbb2ebc",
+            "A2": "1adf0b17a23b4a1bf77e842059e361db80f0bb9a5d1190469a7701cdd2f8155d"
+          },
+          "prediction_midi_sha256": "a442580a5460e139b4ff2a2d88a588fbd7a04b600db468e2d8155d9aa23840e1",
+          "inference_seconds": 17.919059,
+          "predicted_note_count": 115,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 74,
+              "onset_f1": 0.22222222,
+              "onset_offset_f1": 0.11640212
+            },
+            "A2": {
+              "reference_note_count": 52,
+              "onset_f1": 0.19161677,
+              "onset_offset_f1": 0.09580838
+            }
+          }
+        },
+        {
+          "id": "vocadito_14",
+          "audio_sha256": "a41e814df6ee5840f0beaea5da2ab3ad6b38be62b169da08962a722bcc06cdd1",
+          "duration_seconds": 12.1978231292517,
+          "reference_sha256": {
+            "A1": "de1ebd5833738412c0a36aef74ad63b1bbf12a59414c836aaf54288a5483cbb1",
+            "A2": "e084576f11841bda92d7302a7dfcffab236dad91fafa96fd032a8a13eceb8734"
+          },
+          "prediction_midi_sha256": "447f79ee983c9e31b4f568fb997a4cbe3da07cda08f5b1abce8d993cdcdbf814",
+          "inference_seconds": 12.352609,
+          "predicted_note_count": 95,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 34,
+              "onset_f1": 0.2295082,
+              "onset_offset_f1": 0.13114754
+            },
+            "A2": {
+              "reference_note_count": 26,
+              "onset_f1": 0.22641509,
+              "onset_offset_f1": 0.0754717
+            }
+          }
+        },
+        {
+          "id": "vocadito_15",
+          "audio_sha256": "0bc39b00e14881b20756f48530a4688e1bb7aa1c24ee09d4351a327e3acce28d",
+          "duration_seconds": 20.28,
+          "reference_sha256": {
+            "A1": "aae8be7a70cb5a920e640f17f6eb5d6fb777f4bf08b9428c0ed23a0410b6f455",
+            "A2": "fde13ab37625c39437584d6f4c2d3f8273b84b7c27171854607c92ef99ae8009"
+          },
+          "prediction_midi_sha256": "c2e7a57c7d0641b065ecec8d08313e49172b4b89434bf5cea4f0cf2fa2946fc9",
+          "inference_seconds": 14.038,
+          "predicted_note_count": 81,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 47,
+              "onset_f1": 0.07692308,
+              "onset_offset_f1": 0.05128205
+            },
+            "A2": {
+              "reference_note_count": 41,
+              "onset_f1": 0.13888889,
+              "onset_offset_f1": 0.05555556
+            }
+          }
+        },
+        {
+          "id": "vocadito_16",
+          "audio_sha256": "595e80b5382812702e64d5b6a8f453d9744391166d47c7020cc1d6e71e310e25",
+          "duration_seconds": 17.277142857142856,
+          "reference_sha256": {
+            "A1": "2facdef04874e71354a6210fe722ab444a929c412851f5e719f973ed907ca730",
+            "A2": "5395348e5d559c048d8f4ace1ffe0c5a2f9684fdaffb19f572cb7062ad534a61"
+          },
+          "prediction_midi_sha256": "1b706014e721d4003efb2b547fa0e02232c4bb4c7bc8d812e26b0c4e947c72dd",
+          "inference_seconds": 10.363709,
+          "predicted_note_count": 49,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 47,
+              "onset_f1": 0.10989011,
+              "onset_offset_f1": 0.04395604
+            },
+            "A2": {
+              "reference_note_count": 36,
+              "onset_f1": 0.175,
+              "onset_offset_f1": 0.125
+            }
+          }
+        },
+        {
+          "id": "vocadito_17",
+          "audio_sha256": "4b144cdbbcdb318f19c0aa5ac1e2675dbe8d6cb8941286d251959f25e4c96998",
+          "duration_seconds": 23.56800453514739,
+          "reference_sha256": {
+            "A1": "4acb413062e640f81a3dab73faf1f78e86b33d2cfab23b587144763ce3e6a66c",
+            "A2": "7efd9b7d52ca77f473e3b4727f6ca099ed0495cceb8cd5a35368357c70c706a9"
+          },
+          "prediction_midi_sha256": "6468c1cfb3681d4378bd75e0064a3cf3a83f7c9ec17b02f3d13068a3473dcb74",
+          "inference_seconds": 12.273972,
+          "predicted_note_count": 31,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 54,
+              "onset_f1": 0.14457831,
+              "onset_offset_f1": 0.07228916
+            },
+            "A2": {
+              "reference_note_count": 47,
+              "onset_f1": 0.13157895,
+              "onset_offset_f1": 0.02631579
+            }
+          }
+        },
+        {
+          "id": "vocadito_18",
+          "audio_sha256": "4f2a3712dd912b235990f3505593200172da3f386c80db91dfaeb04fc641c929",
+          "duration_seconds": 29.138820861678006,
+          "reference_sha256": {
+            "A1": "8f74ec4102da088280be6a783080b3a1cfb9537125e3905d1b3f5297074ea610",
+            "A2": "caeaa7a9cfb4bbd853f6ff9a7270d5ae5aa4df1c994151f2e10f989e4c8b841f"
+          },
+          "prediction_midi_sha256": "dbbf29b7c328dd85240eb77a17cbe675d8caeac3233270216a1d25e4dceeafa5",
+          "inference_seconds": 185.734739,
+          "predicted_note_count": 147,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 45,
+              "onset_f1": 0.15277778,
+              "onset_offset_f1": 0.09722222
+            },
+            "A2": {
+              "reference_note_count": 34,
+              "onset_f1": 0.16541353,
+              "onset_offset_f1": 0.12030075
+            }
+          }
+        },
+        {
+          "id": "vocadito_19",
+          "audio_sha256": "8f6d828d65f723ca602abaf8b28a5e8bdc510d37951556b86ff8b6d07889af28",
+          "duration_seconds": 30.493492063492063,
+          "reference_sha256": {
+            "A1": "7c4bcd2a79d6274d98cf94679c404c92eec00940daa07668f449fa3a62a88e28",
+            "A2": "b7005b43df8014e9c897be66f76bd867faad10ffc7671a8e6908df2dd4fa41e2"
+          },
+          "prediction_midi_sha256": "850cedbc37b8baf968ac9cd6e7a17d0d8990b00cad9e98f0a287aa7f0b86b3a4",
+          "inference_seconds": 17.035034,
+          "predicted_note_count": 107,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 73,
+              "onset_f1": 0.23611111,
+              "onset_offset_f1": 0.08333333
+            },
+            "A2": {
+              "reference_note_count": 61,
+              "onset_f1": 0.24242424,
+              "onset_offset_f1": 0.07575758
+            }
+          }
+        },
+        {
+          "id": "vocadito_20",
+          "audio_sha256": "feb3c31e77b7779bdfb302c7819644535804f22a90a8e21f63c393d667ec5181",
+          "duration_seconds": 8.713492063492064,
+          "reference_sha256": {
+            "A1": "c9e11250dfcc301cbc7ac30c4151d3616c5c82a475ee8dba1ce22e387b1181ee",
+            "A2": "367e9b247422a10ddf2688d7935f6e216aaeefb85c11de5821a09d56fe33dff7"
+          },
+          "prediction_midi_sha256": "6ebbc8e4e6712cbc675549c5d4836551628787a47e7ae115e6681e5e44af5ac8",
+          "inference_seconds": 34.140903,
+          "predicted_note_count": 74,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 31,
+              "onset_f1": 0.19417476,
+              "onset_offset_f1": 0.11650485
+            },
+            "A2": {
+              "reference_note_count": 30,
+              "onset_f1": 0.19607843,
+              "onset_offset_f1": 0.07843137
+            }
+          }
+        },
+        {
+          "id": "vocadito_21",
+          "audio_sha256": "d9d3c20794fd3b42e8f7693b91e8194844a6b80b3932ae4fc06d8e0e277687a7",
+          "duration_seconds": 22.0,
+          "reference_sha256": {
+            "A1": "cd69f37df06a757c42dafb4796f0e6695b2af8fbdfde73ba59cd07c42a3f4a06",
+            "A2": "0322ce2ba882eb86551d48bbc0592cdbd8742a2d04a6ac7eabcff84c0250b6ea"
+          },
+          "prediction_midi_sha256": "1a04abbb2158cc12b7d2b6cb25935d0d20e42c516d06eed8643c79244c2387de",
+          "inference_seconds": 54.682897,
+          "predicted_note_count": 133,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 97,
+              "onset_f1": 0.07964602,
+              "onset_offset_f1": 0.03539823
+            },
+            "A2": {
+              "reference_note_count": 62,
+              "onset_f1": 0.05235602,
+              "onset_offset_f1": 0.0104712
+            }
+          }
+        },
+        {
+          "id": "vocadito_22",
+          "audio_sha256": "6629d0ecd7acddd1ce2877d00bc7ef80dc01fdd20f3225b9c2ed907da12f989e",
+          "duration_seconds": 18.333492063492063,
+          "reference_sha256": {
+            "A1": "94be440d29605c81ef2b9fdd152adc1ef97f92c758db41a38a98ce6617b82ce8",
+            "A2": "820322e8e927110fff5326963f6a03cfcbc0d023504d754e4eb56012c22e9fc8"
+          },
+          "prediction_midi_sha256": "0324dad4eca617a66ae31eda48fa2554f2745db6396fa2858ac233b64b337d27",
+          "inference_seconds": 9.967634,
+          "predicted_note_count": 50,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 45,
+              "onset_f1": 0.07317073,
+              "onset_offset_f1": 0.04878049
+            },
+            "A2": {
+              "reference_note_count": 47,
+              "onset_f1": 0.11904762,
+              "onset_offset_f1": 0.04761905
+            }
+          }
+        },
+        {
+          "id": "vocadito_23",
+          "audio_sha256": "3cade4af7d869e3175e3684075782a23f6af936942a8684bfbb4fdbe3a4f10e7",
+          "duration_seconds": 18.037823129251702,
+          "reference_sha256": {
+            "A1": "6b94984dd167decd7ca5ce06811702738786466784dd0a6955ee59407b82c66c",
+            "A2": "a35434b1755c7c13be0307240940d7a907a5d91fe43fc9c752762e77c2d27a43"
+          },
+          "prediction_midi_sha256": "e5c9909c13ea669365065f17d494ea595cf45bc045d3b2b4318e56a5041d16e5",
+          "inference_seconds": 149.436949,
+          "predicted_note_count": 198,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 53,
+              "onset_f1": 0.11864407,
+              "onset_offset_f1": 0.02542373
+            },
+            "A2": {
+              "reference_note_count": 51,
+              "onset_f1": 0.12820513,
+              "onset_offset_f1": 0.00854701
+            }
+          }
+        },
+        {
+          "id": "vocadito_24",
+          "audio_sha256": "22fb2df57dc7b68987cda67b30171c626a7818b9ab7db02185e8ea0a0a6db7ee",
+          "duration_seconds": 14.757823129251701,
+          "reference_sha256": {
+            "A1": "7894c0aafc0f416fdb17b38a52b389dafda1848556cb6a20a0cb50e8e44927db",
+            "A2": "712bc9354989cc18a5e2c1fb1ed50dd37de1f6e209c9654ee354a8fc91a02b67"
+          },
+          "prediction_midi_sha256": "c43cadbbcdc7d66eb33bc0fdcb8e259b5bc22d38ff2244c234ef60a4cb89ae49",
+          "inference_seconds": 14.152595,
+          "predicted_note_count": 86,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 39,
+              "onset_f1": 0.38554217,
+              "onset_offset_f1": 0.09638554
+            },
+            "A2": {
+              "reference_note_count": 30,
+              "onset_f1": 0.45945946,
+              "onset_offset_f1": 0.08108108
+            }
+          }
+        },
+        {
+          "id": "vocadito_25",
+          "audio_sha256": "cf155e4fd681331d34f316e421803255c449acb0393fa55cd23079ed103b37af",
+          "duration_seconds": 14.657823129251701,
+          "reference_sha256": {
+            "A1": "060dfefe06e2cb42225bf98fb340620a7bc9bbf53a910581dc9b5266c44c7b49",
+            "A2": "f2b485a6a1150d1699c747e9c1a9bfc87768d60b65385b5e544310dec456cf72"
+          },
+          "prediction_midi_sha256": "d809772d318ece827e97f60ff266776f02a268a2f04a65b03859b2142e959ca5",
+          "inference_seconds": 7.487985,
+          "predicted_note_count": 42,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 38,
+              "onset_f1": 0.21538462,
+              "onset_offset_f1": 0.06153846
+            },
+            "A2": {
+              "reference_note_count": 33,
+              "onset_f1": 0.23333333,
+              "onset_offset_f1": 0.06666667
+            }
+          }
+        },
+        {
+          "id": "vocadito_26",
+          "audio_sha256": "27fcfb7c6150b412be3f22199202dfc2aab46e59e16cddd675b71c8325b3f66d",
+          "duration_seconds": 12.8578231292517,
+          "reference_sha256": {
+            "A1": "d2b944ced2755339090a56f01f402531dcaaf5048b322a1348a25ff53c57664d",
+            "A2": "d502c4ce590c897d8fa8efcd8728e6f54e30884b502d32f64484e8299df9e86b"
+          },
+          "prediction_midi_sha256": "7fd3c9a48e49b50879e56d3ca4e6aa17d76c5cf3239a17cd5cb50fd568f83b4e",
+          "inference_seconds": 62.545476,
+          "predicted_note_count": 88,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 73,
+              "onset_f1": 0.1038961,
+              "onset_offset_f1": 0.06493506
+            },
+            "A2": {
+              "reference_note_count": 56,
+              "onset_f1": 0.11678832,
+              "onset_offset_f1": 0.0729927
+            }
+          }
+        },
+        {
+          "id": "vocadito_27",
+          "audio_sha256": "6300e1fc5981ea458074a24a1c32a1011a095df4162fbc8911d6b0240d182419",
+          "duration_seconds": 14.0178231292517,
+          "reference_sha256": {
+            "A1": "ebec697217004efae66358d21d8a764f78a5626f3435da12cd12832464abe51a",
+            "A2": "a798f329aa52b7aa02ff027f8082908ee64f5dc44afd8de887259b253b846974"
+          },
+          "prediction_midi_sha256": "20435436a528d77b1576ba3f0d56cdc3984f983bb818b13f093a98216cfec2d0",
+          "inference_seconds": 8.736171,
+          "predicted_note_count": 38,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 34,
+              "onset_f1": 0.44827586,
+              "onset_offset_f1": 0.17241379
+            },
+            "A2": {
+              "reference_note_count": 28,
+              "onset_f1": 0.53846154,
+              "onset_offset_f1": 0.23076923
+            }
+          }
+        },
+        {
+          "id": "vocadito_28",
+          "audio_sha256": "f50830862faff98314bb7b28de452754ef2d939e187a6d89e5fb1ad56749aeb6",
+          "duration_seconds": 12.8978231292517,
+          "reference_sha256": {
+            "A1": "a87545d7b1da301e10e749f024c98d3d13dfd7397f19161d65e92494acdc48cf",
+            "A2": "99e763e1d4c04dbcdeb9739077cc68d2f649cdba6033a494d051b3c06afcd498"
+          },
+          "prediction_midi_sha256": "a8f294a72df5ab4c4c03328577f08fc4cb53cf2c1d0f20c08d3e556c2b2560f2",
+          "inference_seconds": 27.536905,
+          "predicted_note_count": 90,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 44,
+              "onset_f1": 0.01574803,
+              "onset_offset_f1": 0.0
+            },
+            "A2": {
+              "reference_note_count": 43,
+              "onset_f1": 0.01587302,
+              "onset_offset_f1": 0.0
+            }
+          }
+        },
+        {
+          "id": "vocadito_29",
+          "audio_sha256": "46a831ed09f60728c6bfb051e27582d2d47021805ea8c4500bf4b2d6396a71cb",
+          "duration_seconds": 14.893492063492063,
+          "reference_sha256": {
+            "A1": "156aa0cce6087f3ad37fc34d0137bae9acdfbbb9a0768e07a0ac5f5dd414b272",
+            "A2": "bdb43c9ea7d75e9d62cbb11321a2f0f8ee3a53584ec6fb49a3b418ee101922b7"
+          },
+          "prediction_midi_sha256": "fa8edef5509593fabc41fdbee118ac89fac8f272735db8a1bd234d8f0931ee00",
+          "inference_seconds": 9.886938,
+          "predicted_note_count": 47,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 36,
+              "onset_f1": 0.29333333,
+              "onset_offset_f1": 0.21333333
+            },
+            "A2": {
+              "reference_note_count": 32,
+              "onset_f1": 0.30985915,
+              "onset_offset_f1": 0.14084507
+            }
+          }
+        },
+        {
+          "id": "vocadito_30",
+          "audio_sha256": "ce2128d9bfcd434a9c1507d1f2fcd504677e0b1e0fb5fe8bbe07406158df144f",
+          "duration_seconds": 13.0178231292517,
+          "reference_sha256": {
+            "A1": "9c99908e60468d1a65ee0ba384f7b94d9054048719f89ea125fa95bf06da9db2",
+            "A2": "6fb7188315da7ce5268bea284d8160eb1dadf968d2ff0d8f5bd1e8a64514ee93"
+          },
+          "prediction_midi_sha256": "3da92029d4ab89add18f4e0b7bcd1752ebfacfad692e07aab8b5b3d9808582d9",
+          "inference_seconds": 10.913453,
+          "predicted_note_count": 84,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 58,
+              "onset_f1": 0.17886179,
+              "onset_offset_f1": 0.09756098
+            },
+            "A2": {
+              "reference_note_count": 40,
+              "onset_f1": 0.20952381,
+              "onset_offset_f1": 0.11428571
+            }
+          }
+        },
+        {
+          "id": "vocadito_31",
+          "audio_sha256": "c3e68dddd4d6a6d34d135042f76ed74cf4b85208c2483a2d4a331d717af99356",
+          "duration_seconds": 14.033492063492064,
+          "reference_sha256": {
+            "A1": "618cb9eaf1776a308a8e470f52b758231b9fa28a075586b4b7ef00231eee317e",
+            "A2": "48270b2b4110f3d1cd9761641868a70af16c9a4ef6fbc716441b54f4ab7753fb"
+          },
+          "prediction_midi_sha256": "d8c4e0335f3617634a1818f269db85cb04dfa98d37f175ffbabdef02d5638f2c",
+          "inference_seconds": 57.608965,
+          "predicted_note_count": 148,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 47,
+              "onset_f1": 0.04761905,
+              "onset_offset_f1": 0.03571429
+            },
+            "A2": {
+              "reference_note_count": 38,
+              "onset_f1": 0.05031447,
+              "onset_offset_f1": 0.05031447
+            }
+          }
+        },
+        {
+          "id": "vocadito_32",
+          "audio_sha256": "1776573e0a80e0618258501c1fa877a75c36c3368ab24014aaebb522f92768b7",
+          "duration_seconds": 25.033492063492062,
+          "reference_sha256": {
+            "A1": "64f87b9f3371ba6be2b426dec6ac3874f43a98c60f5b245fa2b5a86d3d15962e",
+            "A2": "6cb3cf5866e6b42b9a2669164a39b8af8d979310a9e5097e6400c9c2545035d6"
+          },
+          "prediction_midi_sha256": "fc8928769a3df98002c25a3dabb544bc65574e93496609e28f540492136e7d28",
+          "inference_seconds": 19.84985,
+          "predicted_note_count": 155,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 57,
+              "onset_f1": 0.40776699,
+              "onset_offset_f1": 0.0776699
+            },
+            "A2": {
+              "reference_note_count": 55,
+              "onset_f1": 0.45544554,
+              "onset_offset_f1": 0.13861386
+            }
+          }
+        },
+        {
+          "id": "vocadito_33",
+          "audio_sha256": "896ae8828bfdc7eefc46a4781c328b979f519fea310c04c32cf5859c54ba4c7a",
+          "duration_seconds": 30.0,
+          "reference_sha256": {
+            "A1": "5af132105ca175dd7ac109019ed42b19e69bebf9133a399e60ab18ae48561245",
+            "A2": "5c302aa61fe3c510e6fe1e386ea84488e8e3f465c9012fa350f9e74705cf01be"
+          },
+          "prediction_midi_sha256": "10f5e1b34ce532a4584873f99489a305f9a5cd559b59807bdaf1dbd51da285f5",
+          "inference_seconds": 18.385908,
+          "predicted_note_count": 72,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 80,
+              "onset_f1": 0.09210526,
+              "onset_offset_f1": 0.05263158
+            },
+            "A2": {
+              "reference_note_count": 87,
+              "onset_f1": 0.08805031,
+              "onset_offset_f1": 0.03773585
+            }
+          }
+        },
+        {
+          "id": "vocadito_34",
+          "audio_sha256": "60cefc716230c7783889b1b46f8dcfba48669cf5be6cddb522c04e810c8d38d8",
+          "duration_seconds": 24.853492063492062,
+          "reference_sha256": {
+            "A1": "c4fe28f788e85beb57accc7e38a2bac5661c71423a9f11b318eaec228e65ede5",
+            "A2": "c4a129e94006751f051741a0a8febd9f6d236bafcc7bba013ef10468b1549e2e"
+          },
+          "prediction_midi_sha256": "7e1582943fadc1d97eb2993a8806bb5c6641c2c117a9ac57a208693c5f8420b9",
+          "inference_seconds": 11.48993,
+          "predicted_note_count": 79,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 89,
+              "onset_f1": 0.08695652,
+              "onset_offset_f1": 0.0621118
+            },
+            "A2": {
+              "reference_note_count": 95,
+              "onset_f1": 0.14371257,
+              "onset_offset_f1": 0.10778443
+            }
+          }
+        },
+        {
+          "id": "vocadito_35",
+          "audio_sha256": "85c1c4268527cc53240e9f4f0d557d92f3bf9856d6d42ca50e80c7cbb02bea72",
+          "duration_seconds": 13.8,
+          "reference_sha256": {
+            "A1": "61ba54a7ccd700b1332d5877d13681b3c2ebfe6a90294b21bb6ced84857f21f5",
+            "A2": "86ab58cb4c0a382144a4b96a2539f3d667ba4ca9137a1ea976d71f4206b52967"
+          },
+          "prediction_midi_sha256": "3c8d07ced08e28b83d1da8f801435b71c3c283f5da197321a6b6832314cae839",
+          "inference_seconds": 27.608804,
+          "predicted_note_count": 91,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 37,
+              "onset_f1": 0.24719101,
+              "onset_offset_f1": 0.13483146
+            },
+            "A2": {
+              "reference_note_count": 26,
+              "onset_f1": 0.25641026,
+              "onset_offset_f1": 0.07692308
+            }
+          }
+        },
+        {
+          "id": "vocadito_36",
+          "audio_sha256": "2e4eacabc71019752feb17da9e1b0228b9b5ba0ae97ec41107f80dac65750dbb",
+          "duration_seconds": 23.2778231292517,
+          "reference_sha256": {
+            "A1": "024c7122fa0d6b609f06a1f27f0e7eb3772b19f85c076fead9423fe5749dd1df",
+            "A2": "e757a4374ba6d50bf908b7ee0adeeb117736b1f82f64e4fc0fa21468181111ba"
+          },
+          "prediction_midi_sha256": "bf0d051b759145e0d6593a6b063f9a514107e5c611adb924e36f388d51ceb24c",
+          "inference_seconds": 13.344585,
+          "predicted_note_count": 97,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 67,
+              "onset_f1": 0.15625,
+              "onset_offset_f1": 0.09375
+            },
+            "A2": {
+              "reference_note_count": 54,
+              "onset_f1": 0.15652174,
+              "onset_offset_f1": 0.08695652
+            }
+          }
+        },
+        {
+          "id": "vocadito_37",
+          "audio_sha256": "53cb202ddabf1cb7591be49da9160f508cb81c6078c50c7e41a13efe109a0622",
+          "duration_seconds": 38.736009070294784,
+          "reference_sha256": {
+            "A1": "c9d896c5de7a9b7e19a5f480e5c75774c064616722151109360de4ba081fe182",
+            "A2": "f8379ab7ff11165607af89dc835786a3a0ff49e0145976a2246c9f0bf0ad0dc7"
+          },
+          "prediction_midi_sha256": "d1346c04dd5238db0e90590db7e798195e0285ae95b1dc62dbf43e396b0806f4",
+          "inference_seconds": 8.841449,
+          "predicted_note_count": 44,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 51,
+              "onset_f1": 0.30769231,
+              "onset_offset_f1": 0.15384615
+            },
+            "A2": {
+              "reference_note_count": 41,
+              "onset_f1": 0.34567901,
+              "onset_offset_f1": 0.17283951
+            }
+          }
+        },
+        {
+          "id": "vocadito_38",
+          "audio_sha256": "2113abf18ddfb0e789021b8e2a2e42743b80d82c51aaca5fe9d228636883a239",
+          "duration_seconds": 27.84,
+          "reference_sha256": {
+            "A1": "48f60d13067d464b4938b4b9a4364624bd9f17d02a8b1d7b982e6c9ff2cb24be",
+            "A2": "e9f2d8d34535f5ff48f8eabca20019d4217b6d25a457cf76c8133b8d783bb9fd"
+          },
+          "prediction_midi_sha256": "63d7ba480cf4f80a6667d0cd7a17b0eb12d01bde1e5ef143a1dc58d0ca947873",
+          "inference_seconds": 335.985367,
+          "predicted_note_count": 301,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 78,
+              "onset_f1": 0.06015038,
+              "onset_offset_f1": 0.03007519
+            },
+            "A2": {
+              "reference_note_count": 64,
+              "onset_f1": 0.07142857,
+              "onset_offset_f1": 0.03968254
+            }
+          }
+        },
+        {
+          "id": "vocadito_39",
+          "audio_sha256": "23badef22642b2e00b676cf3b998d2f2d2d1ee9949888dcd6f038b0b6621b9db",
+          "duration_seconds": 31.68,
+          "reference_sha256": {
+            "A1": "de208e06029e114efb9e16384f54b6e7abf35adc9d5d2cb1675d96f73ab78d28",
+            "A2": "b6747d8f1d5dd641e7dbd5f47202aab6362747cb7d622813bd32be0821dedb64"
+          },
+          "prediction_midi_sha256": "bbac2ac78eea208ce01b18ac58e250a39346dcd0b9f7ad4335c84899083ecbd9",
+          "inference_seconds": 14.233719,
+          "predicted_note_count": 73,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 92,
+              "onset_f1": 0.26582278,
+              "onset_offset_f1": 0.13924051
+            },
+            "A2": {
+              "reference_note_count": 66,
+              "onset_f1": 0.22727273,
+              "onset_offset_f1": 0.10606061
+            }
+          }
+        },
+        {
+          "id": "vocadito_40",
+          "audio_sha256": "add1fc90659541163158bf025eeb0c09b7f738bdfcc812a835654ca1e8544b04",
+          "duration_seconds": 18.5778231292517,
+          "reference_sha256": {
+            "A1": "573a10539ebdc2ea8b685722eab2619ff810e40f41f9210e75499c1dbd50fddb",
+            "A2": "c50474c9929a229da906c372411467893678e679d90d441eacce8f01250617fc"
+          },
+          "prediction_midi_sha256": "e7746f6af78063bfc2292ab56c124a41153f5624d9bb5178360c99baf7fa2d3f",
+          "inference_seconds": 8.596604,
+          "predicted_note_count": 38,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 45,
+              "onset_f1": 0.19178082,
+              "onset_offset_f1": 0.08219178
+            },
+            "A2": {
+              "reference_note_count": 36,
+              "onset_f1": 0.21875,
+              "onset_offset_f1": 0.125
+            }
+          }
+        }
+      ],
+      "onset_tolerance_seconds": 0.05,
+      "pitch_tolerance_cents": 50,
+      "offset_tolerance": "max(50ms, 20% of reference duration)",
+      "training_overlap": "unknown",
+      "human_editing_time_measured": false,
+      "commercial_release_quality_approved": false,
+      "five_acceptance_songs_used": false,
+      "all_cases_complete": true,
+      "macro_f1": {
+        "onset_f1": 0.18263075,
+        "onset_offset_f1": 0.07705163
+      }
+    },
+    "yourmt3": {
+      "schema_version": 1,
+      "dataset": "vocadito-v3",
+      "source_url": "https://zenodo.org/records/5578807",
+      "archive_sha256": "e0d6b99d3f9c594afe5ae5c4d7bdacebe569e53b809e90b89d1c771c4f9990e3",
+      "archive_md5_verified": true,
+      "model": "yourmt3",
+      "checkpoint_sha256": "ae38e415c79efd5592dcb9b658cdb99ddb11d4c4e1eaa364cab04a052473fc25",
+      "model_revision": "5e66c1ea173a8186e0d20432b841d3180cc015b5",
+      "runtime": {
+        "mt3-infer": "0.2.0",
+        "torch": "2.7.1",
+        "torchaudio": "2.7.1",
+        "transformers": "4.44.2",
+        "mir-eval": "0.8.2"
+      },
+      "python": "3.11.15",
+      "device": "cpu",
+      "seed": 0,
+      "torch_threads": 2,
+      "planned_case_ids": [
+        "vocadito_1",
+        "vocadito_2",
+        "vocadito_3",
+        "vocadito_4",
+        "vocadito_5",
+        "vocadito_6",
+        "vocadito_7",
+        "vocadito_8",
+        "vocadito_9",
+        "vocadito_10",
+        "vocadito_11",
+        "vocadito_12",
+        "vocadito_13",
+        "vocadito_14",
+        "vocadito_15",
+        "vocadito_16",
+        "vocadito_17",
+        "vocadito_18",
+        "vocadito_19",
+        "vocadito_20",
+        "vocadito_21",
+        "vocadito_22",
+        "vocadito_23",
+        "vocadito_24",
+        "vocadito_25",
+        "vocadito_26",
+        "vocadito_27",
+        "vocadito_28",
+        "vocadito_29",
+        "vocadito_30",
+        "vocadito_31",
+        "vocadito_32",
+        "vocadito_33",
+        "vocadito_34",
+        "vocadito_35",
+        "vocadito_36",
+        "vocadito_37",
+        "vocadito_38",
+        "vocadito_39",
+        "vocadito_40"
+      ],
+      "cases": [
+        {
+          "id": "vocadito_1",
+          "audio_sha256": "b509768315efad8120183b48e01d6090f1649d5bcc691241940dc7a100274ab8",
+          "duration_seconds": 33.21224489795918,
+          "reference_sha256": {
+            "A1": "974fdcddce8db5c7bca52e2752d70f6f60efac105a46a6536a11c6f02d33c7b3",
+            "A2": "726bc1527d766e85a9cfbb013c5393be7f93814fdd4ab3bb77f0783232484786"
+          },
+          "prediction_midi_sha256": "a25a7f02d73889ea7d88ad0e124e41a397e0165727e20d39ced3786aa31bd511",
+          "inference_seconds": 49.565566,
+          "predicted_note_count": 61,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 59,
+              "onset_f1": 0.56666667,
+              "onset_offset_f1": 0.35
+            },
+            "A2": {
+              "reference_note_count": 64,
+              "onset_f1": 0.688,
+              "onset_offset_f1": 0.528
+            }
+          }
+        },
+        {
+          "id": "vocadito_2",
+          "audio_sha256": "8dcc99c3b08a9a5800b793e3d65cccfb4464961f15cf8ccde25bd4c8b853d519",
+          "duration_seconds": 35.208004535147396,
+          "reference_sha256": {
+            "A1": "c9dd07779b2c942361f3fee38a068d581ce18928a20e9ff68e66f96fde8ee114",
+            "A2": "db98b481f36997e8382285232e1ab07223cb11e0aac43bc71075e2f3b4f96bf6"
+          },
+          "prediction_midi_sha256": "a3678add07b6c3d34c4fe92b2ac26c7024568d59acb59fe37475b705a03f2114",
+          "inference_seconds": 28.99646,
+          "predicted_note_count": 57,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 76,
+              "onset_f1": 0.54135338,
+              "onset_offset_f1": 0.42105263
+            },
+            "A2": {
+              "reference_note_count": 63,
+              "onset_f1": 0.65,
+              "onset_offset_f1": 0.5
+            }
+          }
+        },
+        {
+          "id": "vocadito_3",
+          "audio_sha256": "73b6fe13bc3435ae9173ee1bdec247e2943526c70cd9b69ab2b35002fa4cb04d",
+          "duration_seconds": 21.736326530612246,
+          "reference_sha256": {
+            "A1": "6aa99d9b80ec65d1dda047ba76288c2e4c06b17cd0eb0d0a8a1fd03b3980c071",
+            "A2": "3987965477be9f046b4a4a4685b9d3131030e61fe1b63e947dc917476104a0f6"
+          },
+          "prediction_midi_sha256": "c1e221c5dfd1ce43a1d2f36a37194ee779dc32702fe4ad159b4235f01dca2e8f",
+          "inference_seconds": 19.271065,
+          "predicted_note_count": 44,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 51,
+              "onset_f1": 0.63157895,
+              "onset_offset_f1": 0.4
+            },
+            "A2": {
+              "reference_note_count": 46,
+              "onset_f1": 0.62222222,
+              "onset_offset_f1": 0.4
+            }
+          }
+        },
+        {
+          "id": "vocadito_4",
+          "audio_sha256": "fc07b202eb609c975d1549be5320db116a49be1bd1fc6904e70e31cd7e44ec23",
+          "duration_seconds": 18.456009070294783,
+          "reference_sha256": {
+            "A1": "0cd829c1a8742b08258dc9b4eeb92fc1caeae87f5229d1c254adf2596c5a7c3d",
+            "A2": "c9bc1dc4a6a39554053ce28e99420770c3d34a2acd2eb9f9e8a2163c6b642c84"
+          },
+          "prediction_midi_sha256": "bdb71e3fe29a8354f7fe9ce6795a7eb69537fd2fd50a9992701b72e41802d828",
+          "inference_seconds": 20.97392,
+          "predicted_note_count": 44,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 69,
+              "onset_f1": 0.38938053,
+              "onset_offset_f1": 0.30088496
+            },
+            "A2": {
+              "reference_note_count": 51,
+              "onset_f1": 0.52631579,
+              "onset_offset_f1": 0.37894737
+            }
+          }
+        },
+        {
+          "id": "vocadito_5",
+          "audio_sha256": "7cecfd126a9437f88db0a297cdab3075bb38faeef10f1a98f22ba22a2a939220",
+          "duration_seconds": 23.23199546485261,
+          "reference_sha256": {
+            "A1": "d38fbbe4d9440e238e4d24ba2cd7106e73586c636455a500909566f4f4e75142",
+            "A2": "ce0c21977483e3b078bf956859855779bc0704499de951bedaf2e518083d3018"
+          },
+          "prediction_midi_sha256": "0f64804d62bb86728cb3b00f1e4a25b6d387fcb244797666404db57944ffcb96",
+          "inference_seconds": 22.3883,
+          "predicted_note_count": 75,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 96,
+              "onset_f1": 0.46783626,
+              "onset_offset_f1": 0.32748538
+            },
+            "A2": {
+              "reference_note_count": 72,
+              "onset_f1": 0.55782313,
+              "onset_offset_f1": 0.36734694
+            }
+          }
+        },
+        {
+          "id": "vocadito_6",
+          "audio_sha256": "13816752a6366f2d66f21e71a70d55e22b6a44f0d1712d97abff5390bc0c1f3b",
+          "duration_seconds": 23.831995464852607,
+          "reference_sha256": {
+            "A1": "b0463b3989564152ab5dabdb2c1948823d3d46f711d6c17d4901da584be4d550",
+            "A2": "978f0e0e56d9b3559b6290b5ef21449363df75862d5b0e0dccf79ffeacfecd2e"
+          },
+          "prediction_midi_sha256": "2f59a842faadfe505f517c4340084491fb2cac1a33dd03fb53a53241540f3671",
+          "inference_seconds": 20.515105,
+          "predicted_note_count": 57,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 73,
+              "onset_f1": 0.27692308,
+              "onset_offset_f1": 0.13846154
+            },
+            "A2": {
+              "reference_note_count": 50,
+              "onset_f1": 0.41121495,
+              "onset_offset_f1": 0.20560748
+            }
+          }
+        },
+        {
+          "id": "vocadito_7",
+          "audio_sha256": "db9542f0626f4c43ab1e4f26ae9e40834bcfe5f061b07c75a3925d95aaa79676",
+          "duration_seconds": 19.46734693877551,
+          "reference_sha256": {
+            "A1": "bd10de5b425de91cde98783c929636fdac9ec36d4d0b8dad5d517e2cc52f8a5f",
+            "A2": "809d896f9166dd8688477c41955eea96381bee967b81a425a4583c10b5fa12b5"
+          },
+          "prediction_midi_sha256": "286d28cc040a83788afad0b8464b9642bbda619573b6c65b3c6d731860e37736",
+          "inference_seconds": 18.029724,
+          "predicted_note_count": 40,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 47,
+              "onset_f1": 0.64367816,
+              "onset_offset_f1": 0.36781609
+            },
+            "A2": {
+              "reference_note_count": 42,
+              "onset_f1": 0.7804878,
+              "onset_offset_f1": 0.48780488
+            }
+          }
+        },
+        {
+          "id": "vocadito_8",
+          "audio_sha256": "05ce2b3f1991035d08db269df1c39b198d9ddc22130ce88f9a8d97e46cd7a310",
+          "duration_seconds": 17.041632653061225,
+          "reference_sha256": {
+            "A1": "57a24cd8a3f64575e600447219406a6040fa95c2df02fd69d5426c3492646efa",
+            "A2": "200e1923b492e6402643586a0ffa0e09c6804d5f839e8615d739ec400ac9a1d2"
+          },
+          "prediction_midi_sha256": "47959c39c8e5bf399ec1939abb8bb0c350350ff654d7a27f15e1737e2c896f9b",
+          "inference_seconds": 18.417409,
+          "predicted_note_count": 30,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 40,
+              "onset_f1": 0.62857143,
+              "onset_offset_f1": 0.4
+            },
+            "A2": {
+              "reference_note_count": 37,
+              "onset_f1": 0.65671642,
+              "onset_offset_f1": 0.3880597
+            }
+          }
+        },
+        {
+          "id": "vocadito_9",
+          "audio_sha256": "f980cc7df935c0c9e839b25759de72fadad6763c069be96645be46f8dd3ffd32",
+          "duration_seconds": 20.375011337868482,
+          "reference_sha256": {
+            "A1": "aa4bdb1c8de042a812be20503d2c271f9696a2de15f88ab27b96bdfab1666a63",
+            "A2": "99a0d7069b98e29aaa70547bbf04a87c4ee08c49f0ad20898603e71d048aa270"
+          },
+          "prediction_midi_sha256": "cc580dd8f1d05fd47bd3d0578f7c3ff62365812c9b8c0b093d4a42f5150d2ae6",
+          "inference_seconds": 19.808601,
+          "predicted_note_count": 56,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 62,
+              "onset_f1": 0.44067797,
+              "onset_offset_f1": 0.16949153
+            },
+            "A2": {
+              "reference_note_count": 59,
+              "onset_f1": 0.55652174,
+              "onset_offset_f1": 0.24347826
+            }
+          }
+        },
+        {
+          "id": "vocadito_10",
+          "audio_sha256": "0978bde1c130ae26a9cfcd90012f12fdaf9877bbe45cf21c5237ba7ac9b8703b",
+          "duration_seconds": 9.097823129251701,
+          "reference_sha256": {
+            "A1": "3bbf478d96c05de2897513fce653825f9a4fc06642a7a89cd00ab98679f96f9d",
+            "A2": "2e8abe09284725a9c95fbc4d83b77ec287fe2cd1fe73381909b1cc64411295af"
+          },
+          "prediction_midi_sha256": "d70160d81c12d4d117c9d778b7063cb71af130cf7db08913eb142531250d593f",
+          "inference_seconds": 11.980735,
+          "predicted_note_count": 26,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 35,
+              "onset_f1": 0.39344262,
+              "onset_offset_f1": 0.2295082
+            },
+            "A2": {
+              "reference_note_count": 27,
+              "onset_f1": 0.52830189,
+              "onset_offset_f1": 0.37735849
+            }
+          }
+        },
+        {
+          "id": "vocadito_11",
+          "audio_sha256": "c4d669eca7e25c5037b191805b54b2c990d5e31bc77c9c77188b140100297197",
+          "duration_seconds": 12.983990929705216,
+          "reference_sha256": {
+            "A1": "2fd689cc3e81a559ae89c7fc53e234b2442cb4fdea17b82b1450e9f1cd7745ee",
+            "A2": "05c7687bd79ea17444b64237387666e17a34c0e3861e9de6ea38160c4053c15a"
+          },
+          "prediction_midi_sha256": "d68a50f67e068f25104945f70796d98caade969170679fccb3e24105cbb3deaf",
+          "inference_seconds": 14.220738,
+          "predicted_note_count": 31,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 37,
+              "onset_f1": 0.55882353,
+              "onset_offset_f1": 0.32352941
+            },
+            "A2": {
+              "reference_note_count": 30,
+              "onset_f1": 0.68852459,
+              "onset_offset_f1": 0.45901639
+            }
+          }
+        },
+        {
+          "id": "vocadito_12",
+          "audio_sha256": "5a342e32b20b3764a9ab9784abbf7bac6db69583ec529fc9027f96c69df04e00",
+          "duration_seconds": 15.153492063492063,
+          "reference_sha256": {
+            "A1": "2b5a525560ffda6ce1d039eb2f2b309b496394b42a9879fda53bda612e894f82",
+            "A2": "cca41b5ed7c55b00f0003ecacbe03f4118bde0642970f92a390f21acf6ed5789"
+          },
+          "prediction_midi_sha256": "6df0d82da158378e30003ce330ac171d4403eb09dbd351248768aa6461451f37",
+          "inference_seconds": 16.435008,
+          "predicted_note_count": 25,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 27,
+              "onset_f1": 0.69230769,
+              "onset_offset_f1": 0.42307692
+            },
+            "A2": {
+              "reference_note_count": 24,
+              "onset_f1": 0.65306122,
+              "onset_offset_f1": 0.40816327
+            }
+          }
+        },
+        {
+          "id": "vocadito_13",
+          "audio_sha256": "5a26861f99c4d02a3efe2355215de2774fb51257cc2d2bf6021827b64e25ec94",
+          "duration_seconds": 22.36,
+          "reference_sha256": {
+            "A1": "7dabefde6a83eeb507d74b26dfbe3c3c714514589e11515bb40edbee1bbb2ebc",
+            "A2": "1adf0b17a23b4a1bf77e842059e361db80f0bb9a5d1190469a7701cdd2f8155d"
+          },
+          "prediction_midi_sha256": "d2cf754d012da2f9a94209f48eeb21493b926167b7b98931088aac448c7ab72c",
+          "inference_seconds": 21.491448,
+          "predicted_note_count": 46,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 74,
+              "onset_f1": 0.4,
+              "onset_offset_f1": 0.13333333
+            },
+            "A2": {
+              "reference_note_count": 52,
+              "onset_f1": 0.44897959,
+              "onset_offset_f1": 0.2244898
+            }
+          }
+        },
+        {
+          "id": "vocadito_14",
+          "audio_sha256": "a41e814df6ee5840f0beaea5da2ab3ad6b38be62b169da08962a722bcc06cdd1",
+          "duration_seconds": 12.1978231292517,
+          "reference_sha256": {
+            "A1": "de1ebd5833738412c0a36aef74ad63b1bbf12a59414c836aaf54288a5483cbb1",
+            "A2": "e084576f11841bda92d7302a7dfcffab236dad91fafa96fd032a8a13eceb8734"
+          },
+          "prediction_midi_sha256": "1b036660b2b8f73690320b458ff310740596f57a17d80f9fadd285d8c6726077",
+          "inference_seconds": 13.555991,
+          "predicted_note_count": 27,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 34,
+              "onset_f1": 0.52459016,
+              "onset_offset_f1": 0.19672131
+            },
+            "A2": {
+              "reference_note_count": 26,
+              "onset_f1": 0.56603774,
+              "onset_offset_f1": 0.26415094
+            }
+          }
+        },
+        {
+          "id": "vocadito_15",
+          "audio_sha256": "0bc39b00e14881b20756f48530a4688e1bb7aa1c24ee09d4351a327e3acce28d",
+          "duration_seconds": 20.28,
+          "reference_sha256": {
+            "A1": "aae8be7a70cb5a920e640f17f6eb5d6fb777f4bf08b9428c0ed23a0410b6f455",
+            "A2": "fde13ab37625c39437584d6f4c2d3f8273b84b7c27171854607c92ef99ae8009"
+          },
+          "prediction_midi_sha256": "2c90417bb02d362397734ca562559718ff639aec5e0733432ec8a24f9fccc56c",
+          "inference_seconds": 18.389135,
+          "predicted_note_count": 42,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 47,
+              "onset_f1": 0.60674157,
+              "onset_offset_f1": 0.35955056
+            },
+            "A2": {
+              "reference_note_count": 41,
+              "onset_f1": 0.69879518,
+              "onset_offset_f1": 0.43373494
+            }
+          }
+        },
+        {
+          "id": "vocadito_16",
+          "audio_sha256": "595e80b5382812702e64d5b6a8f453d9744391166d47c7020cc1d6e71e310e25",
+          "duration_seconds": 17.277142857142856,
+          "reference_sha256": {
+            "A1": "2facdef04874e71354a6210fe722ab444a929c412851f5e719f973ed907ca730",
+            "A2": "5395348e5d559c048d8f4ace1ffe0c5a2f9684fdaffb19f572cb7062ad534a61"
+          },
+          "prediction_midi_sha256": "1820cb241add8f5b65f57b8ca11268f5387ababff778a5abcb4c79bd8d39b243",
+          "inference_seconds": 19.701411,
+          "predicted_note_count": 39,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 47,
+              "onset_f1": 0.62790698,
+              "onset_offset_f1": 0.30232558
+            },
+            "A2": {
+              "reference_note_count": 36,
+              "onset_f1": 0.74666667,
+              "onset_offset_f1": 0.37333333
+            }
+          }
+        },
+        {
+          "id": "vocadito_17",
+          "audio_sha256": "4b144cdbbcdb318f19c0aa5ac1e2675dbe8d6cb8941286d251959f25e4c96998",
+          "duration_seconds": 23.56800453514739,
+          "reference_sha256": {
+            "A1": "4acb413062e640f81a3dab73faf1f78e86b33d2cfab23b587144763ce3e6a66c",
+            "A2": "7efd9b7d52ca77f473e3b4727f6ca099ed0495cceb8cd5a35368357c70c706a9"
+          },
+          "prediction_midi_sha256": "63a86b2536802f92460e29e0e75d24c34f8e281f6d9e4f30000830bb536f414d",
+          "inference_seconds": 21.462022,
+          "predicted_note_count": 54,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 54,
+              "onset_f1": 0.5,
+              "onset_offset_f1": 0.18518519
+            },
+            "A2": {
+              "reference_note_count": 47,
+              "onset_f1": 0.55445545,
+              "onset_offset_f1": 0.2970297
+            }
+          }
+        },
+        {
+          "id": "vocadito_18",
+          "audio_sha256": "4f2a3712dd912b235990f3505593200172da3f386c80db91dfaeb04fc641c929",
+          "duration_seconds": 29.138820861678006,
+          "reference_sha256": {
+            "A1": "8f74ec4102da088280be6a783080b3a1cfb9537125e3905d1b3f5297074ea610",
+            "A2": "caeaa7a9cfb4bbd853f6ff9a7270d5ae5aa4df1c994151f2e10f989e4c8b841f"
+          },
+          "prediction_midi_sha256": "23dff29114ac9056fc9f0662388d4ec5b13b83e72b600a7662664c39b2d37166",
+          "inference_seconds": 25.128451,
+          "predicted_note_count": 38,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 45,
+              "onset_f1": 0.5060241,
+              "onset_offset_f1": 0.24096386
+            },
+            "A2": {
+              "reference_note_count": 34,
+              "onset_f1": 0.55555556,
+              "onset_offset_f1": 0.36111111
+            }
+          }
+        },
+        {
+          "id": "vocadito_19",
+          "audio_sha256": "8f6d828d65f723ca602abaf8b28a5e8bdc510d37951556b86ff8b6d07889af28",
+          "duration_seconds": 30.493492063492063,
+          "reference_sha256": {
+            "A1": "7c4bcd2a79d6274d98cf94679c404c92eec00940daa07668f449fa3a62a88e28",
+            "A2": "b7005b43df8014e9c897be66f76bd867faad10ffc7671a8e6908df2dd4fa41e2"
+          },
+          "prediction_midi_sha256": "b9ab2b7dd7c5f3fe9af26820a1644cb365d5dfbcee577636e33c431975240673",
+          "inference_seconds": 26.180215,
+          "predicted_note_count": 63,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 73,
+              "onset_f1": 0.57352941,
+              "onset_offset_f1": 0.14705882
+            },
+            "A2": {
+              "reference_note_count": 61,
+              "onset_f1": 0.69354839,
+              "onset_offset_f1": 0.19354839
+            }
+          }
+        },
+        {
+          "id": "vocadito_20",
+          "audio_sha256": "feb3c31e77b7779bdfb302c7819644535804f22a90a8e21f63c393d667ec5181",
+          "duration_seconds": 8.713492063492064,
+          "reference_sha256": {
+            "A1": "c9e11250dfcc301cbc7ac30c4151d3616c5c82a475ee8dba1ce22e387b1181ee",
+            "A2": "367e9b247422a10ddf2688d7935f6e216aaeefb85c11de5821a09d56fe33dff7"
+          },
+          "prediction_midi_sha256": "a7117b72af027baa9541f1c33d5af3e29aa4249279bff8ebd24d352a27f9f03c",
+          "inference_seconds": 13.738388,
+          "predicted_note_count": 28,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 31,
+              "onset_f1": 0.50847458,
+              "onset_offset_f1": 0.23728814
+            },
+            "A2": {
+              "reference_note_count": 30,
+              "onset_f1": 0.65517241,
+              "onset_offset_f1": 0.24137931
+            }
+          }
+        },
+        {
+          "id": "vocadito_21",
+          "audio_sha256": "d9d3c20794fd3b42e8f7693b91e8194844a6b80b3932ae4fc06d8e0e277687a7",
+          "duration_seconds": 22.0,
+          "reference_sha256": {
+            "A1": "cd69f37df06a757c42dafb4796f0e6695b2af8fbdfde73ba59cd07c42a3f4a06",
+            "A2": "0322ce2ba882eb86551d48bbc0592cdbd8742a2d04a6ac7eabcff84c0250b6ea"
+          },
+          "prediction_midi_sha256": "53307823d19ccc6e0d90b0e6f25ab4877205a0678c590d03c7aeefc2ee3ef779",
+          "inference_seconds": 18.89385,
+          "predicted_note_count": 59,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 97,
+              "onset_f1": 0.3974359,
+              "onset_offset_f1": 0.17948718
+            },
+            "A2": {
+              "reference_note_count": 62,
+              "onset_f1": 0.51239669,
+              "onset_offset_f1": 0.24793388
+            }
+          }
+        },
+        {
+          "id": "vocadito_22",
+          "audio_sha256": "6629d0ecd7acddd1ce2877d00bc7ef80dc01fdd20f3225b9c2ed907da12f989e",
+          "duration_seconds": 18.333492063492063,
+          "reference_sha256": {
+            "A1": "94be440d29605c81ef2b9fdd152adc1ef97f92c758db41a38a98ce6617b82ce8",
+            "A2": "820322e8e927110fff5326963f6a03cfcbc0d023504d754e4eb56012c22e9fc8"
+          },
+          "prediction_midi_sha256": "df66d79ab3e5993b378a881267ddad17e3d0bc067d5eb4e8bcd0e248102cd9c3",
+          "inference_seconds": 17.350119,
+          "predicted_note_count": 42,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 45,
+              "onset_f1": 0.50574713,
+              "onset_offset_f1": 0.27586207
+            },
+            "A2": {
+              "reference_note_count": 47,
+              "onset_f1": 0.51685393,
+              "onset_offset_f1": 0.33707865
+            }
+          }
+        },
+        {
+          "id": "vocadito_23",
+          "audio_sha256": "3cade4af7d869e3175e3684075782a23f6af936942a8684bfbb4fdbe3a4f10e7",
+          "duration_seconds": 18.037823129251702,
+          "reference_sha256": {
+            "A1": "6b94984dd167decd7ca5ce06811702738786466784dd0a6955ee59407b82c66c",
+            "A2": "a35434b1755c7c13be0307240940d7a907a5d91fe43fc9c752762e77c2d27a43"
+          },
+          "prediction_midi_sha256": "01842eaf56ffaca83802ac77311099075b102c42780da7694769e44b81c409a7",
+          "inference_seconds": 17.848474,
+          "predicted_note_count": 47,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 53,
+              "onset_f1": 0.42,
+              "onset_offset_f1": 0.26
+            },
+            "A2": {
+              "reference_note_count": 51,
+              "onset_f1": 0.46938776,
+              "onset_offset_f1": 0.28571429
+            }
+          }
+        },
+        {
+          "id": "vocadito_24",
+          "audio_sha256": "22fb2df57dc7b68987cda67b30171c626a7818b9ab7db02185e8ea0a0a6db7ee",
+          "duration_seconds": 14.757823129251701,
+          "reference_sha256": {
+            "A1": "7894c0aafc0f416fdb17b38a52b389dafda1848556cb6a20a0cb50e8e44927db",
+            "A2": "712bc9354989cc18a5e2c1fb1ed50dd37de1f6e209c9654ee354a8fc91a02b67"
+          },
+          "prediction_midi_sha256": "4dc2ab3a0e482c638f8fee5198b2f7c847ae8d5629033f75596429bcf5df7b3c",
+          "inference_seconds": 15.331151,
+          "predicted_note_count": 34,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 39,
+              "onset_f1": 0.57534247,
+              "onset_offset_f1": 0.2739726
+            },
+            "A2": {
+              "reference_note_count": 30,
+              "onset_f1": 0.65625,
+              "onset_offset_f1": 0.34375
+            }
+          }
+        },
+        {
+          "id": "vocadito_25",
+          "audio_sha256": "cf155e4fd681331d34f316e421803255c449acb0393fa55cd23079ed103b37af",
+          "duration_seconds": 14.657823129251701,
+          "reference_sha256": {
+            "A1": "060dfefe06e2cb42225bf98fb340620a7bc9bbf53a910581dc9b5266c44c7b49",
+            "A2": "f2b485a6a1150d1699c747e9c1a9bfc87768d60b65385b5e544310dec456cf72"
+          },
+          "prediction_midi_sha256": "eff7f80d67a7f4b675d9df026247ee2ef5fc1c253e80446150283562288a3735",
+          "inference_seconds": 16.787614,
+          "predicted_note_count": 34,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 38,
+              "onset_f1": 0.47222222,
+              "onset_offset_f1": 0.30555556
+            },
+            "A2": {
+              "reference_note_count": 33,
+              "onset_f1": 0.59701493,
+              "onset_offset_f1": 0.35820896
+            }
+          }
+        },
+        {
+          "id": "vocadito_26",
+          "audio_sha256": "27fcfb7c6150b412be3f22199202dfc2aab46e59e16cddd675b71c8325b3f66d",
+          "duration_seconds": 12.8578231292517,
+          "reference_sha256": {
+            "A1": "d2b944ced2755339090a56f01f402531dcaaf5048b322a1348a25ff53c57664d",
+            "A2": "d502c4ce590c897d8fa8efcd8728e6f54e30884b502d32f64484e8299df9e86b"
+          },
+          "prediction_midi_sha256": "29c23728989db1e60ed7bf07040b69056ee80a43cd1e777503c192d1fa874582",
+          "inference_seconds": 18.294307,
+          "predicted_note_count": 47,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 73,
+              "onset_f1": 0.45,
+              "onset_offset_f1": 0.21666667
+            },
+            "A2": {
+              "reference_note_count": 56,
+              "onset_f1": 0.46601942,
+              "onset_offset_f1": 0.31067961
+            }
+          }
+        },
+        {
+          "id": "vocadito_27",
+          "audio_sha256": "6300e1fc5981ea458074a24a1c32a1011a095df4162fbc8911d6b0240d182419",
+          "duration_seconds": 14.0178231292517,
+          "reference_sha256": {
+            "A1": "ebec697217004efae66358d21d8a764f78a5626f3435da12cd12832464abe51a",
+            "A2": "a798f329aa52b7aa02ff027f8082908ee64f5dc44afd8de887259b253b846974"
+          },
+          "prediction_midi_sha256": "2531c6abcd882d7bd0e0d1f278f5890b8a241945ff625042cf1a5b7f614710ed",
+          "inference_seconds": 16.372743,
+          "predicted_note_count": 24,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 34,
+              "onset_f1": 0.62068966,
+              "onset_offset_f1": 0.24137931
+            },
+            "A2": {
+              "reference_note_count": 28,
+              "onset_f1": 0.80769231,
+              "onset_offset_f1": 0.38461538
+            }
+          }
+        },
+        {
+          "id": "vocadito_28",
+          "audio_sha256": "f50830862faff98314bb7b28de452754ef2d939e187a6d89e5fb1ad56749aeb6",
+          "duration_seconds": 12.8978231292517,
+          "reference_sha256": {
+            "A1": "a87545d7b1da301e10e749f024c98d3d13dfd7397f19161d65e92494acdc48cf",
+            "A2": "99e763e1d4c04dbcdeb9739077cc68d2f649cdba6033a494d051b3c06afcd498"
+          },
+          "prediction_midi_sha256": "7f4126da7bd18a815955f7e9c7076f92a50ac86757cc704690301390f29108fa",
+          "inference_seconds": 15.167514,
+          "predicted_note_count": 45,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 44,
+              "onset_f1": 0.33707865,
+              "onset_offset_f1": 0.15730337
+            },
+            "A2": {
+              "reference_note_count": 43,
+              "onset_f1": 0.5,
+              "onset_offset_f1": 0.34090909
+            }
+          }
+        },
+        {
+          "id": "vocadito_29",
+          "audio_sha256": "46a831ed09f60728c6bfb051e27582d2d47021805ea8c4500bf4b2d6396a71cb",
+          "duration_seconds": 14.893492063492063,
+          "reference_sha256": {
+            "A1": "156aa0cce6087f3ad37fc34d0137bae9acdfbbb9a0768e07a0ac5f5dd414b272",
+            "A2": "bdb43c9ea7d75e9d62cbb11321a2f0f8ee3a53584ec6fb49a3b418ee101922b7"
+          },
+          "prediction_midi_sha256": "1736d67411ec20ed4dc935f56777faea52dcae72cf6fb88f181ce2139acaab22",
+          "inference_seconds": 23.213291,
+          "predicted_note_count": 32,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 36,
+              "onset_f1": 0.58823529,
+              "onset_offset_f1": 0.44117647
+            },
+            "A2": {
+              "reference_note_count": 32,
+              "onset_f1": 0.6875,
+              "onset_offset_f1": 0.53125
+            }
+          }
+        },
+        {
+          "id": "vocadito_30",
+          "audio_sha256": "ce2128d9bfcd434a9c1507d1f2fcd504677e0b1e0fb5fe8bbe07406158df144f",
+          "duration_seconds": 13.0178231292517,
+          "reference_sha256": {
+            "A1": "9c99908e60468d1a65ee0ba384f7b94d9054048719f89ea125fa95bf06da9db2",
+            "A2": "6fb7188315da7ce5268bea284d8160eb1dadf968d2ff0d8f5bd1e8a64514ee93"
+          },
+          "prediction_midi_sha256": "bbddc1b5fc95c7ed98a61835b51134349d52b60cd7da4be87defee847884fe26",
+          "inference_seconds": 14.593086,
+          "predicted_note_count": 40,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 58,
+              "onset_f1": 0.3877551,
+              "onset_offset_f1": 0.14285714
+            },
+            "A2": {
+              "reference_note_count": 40,
+              "onset_f1": 0.475,
+              "onset_offset_f1": 0.275
+            }
+          }
+        },
+        {
+          "id": "vocadito_31",
+          "audio_sha256": "c3e68dddd4d6a6d34d135042f76ed74cf4b85208c2483a2d4a331d717af99356",
+          "duration_seconds": 14.033492063492064,
+          "reference_sha256": {
+            "A1": "618cb9eaf1776a308a8e470f52b758231b9fa28a075586b4b7ef00231eee317e",
+            "A2": "48270b2b4110f3d1cd9761641868a70af16c9a4ef6fbc716441b54f4ab7753fb"
+          },
+          "prediction_midi_sha256": "84efefe6089050faf95cd4cdd682f38438ee2e7d57f858878aae987019501954",
+          "inference_seconds": 14.845303,
+          "predicted_note_count": 44,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 47,
+              "onset_f1": 0.41758242,
+              "onset_offset_f1": 0.24175824
+            },
+            "A2": {
+              "reference_note_count": 38,
+              "onset_f1": 0.53658537,
+              "onset_offset_f1": 0.26829268
+            }
+          }
+        },
+        {
+          "id": "vocadito_32",
+          "audio_sha256": "1776573e0a80e0618258501c1fa877a75c36c3368ab24014aaebb522f92768b7",
+          "duration_seconds": 25.033492063492062,
+          "reference_sha256": {
+            "A1": "64f87b9f3371ba6be2b426dec6ac3874f43a98c60f5b245fa2b5a86d3d15962e",
+            "A2": "6cb3cf5866e6b42b9a2669164a39b8af8d979310a9e5097e6400c9c2545035d6"
+          },
+          "prediction_midi_sha256": "ff1ae9bf39ea1c48846f44a8aaf65e96f38487c5d015171316b38d4562fa45ea",
+          "inference_seconds": 21.062052,
+          "predicted_note_count": 50,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 57,
+              "onset_f1": 0.56074766,
+              "onset_offset_f1": 0.31775701
+            },
+            "A2": {
+              "reference_note_count": 55,
+              "onset_f1": 0.7047619,
+              "onset_offset_f1": 0.38095238
+            }
+          }
+        },
+        {
+          "id": "vocadito_33",
+          "audio_sha256": "896ae8828bfdc7eefc46a4781c328b979f519fea310c04c32cf5859c54ba4c7a",
+          "duration_seconds": 30.0,
+          "reference_sha256": {
+            "A1": "5af132105ca175dd7ac109019ed42b19e69bebf9133a399e60ab18ae48561245",
+            "A2": "5c302aa61fe3c510e6fe1e386ea84488e8e3f465c9012fa350f9e74705cf01be"
+          },
+          "prediction_midi_sha256": "e12e06394095b6537fe4030b83dd9d1029dcbf04909badeb311bacb28a33d59b",
+          "inference_seconds": 24.661358,
+          "predicted_note_count": 73,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 80,
+              "onset_f1": 0.50980392,
+              "onset_offset_f1": 0.22222222
+            },
+            "A2": {
+              "reference_note_count": 87,
+              "onset_f1": 0.525,
+              "onset_offset_f1": 0.15
+            }
+          }
+        },
+        {
+          "id": "vocadito_34",
+          "audio_sha256": "60cefc716230c7783889b1b46f8dcfba48669cf5be6cddb522c04e810c8d38d8",
+          "duration_seconds": 24.853492063492062,
+          "reference_sha256": {
+            "A1": "c4fe28f788e85beb57accc7e38a2bac5661c71423a9f11b318eaec228e65ede5",
+            "A2": "c4a129e94006751f051741a0a8febd9f6d236bafcc7bba013ef10468b1549e2e"
+          },
+          "prediction_midi_sha256": "8141b6f18d93f03143f83ed27f40c0d800cda4c80cf96db1c0d9236342361a02",
+          "inference_seconds": 24.456245,
+          "predicted_note_count": 84,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 89,
+              "onset_f1": 0.46242775,
+              "onset_offset_f1": 0.28901734
+            },
+            "A2": {
+              "reference_note_count": 95,
+              "onset_f1": 0.61452514,
+              "onset_offset_f1": 0.37988827
+            }
+          }
+        },
+        {
+          "id": "vocadito_35",
+          "audio_sha256": "85c1c4268527cc53240e9f4f0d557d92f3bf9856d6d42ca50e80c7cbb02bea72",
+          "duration_seconds": 13.8,
+          "reference_sha256": {
+            "A1": "61ba54a7ccd700b1332d5877d13681b3c2ebfe6a90294b21bb6ced84857f21f5",
+            "A2": "86ab58cb4c0a382144a4b96a2539f3d667ba4ca9137a1ea976d71f4206b52967"
+          },
+          "prediction_midi_sha256": "c9ff5223058c64f3343b10265819010e25fcfa54530b7d707d8f8a5d9dc03c80",
+          "inference_seconds": 14.185924,
+          "predicted_note_count": 25,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 37,
+              "onset_f1": 0.29032258,
+              "onset_offset_f1": 0.22580645
+            },
+            "A2": {
+              "reference_note_count": 26,
+              "onset_f1": 0.47058824,
+              "onset_offset_f1": 0.31372549
+            }
+          }
+        },
+        {
+          "id": "vocadito_36",
+          "audio_sha256": "2e4eacabc71019752feb17da9e1b0228b9b5ba0ae97ec41107f80dac65750dbb",
+          "duration_seconds": 23.2778231292517,
+          "reference_sha256": {
+            "A1": "024c7122fa0d6b609f06a1f27f0e7eb3772b19f85c076fead9423fe5749dd1df",
+            "A2": "e757a4374ba6d50bf908b7ee0adeeb117736b1f82f64e4fc0fa21468181111ba"
+          },
+          "prediction_midi_sha256": "935b541f85dc68bf349b4bf3c34d18bda579c2f6301d268cb093ff1270586b2f",
+          "inference_seconds": 20.004558,
+          "predicted_note_count": 48,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 67,
+              "onset_f1": 0.46956522,
+              "onset_offset_f1": 0.15652174
+            },
+            "A2": {
+              "reference_note_count": 54,
+              "onset_f1": 0.54901961,
+              "onset_offset_f1": 0.19607843
+            }
+          }
+        },
+        {
+          "id": "vocadito_37",
+          "audio_sha256": "53cb202ddabf1cb7591be49da9160f508cb81c6078c50c7e41a13efe109a0622",
+          "duration_seconds": 38.736009070294784,
+          "reference_sha256": {
+            "A1": "c9d896c5de7a9b7e19a5f480e5c75774c064616722151109360de4ba081fe182",
+            "A2": "f8379ab7ff11165607af89dc835786a3a0ff49e0145976a2246c9f0bf0ad0dc7"
+          },
+          "prediction_midi_sha256": "be4ad25f782273749ca2713fa314e1d3458e3105e44102f645201f915d6c3413",
+          "inference_seconds": 26.657023,
+          "predicted_note_count": 37,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 51,
+              "onset_f1": 0.47727273,
+              "onset_offset_f1": 0.43181818
+            },
+            "A2": {
+              "reference_note_count": 41,
+              "onset_f1": 0.61538462,
+              "onset_offset_f1": 0.56410256
+            }
+          }
+        },
+        {
+          "id": "vocadito_38",
+          "audio_sha256": "2113abf18ddfb0e789021b8e2a2e42743b80d82c51aaca5fe9d228636883a239",
+          "duration_seconds": 27.84,
+          "reference_sha256": {
+            "A1": "48f60d13067d464b4938b4b9a4364624bd9f17d02a8b1d7b982e6c9ff2cb24be",
+            "A2": "e9f2d8d34535f5ff48f8eabca20019d4217b6d25a457cf76c8133b8d783bb9fd"
+          },
+          "prediction_midi_sha256": "8326422b9cf4e001551c0d0445a3758903c819beae397a8b180706dc949da467",
+          "inference_seconds": 24.684204,
+          "predicted_note_count": 62,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 78,
+              "onset_f1": 0.47142857,
+              "onset_offset_f1": 0.28571429
+            },
+            "A2": {
+              "reference_note_count": 64,
+              "onset_f1": 0.57142857,
+              "onset_offset_f1": 0.36507937
+            }
+          }
+        },
+        {
+          "id": "vocadito_39",
+          "audio_sha256": "23badef22642b2e00b676cf3b998d2f2d2d1ee9949888dcd6f038b0b6621b9db",
+          "duration_seconds": 31.68,
+          "reference_sha256": {
+            "A1": "de208e06029e114efb9e16384f54b6e7abf35adc9d5d2cb1675d96f73ab78d28",
+            "A2": "b6747d8f1d5dd641e7dbd5f47202aab6362747cb7d622813bd32be0821dedb64"
+          },
+          "prediction_midi_sha256": "70e97f2ea0b3f01ceb6cf27435fd9c4449d7a050d2b236b3c2b271e78922d816",
+          "inference_seconds": 26.405827,
+          "predicted_note_count": 68,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 92,
+              "onset_f1": 0.4625,
+              "onset_offset_f1": 0.2375
+            },
+            "A2": {
+              "reference_note_count": 66,
+              "onset_f1": 0.52238806,
+              "onset_offset_f1": 0.32835821
+            }
+          }
+        },
+        {
+          "id": "vocadito_40",
+          "audio_sha256": "add1fc90659541163158bf025eeb0c09b7f738bdfcc812a835654ca1e8544b04",
+          "duration_seconds": 18.5778231292517,
+          "reference_sha256": {
+            "A1": "573a10539ebdc2ea8b685722eab2619ff810e40f41f9210e75499c1dbd50fddb",
+            "A2": "c50474c9929a229da906c372411467893678e679d90d441eacce8f01250617fc"
+          },
+          "prediction_midi_sha256": "1c1876aa2e69f19b1a9ad17ac0d347d4faba558f6fed22ef795a9218007cf3eb",
+          "inference_seconds": 18.637098,
+          "predicted_note_count": 32,
+          "status": "scored",
+          "empty_prediction": false,
+          "annotators": {
+            "A1": {
+              "reference_note_count": 45,
+              "onset_f1": 0.46753247,
+              "onset_offset_f1": 0.28571429
+            },
+            "A2": {
+              "reference_note_count": 36,
+              "onset_f1": 0.58823529,
+              "onset_offset_f1": 0.35294118
+            }
+          }
+        }
+      ],
+      "onset_tolerance_seconds": 0.05,
+      "pitch_tolerance_cents": 50,
+      "offset_tolerance": "max(50ms, 20% of reference duration)",
+      "training_overlap": "unknown",
+      "human_editing_time_measured": false,
+      "commercial_release_quality_approved": false,
+      "five_acceptance_songs_used": false,
+      "all_cases_complete": true,
+      "macro_f1": {
+        "onset_f1": 0.54308287,
+        "onset_offset_f1": 0.30861178
+      }
+    }
+  },
+  "timing_limitation": "Models ran sequentially on one Apple M4. Other development checks ran during parts of evaluation; wall times are observed end-to-end, not a controlled latency ranking.",
+  "research_note_accuracy_leader": "yourmt3",
+  "final_model_fixed": false,
+  "commercial_release_quality_approved": false,
+  "human_editing_time_measured": false,
+  "five_song_acceptance_executed": false,
+  "training_overlap": "unknown"
+}

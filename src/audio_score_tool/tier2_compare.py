@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -45,7 +46,8 @@ def _number(value: object) -> float | None:
         return None
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
-    return float(value)
+    number = float(value)
+    return number if math.isfinite(number) and number >= 0 else None
 
 
 def _required_digest(payload: dict[str, Any], key: str, *, path: Path) -> str:
@@ -84,17 +86,18 @@ def _candidate(payload: dict[str, Any]) -> dict[str, Any]:
     evaluated_note_cases = summary.get("evaluated_note_cases")
     evaluated_publish_cases = summary.get("evaluated_publish_cases")
 
-    if not isinstance(case_count, int) or case_count <= 0:
+    if type(case_count) is not int or case_count <= 0:
         disqualifiers.append("invalid_case_count")
-    if export_rate is None or export_rate < 1.0 or summary.get("all_exports_successful") is not True:
+    if export_rate != 1.0 or summary.get("all_exports_successful") is not True:
         disqualifiers.append("not_all_exports_successful")
     if publish_time is None:
         disqualifiers.append("missing_publish_time")
-    if isinstance(case_count, int) and case_count > 0 and evaluated_publish_cases != case_count:
+    if type(evaluated_publish_cases) is not int or evaluated_publish_cases != case_count:
         disqualifiers.append("incomplete_publish_time_coverage")
     if edit_actions is None:
         disqualifiers.append("missing_edit_actions")
-    if note_f1 is None or not isinstance(evaluated_note_cases, int) or evaluated_note_cases <= 0:
+    if (note_f1 is None or note_f1 > 1.0
+            or type(evaluated_note_cases) is not int or evaluated_note_cases <= 0):
         disqualifiers.append("missing_note_evaluation")
     elif isinstance(case_count, int) and case_count > 0 and evaluated_note_cases != case_count:
         disqualifiers.append("incomplete_note_evaluation_coverage")
@@ -107,11 +110,11 @@ def _candidate(payload: dict[str, Any]) -> dict[str, Any]:
         disqualifiers.append("missing_metric_coverage_contract")
     else:
         for key, required in sorted(required_metrics.items()):
-            if not isinstance(key, str) or not isinstance(required, int) or required <= 0:
+            if not isinstance(key, str) or type(required) is not int or required <= 0:
                 disqualifiers.append("invalid_metric_coverage_contract")
                 break
             evaluated = evaluated_metrics.get(key, 0)
-            if evaluated != required:
+            if type(evaluated) is not int or evaluated != required:
                 disqualifiers.append(f"incomplete_metric_coverage:{key}")
 
     return {
