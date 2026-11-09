@@ -230,7 +230,11 @@ def test_opt_in_real_model_workflow_exercises_product_engine_without_musescore()
         Path(__file__).resolve().parents[1] / ".github/workflows/tier2-actual-models.yml"
     ).read_text(encoding="utf-8")
     job = workflow.split("\n  muscriptor:\n", 1)[1]
-    assert "MuScriptorEngine" in job
+    assert "scripts.run_muscriptor_source_qa" in job
+    source_runner = (
+        Path(__file__).resolve().parents[1] / "scripts/run_muscriptor_source_qa.py"
+    ).read_text(encoding="utf-8")
+    assert "MuScriptorEngine" in source_runner
     assert "cached_muscriptor_checkpoint" in job
     assert "HF_TOKEN: ''" in job
     assert "--format sheets" not in job
