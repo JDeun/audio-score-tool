@@ -5,7 +5,9 @@ import { useSelectedSong } from "./SelectedSongContext";
 const API = "http://127.0.0.1:8080";
 
 type Candidate = {
-  recording_mbid?: string;
+  recording_mbid?: string | null;
+  release_mbid?: string | null;
+  match_scope?: string;
   title?: string;
   artist?: string | null;
   first_release_date?: string | null;
@@ -71,6 +73,7 @@ export default function EnrichmentController() {
   const [savedFingerprint, setSavedFingerprint] = useState<string | null>(null);
   const [loadingMetadata, setLoadingMetadata] = useState(false);
   const [savingMetadata, setSavingMetadata] = useState(false);
+  const [choosingRecording, setChoosingRecording] = useState(false);
   const activeSongId = useRef<string | null>(null);
   activeSongId.current = target?.songId ?? null;
   const isDirty = savedFingerprint !== null
@@ -286,6 +289,51 @@ export default function EnrichmentController() {
     }
   };
 
+  const chooseRecording = async (candidate: Candidate) => {
+    if (!target || !candidate.recording_mbid || revision === null) return;
+    if (isDirty) {
+      setMessage("수정한 메타데이터를 저장하고 다시 조회한 후 녹음 버전을 선택하세요.");
+      return;
+    }
+    const songId = target.songId;
+    setChoosingRecording(true);
+    setMessage("");
+    try {
+      const response = await fetch(encodeURI(API + "/api/songs/") + encodeURIComponent(songId) + "/select-recording", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recording_mbid: candidate.recording_mbid,
+          release_mbid: candidate.release_mbid ?? null,
+          expected_revision: revision,
+          musicbrainz_commercial_entitlement: commercialEntitlement,
+        }),
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) {
+        if (response.status === 409) {
+          throw new Error("선택 중 악보가 변경되었습니다. 새로고침하고 다시 조회하세요.");
+        }
+        throw new Error(body?.detail ?? "선택한 녹음 버전을 검증하지 못했습니다.");
+      }
+      if (activeSongId.current !== songId) return;
+      await refreshMetadata(songId);
+      notifySongChanged(songId);
+      setReport(null);
+      setMessage(
+        body?.changed
+          ? "검증된 녹음 버전의 정보로 누락된 악보 크레딧을 반영했습니다. 수동 수정한 항목은 유지했습니다."
+          : "녹음 버전이 확인되었습니다. 이미 직접 입력한 크레딧은 변경하지 않았습니다."
+      );
+    } catch (error) {
+      if (activeSongId.current === songId) {
+        setMessage(error instanceof Error ? error.message : String(error));
+      }
+    } finally {
+      setChoosingRecording(false);
+    }
+  };
+
   if (!target) return null;
 
   return (
@@ -330,7 +378,23 @@ export default function EnrichmentController() {
             {advanced && <div className="enrichment-fields advanced"><label><span>Provider 이름</span><input value={lyricsProvider} onChange={(event) => setLyricsProvider(event.target.value)} placeholder="예: licensed-lyrics" /></label><label><span>HTTPS URL template</span><input value={lyricsUrl} onChange={(event) => setLyricsUrl(event.target.value)} placeholder="https://api.example/lyrics?artist={artist}&title={title}" /></label><label><span>API key 환경변수명</span><input value={lyricsKeyEnv} onChange={(event) => setLyricsKeyEnv(event.target.value)} placeholder="LYRICS_API_KEY" /></label></div>}
             <button className="enrichment-run" type="button" disabled={busy || identifying || savingMetadata || loadingMetadata || !title.trim()} onClick={() => void run()}>{busy ? "조회 중…" : "곡 정보·가사 자동 조회"}</button>
             {message && <div className="enrichment-message" role="status">{message}</div>}
-            {report && <div className="enrichment-results">{report.metadata.error && <p>MusicBrainz 조회 오류: {report.metadata.error}</p>}{report.metadata.candidates.map((item, index) => <article key={item.recording_mbid ?? index} className={report.metadata.selected?.recording_mbid === item.recording_mbid ? "selected" : ""}><div><strong>{item.title ?? "제목 없음"}</strong><span>{item.score}% match</span></div><p>{item.artist ?? "아티스트 미상"}{item.album ? ` · 앨범: ${item.album}` : ""}{item.composer ? ` · 작곡: ${item.composer}` : ""}{item.lyricist ? ` · 작사: ${item.lyricist}` : ""}{item.first_release_date ? ` · ${item.first_release_date}` : ""}</p>{item.recording_mbid && <small>MBID {item.recording_mbid}</small>}</article>)}{report.lyrics && <div className="enrichment-lyrics"><strong>가사 provider: {report.lyrics.provider}</strong><span>{report.lyrics.synced ? "동기화 가사" : "일반 가사"}를 provenance와 함께 확보했습니다.</span>{report.lyric_application?.applied && <span>악보 적용 완료 · {report.lyric_application.attached_tokens ?? 0} tokens</span>}{report.lyric_application && !report.lyric_application.applied && <span>악보 미적용: {report.lyric_application.reason}</span>}</div>}{report.lyrics_source === "whisperx" && <small>가사: 외부 API 대신 WhisperX 음성 인식 결과 사용</small>}{report.lyrics_source === "unavailable" && <small>가사: 외부 API와 WhisperX 결과 없음</small>}{report.lyrics_error && <small>가사 API: {report.lyrics_error}</small>}</div>}
+            {report && <div className="enrichment-results">{report.metadata.error && <p>MusicBrainz 조회 오류: {report.metadata.error}</p>}{report.metadata.selected?.match_scope === "song_identity_only_ambiguous_recording" && (
+              <p className="enrichment-ambiguity" role="status">동일한 곡명과 아티스트의 녹음 버전이 여러 개입니다. 자동 앨범·작사·작곡을 확정하지 않았습니다. 정확한 앨범을 확인한 뒤 아래에서 해당 버전을 선택하거나 직접 수정하세요.</p>
+            )}{report.metadata.candidates.map((item, index) => (
+              <article key={item.recording_mbid ?? index} className={report.metadata.selected?.recording_mbid === item.recording_mbid && !!item.recording_mbid ? "selected" : ""}>
+                <div><strong>{item.title ?? "제목 없음"}</strong><span>{item.score}% match</span></div>
+                <p>{item.artist ?? "아티스트 미상"}{item.album ? ` · 앨범: ${item.album}` : ""}{item.first_release_date ? ` · ${item.first_release_date}` : ""}</p>
+                {item.recording_mbid && <small>녹음 ID {item.recording_mbid}{item.release_mbid ? ` · 앨범 ID ${item.release_mbid}` : ""}</small>}
+                {item.recording_mbid && (
+                  <button className="enrichment-candidate-select" type="button"
+                    aria-label={`이 버전 적용: ${item.album || "앨범 미상"}`}
+                    disabled={choosingRecording || busy || identifying || savingMetadata || loadingMetadata || revision === null || isDirty}
+                    onClick={() => void chooseRecording(item)}>
+                    {choosingRecording ? "버전 확인 중…" : "이 버전 적용"}
+                  </button>
+                )}
+              </article>
+            ))}{report.lyrics && <div className="enrichment-lyrics"><strong>가사 provider: {report.lyrics.provider}</strong><span>{report.lyrics.synced ? "동기화 가사" : "일반 가사"}를 provenance와 함께 확보했습니다.</span>{report.lyric_application?.applied && <span>악보 적용 완료 · {report.lyric_application.attached_tokens ?? 0} tokens</span>}{report.lyric_application && !report.lyric_application.applied && <span>악보 미적용: {report.lyric_application.reason}</span>}</div>}{report.lyrics_source === "whisperx" && <small>가사: 외부 API 대신 WhisperX 음성 인식 결과 사용</small>}{report.lyrics_source === "unavailable" && <small>가사: 외부 API와 WhisperX 결과 없음</small>}{report.lyrics_error && <small>가사 API: {report.lyrics_error}</small>}</div>}
           </section>
         </div>
       )}
