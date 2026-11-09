@@ -6,6 +6,7 @@ from threading import Event
 
 from .config import Settings, packaged_runtime
 from .managed_tool_resolver import registered_managed_component_root
+from .muscriptor_cache import cached_muscriptor_checkpoint, hf_home
 from .notation_backend import NotationBackendError, backend_status, midi_to_musicxml
 from .runner import CommandCancelled, CommandError, command_exists, run_command
 
@@ -256,7 +257,12 @@ class MuScriptorEngine(BaseTranscriptionEngine):
     quality_rank = 1
 
     def ready(self) -> bool:
-        return command_exists(self.settings.muscriptor_cmd)
+        return (
+            self.settings.usage_mode != "commercial"
+            and command_exists(self.settings.muscriptor_cmd)
+            and backend_status(self.settings)["music21"]
+            and cached_muscriptor_checkpoint(self.settings.muscriptor_model) is not None
+        )
 
     def describe(self) -> dict[str, object]:
         return {
@@ -278,33 +284,81 @@ class MuScriptorEngine(BaseTranscriptionEngine):
             raise TranscriptionEngineUnavailable(
                 "MuScriptor public weights are CC BY-NC 4.0 and are disabled in commercial mode."
             )
-        if not self.ready():
+        if not command_exists(self.settings.muscriptor_cmd):
             raise TranscriptionEngineUnavailable("MuScriptor command is unavailable.")
+        if not backend_status(self.settings)["music21"]:
+            raise TranscriptionEngineUnavailable(
+                "MuScriptor MIDI→MusicXML conversion requires embedded music21."
+            )
+        checkpoint = cached_muscriptor_checkpoint(self.settings.muscriptor_model)
+        if checkpoint is None:
+            raise TranscriptionEngineUnavailable(
+                "MuScriptor checkpoint/config is not complete in the app-managed "
+                "Hugging Face cache. Accept the noncommercial license and download "
+                "this exact model in Model Manager before running transcription."
+            )
+
+        # Upstream --format sheets invokes external MuseScore 4. The desktop
+        # contract forbids requiring it: generate the actual MIDI directly,
+        # then convert using the embedded music21 backend.
+        output_dir.mkdir(parents=True, exist_ok=True)
+        midi_path = output_dir / "score.mid"
+        musicxml_path = output_dir / "score.musicxml"
+        midi_path.unlink(missing_ok=True)
+        musicxml_path.unlink(missing_ok=True)
         args = [
-            "transcribe",
-            audio_path,
-            "--format",
-            "sheets",
-            "--output",
-            output_dir,
-            "--device",
-            device,
-            "--model",
-            self.settings.muscriptor_model,
-            "--detect-tempo",
-            "best-effort",
+            "transcribe", audio_path,
+            "--format", "midi",
+            "--output", midi_path,
+            "--device", device,
+            "--model", checkpoint,
+            "--detect-tempo", "best-effort",
         ]
         try:
-            run_command(self.settings.muscriptor_cmd, args, cancel_event=cancel_event)
+            run_command(
+                self.settings.muscriptor_cmd,
+                args,
+                cancel_event=cancel_event,
+                env={
+                    "HF_HOME": str(hf_home()),
+                    "HF_HUB_OFFLINE": "1",
+                    "TRANSFORMERS_OFFLINE": "1",
+                    "HF_HUB_DISABLE_TELEMETRY": "1",
+                    "PYTHONIOENCODING": "utf-8",
+                    "PYTHONUTF8": "1",
+                },
+            )
+            if not midi_path.is_file() or midi_path.is_symlink():
+                raise TranscriptionEngineError(
+                    "MuScriptor did not produce a valid score.mid MIDI file."
+                )
+            # The upstream CLI can succeed with empty or malformed MIDI.
+            # Never treat those outputs as a completed multi-instrument score.
+            import mido
+
+            try:
+                midi = mido.MidiFile(str(midi_path))
+            except Exception as exc:
+                raise TranscriptionEngineError(
+                    "MuScriptor produced an unreadable MIDI file."
+                ) from exc
+            if not any(
+                message.type == "note_on" and message.velocity > 0
+                for track in midi.tracks for message in track
+            ):
+                raise TranscriptionEngineError(
+                    "MuScriptor produced MIDI with no performed note events."
+                )
+            midi_to_musicxml(midi_path, musicxml_path)
         except CommandCancelled as exc:
             raise TranscriptionEngineCancelled("MuScriptor transcription cancelled.") from exc
-        except CommandError as exc:
-            raise TranscriptionEngineError(f"MuScriptor failed.\n{exc}") from exc
-        return TranscriptionArtifacts(
-            midi_path=_require_output(output_dir, "score.mid"),
-            musicxml_path=_require_output(output_dir, "score.musicxml"),
-            initial_pdf_path=_find_one(output_dir, "full_score.pdf", required=False),
-        )
+        except (CommandError, NotationBackendError) as exc:
+            raise TranscriptionEngineError(f"MuScriptor failed.\\n{exc}") from exc
+        if not musicxml_path.is_file() or musicxml_path.is_symlink():
+            raise TranscriptionEngineError(
+                "The embedded MIDI converter did not produce score.musicxml."
+            )
+        return TranscriptionArtifacts(midi_path=midi_path, musicxml_path=musicxml_path)
 
 
 class NativeCommandEngine(BaseTranscriptionEngine):
