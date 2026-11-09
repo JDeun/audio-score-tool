@@ -11,6 +11,8 @@ from .enrichment import (
     LyricsProvider,
     choose_high_confidence,
     fetch_lyrics,
+    fetch_lrclib_lyrics,
+    lookup_musicbrainz_work_credits,
     search_musicbrainz,
     search_musicbrainz_by_isrc,
 )
@@ -37,7 +39,8 @@ class EnrichRequest(BaseModel):
     lyrics_provider_name: str | None = None
     lyrics_url_template: str | None = None
     lyrics_api_key_env: str | None = None
-    apply_reference_lyrics: bool = False
+    apply_reference_lyrics: bool = True
+    auto_lyrics: bool = True
 
 
 class IdentifySourceRequest(BaseModel):
@@ -70,12 +73,30 @@ def _apply_metadata(
     next_artist = str(selected.get("artist") or fallback_artist or "").strip() or None
     try:
         current_publication = _publication.read(song_id)
+        updated_publication = dict(current_publication)
+        # Only fill missing credits. Never overwrite a user's manually edited
+        # album, performer, composer, lyricist or release date.
+        if selected.get("provider") == "musicbrainz":
+            for field, suggested in (
+                ("album", selected.get("album")),
+                ("performer", next_artist),
+                ("release_date", selected.get("first_release_date")),
+            ):
+                if suggested and not str(updated_publication.get(field) or "").strip():
+                    updated_publication[field] = str(suggested).strip()[:300]
+            if selected.get("songwriters_verified") is True:
+                for field in ("composer", "lyricist"):
+                    value = selected.get(field)
+                    if value and not str(updated_publication.get(field) or "").strip():
+                        updated_publication[field] = str(value).strip()[:200]
         expected_revision = int(song["revision"])
-        if next_title != song.get("title"):
+        credits_changed = updated_publication != current_publication
+        if next_title != song.get("title") or credits_changed:
             score = _store.checkout_current(song_id)
-            set_score_title(score, next_title)
+            if next_title != song.get("title"):
+                set_score_title(score, next_title)
             apply_publication_layout(
-                score, title=next_title, settings=current_publication
+                score, title=next_title, settings=updated_publication
             )
             xml_text = score.read_text(encoding="utf-8")
         else:
@@ -86,6 +107,7 @@ def _apply_metadata(
             artist=next_artist,
             score_xml=xml_text,
             publication=current_publication,
+            next_publication=updated_publication if credits_changed else None,
             expected_revision=expected_revision,
         )
         return True
@@ -93,6 +115,24 @@ def _apply_metadata(
         # Fail closed without changing the canonical Song, exporting an
         # incomplete revision, or reapplying stale source-identification data.
         return False
+
+
+def _with_work_credits(selected: dict) -> tuple[dict, str | None]:
+    """Attach independently verified creator relations; never guess from performer."""
+    mbid = selected.get("recording_mbid")
+    if not mbid or selected.get("provider") != "musicbrainz":
+        return selected, None
+    try:
+        credits = lookup_musicbrainz_work_credits(str(mbid))
+    except EnrichmentError as exc:
+        return selected, str(exc)
+    return {
+        **selected,
+        "composer": credits.get("composer"),
+        "lyricist": credits.get("lyricist"),
+        "work_mbid": credits.get("work_mbid"),
+        "songwriters_verified": credits.get("status") == "verified_work_relations",
+    }, None
 
 
 def _source_audio(song_id: str) -> Path | None:
@@ -222,6 +262,10 @@ def identify_song_source(song_id: str, payload: IdentifySourceRequest) -> dict:
     elif confidence < 0.92 and not mb_allowed and mb_error is None:
         mb_error = "commercial MusicBrainz Web Service entitlement not confirmed"
 
+    work_credits_error = None
+    if selected and confidence >= 0.92:
+        selected, work_credits_error = _with_work_credits(selected)
+
     applied = False
     if selected and confidence >= 0.92 and payload.apply_high_confidence_metadata:
         applied = _apply_metadata(
@@ -241,6 +285,7 @@ def identify_song_source(song_id: str, payload: IdentifySourceRequest) -> dict:
         "musicbrainz_isrc_candidates": musicbrainz_candidates,
         "musicbrainz_fuzzy_candidates": fuzzy_candidates,
         "musicbrainz_error": mb_error,
+        "work_credits_error": work_credits_error,
         "applied": applied,
         "policy": {
             **(report.get("policy") or {}),
@@ -282,6 +327,9 @@ def enrich_song(song_id: str, payload: EnrichRequest) -> dict:
         metadata_error = None
 
     selected = choose_high_confidence(candidates, threshold=payload.metadata_threshold)
+    work_credits_error = None
+    if selected:
+        selected, work_credits_error = _with_work_credits(selected)
     applied = False
     if selected and payload.apply_high_confidence_metadata:
         applied = _apply_metadata(song_id, song, selected, title, artist)
@@ -289,21 +337,36 @@ def enrich_song(song_id: str, payload: EnrichRequest) -> dict:
     lyrics = None
     lyrics_error = None
     lyric_application = None
-    if payload.lyrics_url_template:
-        try:
+    lyrics_title = str((selected or {}).get("title") or title)
+    lyrics_artist = (selected or {}).get("artist") or artist
+    # Explicit user-configured provider is preferred. Personal-use LRCLIB
+    # requires no API key; never silently query it from a commercial session.
+    try:
+        if payload.lyrics_url_template:
             lyrics = fetch_lyrics(
                 LyricsProvider(
                     name=payload.lyrics_provider_name or "configured_provider",
                     url_template=payload.lyrics_url_template,
                     api_key_env=payload.lyrics_api_key_env,
                 ),
-                title=str((selected or {}).get("title") or title),
-                artist=(selected or {}).get("artist") or artist,
+                title=lyrics_title, artist=lyrics_artist,
             )
-            if lyrics and payload.apply_reference_lyrics:
-                lyric_application = _apply_external_lyrics(song_id, lyrics["lyrics"])
-        except EnrichmentError as exc:
-            lyrics_error = str(exc)
+        elif payload.auto_lyrics and settings.usage_mode == "personal":
+            lyrics = fetch_lrclib_lyrics(
+                lyrics_title, lyrics_artist,
+                album=(selected or {}).get("album"),
+            )
+    except EnrichmentError as exc:
+        lyrics_error = str(exc)
+    if lyrics and payload.apply_reference_lyrics:
+        lyric_application = _apply_external_lyrics(song_id, lyrics["lyrics"])
+
+    # WhisperX was executed during transcription when the user enabled
+    # lyrics. If the external API has no entry or is unreachable, preserve
+    # that acoustic transcript and its already-attached score lyrics.
+    fallback = "external_api" if lyrics else (
+        "whisperx" if _store.analysis(song_id, "lyrics_transcript") else "unavailable"
+    )
 
     report = {
         "song_id": song_id,
@@ -314,15 +377,18 @@ def enrich_song(song_id: str, payload: EnrichRequest) -> dict:
             "selected": selected,
             "applied": applied,
             "error": metadata_error,
+            "work_credits_error": work_credits_error,
             "policy": "auto-apply only above configured confidence threshold; title is synchronized with MusicXML/layout",
             "commercial_entitlement_confirmed": mb_entitled,
         },
         "lyrics": lyrics,
         "lyrics_error": lyrics_error,
         "lyric_application": lyric_application,
+        "lyrics_source": fallback,
         "lyrics_policy": {
             "arbitrary_web_scraping": False,
-            "configured_provider_only": True,
+            "provider_priority": ["configured_licensed_api", "lrclib_personal", "whisperx"],
+            "configured_provider_only": settings.usage_mode == "commercial",
             "text_source": "configured external provider when available",
             "timing_source": "WhisperX/acoustic evidence",
             "fallback": "WhisperX transcription/alignment remains authoritative when no licensed provider is configured",
