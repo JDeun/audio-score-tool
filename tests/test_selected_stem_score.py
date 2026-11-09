@@ -91,7 +91,7 @@ def test_guitar_and_vocal_actually_transcribe_two_distinct_separated_stems(
     (artifacts, vocals, warnings), engine = _run(tmp_path, monkeypatch, "guitar_vocal")
     assert engine.inputs == [("vocals.wav", "cpu"), ("guitar.wav", "cpu")]
     assert vocals.name == "vocals.wav"
-    assert any("TAB" in warning for warning in warnings)
+    assert any("tablature" in warning for warning in warnings)
     from music21 import converter
 
     score = converter.parse(str(artifacts.musicxml_path))
