@@ -62,7 +62,8 @@ def test_vocal_import_keeps_chords_key_meter_and_audio_clock(tmp_path):
     toolkit = _verovio_toolkit()
     assert toolkit.loadFile(str(target))
     svg = ET.fromstring(toolkit.renderToSVG(1))
-    assert len([g for g in svg.iter() if "tempo" in g.get("class", "").split()]) == 1
+    assert len([g for g in svg.iter()
+                if "tempo" in g.get("class", "").split() and "".join(g.itertext()).strip()]) == 1
 
 
 def test_voice_and_changed_bar_grid_fail_explicitly(tmp_path):
