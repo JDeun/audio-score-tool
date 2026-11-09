@@ -1,7 +1,7 @@
 # Research: Experiment and failure audit ledger
 
-Status: implementation CI history audited; actual model quality remains unverified
-Last reviewed: 2026-11-06
+Status: implementation CI history audited; limited source-paired AMT measurements exist; release-quality acceptance remains pending
+Last reviewed: 2026-11-09
 
 | Workstream | Evidence | Status | Missing proof |
 | --- | --- | --- | --- |
@@ -10,6 +10,9 @@ Last reviewed: 2026-11-06
 | SheetSage2 integration | [#43](https://github.com/JDeun/audio-score-tool/issues/43) | pending | runnable environment, output conversion, hybrid A/B |
 | Native model training | [native design](../NATIVE_MODEL.ko.md) | scaffold documented | trained production checkpoint, quality baseline |
 | Managed runtime release | [#29](https://github.com/JDeun/audio-score-tool/issues/29) | pending | clean-machine artifact acceptance |
+| Paired original-source AMT | [MR-MT3 vs YourMT3+](COCOCHORALES_MRMT3_YOURMT3_HEAD_TO_HEAD_2026-11-09.md) | four author train examples measured | held-out, real-vocal/pop corpus and editing-time acceptance |
+| Direct mix vs estimated stems | [complete same-model comparison](MIX_VS_STEMS_ABLATION_2026-11-09.md) | both models completed 4/4 pairs; all three macro F1 lower after 6-stem AMT | held-out/real-vocal corpus, ground-truth-stem control, evaluated prediction filtering |
+| Chordify/CASD chord evaluation | [#53](https://github.com/JDeun/audio-score-tool/issues/53), [#58](https://github.com/JDeun/audio-score-tool/issues/58), [three original annotation imports](CASD_ANNOTATION_IMPORT_2026-11-09.json) | original annotation import/coverage checks passed; real-song evaluation pending | same-recording audio and independent multi-annotator chord metrics |
 
 **Important:** This inventory does not assert that historical failed experiments occurred. Each actual failure must be registered with a command, input fingerprint, environment, log/artifact, root-cause hypothesis and retest status. Never fabricate missing results.
 

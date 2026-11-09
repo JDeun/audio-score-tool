@@ -16,3 +16,7 @@ Use [research template](RESEARCH_TEMPLATE.md) for reproducible investigations. I
 - [MR-MT3 program-preserving MIDI before/after evidence](COCOCHORALES_MRMT3_PROGRAM_PRESERVING_2026-11-09.md) — real four-ensemble onset, offset and instrument F1 improvement, exact run/checkpoint/source provenance and remaining over-segmentation.
 
 - [MR-MT3 vs YourMT3+ real same-source A/B](COCOCHORALES_MRMT3_YOURMT3_HEAD_TO_HEAD_2026-11-09.md) — four identical author WAV/MIDI pairs, exact checkpoint SHA, onset/offset versus instrument F1 tradeoffs; paired Actions run #42535843289.
+
+- [혼합 음원 vs 분리 stem 채보 비교](MIX_VS_STEMS_ABLATION_2026-11-09.md) — 동일 모델·원본·정답을 고정한 직접 채보와 Demucs 6개 stem 채보 비교, 전체 음표 보존 및 실패 포함 평가; Actions run #42584934707.
+
+- [CASD 공개 원본 주석 가져오기 검사](CASD_ANNOTATION_IMPORT_2026-11-09.json) — pinned 원본 JAMS 3개, 전문가 12그룹·6,704구간의 실제 import/시간 구간 검사; 음원 매칭과 모델 정확도는 미측정.
