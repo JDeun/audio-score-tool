@@ -163,3 +163,97 @@ def test_manual_enrichment_defaults_to_lrclib_then_existing_whisperx(
     assert response.json()["lyrics_source"] == "external_api"
     assert response.json()["lyrics"]["provider"] == "lrclib"
     assert store.analysis("song-c1", "external_lyrics")["provider"] == "lrclib"
+
+
+
+def test_lrclib_get_404_uses_one_structured_exact_search_not_fuzzy(monkeypatch):
+    calls = []
+    def endpoint(url, **_kwargs):
+        calls.append(url)
+        if "/api/get?" in url:
+            raise enrichment.EnrichmentError("HTTP Error 404: Not Found")
+        assert "/api/search?" in url
+        return [
+            {
+                "trackName": "An Unrelated Track", "artistName": "The Band",
+                "albumName": "Known Album", "plainLyrics": "wrong",
+            },
+            {
+                "trackName": "Known Song", "artistName": "The Band",
+                "albumName": "Known Album", "plainLyrics": "synthetic lyric source",
+                "instrumental": False, "id": 72,
+            },
+        ]
+
+    monkeypatch.setattr(enrichment, "_json_request", endpoint)
+    lyrics = enrichment.fetch_lrclib_lyrics(
+        "Known Song", "The Band", album="Known Album",
+    )
+    assert lyrics is not None
+    assert lyrics["provider"] == "lrclib"
+    assert lyrics["source_payload"]["id"] == 72
+    assert len(calls) == 2
+    assert "track_name=Known+Song" in calls[1]
+    assert "artist_name=The+Band" in calls[1]
+    assert "album_name=Known+Album" in calls[1]
+
+
+def test_lrclib_rejects_wrong_album_and_ambiguous_cover_versions(monkeypatch):
+    one = {
+        "trackName": "Song", "artistName": "Artist", "albumName": "First Album",
+        "plainLyrics": "synthetic first version", "id": 1,
+    }
+    two = {
+        "trackName": "Song", "artistName": "Artist", "albumName": "Second Album",
+        "plainLyrics": "synthetic second version", "id": 2,
+    }
+    calls = []
+    def endpoint(url, **_kwargs):
+        calls.append(url)
+        return one if "/api/get?" in url else [one, two]
+
+    monkeypatch.setattr(enrichment, "_json_request", endpoint)
+    assert enrichment.fetch_lrclib_lyrics("Song", "Artist", album="Second Album")[
+        "source_payload"
+    ]["id"] == 2
+    assert len(calls) == 2
+    calls.clear()
+    def no_get(url, **_kwargs):
+        calls.append(url)
+        if "/api/get?" in url:
+            raise enrichment.EnrichmentError("HTTP Error 404: Not Found")
+        return [one, two]
+
+    monkeypatch.setattr(enrichment, "_json_request", no_get)
+    assert enrichment.fetch_lrclib_lyrics("Song", "Artist") is None
+    assert len(calls) == 2  # no extra uncontrolled search
+
+
+def test_lrclib_429_does_not_burst_retry_search(monkeypatch):
+    calls = []
+    def throttle(url, **_kwargs):
+        calls.append(url)
+        raise enrichment.EnrichmentError("HTTP Error 429: Too Many Requests")
+
+    monkeypatch.setattr(enrichment, "_json_request", throttle)
+    with pytest.raises(enrichment.EnrichmentError, match="429"):
+        enrichment.fetch_lrclib_lyrics("Song", "Artist")
+    assert len(calls) == 1
+
+
+def test_lrclib_public_provider_album_mismatch_never_accepted(monkeypatch):
+    def first(url, **_kwargs):
+        if "/api/get?" in url:
+            return {
+                "trackName": "Song", "artistName": "Artist",
+                "albumName": "Wrong Album", "plainLyrics": "incorrect version",
+            }
+        return [{
+            "trackName": "Song", "artistName": "Artist",
+            "albumName": "Still Wrong", "plainLyrics": "incorrect version",
+        }]
+
+    monkeypatch.setattr(enrichment, "_json_request", first)
+    assert enrichment.fetch_lrclib_lyrics(
+        "Song", "Artist", album="Correct Album",
+    ) is None
