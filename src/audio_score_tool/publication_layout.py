@@ -411,6 +411,16 @@ def _apply_identification(root: ET.Element, ns: str, settings: dict[str, Any]) -
     _update_creator(identification, ns, "lyricist", str(settings.get("lyricist") or ""))
     _update_creator(identification, ns, "arranger", str(settings.get("arranger") or ""))
 
+    rights_value = str(settings.get("rights") or "").strip()
+    rights = identification.find(f"{ns}rights")
+    if rights_value:
+        if rights is None:
+            rights = ET.SubElement(identification, f"{ns}rights")
+        rights.text = rights_value
+    elif rights is not None:
+        identification.remove(rights)
+
+    # MusicXML identification order: creators, rights, relations, miscellaneous.
     miscellaneous = identification.find(f"{ns}miscellaneous")
     for field_name in ("album", "release_date"):
         value = str(settings.get(field_name) or "").strip()
@@ -429,15 +439,6 @@ def _apply_identification(root: ET.Element, ns: str, settings: dict[str, Any]) -
             field.text = value
         elif field is not None:
             miscellaneous.remove(field)
-
-    rights_value = str(settings.get("rights") or "").strip()
-    rights = identification.find(f"{ns}rights")
-    if rights_value:
-        if rights is None:
-            rights = ET.SubElement(identification, f"{ns}rights")
-        rights.text = rights_value
-    elif rights is not None:
-        identification.remove(rights)
 
 
 def apply_publication_layout(
