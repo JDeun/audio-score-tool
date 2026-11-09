@@ -44,7 +44,7 @@ def _same(left: object, right: str) -> bool:
 
 def _safe_http_status(exc: Exception) -> int | None:
     """Expose HTTP code only, never URL, error body or remote lyric content."""
-    match = re.search(r"\\bHTTP Error ([1-5][0-9]{2})\\b", str(exc))
+    match = re.search(r"\bHTTP Error ([1-5][0-9]{2})\b", str(exc))
     return int(match.group(1)) if match else None
 
 
