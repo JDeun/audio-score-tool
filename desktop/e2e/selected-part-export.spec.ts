@@ -52,7 +52,9 @@ async function prepare(page: Page, rejectStale = false) {
       opens.push(route.request().postDataJSON() as Record<string, unknown>);
       return route.fulfill({ json: { opened: true } });
     }
-    return route.fulfill({ json: {} });
+    // Unrelated controllers must see an unavailable API, never a successful
+    // response without their required engines/models/components arrays.
+    return route.fulfill({ status: 404, json: {} });
   });
   await page.addInitScript(() => {
     localStorage.setItem("ast-onboarding-v1", "done");
