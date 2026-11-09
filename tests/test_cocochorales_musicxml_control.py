@@ -29,7 +29,7 @@ def test_reference_only_roundtrip_has_real_playable_notes_without_checkpoint(tmp
     result = control.reference_roundtrip(
         reference, scratch_root=tmp_path, original_parts=4,
     )
-    assert result["conversion_method"] == "music21_midi_to_musicxml_to_midi"
+    assert result["conversion_method"] == "ast_tick_preserving_musicxml_voice_aware_midi_v1"
     assert result["source_note_count"] == 2
     assert result["roundtrip_note_count"] >= 1
     for key in control._SCORE_KEYS:

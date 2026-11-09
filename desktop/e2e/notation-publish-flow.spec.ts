@@ -159,5 +159,6 @@ test("import MusicXML → library → lyric edit → Undo → final export uses 
   expect(exported[0]).toEqual({
     formats: ["musicxml", "pdf", "midi", "parts"],
     destination_dir: "/tmp/e2e-output",
+    expected_revision: 1,
   });
 });

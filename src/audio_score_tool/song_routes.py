@@ -128,11 +128,12 @@ def _sync() -> None:
             _song_store.checkout_current(song["song_id"])
 
 
-def _part_exports(song: dict) -> list[dict]:
-    try:
-        parts = list_score_parts(_song_store.checkout_current(song["song_id"]))
-    except Exception:
-        return []
+def _part_exports(song: dict, *, parts: list[dict] | None = None) -> list[dict]:
+    if parts is None:
+        try:
+            parts = list_score_parts(_song_store.checkout_current(song["song_id"]))
+        except Exception:
+            return []
     export_dir = _song_store.export_root / song["song_id"] / "parts"
     return [
         {
@@ -144,7 +145,7 @@ def _part_exports(song: dict) -> list[dict]:
     ]
 
 
-def _public(song: dict) -> dict:
+def _public(song: dict, *, parts: list[dict] | None = None) -> dict:
     exports = song.get("exports") or {}
     return {
         "song_id": song["song_id"],
@@ -160,7 +161,7 @@ def _public(song: dict) -> dict:
             "midi": bool(exports.get("midi")),
             "musicxml": bool(exports.get("musicxml")),
         },
-        "parts": _part_exports(song),
+        "parts": _part_exports(song) if parts is None else parts,
     }
 
 

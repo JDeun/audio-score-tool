@@ -1,6 +1,6 @@
 """Reference-only MusicXML round-trip control for CocoChorales author samples.
 
-Separate the note losses introduced by music21 MIDI→MusicXML→MIDI conversion
+Separate the note losses introduced by the application's MIDI→MusicXML→MIDI conversion
 from losses in a neural model's predicted MusicXML. No model or checkpoint is
 downloaded. All actual source WAV/MIDI are kept in a private runner directory;
 only reference/source hashes and aggregated note metrics are published.
@@ -43,7 +43,7 @@ def _sha_json(obj: dict) -> str:
 
 
 def reference_roundtrip(reference: Path, *, scratch_root: Path, original_parts: int) -> dict:
-    """Perform a genuine music21 conversion with no model predictions.
+    """Perform the actual product score conversion with no model predictions.
 
     This is the calibration control: how much note/instrument fidelity is lost
     when a ground-truth MIDI passes through the very same score codec.
@@ -62,7 +62,7 @@ def reference_roundtrip(reference: Path, *, scratch_root: Path, original_parts: 
             "roundtrip_note_count": fidelity["score_playable_note_count"],
             "f1": fidelity["against_reference"],
             "reference_musicxml_part_count": fidelity["reference_part_count"],
-            "conversion_method": "music21_midi_to_musicxml_to_midi",
+            "conversion_method": "ast_tick_preserving_musicxml_voice_aware_midi_v1",
         }
 
 

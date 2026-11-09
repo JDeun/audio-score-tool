@@ -40,7 +40,7 @@ def _body_contract(spec: dict, path: str, method: str, media_type: str = "applic
         ),
         (
             "/api/songs/{song_id}/export-to", "POST", "application/json",
-            {"destination_dir", "formats"},
+            {"destination_dir", "formats", "part_ids", "expected_revision"},
         ),
         (
             "/api/engines", "PUT", "application/json",

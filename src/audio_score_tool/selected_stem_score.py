@@ -7,7 +7,8 @@ no automatic TAB, verified melody accuracy or publishing-quality claims.
 """
 from __future__ import annotations
 
-import copy
+import tempfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from threading import Event
 
@@ -15,6 +16,9 @@ import mido
 
 from .auto_chords import infer_chords
 from .config import Settings
+from .musicxml_metadata_projection import _score, project_musicxml_annotations
+from .musicxml_parts import extract_part_musicxml
+from .notation_backend import musicxml_to_midi
 from .runner import CommandCancelled, CommandError, command_exists, run_command
 from .score_requests import validate_score_mode
 from .transcription_engine import (
@@ -41,28 +45,85 @@ def _stem(root: Path, name: str) -> Path:
     return paths[0]
 
 
-def _main_part(score_path: Path, *, part_name: str):
-    """Choose the largest note-bearing part without inventing extra instruments.
+def _main_part(score_path: Path, destination: Path, *, part_name: str):
+    """Extract the largest performed part without reserializing its note values.
 
     MT3 is a multi-instrument model, so even one isolated stem may yield several
     overlapping MIDI tracks. Keep one explicit, editable draft and warn that
     multi-source/program attribution is not established by the separator.
     """
-    from music21 import converter
-
-    parsed = converter.parse(str(score_path))
-    parts = list(parsed.parts)
-    if not parts:
-        parts = [parsed]
-    eligible = [(sum(1 for _ in part.recurse().notes), index, part)
-                for index, part in enumerate(parts)]
+    root = _score(score_path)
+    ns = root.tag.split("}")[0] + "}" if root.tag.startswith("{") else ""
+    parts = root.findall(f"{ns}part")
+    eligible = [(
+        sum(n.find(f"{ns}pitch") is not None or n.find(f"{ns}unpitched") is not None
+            for n in part.findall(f"{ns}measure/{ns}note")), index, part,
+    ) for index, part in enumerate(parts)]
     if not eligible or max(eligible, key=lambda item: item[0])[0] == 0:
         raise SelectedScoreError(f"{part_name} stem produced no playable score notes")
     _count, _index, source = max(eligible, key=lambda item: (item[0], -item[1]))
-    selected = copy.deepcopy(source)
-    selected.partName = part_name
-    selected.id = f"AST_{part_name.replace(' ', '_')}"
+    extract_part_musicxml(score_path, source.get("id"), destination)
+    selected = _score(destination)
+    part = selected.find(f"{ns}part")
+    definition = selected.find(f"{ns}part-list/{ns}score-part")
+    if part is None or definition is None:
+        raise SelectedScoreError("Selected score part has no instrument definition")
+    part_id = f"AST_{part_name.replace(' ', '_')}"
+    part.set("id", part_id)
+    definition.set("id", part_id)
+    name = definition.find(f"{ns}part-name")
+    if name is None:
+        name = ET.SubElement(definition, f"{ns}part-name")
+    name.text = part_name
+    # Two independently transcribed stems can reuse P1/I1 identifiers. Keep
+    # every source instrument binding distinct when the documents are joined.
+    identifiers = {
+        node.get("id"): f"{part_id}-{node.get('id')}"
+        for node in definition if node.get("id")
+    }
+    for node in definition.iter():
+        if node.get("id") in identifiers:
+            node.set("id", identifiers[node.get("id")])
+    for node in part.iter(f"{ns}instrument"):
+        if node.get("id") in identifiers:
+            node.set("id", identifiers[node.get("id")])
     return selected
+
+
+def _annotate_chords(source: Path, backing: Path, destination: Path, stage: Path) -> None:
+    """Generate a chord-only overlay and project it onto unchanged vocal XML."""
+    from music21 import converter, harmony, note, stream
+
+    parsed = converter.parse(str(source))
+    measures = list(parsed.parts[0].getElementsByClass(stream.Measure))
+    overlay = stream.Score()
+    part = stream.Part()
+    overlay.insert(0, part)
+    for original in measures:
+        measure = stream.Measure(number=original.number)
+        measure.insert(0, note.Rest(quarterLength=1))
+        part.insert(original.getOffsetInHierarchy(parsed.parts[0]), measure)
+    targets = list(part.getElementsByClass(stream.Measure))
+    inserted = 0
+    for candidate in infer_chords(backing):
+        if not 0 <= candidate.measure_index < len(targets):
+            continue
+        try:
+            symbol = harmony.ChordSymbol(candidate.symbol)
+            targets[candidate.measure_index].insert(candidate.offset_quarters, symbol)
+            inserted += 1
+        except (ValueError, TypeError):
+            continue
+    if inserted == 0:
+        raise SelectedScoreError(
+            "No reliable accompaniment chords could be placed on the vocal "
+            "melody. A chordless result will not be called a Lead Sheet."
+        )
+    overlay_path = stage / "harmony.musicxml"
+    overlay.write("musicxml", fp=str(overlay_path))
+    project_musicxml_annotations(
+        source, overlay_path, destination, include_key=False, include_meter=False,
+    )
 
 
 def transcribe_selected_stems(
@@ -125,56 +186,46 @@ def transcribe_selected_stems(
     except TranscriptionEngineError as exc:
         raise SelectedScoreError(f"Selected-stem transcription failed: {exc}") from exc
 
-    from music21 import harmony, instrument, stream
-
-    score = stream.Score()
-    vocal_part = _main_part(vocal_artifacts.musicxml_path, part_name="Voice")
-    vocal_part.insert(0, instrument.Vocalist())
-    score.insert(0, vocal_part)
     warnings = [
         "Stem-targeted score is an experimental, editable draft; "
         "source separation and instrument identities have not been independently verified."
     ]
 
     if guitar is not None:
-        guitar_part = _main_part(harmonic_artifacts.musicxml_path, part_name="Guitar")
-        guitar_part.insert(0, instrument.Guitar())
-        score.insert(0, guitar_part)
         warnings.append(
             "Guitar stem uses experimental Demucs htdemucs_6s; "
             "this score contains standard notation, not verified guitar tablature."
         )
-    else:
-        # Do not infer chord symbols from the vocal melody alone. The backing
-        # sound has been transcribed independently using the same score engine.
-        candidates = infer_chords(harmonic_artifacts.musicxml_path)
-        measures = list(vocal_part.getElementsByClass(stream.Measure))
-        inserted = 0
-        for chord in candidates:
-            if not 0 <= chord.measure_index < len(measures):
-                continue
-            try:
-                symbol = harmony.ChordSymbol(chord.symbol)
-                measures[chord.measure_index].insert(chord.offset_quarters, symbol)
-                inserted += 1
-            except (ValueError, TypeError):
-                continue
-        if inserted == 0:
-            raise SelectedScoreError(
-                "No reliable accompaniment chords could be placed on the vocal "
-                "melody. A chordless result will not be called a Lead Sheet."
-            )
-
     midi_target = output_dir / "score.mid"
     musicxml_target = output_dir / "score.musicxml"
     try:
-        score.write("musicxml", fp=str(musicxml_target))
-        score.write("midi", fp=str(midi_target))
-        raw = mido.MidiFile(str(midi_target))
-        performed = sum(
-            message.type == "note_on" and message.velocity > 0
-            for track in raw.tracks for message in track
-        )
+        with tempfile.TemporaryDirectory(prefix=".selected-score-", dir=output_dir) as folder:
+            stage = Path(folder)
+            root = _main_part(vocal_artifacts.musicxml_path, stage / "vocal.musicxml", part_name="Voice")
+            ns = root.tag.split("}")[0] + "}" if root.tag.startswith("{") else ""
+            if guitar is not None:
+                second = _main_part(harmonic_artifacts.musicxml_path, stage / "guitar.musicxml", part_name="Guitar")
+                for node in second.iter():
+                    node.tag = ns + node.tag.rsplit("}", 1)[-1]
+                root.find(f"{ns}part-list").append(second.find(f"{ns}part-list/{ns}score-part"))
+                root.append(second.find(f"{ns}part"))
+            assembled = stage / "assembled.musicxml"
+            ET.ElementTree(root).write(assembled, encoding="utf-8", xml_declaration=True)
+            if guitar is None:
+                annotated = stage / "annotated.musicxml"
+                _annotate_chords(assembled, harmonic_artifacts.musicxml_path, annotated, stage)
+                assembled = annotated
+            midi = stage / "score.mid"
+            musicxml_to_midi(assembled, midi)
+            raw = mido.MidiFile(str(midi))
+            performed = sum(
+                message.type == "note_on" and message.velocity > 0
+                for track in raw.tracks for message in track
+            )
+            if performed == 0:
+                raise SelectedScoreError("Selected-part score contains no playable notes")
+            midi.replace(midi_target)
+            assembled.replace(musicxml_target)
     except Exception as exc:
         raise SelectedScoreError(f"Could not assemble playable selected-part score: {exc}") from exc
     if performed == 0 or not musicxml_target.is_file() or not musicxml_target.stat().st_size:

@@ -74,6 +74,11 @@ def test_music21_export_skips_same_file_with_relative_target(tmp_path: Path, mon
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(converter, "parse", lambda _: FakeScore())
+    monkeypatch.setattr(
+        "audio_score_tool.midi_score_import.midi_to_score_xml",
+        lambda _source, target: FakeScore().write("musicxml", str(target)),
+    )
+    monkeypatch.setattr("audio_score_tool.midi_channels.preserve_program_channels", lambda _: None)
 
     def forbidden_copy(*_args, **_kwargs):
         raise AssertionError("An export must not copy a file onto itself")
@@ -83,6 +88,7 @@ def test_music21_export_skips_same_file_with_relative_target(tmp_path: Path, mon
         source = tmp_path / "input"
         source.write_text("source", encoding="utf-8")
         target = Path("out") / f"score.{suffix}"
+        target.parent.mkdir(parents=True, exist_ok=True)
         assert export(source, target) == target
         assert target.read_text(encoding="utf-8")
 

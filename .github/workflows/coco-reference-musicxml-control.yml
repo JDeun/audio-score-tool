@@ -10,6 +10,11 @@ on:
       - 'scripts/score_cocochorales_musicxml_control.py'
       - 'tests/test_cocochorales_musicxml_control.py'
       - 'scripts/score_cocochorales_tiny.py'
+      - 'src/audio_score_tool/notation_backend.py'
+      - 'src/audio_score_tool/midi_score_import.py'
+      - 'src/audio_score_tool/midi_ties.py'
+      - 'src/audio_score_tool/midi_channels.py'
+      - 'tests/test_midi_musicxml_fidelity.py'
   workflow_dispatch:
 
 permissions:

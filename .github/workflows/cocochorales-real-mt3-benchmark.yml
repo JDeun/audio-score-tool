@@ -19,6 +19,11 @@ on:
       - 'tests/test_aggregate_cocochorales_author_samples.py'
       - 'src/audio_score_tool/tier2_prediction.py'
       - 'src/audio_score_tool/mt3_program_midi.py'
+      - 'src/audio_score_tool/notation_backend.py'
+      - 'src/audio_score_tool/midi_score_import.py'
+      - 'src/audio_score_tool/midi_ties.py'
+      - 'src/audio_score_tool/midi_channels.py'
+      - 'tests/test_midi_musicxml_fidelity.py'
   workflow_dispatch:
 
 permissions:
@@ -232,6 +237,7 @@ jobs:
           results = json.loads(path.read_text(encoding="utf-8"))
           print(json.dumps({
               "model_metrics": results["observed_macro_by_candidate"],
+              "musicxml_score_metrics": results["observed_musicxml_score_macro_by_candidate"],
               "research_order_only": results["research_only_order_if_complete"],
               "paired_case_count": results["complete_paired_case_count"],
               "heldout_generalization_measured": False,

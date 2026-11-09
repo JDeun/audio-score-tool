@@ -93,6 +93,19 @@ def test_other_song_export_does_not_finish_current_case(editing):
     assert read_edit_session(report)["successful_export"] is False
 
 
+@pytest.mark.parametrize("part_ids", [["P1"], ["P1", "P2"], []])
+def test_selected_parts_do_not_complete_whole_score_benchmark(editing, part_ids):
+    import json
+
+    report, started = editing
+    record_successful_song_mutation(
+        song_id="song-a", method="POST", path="/api/songs/song-a/export-to", status_code=200,
+        request_body=json.dumps({"formats": FINAL_FORMATS, "part_ids": part_ids}).encode(),
+        finished_at=started + timedelta(seconds=90),
+    )
+    assert read_edit_session(report)["successful_export"] is False
+
+
 def test_actual_export_to_api_sets_telemetry_only_after_files_are_copied(
     editing, tmp_path: Path, monkeypatch
 ):
@@ -112,10 +125,12 @@ def test_actual_export_to_api_sets_telemetry_only_after_files_are_copied(
         export_api_v2, "_require_song",
         lambda _song_id: {"song_id": "song-a", "title": "Example score"},
     )
-    monkeypatch.setattr(
-        export_api_v2, "build_exports_v3",
-        lambda _song_id, _request: {"parts": [], "song": {"song_id": "song-a"}},
-    )
+    def build_and_copy(_song_id, _request, *, destination_root):
+        target = destination_root / "Example score"
+        shutil.copytree(managed, target)
+        return {"parts": [], "song": {"song_id": "song-a"}, "destination": str(target)}
+
+    monkeypatch.setattr(export_api_v2, "build_exports_v3", build_and_copy)
 
     client = TestClient(app)
     destination = tmp_path / "published"
@@ -141,10 +156,12 @@ def test_actual_export_to_api_copy_failure_is_not_marked_as_published(
         export_api_v2, "_require_song",
         lambda _song_id: {"song_id": "song-a", "title": "Example score"},
     )
-    monkeypatch.setattr(
-        export_api_v2, "build_exports_v3",
-        lambda _song_id, _request: {"parts": []},
-    )
+    def build_and_copy(_song_id, _request, *, destination_root):
+        target = destination_root / "Example score"
+        shutil.copytree(export_root / "song-a", target)
+        return {"parts": [], "destination": str(target)}
+
+    monkeypatch.setattr(export_api_v2, "build_exports_v3", build_and_copy)
 
     def deny_copy(*_args, **_kwargs):
         raise OSError("injected destination copy failure")
