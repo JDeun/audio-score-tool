@@ -13,6 +13,7 @@ What this repo does: 음원·YouTube·기존 악보를 편집용 MusicXML과 SQL
 - 파일 준비 이후 이번 배치에서 live YouTube 다운로드를 다시 실행하지 않았다. 가사와 사람 수정 시간도 평가하지 않았다.
 - 변환 수정은 같은 원본 예측을 재사용했다. 모델 가중치를 다시 실행하거나 정답으로 음표를 고친 실험이 아니다. 원래 revision 1과 tempo 인쇄 수정 revision 2를 유지하고 박자/키 변환 수정본을 revision 3으로 저장·출력했다.
 - 수정한 전체 pipeline도 같은 실제 모델 출력과 원음을 사용해 5/5 replay했다. 이 replay는 새 모델 추론이 아니며 별도 근거다. 음원 준비·pinned engine import·구조/코드 보고·악보 생성 경로를 확인했다.
+- 후속 PDF 검토에서는 짧은 opening measure의 국소 재생 속도가 곡 전체 템포처럼 보이지 않도록, 모델 ABC의 nominal Q를 비재생 텍스트로 표시하고 정확한 동기화 tempo는 모두 숨긴다. 이 표시값도 모델 추정치이며 실제 BPM의 정답 승인이 아니다. MusicXML 재읽기에서 표시 숫자가 재생 tempo를 덮어쓰지 않으며, quarter-note 문자도 내장 폰트로 출력한다.
 
 | 곡 | 실제 최초 추론→출력 | 원본 보컬 음표 | 모델 MIDI→악보 onset F1: 수정 전 → 후 |
 | --- | ---: | ---: | ---: |

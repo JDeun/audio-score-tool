@@ -91,7 +91,9 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
     mapping = playback_data.get("measures") if isinstance(playback_data, dict) else None
     if not isinstance(mapping, list) or len(mapping) != len(measures):
         raise ValueError("ABC import changed the model's measure count")
-    for mark in list(part.recurse().getElementsByClass(tempo.MetronomeMark)):
+    original_marks = list(part.recurse().getElementsByClass(tempo.MetronomeMark))
+    nominal_bpm = original_marks[0].getQuarterBPM() if original_marks else None
+    for mark in original_marks:
         mark.activeSite.remove(mark)
     previous_end = None
     initial_offset = 0.0
@@ -132,20 +134,22 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
     score.write("musicxml", fp=str(target))
     # music21 omits this flag on tempo marks; serialize MusicXML's print-object.
     tree = ET.parse(target)
-    for measure_index, xml_measure in enumerate(tree.getroot().findall("./part/measure")):
-        tempo_index = 0
+    xml_measures = tree.getroot().findall("./part/measure")
+    for xml_measure in xml_measures:
         for direction in xml_measure.findall("direction"):
             sound = direction.find("sound[@tempo]")
             metronome = direction.find("./direction-type/metronome")
             if sound is None or metronome is None:
                 continue
-            visible_index = 1 if mapping[0].get("leading_rest", 0) else 0
-            visible = measure_index == 0 and tempo_index == visible_index
-            if visible:
-                metronome.find("per-minute").text = f"{float(sound.get('tempo')):.2f}".rstrip("0").rstrip(".")
-            else:
-                metronome.set("print-object", "no")
-            tempo_index += 1
+            metronome.set("print-object", "no")
+    if nominal_bpm is not None:
+        # Words cannot override the exact playback clock on MusicXML reload.
+        visible = ET.Element("direction", placement="above")
+        kind = ET.SubElement(visible, "direction-type")
+        ET.SubElement(kind, "words").text = "♩ ≈ " + f"{nominal_bpm:.2f}".rstrip("0").rstrip(".")
+        first = xml_measures[0]
+        attributes = first.find("attributes")
+        first.insert(list(first).index(attributes) + 1 if attributes is not None else 0, visible)
     tree.write(target, encoding="utf-8", xml_declaration=True)
     restored = converter.parse(str(target))
     restored_measures = list(restored.parts[0].getElementsByClass(stream.Measure))
@@ -162,4 +166,5 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
             "initial_audio_offset_seconds": initial_offset,
             "padding_clock_epsilon_seconds_per_quarter": 1e-6,
             "visible_tempo_decimal_places": 2,
+            "nominal_tempo_bpm": nominal_bpm,
             "raw_predictions_preserved": True}
