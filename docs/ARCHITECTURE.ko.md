@@ -266,6 +266,7 @@ stable release에서는 system Python/Node/Rust, MuseScore/LilyPond, Homebrew/wi
 
 - `full`: 기존 전체 믹스 AMT와 canonical MusicXML 처리/출판. 동작 변경 없음
 - `lead_sheet`: Demucs 2-stem `vocals`/`no_vocals`를 실제 분리하고 각각 AMT를 실행. 보컬 멜로디의 우선 파트에 반주 추정 코드 심벌을 합성. 코드 추론이 실패하면 코드가 없는 결과를 Lead Sheet로 가장하지 않고 Job 실패 처리
+  - 반주 코드의 위치는 반주 MusicXML의 템포 맵으로 실제 초 단위에 옮긴 뒤 보컬 템포 맵의 마디·박으로 투영합니다. 독립된 두 악보의 마디 번호를 같은 시간으로 가정하지 않습니다. 이는 원음의 실제 박자/BPM을 추정했다는 의미는 아닙니다.
 - `guitar_vocal`: **실험적** Demucs `htdemucs_6s`를 실행해 `vocals.wav` 및 `guitar.wav`를 각각 채보한 뒤 MusicXML에 `Voice`/`Guitar` 파트로 조립. 기타 TAB, 스트로크, 정확한 다중 기타 분해 및 출판 품질은 미검증·미지원
 - Demucs 실행파일/스템/음표가 없으면 원곡 전체를 선택 파트 악보라고 속이는 대신 명확히 거부. Packaged mode에서는 기존 managed executable 정책을 따르며, 미배포 Demucs가 PATH를 통해 우회 실행되지 않음
 - WhisperX가 설치된 경우 이미 분리한 보컬 WAV를 가사 정렬에 재사용하며, 원음/분리 Stem은 사용자의 로컬 Job 경로에만 저장. 외부 서비스로 자동 공개하지 않음

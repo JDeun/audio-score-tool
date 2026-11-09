@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import wave
 from pathlib import Path
 
 import mido
@@ -66,3 +67,46 @@ def test_truncated_wav_skips_optional_start_analysis_without_hiding_engine_valid
     assert result == source
     assert analysis.trimmed is False
     assert any("Music-start analysis was skipped" in warning for warning in analysis.warnings)
+
+
+def test_pcm_wav_is_analyzed_directly_without_ffmpeg(tmp_path, monkeypatch):
+    rate = 22050
+    seconds = np.arange(rate * 6) / rate
+    music = 0.3 * np.sin(2 * np.pi * 220 * seconds)
+    audio = np.concatenate([np.zeros(rate * 3), music])
+    source = tmp_path / "original.wav"
+    with wave.open(str(source), "wb") as output:
+        output.setnchannels(1)
+        output.setsampwidth(2)
+        output.setframerate(rate)
+        output.writeframes((audio * 32767).astype("<i2").tobytes())
+    monkeypatch.setattr("audio_score_tool.music_structure.command_exists", lambda _: False)
+    result, analysis = prepare_music_audio(source, tmp_path / "work", settings=Settings())
+    assert result == source
+    assert analysis.method == "pcm-energy-spectral-flux"
+    assert 1.5 <= analysis.music_start_seconds <= 4.5
+    assert not analysis.trimmed
+    assert not (tmp_path / "work" / "structure" / "analysis.wav").exists()
+
+
+def test_missing_meter_cannot_trigger_pickup_rewriting(tmp_path):
+    source = tmp_path / "unmetered.mid"
+    _write_pickup_midi(source)
+    midi = mido.MidiFile(source)
+    for track in midi.tracks:
+        track[:] = [m for m in track if m.type not in {"time_signature", "set_tempo"}]
+    midi.save(source)
+    result = analyze_midi_meter_and_pickup(source, MusicStructureAnalysis())
+    assert result.meter_source == "fallback_4_4"
+    assert result.tempo_source == "midi_default_120"
+    assert result.tempo_bpm == 120
+    assert result.pickup_confidence == 0
+    assert result.first_downbeat_seconds is None
+    assert any("display fallback" in warning for warning in result.warnings)
+
+
+def test_midi_tempo_event_is_not_claimed_as_audio_estimate(tmp_path):
+    source = tmp_path / "clock.mid"
+    _write_pickup_midi(source)
+    result = analyze_midi_meter_and_pickup(source, MusicStructureAnalysis())
+    assert result.meter_source == result.tempo_source == "midi_event"

@@ -80,3 +80,17 @@ def test_musicxml_structure_metrics_do_not_invent_pickup_for_full_measure(tmp_pa
     assert metrics["meter_correct"] is True
     assert metrics["pickup_mae_quarter_length"] == 0.0
     assert metrics["part_count_correct"] is True
+
+
+def test_chord_and_lyric_presence_without_reference_is_not_quality_evidence(tmp_path):
+    prediction = tmp_path / "prediction.musicxml"
+    _write_satb_score(prediction)
+    metrics = evaluate_musicxml_structure(
+        prediction, reference_path=None,
+        expected_structure={"has_chords": True, "has_lyrics": True},
+        tags=(), category="vocal_lead_sheet",
+    )
+    assert metrics["has_chord_symbols"] is True
+    assert metrics["has_lyrics"] is True
+    assert "chord_accuracy" not in metrics
+    assert "lyrics_alignment_coverage" not in metrics

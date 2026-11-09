@@ -7,9 +7,8 @@
   "input_kind": "commercial_music_video",
   "evaluation": {
     "purpose": "end-to-end YouTube URL transcription smoke test",
-    "models": ["yourmt3", "mr_mt3", "muscriptor", "sheetsage2"],
-    "hybrids": ["yourmt3+sheetsage2", "mr_mt3+sheetsage2", "muscriptor+sheetsage2"],
-    "ensembles": ["yourmt3+mr_mt3"],
+    "acceptance_manifest": "benchmarks/tier2/user-acceptance.manifest.json",
+    "selection_policy": "one_final_model_checkpoint_runtime_and_configuration",
     "ground_truth_available": false,
     "note": "Output comparison alone cannot establish transcription accuracy."
   },

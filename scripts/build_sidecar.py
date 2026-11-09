@@ -68,6 +68,8 @@ def main() -> None:
         "--collect-data",
         "verovio",
         "--add-data",
+        f"{ROOT / 'src' / 'audio_score_tool' / 'fonts'}{os.pathsep}audio_score_tool/fonts",
+        "--add-data",
         f"{component_catalog}{os.pathsep}audio_score_tool",
         "--add-data",
         f"{release_approvals}{os.pathsep}audio_score_tool",

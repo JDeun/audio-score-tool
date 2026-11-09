@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import base64
 import math
+import re
 import shutil
 import tempfile
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
+from io import BytesIO
 from pathlib import Path
 from threading import Event
 from xml.dom import minidom
@@ -155,6 +158,63 @@ def _svg_dimensions_mm(svg_text: str) -> tuple[float, float]:
     return 210.0, 297.0
 
 
+def _flatten_svg_text(document, namespace: str) -> bool:
+    """fpdf2 reads only direct tspans; retain nested runs' styles and cursor moves."""
+    changed = False
+    for text in list(document.getElementsByTagNameNS(namespace, "text")):
+        runs = []
+        pending = {}
+
+        def visit(element, inherited):
+            styles = dict(inherited)
+            for name in ("font-family", "font-size", "font-style", "font-weight", "text-anchor", "fill"):
+                if element.hasAttribute(name):
+                    styles[name] = element.getAttribute(name)
+            for declaration in element.getAttribute("style").split(";"):
+                if ":" in declaration:
+                    name, value = declaration.split(":", 1)
+                    styles[name.strip()] = value.strip()
+            if element is not text:
+                for name in ("x", "y", "dx", "dy"):
+                    if element.hasAttribute(name):
+                        pending[name] = element.getAttribute(name)
+            for child in element.childNodes:
+                if child.nodeType == child.TEXT_NODE:
+                    if not child.data.strip() and ("\n" in child.data or "\t" in child.data):
+                        continue
+                    span = document.createElementNS(namespace, "tspan")
+                    for name, value in {**styles, **pending}.items():
+                        span.setAttribute(name, value)
+                    if any("\u2e80" <= c <= "\ud7af" or "\uf900" <= c <= "\uffef" for c in child.data):
+                        span.setAttribute("font-family", "NotoSansKR")
+                    span.appendChild(document.createTextNode(child.data))
+                    runs.append(span)
+                    pending.clear()
+                elif child.nodeType == child.ELEMENT_NODE:
+                    if child.localName in {"title", "desc"}:
+                        continue
+                    if child.localName != "tspan":
+                        raise NotationBackendError("지원되지 않는 SVG 텍스트 구조입니다.")
+                    visit(child, styles)
+
+        visit(text, {})
+        anchors = {run.getAttribute("text-anchor") for run in runs if run.hasAttribute("text-anchor")}
+        if len(anchors) > 1:
+            raise NotationBackendError("한 SVG 텍스트 안의 서로 다른 정렬은 지원되지 않습니다.")
+        if anchors:
+            text.setAttribute("text-anchor", anchors.pop())
+        if runs:
+            for name in ("x", "y"):
+                if runs[0].hasAttribute(name):
+                    text.setAttribute(name, runs[0].getAttribute(name))
+        for child in list(text.childNodes):
+            text.removeChild(child)
+        for run in runs:
+            text.appendChild(run)
+        changed = True
+    return changed
+
+
 def _normalize_verovio_svg_for_fpdf2(svg_text: str) -> str:
     """Flatten Verovio's full-page nested SVG without rasterizing its paths.
 
@@ -175,13 +235,14 @@ def _normalize_verovio_svg_for_fpdf2(svg_text: str) -> str:
     root = document.documentElement
     if root.localName != "svg" or not root.namespaceURI:
         raise NotationBackendError("Verovio SVG root가 유효하지 않습니다.")
+    text_styles_changed = _flatten_svg_text(document, root.namespaceURI)
     embedded = [
         node
         for node in document.getElementsByTagNameNS(root.namespaceURI, "svg")
         if node is not root
     ]
     if not embedded:
-        return svg_text
+        return document.toxml() if text_styles_changed else svg_text
     if len(embedded) != 1 or embedded[0].parentNode is not root:
         raise NotationBackendError("지원되지 않는 중첩 Verovio SVG 구조입니다.")
     inner = embedded[0]
@@ -217,6 +278,10 @@ def _normalize_verovio_svg_for_fpdf2(svg_text: str) -> str:
     tx = outer_x - inner_x * sx
     ty = outer_y - inner_y * sy
     group = document.createElementNS(root.namespaceURI, "g")
+    for index in range(inner.attributes.length):
+        attribute = inner.attributes.item(index)
+        if attribute.name != "viewBox":
+            group.setAttribute(attribute.name, attribute.value)
     group.setAttribute("transform", f"matrix({sx:.12g} 0 0 {sy:.12g} {tx:.12g} {ty:.12g})")
     while inner.firstChild is not None:
         group.appendChild(inner.firstChild)
@@ -237,6 +302,29 @@ def _verovio_toolkit():
             f"Verovio font resource를 초기화하지 못했습니다: {resource_path}"
         )
     return toolkit
+
+
+def _register_pdf_fonts(pdf, work: Path) -> None:
+    """Reuse bundled Verovio fonts; PDF's core fonts cannot render SVG Unicode."""
+    from fontTools.ttLib import TTFont
+
+    resources = _verovio_resource_path()
+    if resources is None:
+        raise NotationBackendUnavailable("Verovio font resource가 앱에 포함되지 않았습니다.")
+    for family in ("Liberation", "Leipzig"):
+        css = (resources / f"{family}.css").read_text(encoding="utf-8")
+        for face in re.findall(r"@font-face\s*\{([^}]+)\}", css):
+            encoded = re.search(r"base64,([A-Za-z0-9+/=]+)", face)
+            if encoded is None:
+                raise NotationBackendError("내장 Verovio 글꼴 형식을 읽지 못했습니다.")
+            style = ("B" if "font-weight: bold" in face else "") + (
+                "I" if "font-style: italic" in face else ""
+            )
+            target = work / f"{family}-{style or 'regular'}.ttf"
+            with TTFont(BytesIO(base64.b64decode(encoded[1], validate=True))) as font:
+                font.flavor = None
+                font.save(target)
+            pdf.add_font(family=family, style=style, fname=target)
 
 
 def musicxml_to_pdf_embedded(
@@ -262,6 +350,7 @@ def musicxml_to_pdf_embedded(
                 "breaks": "encoded",
                 "svgViewBox": True,
                 "svgFormatRaw": True,
+                "fontTextLiberation": True,
             }
         )
         loaded = toolkit.loadFile(str(source))
@@ -276,21 +365,35 @@ def musicxml_to_pdf_embedded(
         pdf.set_auto_page_break(False)
         with tempfile.TemporaryDirectory(prefix="audioscore-verovio-") as raw_work:
             work = Path(raw_work)
-            for page_number in range(1, page_count + 1):
-                if cancel_event is not None and cancel_event.is_set():
-                    raise NotationBackendError("PDF 생성이 취소되었습니다.")
-                svg_text = toolkit.renderToSVG(page_number)
-                if not svg_text.strip():
-                    raise NotationBackendError(
-                        f"Verovio가 {page_number}페이지 SVG를 생성하지 않았습니다."
-                    )
-                svg_text = _normalize_verovio_svg_for_fpdf2(svg_text)
-                width_mm, height_mm = _svg_dimensions_mm(svg_text)
-                svg_path = work / f"page-{page_number}.svg"
-                svg_path.write_text(svg_text, encoding="utf-8")
-                pdf.add_page(format=(width_mm, height_mm))
-                pdf.image(str(svg_path), x=0, y=0, w=width_mm, h=height_mm)
-        pdf.output(str(target))
+            try:
+                _register_pdf_fonts(pdf, work)
+                for page_number in range(1, page_count + 1):
+                    if cancel_event is not None and cancel_event.is_set():
+                        raise NotationBackendError("PDF 생성이 취소되었습니다.")
+                    svg_text = toolkit.renderToSVG(page_number)
+                    if not svg_text.strip():
+                        raise NotationBackendError(
+                            f"Verovio가 {page_number}페이지 SVG를 생성하지 않았습니다."
+                        )
+                    svg_text = _normalize_verovio_svg_for_fpdf2(svg_text)
+                    if 'font-family="NotoSansKR"' in svg_text and "notosanskr" not in pdf.fonts:
+                        for style, weight in (("", "Regular"), ("I", "Regular"),
+                                              ("B", "Bold"), ("BI", "Bold")):
+                            pdf.add_font(
+                                family="NotoSansKR", style=style,
+                                fname=Path(__file__).parent / "fonts" / f"NotoSansKR-{weight}.woff2",
+                            )
+                    width_mm, height_mm = _svg_dimensions_mm(svg_text)
+                    svg_path = work / f"page-{page_number}.svg"
+                    svg_path.write_text(svg_text, encoding="utf-8")
+                    pdf.add_page(format=(width_mm, height_mm))
+                    pdf.image(str(svg_path), x=0, y=0, w=width_mm, h=height_mm)
+                pdf.output(str(target))
+            finally:
+                # Windows cannot delete temporary fonts while fpdf2 holds them open.
+                for font in pdf.fonts.values():
+                    if close := getattr(font, "close", None):
+                        close()
     except (NotationBackendError, NotationBackendUnavailable):
         raise
     except Exception as exc:

@@ -267,3 +267,55 @@ def test_guitar_vocal_independent_tempos_share_elapsed_audio_clock(tmp_path, mon
         assert produced.offset == pytest.approx(original.offset, abs=0.002)
     published = converter.parse(str(artifacts.musicxml_path))
     assert [part.partName for part in published.parts] == ["Voice", "Guitar"]
+
+
+def test_lead_sheet_chords_follow_audio_seconds_across_independent_meters_and_tempos(
+    tmp_path, monkeypatch,
+):
+    import xml.etree.ElementTree as ET
+
+    from music21 import converter, harmony, meter, tempo
+
+    from audio_score_tool.notation_backend import musicxml_to_pdf_embedded
+
+    def write_score(path, signature, rates):
+        score = stream.Score()
+        part = stream.Part()
+        part.insert(0, meter.TimeSignature(signature))
+        for offset, bpm in rates:
+            part.insert(offset, tempo.MetronomeMark(number=bpm))
+        for offset in range(12):
+            part.insert(offset, note.Note("C4", quarterLength=1))
+        score.append(part)
+        midi = path.with_suffix(".mid")
+        score.write("midi", fp=str(midi))
+        midi_to_musicxml(midi, path)
+
+    voice = tmp_path / "voice.musicxml"
+    backing = tmp_path / "backing.musicxml"
+    write_score(voice, "3/4", [(0, 60), (3, 120)])
+    write_score(backing, "4/4", [(0, 120), (4, 60)])
+    # Backing quarters 2, 4, 6 occur at audio seconds 1, 2, 4.
+    # On the vocal clock these are quarters 1, 2, 5, not backing bar numbers.
+    monkeypatch.setattr(stems, "infer_chords", lambda _: [
+        ChordInference(0, "1", 2, "C", 0.9),
+        ChordInference(1, "2", 0, "G7", 0.9),
+        ChordInference(1, "2", 2, "Am", 0.9),
+    ])
+    destination = tmp_path / "lead.musicxml"
+    stems._annotate_chords(voice, backing, destination, tmp_path)
+    parsed = converter.parse(str(destination))
+    symbols = list(parsed.recurse().getElementsByClass(harmony.ChordSymbol))
+    assert [s.figure for s in symbols] == ["C", "G7", "Am"]
+    assert [float(s.getOffsetInHierarchy(parsed.parts[0])) for s in symbols] == [1, 2, 5]
+    original = ET.parse(voice).getroot()
+    result = ET.parse(destination).getroot()
+    assert [ET.tostring(n) for n in result.findall(".//note")] == [
+        ET.tostring(n) for n in original.findall(".//note")
+    ]
+    assert [ET.tostring(n) for n in result.findall(".//time")] == [
+        ET.tostring(n) for n in original.findall(".//time")
+    ]
+    pdf = tmp_path / "lead.pdf"
+    musicxml_to_pdf_embedded(destination, pdf)
+    assert pdf.read_bytes().startswith(b"%PDF-")

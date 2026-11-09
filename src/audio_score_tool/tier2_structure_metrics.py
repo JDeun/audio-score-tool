@@ -135,19 +135,21 @@ def evaluate_musicxml_structure(
         predicted_lyrics = _lyric_count(predicted)
         if reference is not None:
             reference_lyrics = _lyric_count(reference)
-            metrics["lyrics_alignment_coverage"] = (
-                round(min(predicted_lyrics / reference_lyrics, 1.0), 6) if reference_lyrics else 1.0
-            )
+            if reference_lyrics:
+                metrics["lyrics_alignment_coverage"] = round(
+                    min(predicted_lyrics / reference_lyrics, 1.0), 6,
+                )
         else:
-            metrics["lyrics_alignment_coverage"] = 1.0 if predicted_lyrics else 0.0
+            metrics["has_lyrics"] = bool(predicted_lyrics)
 
     if expected_structure.get("has_chords") is True:
         predicted_chords = _chord_symbols(predicted)
         if reference is not None:
             accuracy = _sequence_accuracy(predicted_chords, _chord_symbols(reference))
-            metrics["chord_accuracy"] = accuracy if accuracy is not None else 1.0
+            if accuracy is not None:
+                metrics["chord_accuracy"] = accuracy
         else:
-            metrics["chord_accuracy"] = 1.0 if predicted_chords else 0.0
+            metrics["has_chord_symbols"] = bool(predicted_chords)
 
     is_satb = "satb" in {tag.lower() for tag in tags} or category.strip().lower() in {"choir", "satb"}
     if is_satb:

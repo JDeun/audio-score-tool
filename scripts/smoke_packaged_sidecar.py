@@ -15,7 +15,7 @@ from pathlib import Path
 
 from audio_score_tool.managed_component_catalog import platform_key
 from audio_score_tool.managed_publication_readiness import _REQUIRED_TOOLS, CORE_COMPONENTS
-from audio_score_tool.runner import CommandError, run_command
+from audio_score_tool.runner import CommandError, run_command, terminate_process_tree
 
 ROOT = Path(__file__).resolve().parents[1]
 BIN_DIR = ROOT / "desktop" / "src-tauri" / "binaries"
@@ -381,6 +381,8 @@ def main() -> None:
             env=env,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            **({"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt"
+               else {"start_new_session": True}),
         )
         try:
             base_url = f"http://127.0.0.1:{port}"
@@ -406,6 +408,11 @@ def main() -> None:
 
             _json_object(authenticated[1], label="authenticated health")
             _verify_embedded_runtime(base_url, token)
+            if str(ROOT) not in sys.path:
+                sys.path.insert(0, str(ROOT))
+            from scripts.verify_packaged_omr_pdf import verify_embedded_pdf
+
+            verify_embedded_pdf(base_url, token, workspace=component_root / "embedded-pdf")
             if args.require_managed_delivery:
                 _verify_managed_delivery(base_url, token, managed_root)
                 # Direct execution (../scripts/smoke_packaged_sidecar.py) may put
@@ -439,7 +446,8 @@ def main() -> None:
             )
         finally:
             if process.poll() is None:
-                process.terminate()
+                # PyInstaller's Windows child keeps SQLite open after its launcher exits.
+                terminate_process_tree(process)
                 try:
                     process.wait(timeout=5)
                 except subprocess.TimeoutExpired:
