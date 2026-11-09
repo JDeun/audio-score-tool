@@ -78,6 +78,22 @@ def check_live_providers(
         ]
         selected = choose_high_confidence(same, threshold=92)
         mb["matched_identity_count"] = len(same)
+        eligible = [
+            item for item in same if int(item.get("score") or 0) >= 92
+        ]
+        mb["qualified_recording_count"] = len({
+            str(item.get("recording_mbid")) for item in eligible
+            if item.get("recording_mbid")
+        })
+        mb["top_score_tie_count"] = sum(
+            int(item.get("score") or 0) == max(
+                (int(other.get("score") or 0) for other in eligible), default=-1
+            )
+            for item in eligible
+        )
+        mb["distinct_album_count"] = len({
+            str(item.get("album")) for item in eligible if item.get("album")
+        })
         mb["high_confidence_selected"] = selected is not None
         if selected is None:
             mb["reason"] = "no_verified_recording_candidate"
