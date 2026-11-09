@@ -20,7 +20,7 @@ _VARIANT_CONFIGS = {
     "medium": (1024, 16, 24, 1395),
     "large": (1536, 24, 48, 1395),
 }
-_REVISION = re.compile(r"[0-9a-f]{40}\\Z")
+_REVISION = re.compile(r"[0-9a-f]{40}\Z")
 _MIN_CHECKPOINT_BYTES = 1024 * 1024
 
 
