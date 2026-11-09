@@ -455,6 +455,7 @@ class SongStoreV2:
         score_xml: str,
         publication: dict[str, Any],
         expected_revision: int,
+        next_publication: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Commit identified metadata and canonical MusicXML as one Undo revision.
 
@@ -468,6 +469,10 @@ class SongStoreV2:
         normalized_artist = artist.strip() or None if artist is not None else None
         serialized_publication = json.dumps(
             publication, ensure_ascii=False, separators=(",", ":")
+        )
+        serialized_next_publication = (
+            json.dumps(next_publication, ensure_ascii=False, separators=(",", ":"))
+            if next_publication is not None else None
         )
         changed = False
         with self._lock, self._connect() as conn:
@@ -489,6 +494,10 @@ class SongStoreV2:
                 row["title"] != normalized_title
                 or row["artist"] != normalized_artist
                 or row["current_score_xml"] != xml_text
+                or (
+                    serialized_next_publication is not None
+                    and serialized_next_publication != serialized_publication
+                )
             )
             if changed:
                 stamp = _now()
@@ -504,6 +513,17 @@ class SongStoreV2:
                         serialized_publication, row["title"], row["artist"], stamp,
                     ),
                 )
+                if serialized_next_publication is not None:
+                    conn.execute(
+                        """
+                        INSERT INTO publication_settings(song_id, settings_json, updated_at)
+                        VALUES(?,?,?)
+                        ON CONFLICT(song_id) DO UPDATE SET
+                            settings_json=excluded.settings_json,
+                            updated_at=excluded.updated_at
+                        """,
+                        (song_id, serialized_next_publication, stamp),
+                    )
                 updated = conn.execute(
                     """
                     UPDATE songs

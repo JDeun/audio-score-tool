@@ -187,3 +187,101 @@ def test_late_identification_cannot_overwrite_newer_user_revision(state):
     assert current["title"] == "Original title"
     assert current["artist"] is None
     assert "Stale network result" not in store.score_xml("song-1")
+
+
+
+def test_verified_album_performer_and_writers_are_atomic_and_undoable(state):
+    store, publication = state
+    old_xml = store.score_xml("song-1")
+    selected = {
+        "provider": "musicbrainz",
+        "title": "Matched song",
+        "artist": "Verified vocalist",
+        "album": "Verified album",
+        "first_release_date": "2004-09-21",
+        "composer": "Actual composer",
+        "lyricist": "Actual lyricist",
+        "songwriters_verified": True,
+    }
+    before = store.get("song-1")
+    assert enrichment_api._apply_metadata(
+        "song-1", before, selected, before["title"], before["artist"]
+    )
+    next_song = store.get("song-1")
+    assert next_song["revision"] == before["revision"] + 1
+    assert next_song["title"] == "Matched song"
+    assert next_song["artist"] == "Verified vocalist"
+    updated = publication.read("song-1")
+    assert updated["album"] == "Verified album"
+    assert updated["performer"] == "Verified vocalist"
+    assert updated["release_date"] == "2004-09-21"
+    assert updated["composer"] == "Original composer"  # user-entered value wins
+    assert updated["lyricist"] == "Actual lyricist"
+    xml = store.score_xml("song-1")
+    assert "Verified album" in xml
+    assert "Actual lyricist" in xml
+    assert "Verified vocalist" in xml
+    assert _snapshot_count(store) == 1
+
+    # Matching again must not clear exports or add a redundant revision.
+    export = store.export_dir("song-1") / "score.pdf"
+    export.write_bytes(b"%PDF protected")
+    assert enrichment_api._apply_metadata(
+        "song-1", next_song, selected, next_song["title"], next_song["artist"]
+    )
+    assert store.get("song-1")["revision"] == next_song["revision"]
+    assert export.read_bytes() == b"%PDF protected"
+
+    undone = TestClient(app).post("/api/songs/song-1/undo")
+    assert undone.status_code == 200, undone.text
+    restored = store.get("song-1")
+    assert restored["title"] == before["title"]
+    assert restored["artist"] == before["artist"]
+    assert restored["revision"] == before["revision"]
+    assert store.score_xml("song-1") == old_xml
+    current_publication = publication.read("song-1")
+    assert current_publication["composer"] == "Original composer"
+    assert current_publication["album"] == ""
+    assert current_publication["performer"] == ""
+
+
+def test_missing_work_relations_never_guess_that_performer_is_composer(state):
+    store, publication = state
+    selected = {
+        "provider": "musicbrainz",
+        "title": "Matched",
+        "artist": "Group Name",
+        "composer": "Group Name",
+        "songwriters_verified": False,
+    }
+    song = store.get("song-1")
+    assert enrichment_api._apply_metadata(
+        "song-1", song, selected, song["title"], song["artist"]
+    )
+    current = publication.read("song-1")
+    assert current["performer"] == "Group Name"
+    assert current["composer"] == "Original composer"
+    assert current["lyricist"] == ""
+
+
+def test_failed_publication_metadata_write_rolls_back_all_fields(state):
+    store, publication = state
+    before = store.get("song-1")
+    old = store.score_xml("song-1")
+    with sqlite3.connect(store.path) as conn:
+        conn.executescript("""
+            CREATE TRIGGER reject_enrichment
+            BEFORE UPDATE ON songs
+            BEGIN SELECT RAISE(ABORT, 'rollback-test'); END;
+        """)
+    selected = {
+        "provider": "musicbrainz", "title": "Failed",
+        "artist": "Artist", "album": "Album",
+    }
+    assert enrichment_api._apply_metadata(
+        "song-1", before, selected, before["title"], before["artist"]
+    ) is False
+    assert store.get("song-1")["revision"] == before["revision"]
+    assert store.score_xml("song-1") == old
+    assert publication.read("song-1")["album"] == ""
+    assert _snapshot_count(store) == 0

@@ -146,3 +146,15 @@ POST /api/songs/{song_id}/enrich
 - composer/lyricist/work relationship를 출판 credit에 제안
 - reference lyrics alignment confidence가 낮은 span만 사용자 검토 대상으로 표시
 - AcoustID/MusicBrainz identifier 결과가 충돌할 때 다중 evidence resolver 추가
+
+## 제목·앨범·작곡/작사·가사 외부 API 기본 경로 (#187)
+
+곡 정보 창의 ‘곡 정보·가사 자동 조회’를 누르면 MusicBrainz에서 제목/가수/앨범/발매일을 조회합니다. 92% 이상의 신뢰도 있는 recording ID를 찾았을 때만 해당 recording의 **performance→work 관계**를 확인하고, work의 **composer/lyricist→artist 관계**가 실제 존재하는 이름만 악보 작사·작곡 크레딧으로 넣습니다. 가수와 작곡가가 동일하다고 추정하지 않습니다. work가 둘 이상이거나 작성자 관계가 없으면 필드를 공란으로 둡니다.
+
+기존 수동 크레딧(앨범·가수·발매·작사·작곡)은 자동 결과로 덮어쓰지 않습니다. Song 제목/가수, MusicXML first-page credits와 SQLite publication JSON은 동일한 undoable revision/transaction으로 저장되고 이전 revision 복원 시 모두 원복됩니다. 임의의 출처 해석/수정 내역은 별도 사용자 선택이 필요합니다.
+
+개인용 모드에서 외부 가사를 자동으로 찾아볼 때 우선 [LRCLIB](https://lrclib.net/docs)의 `/api/get` (track + artist, 가용할 경우 album)을 사용합니다. LRCLIB는 공개 API 키가 필요 없는 서비스지만, 반환한 track/artist를 **문자열로 정확히 대조**하고, instrumental·불일치·404를 성공으로 취급하지 않습니다. 사용자가 별도 허가 받은 가사 Provider URL을 등록했다면 그 설정을 우선합니다. 원본 오디오 바이트는 LRCLIB/MusicBrainz에 전송하지 않고 곡명·가수 등 검색 정보만 전달합니다.
+
+API가 없거나 실패했을 경우 **이미 선택적으로 실행된 WhisperX 가사 인식 및 정렬을 그대로 사용**합니다. API에서 가져온 가사를 MusicXML 음표에 적용하려면 WhisperX가 제공한 단어 시간 정보가 있어야 합니다. 타이밍 증거가 없으면 API 텍스트는 출처와 함께 보존하지만 가사가 악보에 동기화됐다고 주장하지 않습니다. ‘가사 ASR 켜기’가 비활성화된 Job에는 새 음성 인식 결과가 없을 수 있습니다.
+
+상업 모드에서 MusicBrainz 접근 자격이 없더라도 전체 `enrich` 작업을 거부하지 않고, 검증된 사용자 지정 가사 Provider 또는 기존 로컬 WhisperX를 사용할 수 있습니다. 개인용 LRCLIB 기본 접근은 상업 모드에서 자동 활성화되지 않습니다.

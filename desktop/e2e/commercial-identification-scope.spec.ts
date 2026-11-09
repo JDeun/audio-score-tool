@@ -72,7 +72,7 @@ test("commercial mode permits local source identification without unrelated prov
   await expect(checks.nth(1)).not.toBeChecked();
   await expect(trigger).toBeEnabled();
   await expect(dialog.getByText(/로컬 음원 태그 식별은 외부 서비스 권한 없이/)).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "제목·아티스트로 외부 데이터 확인" })).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: "곡 정보·가사 자동 조회" })).toBeEnabled();
   expect(requests).toHaveLength(0);
 
   await trigger.click();

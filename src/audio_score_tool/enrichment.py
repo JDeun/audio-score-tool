@@ -116,6 +116,127 @@ def search_musicbrainz_by_isrc(isrc: str, *, limit: int = 5) -> list[dict[str, A
     return results
 
 
+
+def lookup_musicbrainz_work_credits(recording_mbid: str) -> dict[str, Any]:
+    """Resolve documented recording -> work -> artist composer/lyricist relations.
+
+    Do not confuse the recording performer with a composition's writers. Work
+    links can be incomplete or ambiguous, so return no credits if multiple
+    distinct works are linked. Only accept literal composer/lyricist relations.
+    """
+    import re
+
+    mbid = recording_mbid.strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}", mbid):
+        raise EnrichmentError("Invalid MusicBrainz recording identifier")
+    document = _musicbrainz_request(f"recording/{mbid}", {"inc": "work-rels"})
+    if not isinstance(document, dict) or document.get("id") != mbid:
+        raise EnrichmentError("MusicBrainz recording identity does not match")
+    relations = document.get("relations") or []
+    works = {
+        str(rel.get("work", {}).get("id") or "")
+        for rel in relations
+        if isinstance(rel, dict) and rel.get("target-type") == "work"
+        and isinstance(rel.get("work"), dict) and rel.get("type") == "performance"
+    }
+    if len(works) != 1:
+        return {
+            "provider": "musicbrainz",
+            "recording_mbid": mbid,
+            "work_mbid": None,
+            "composer": None,
+            "lyricist": None,
+            "status": "ambiguous_or_missing_work",
+        }
+    work_mbid = works.pop()
+    if not re.fullmatch(r"[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}", work_mbid):
+        raise EnrichmentError("Invalid MusicBrainz work identifier")
+    work = _musicbrainz_request(f"work/{work_mbid}", {"inc": "artist-rels"})
+    if not isinstance(work, dict) or work.get("id") != work_mbid:
+        raise EnrichmentError("MusicBrainz work identity does not match")
+
+    credits: dict[str, list[str]] = {"composer": [], "lyricist": []}
+    for relation in work.get("relations") or []:
+        if not isinstance(relation, dict) or relation.get("target-type") != "artist":
+            continue
+        role = relation.get("type")
+        if role not in credits:
+            continue
+        artist = relation.get("artist")
+        if not isinstance(artist, dict):
+            continue
+        person = str(artist.get("name") or "").strip()[:200]
+        if person and person not in credits[role]:
+            credits[role].append(person)
+    return {
+        "provider": "musicbrainz",
+        "recording_mbid": mbid,
+        "work_mbid": work_mbid,
+        "composer": ", ".join(credits["composer"])[:200] or None,
+        "lyricist": ", ".join(credits["lyricist"])[:200] or None,
+        "status": "verified_work_relations",
+    }
+
+
+def fetch_lrclib_lyrics(
+    title: str,
+    artist: str | None,
+    *,
+    album: str | None = None,
+) -> dict[str, Any] | None:
+    """Fetch an exact personal-use lyric reference from LRCLIB without API keys.
+
+    The public API response can be wrong or unavailable. Require exact title
+    and artist identity before proposing its text for audio-time alignment.
+    Lyrics are only fetched after the user requests external enrichment.
+    """
+    title, artist = title.strip()[:300], (artist or "").strip()[:300]
+    if not title or not artist:
+        return None
+    query = {"track_name": title, "artist_name": artist}
+    if album and album.strip():
+        query["album_name"] = album.strip()[:300]
+    url = "https://lrclib.net/api/get?" + urllib.parse.urlencode(query)
+    try:
+        document = _json_request(
+            url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+            timeout=10, max_bytes=_MAX_JSON_RESPONSE_BYTES,
+        )
+    except EnrichmentError as exc:
+        # 404 is an expected 'not in catalogue' result. Other failures retain
+        # their evidence so the user sees why the ASR fallback was selected.
+        if "404" in str(exc) and "HTTP Error" in str(exc):
+            return None
+        raise
+    if not isinstance(document, dict):
+        return None
+    def canonical(value: str) -> str:
+        return " ".join(value.casefold().split())
+
+    if (
+        canonical(str(document.get("trackName") or "")) != canonical(title)
+        or canonical(str(document.get("artistName") or "")) != canonical(artist)
+        or document.get("instrumental") is True
+    ):
+        return None
+    text = document.get("plainLyrics") or document.get("syncedLyrics")
+    if not isinstance(text, str) or not text.strip():
+        return None
+    if len(text) > _MAX_LYRICS_CHARS:
+        raise EnrichmentError("LRCLIB returned an unexpectedly large lyric document")
+    return {
+        "provider": "lrclib",
+        "lyrics": text.strip(),
+        "synced": bool(document.get("syncedLyrics")),
+        "source_payload": {
+            "trackName": title,
+            "artistName": artist,
+            "albumName": str(document.get("albumName") or "")[:300],
+            "id": document.get("id"),
+        },
+    }
+
+
 def choose_high_confidence(candidates: list[dict[str, Any]], *, threshold: int = 92) -> dict[str, Any] | None:
     if not candidates:
         return None
