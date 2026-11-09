@@ -223,3 +223,18 @@ def test_commercial_muscriptor_never_uses_private_cached_weights(tmp_path, monke
     assert engine.ready() is False
     with pytest.raises(transcription_engine.TranscriptionEngineUnavailable, match="commercial"):
         engine.transcribe(tmp_path / "audio.wav", tmp_path / "out", device="cpu")
+
+
+def test_opt_in_real_model_workflow_exercises_product_engine_without_musescore():
+    workflow = (
+        Path(__file__).resolve().parents[1] / ".github/workflows/tier2-actual-models.yml"
+    ).read_text(encoding="utf-8")
+    job = workflow.split("\\n  muscriptor:\\n", 1)[-1]
+    assert "MuScriptorEngine" in job
+    assert "cached_muscriptor_checkpoint" in job
+    assert "HF_TOKEN: ''" in job
+    assert "--format sheets" not in job
+    assert "muscriptor transcribe" not in job
+    assert "verification.pending.json" in job
+    assert "path: out/muscriptor/verification.pending.json" in job
+    assert "path: out/muscriptor/\\n" not in job
