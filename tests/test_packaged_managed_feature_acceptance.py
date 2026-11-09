@@ -5,6 +5,7 @@ No real third-party model/JRE/runtime is downloaded or uploaded by these tests.
 from __future__ import annotations
 
 import json
+import os
 import struct
 import sys
 from pathlib import Path
@@ -280,15 +281,19 @@ def test_package_gate_uses_isolated_appdata_and_empty_host_path(monkeypatch, tmp
     monkeypatch.setattr(smoke, "_sidecar", lambda: tmp_path / "fake-sidecar")
     monkeypatch.setattr(smoke, "_free_port", lambda: 4567)
     started = {}
+    stopped = []
     class Process:
         returncode = 0
         def poll(self): return None
-        def terminate(self): return None
-        def wait(self, timeout): return 0
+        def wait(self, timeout):
+            assert stopped == [self]
+            return 0
     def popen(*_args, **kwargs):
         started["env"] = kwargs["env"]
+        started["group"] = kwargs.get("creationflags") if os.name == "nt" else kwargs.get("start_new_session")
         return Process()
     monkeypatch.setattr(smoke.subprocess, "Popen", popen)
+    monkeypatch.setattr(smoke, "terminate_process_tree", stopped.append)
     monkeypatch.setattr(smoke, "_request", lambda url, token=None: (
         (200, b'{"status":"ok"}') if token else (401, b'{}')
     ))
@@ -327,6 +332,8 @@ def test_package_gate_uses_isolated_appdata_and_empty_host_path(monkeypatch, tmp
     assert Path(env["AST_COMPONENT_DIR"]).name == "managed"
     assert Path(env["AST_DATA_DIR"]).name == "app-data"
     assert Path(env["AST_COMPONENT_DIR"]).parent == Path(env["AST_DATA_DIR"]).parent
+    assert started["group"] == (smoke.subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else True)
+    assert len(stopped) == 1
     assert seen["kwargs"]["mt3_model"] == "mr_mt3"
     assert seen["args"][2] == Path(env["AST_COMPONENT_DIR"])
 

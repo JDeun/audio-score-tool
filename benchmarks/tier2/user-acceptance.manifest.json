@@ -2,6 +2,8 @@
   "corpus_version": "user-lead-sheet-2026-11-09-v2-five-songs",
   "score_mode": "lead_sheet",
   "selection_policy": "one_final_model_checkpoint_runtime_and_configuration",
+  "evaluation_phase": "final_acceptance_after_issue_resolution_and_model_lock",
+  "used_for_model_selection": false,
   "acceptance_status": "pending_source_audio_references_and_quality_thresholds",
   "training_overlap": "unknown_not_a_held_out_generalization_claim",
   "cases": [

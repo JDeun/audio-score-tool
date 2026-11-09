@@ -19,6 +19,8 @@
 
 `private://reference/example.mid` 같은 locator는 `--corpus-root` 아래의 파일을 가리킵니다. 실제 audio/reference corpus는 Git 밖에서 관리합니다.
 
+2026-11-09 사용자 지정 순서: 핵심 구현과 별도 개발·검증 corpus의 모델 선정을 먼저 진행하고, 단일 모델·체크포인트·runtime·설정을 고정한 뒤 위 다섯 곡으로 최종 인수 테스트를 실행합니다. 다섯 곡은 모델 선택이나 설정 튜닝에 사용하지 않습니다. 최종 판정에서 결함을 수정해 재평가하면 변경 이력과 재평가 사실을 남깁니다. 이는 사전학습 중복 여부가 확인된 held-out 평가라는 주장은 아닙니다.
+
 ## 엔진별 prediction 생성
 
 실제 corpus를 선택한 AMT 엔진으로 실행해 case별 prediction을 생성합니다. **모델/runtime revision과 실제 배포 artifact SHA-256을 prediction 생성 시점에 고정합니다.**
