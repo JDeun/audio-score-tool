@@ -229,7 +229,7 @@ def test_opt_in_real_model_workflow_exercises_product_engine_without_musescore()
     workflow = (
         Path(__file__).resolve().parents[1] / ".github/workflows/tier2-actual-models.yml"
     ).read_text(encoding="utf-8")
-    job = workflow.split("\\n  muscriptor:\\n", 1)[-1]
+    job = workflow.split("\n  muscriptor:\n", 1)[1]
     assert "MuScriptorEngine" in job
     assert "cached_muscriptor_checkpoint" in job
     assert "HF_TOKEN: ''" in job
@@ -237,4 +237,6 @@ def test_opt_in_real_model_workflow_exercises_product_engine_without_musescore()
     assert "muscriptor transcribe" not in job
     assert "verification.pending.json" in job
     assert "path: out/muscriptor/verification.pending.json" in job
-    assert "path: out/muscriptor/\\n" not in job
+    assert "path: out/muscriptor/" not in job.replace(
+        "path: out/muscriptor/verification.pending.json", ""
+    )
