@@ -28,7 +28,7 @@ type ValidationReport = {
   visual_skipped?: string | null;
   audio?: { overall_similarity: number; alignment_shift_seconds: number; provider: string } | null;
   audio_skipped?: string | null;
-  acoustic?: { melody: { predicted_notes: number; compared_notes: number; octave_suspects: number }; chords: { compared_intervals: number; spectral_warnings: number } } | null;
+  acoustic?: { melody: { predicted_notes: number; compared_notes: number; octave_suspects: number }; chords: { compared_intervals: number; spectral_warnings: number }; total_issue_count?: number; issues_truncated?: boolean } | null;
   acoustic_skipped?: string | null;
   policy: { llm_required?: boolean; llm_is_advisory: boolean; visual_is_advisory?: boolean; auto_edit: boolean };
 };
@@ -165,7 +165,7 @@ export default function ValidationController() {
               <div className="validation-settings-grid">
                 <label><span>ffmpeg 실행 경로</span><input value={settings.ffmpeg_cmd ?? ""} placeholder="ffmpeg" onChange={(event) => setSettings((current) => ({ ...current, ffmpeg_cmd: event.target.value }))} /></label>
                 <label><span>FluidSynth 실행 경로</span><input value={settings.fluidsynth_cmd ?? ""} placeholder="fluidsynth" onChange={(event) => setSettings((current) => ({ ...current, fluidsynth_cmd: event.target.value }))} /></label>
-                <label><span>검증용 SoundFont 경로</span><input value={settings.validation_soundfont ?? ""} placeholder="/path/to/general-midi.sf2" onChange={(event) => setSettings((current) => ({ ...current, validation_soundfont: event.target.value }))} /></label>
+                <label><span>SoundFont 경로 · 재합성 대조에만 필요</span><input value={settings.validation_soundfont ?? ""} placeholder="/path/to/general-midi.sf2" onChange={(event) => setSettings((current) => ({ ...current, validation_soundfont: event.target.value }))} /></label>
                 <label><span>불일치 임계값</span><input type="number" min={0.1} max={0.9} step={0.01} value={settings.audio_threshold} onChange={(event) => setSettings((current) => ({ ...current, audio_threshold: Number(event.target.value) || 0.42 }))} /></label>
               </div>
             )}
@@ -185,6 +185,7 @@ export default function ValidationController() {
                   {report.audio && <small>Audio evidence: 유사도 {Math.round(report.audio.overall_similarity * 100)}% · 정렬 shift {report.audio.alignment_shift_seconds.toFixed(2)}s</small>}
                   {report.audio_skipped && <small>Audio evidence 건너뜀: {report.audio_skipped}</small>}
                   {report.acoustic && <small>보컬 대조 {report.acoustic.melody.compared_notes}/{report.acoustic.melody.predicted_notes}음 · 옥타브 재검토 {report.acoustic.melody.octave_suspects}곳 · 코드 재검토 {report.acoustic.chords.spectral_warnings}/{report.acoustic.chords.compared_intervals}구간. 측정 가능한 구간의 근거이며 전곡 정확도가 아닙니다.</small>}
+                  {report.acoustic?.issues_truncated && <small>음향 재검토 항목 총 {report.acoustic.total_issue_count}건 중 앞의 200건을 표시합니다.</small>}
                   {report.acoustic_skipped && <small>보컬·코드 대조 건너뜀: {report.acoustic_skipped}</small>}
                 </div>
                 <div className="validation-issues">
