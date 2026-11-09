@@ -310,21 +310,21 @@ def enrich_song(song_id: str, payload: EnrichRequest) -> dict:
 
     settings = runtime_settings()
     mb_entitled = payload.musicbrainz_commercial_entitlement or _env_flag("AST_MUSICBRAINZ_COMMERCIAL_ENTITLED")
-    if settings.usage_mode == "commercial" and not mb_entitled:
-        raise HTTPException(
-            422,
-            "상용 모드에서는 MusicBrainz 공개 Web Service의 상용 이용 자격/계약을 확인한 뒤 사용하세요.",
-        )
+    mb_allowed = settings.usage_mode != "commercial" or mb_entitled
 
     title = (payload.title or song.get("title") or "").strip()
     artist = (payload.artist if payload.artist is not None else song.get("artist")) or None
-    try:
-        candidates = search_musicbrainz(title, artist)
-    except EnrichmentError as exc:
-        candidates = []
-        metadata_error = str(exc)
+    if mb_allowed:
+        try:
+            candidates = search_musicbrainz(title, artist)
+        except EnrichmentError as exc:
+            candidates = []
+            metadata_error = str(exc)
+        else:
+            metadata_error = None
     else:
-        metadata_error = None
+        candidates = []
+        metadata_error = "MusicBrainz commercial API entitlement not confirmed"
 
     selected = choose_high_confidence(candidates, threshold=payload.metadata_threshold)
     work_credits_error = None
