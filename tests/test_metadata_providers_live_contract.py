@@ -85,6 +85,8 @@ def test_live_probe_distinguishes_remote_outage_without_logging_content():
     assert result["both_provider_contracts_live"] is False
     assert result["providers"]["musicbrainz"]["reason"] == "EnrichmentError"
     assert result["providers"]["lrclib"]["reason"] == "EnrichmentError"
+    assert result["providers"]["musicbrainz"]["http_status"] == 429
+    assert result["providers"]["lrclib"]["http_status"] == 429
     assert "external redacted" not in json.dumps(result)
 
 
