@@ -1,7 +1,6 @@
 """No-network tests for API-first lyrics, job metadata and conservative hints."""
 from __future__ import annotations
 
-from pathlib import Path
 from threading import Event
 from types import SimpleNamespace
 
@@ -83,8 +82,8 @@ def test_auto_enrichment_reuses_existing_revision_safe_enrich_api(monkeypatch):
 def test_api_first_lyric_reference_precedes_transcription_and_post_song_lookup(
     tmp_path, monkeypatch,
 ):
-    from audio_score_tool import enrichment
     from audio_score_tool import automatic_song_enrichment as auto
+    from audio_score_tool import enrichment
 
     stored = {
         "job_id": "queued-1", "filename": "Band - Song (Official Audio)",
@@ -141,8 +140,8 @@ def test_api_first_lyric_reference_precedes_transcription_and_post_song_lookup(
 def test_external_lyrics_api_error_does_not_fail_song_and_falls_back_to_asr(
     tmp_path, monkeypatch,
 ):
-    from audio_score_tool import enrichment
     from audio_score_tool import automatic_song_enrichment as auto
+    from audio_score_tool import enrichment
 
     stored = {
         "job_id": "q", "filename": "Band - Song", "source_kind": "local",
