@@ -23,8 +23,8 @@ from audio_score_tool.demucs_runtime import (
 )
 from audio_score_tool.managed_components import ComponentArtifact, install_component_artifact
 from audio_score_tool.managed_publication_readiness import (
-    OPTIONAL_COMPONENTS,
     _REQUIRED_TOOLS,
+    OPTIONAL_COMPONENTS,
     check_publication,
 )
 from audio_score_tool.managed_tool_resolver import registered_managed_tool
