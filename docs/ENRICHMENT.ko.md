@@ -189,3 +189,19 @@ Job이 `done` 상태가 되면 모델 추론 자원을 해제한 뒤 완성 Song
 **곡 정보·가사 자동 조회**는 재입력된 곡명과 아티스트를 사용합니다. 팝업에 저장되지 않은 필드가 있으면 동일 atomic API로 **먼저 저장한 후** 조회합니다. API 요청은 `require_exact_match=true`로 제목과 가수가 모두 일치하는 MusicBrainz 후보만 자동 반영합니다. 기존 MusicBrainz 신뢰도 임계값(≥92%)은 유지하고, 사용자가 입력한 앨범·작사·작곡 등은 검증된 API 후보가 나타나도 덮어쓰지 않습니다. 자동 생성됐던 `Unknown` 필드만 검증된 값으로 채울 수 있습니다.
 
 `Unknown` 자체는 유효한 곡명/아티스트가 아니므로 해당 상태에서 재조회 버튼을 누르면 **먼저 실명 입력 필요** 메시지를 표시하고 네트워크 조회를 하지 않습니다. 편집 중 곡을 바꾸거나 늦게 도착한 API 응답이 다른 Song에 쓰이지 않도록 선택된 Song ID에 요청을 묶습니다. 조회가 실패하더라도 WhisperX/STT 가사와 이미 수정한 악보는 유지됩니다.
+
+## 외부 실제 API 호환성 검증 및 조회 대체 경로 (#187)
+
+`External Metadata and Lyrics API Live Contract` GitHub Actions는 실제 MusicBrainz와 LRCLIB 서비스에 **가사·음원·파일 없이 공개 곡명·아티스트만 질의**하여 API 응답이 제품의 파서와 맞는지 확인합니다. 고정된 서비스 예제와 메타데이터 조회만 수행하며, 응답의 **가사 텍스트/전체 HTTP 본문은 로그·아티팩트로 절대 업로드하지 않습니다**. 단, 서비스 제공자 측에는 요청한 검색어가 전송됩니다. 수집 결과는 `live-provider-contract.pending.json`에 연결/검증 상태와 HTTP 코드만 기록됩니다.
+
+PR 변경 시 자동 실행되며, 수동 `workflow_dispatch`에서는 `strict_live=true`를 선택해 서비스 하나라도 확인되지 않으면 실패시키는 재현 검사를 할 수 있습니다. 일반 CI에서 공용 API의 429/5xx/네트워크 장애는 `inconclusive`로 구분하고, **CI가 성공했다고 외부 서비스 양쪽이 응답했다고 단정해서는 안 됩니다**. 반드시 로그 또는 metadata-only 보고서의 `both_provider_contracts_live`를 확인하세요.
+
+실제 [2026-11-09 검증 실행](https://github.com/JDeun/audio-score-tool/actions/runs/42569653243)에서는 MusicBrainz 곡명·아티스트 일치와 LRCLIB 공식 테스트곡의 실제 가사 응답을 확인했습니다. 해당 Green Day 녹음 후보의 Work→songwriter 연결은 `ambiguous_or_missing_work`이므로, 이번 실측만으로 작곡·작사가 자동 입력을 보장할 수 없습니다. 그런 경우 앱은 임의 크레딧을 만들지 않고 `Unknown`을 유지합니다.
+
+LRCLIB 클라이언트는 `/api/get`에서 지정된 버전/앨범의 데이터를 찾지 못했을 때 공식 `/api/search`를 **최대 한 번** 사용합니다. 두 단계 모두 title/artist가 정규화 후 정확 일치하고, 앨범이 명시됐다면 albumName도 정확 일치해야 합니다. `search`에서 여러 개의 동일 후보가 생기면 라이브/리믹스/다른 앨범 버전을 임의로 선택하지 않고 WhisperX STT를 사용합니다. 429나 다른 HTTP 장애에는 추가 검색을 하지 않고 기존 ASR fallback으로 전환합니다. 음악적 타이밍은 WhisperX를 통해서만 확인됩니다.
+
+### 2026-11-09 실측: 검색 점수 100점은 앨범·작사·작곡 확인 근거가 아님
+
+[실제 공개 API probe](https://github.com/JDeun/audio-score-tool/actions/runs/42570489256)에서 `Green Day - American Idiot`에 대해 제목·아티스트가 동일하고 높은 점수 기준을 충족한 녹음 **5개 모두 최고점 동률**이었으며, 후보의 **앨범명은 5종**이었습니다. 어느 녹음을 첫 번째로 받는지에 따라 `work-rels`의 작사·작곡 정보 존재 여부도 달랐습니다. 따라서 `require_exact_match=true` 자동 조회에서는 임계값 이상의 **서로 다른 recording ID가 2개 이상**이면 곡명·가수만 확정하고 album/release_date/composer/lyricist는 명시적 `Unknown`을 남깁니다. 단 하나의 고신뢰도 recording이 있는 경우에만 녹음별 앨범 및 독립 Work 크레딧을 채웁니다. 사용자가 직접 입력한 값은 덮어쓰지 않습니다.
+
+MusicBrainz가 `HTTP 502/503/504`로 일시적으로 실패하면 1회만 대기 후 재시도합니다. `429 Too Many Requests` 및 403에는 자동 반복 호출하지 않고 `Unknown`/사용자 수동 재조회로 넘깁니다. 공개 서비스의 간헐적 오류는 오디오 채보의 성공 여부와 별도입니다.

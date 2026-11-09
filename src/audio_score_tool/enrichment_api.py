@@ -93,6 +93,13 @@ def _apply_metadata(
                 if not str(updated_publication.get(field) or "").strip():
                     updated_publication[field] = "Unknown"
         elif selected.get("provider") == "musicbrainz":
+            # Title/artist can agree across multiple recordings while album,
+            # recording version and songwriter Work differ. Mark only those
+            # *unresolved* details Unknown instead of choosing a first result.
+            if selected.get("match_scope") == "song_identity_only_ambiguous_recording":
+                for field in ("album", "release_date", "composer", "lyricist"):
+                    if not str(updated_publication.get(field) or "").strip():
+                        updated_publication[field] = "Unknown"
             for field, suggested in (
                 ("album", selected.get("album")),
                 ("performer", next_artist),
@@ -360,6 +367,30 @@ def enrich_song(song_id: str, payload: EnrichRequest) -> dict:
             and _same_song_identity(item.get("artist"), artist)
         ]
     selected = choose_high_confidence(candidates, threshold=payload.metadata_threshold)
+    if payload.require_exact_match and selected is not None:
+        eligible = [
+            item for item in candidates
+            if int(item.get("score") or 0) >= payload.metadata_threshold
+        ]
+        recording_ids = {
+            str(item.get("recording_mbid") or f"missing-{index}")
+            for index, item in enumerate(eligible)
+        }
+        if len(recording_ids) > 1:
+            # The same song-level identity occurs on different recordings.
+            # Both name fields may be confirmed, but selecting one recording
+            # would assign a possibly unrelated album/Work writer to the user.
+            selected = {
+                "provider": "musicbrainz",
+                "title": title,
+                "artist": artist,
+                "score": int(selected.get("score") or 0),
+                "recording_mbid": None,
+                "album": None,
+                "first_release_date": None,
+                "match_scope": "song_identity_only_ambiguous_recording",
+                "ambiguous_recording_count": len(recording_ids),
+            }
     work_credits_error = None
     if selected:
         selected, work_credits_error = _with_work_credits(selected)
