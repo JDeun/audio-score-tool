@@ -60,6 +60,63 @@ def test_render_pdf_is_self_contained(tmp_path: Path):
     assert not list(tmp_path.glob("*.ly"))
 
 
+def test_pdf_preserves_unicode_punctuation_and_printed_metronome(tmp_path, caplog):
+    source = tmp_path / "unicode.musicxml"
+    source.write_text(SIMPLE_SCORE.replace(
+        "<part-name>Piano</part-name>",
+        "<part-name>Piano – étude</part-name>",
+    ).replace(
+        "      <note>",
+        "      <direction><direction-type><metronome><beat-unit>quarter</beat-unit>"
+        "<per-minute>90</per-minute></metronome></direction-type>"
+        "<sound tempo='90'/></direction>\n      <note>",
+    ), encoding="utf-8")
+    original = source.read_bytes()
+    target, _ = render_pdf(source, tmp_path / "unicode.pdf")
+    assert target.read_bytes().startswith(b"%PDF-")
+    assert target.stat().st_size > 1000
+    assert source.read_bytes() == original
+    assert "missing the following glyphs" not in caplog.text
+
+
+def test_pdf_embeds_bundled_korean_font_without_system_font_installation(tmp_path, caplog):
+    source = tmp_path / "korean.musicxml"
+    source.write_text(SIMPLE_SCORE.replace(
+        "<part-name>Piano</part-name>", "<part-name>보컬 멜로디</part-name>",
+    ).replace(
+        "  <part-list>", "  <work><work-title>한글 제목</work-title></work><part-list>",
+    ).replace(
+        "<duration>4</duration><type>whole</type>",
+        "<duration>4</duration><type>whole</type><lyric><text>한글 가사</text></lyric>",
+    ), encoding="utf-8")
+    target, _ = render_pdf(source, tmp_path / "korean.pdf")
+    payload = target.read_bytes()
+    assert payload.startswith(b"%PDF-")
+    assert b"NotoSansKR" in payload
+    assert "missing the following glyphs" not in caplog.text
+
+
+def test_svg_child_music_font_and_size_override_inherited_text_style():
+    svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+           '<text font-family="Liberation" font-size="0px">'
+           '<tspan><tspan font-family="Leipzig" font-size="20px">&#xECA5;</tspan></tspan>'
+           '</text></svg>')
+    root = ET.fromstring(_normalize_verovio_svg_for_fpdf2(svg))
+    child = root.find(".//{http://www.w3.org/2000/svg}tspan")
+    assert child.get("font-family") == "Leipzig"
+    assert child.get("font-size") == "20px"
+    assert len(root.findall(".//{http://www.w3.org/2000/svg}tspan")) == 1
+
+
+def test_svg_nested_title_keeps_center_anchor_and_initial_coordinates():
+    svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+           '<text font-size="0px"><tspan x="50" y="10" text-anchor="middle">'
+           '<tspan font-size="12px">Title</tspan></tspan></text></svg>')
+    root = ET.fromstring(_normalize_verovio_svg_for_fpdf2(svg))
+    text = root.find("{http://www.w3.org/2000/svg}text")
+    assert (text.get("x"), text.get("y"), text.get("text-anchor")) == ("50", "10", "middle")
+
+
 def test_music21_export_skips_same_file_with_relative_target(tmp_path: Path, monkeypatch):
     """music21 may return an absolute path even when fp is relative."""
     from music21 import converter
@@ -100,7 +157,7 @@ def test_verovio_nested_svg_is_flattened_preserving_vector_paths_and_glyph_links
         xmlns:xlink="http://www.w3.org/1999/xlink">
         <defs><g id="owned-glyph"><path d="M 0 0 L 100 0" /></g></defs>
         <style>path { fill: #000; }</style>
-        <svg viewBox="0 0 21000 29700">
+        <svg viewBox="0 0 21000 29700" font-family="Liberation, serif">
           <g><path d="M 100 200 L 20000 200" stroke="black"/>
           <use xlink:href="#owned-glyph"/></g>
         </svg>
@@ -113,6 +170,7 @@ def test_verovio_nested_svg_is_flattened_preserving_vector_paths_and_glyph_links
     groups = root.findall(f"./{namespace}g")
     assert len(groups) == 1
     assert groups[0].get("transform") == "matrix(0.1 0 0 0.1 0 0)"
+    assert groups[0].get("font-family") == "Liberation, serif"
     assert len(root.findall(f".//{namespace}path")) == 2
     assert len(root.findall(f".//{namespace}use")) == 1
     assert root.find(f"./{namespace}defs") is not None

@@ -10,6 +10,7 @@ readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.11"
 dependencies = [
+  "brotli>=1.1,<2",
   "fastapi>=0.116",
   "fpdf2>=2.8.8,<3",
   "huggingface-hub>=0.34,<2",

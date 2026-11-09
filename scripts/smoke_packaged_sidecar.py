@@ -406,6 +406,11 @@ def main() -> None:
 
             _json_object(authenticated[1], label="authenticated health")
             _verify_embedded_runtime(base_url, token)
+            if str(ROOT) not in sys.path:
+                sys.path.insert(0, str(ROOT))
+            from scripts.verify_packaged_omr_pdf import verify_embedded_pdf
+
+            verify_embedded_pdf(base_url, token, workspace=component_root / "embedded-pdf")
             if args.require_managed_delivery:
                 _verify_managed_delivery(base_url, token, managed_root)
                 # Direct execution (../scripts/smoke_packaged_sidecar.py) may put

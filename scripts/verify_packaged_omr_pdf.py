@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
@@ -130,6 +131,36 @@ def _read_generated_file(root: Path, name: str, magic: bytes) -> bytes:
     if header != magic:
         raise accepted.PackagedFeatureAcceptanceError(f"Packaged {name} has invalid file signature")
     return file.read_bytes()
+
+
+def verify_embedded_pdf(base: str, token: str, *, workspace: Path) -> None:
+    """Exercise bundled fonts and PDF export without an AMT/OMR component."""
+    from scripts.smoke_audiveris_omr_product_e2e import make_owned_musicxml
+
+    workspace.mkdir(parents=True, exist_ok=False)
+    score = workspace / "owned-original.musicxml"
+    make_owned_musicxml(score)
+    document = ET.parse(score)
+    document.find("part-list/score-part/part-name").text = "보컬 – PDF 검증"
+    first = document.find("part/measure")
+    direction = ET.SubElement(first, "direction")
+    metronome = ET.SubElement(ET.SubElement(direction, "direction-type"), "metronome")
+    ET.SubElement(metronome, "beat-unit").text = "quarter"
+    ET.SubElement(metronome, "per-minute").text = "90"
+    ET.SubElement(direction, "sound", tempo="90")
+    ET.SubElement(ET.SubElement(first.find("note"), "lyric"), "text").text = "한글"
+    document.write(score, encoding="utf-8", xml_declaration=True)
+    job = _post_owned_file(
+        base, token, route="/api/import/notation", filename="owned-original.musicxml",
+        payload=score.read_bytes(), media_type="application/vnd.recordare.musicxml+xml",
+        kind="notation-import",
+    )
+    accepted._await_job(base, token, job, timeout_seconds=90)
+    song = _song_for_job(base, token, job)
+    output = _export_song(base, token, song, root=workspace / "export", formats=["pdf"])
+    payload = _read_generated_file(output, "score.pdf", b"%PDF-")
+    if b"NotoSansKR" not in payload or b"Leipzig" not in payload:
+        raise accepted.PackagedFeatureAcceptanceError("Packaged PDF did not embed text/music fonts")
 
 
 def verify_real_pdf_omr(

@@ -7,6 +7,9 @@ no automatic TAB, verified melody accuracy or publishing-quality claims.
 """
 from __future__ import annotations
 
+import bisect
+import copy
+import math
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -92,27 +95,67 @@ def _main_part(score_path: Path, destination: Path, *, part_name: str):
     return selected
 
 
+def _score_clock(score):
+    """Map score quarters to/from elapsed seconds, including every tempo change."""
+    quarters, seconds, rates = [], [], []
+    elapsed = 0.0
+    for start, end, mark in score.metronomeMarkBoundaries():
+        bpm = mark.getQuarterBPM()
+        if bpm is None or not math.isfinite(bpm) or bpm <= 0:
+            raise SelectedScoreError("Selected score contains an invalid tempo")
+        quarters.append(float(start))
+        seconds.append(elapsed)
+        rates.append(60.0 / bpm)
+        elapsed += float(end - start) * rates[-1]
+    if not quarters:
+        raise SelectedScoreError("Selected score has no usable time axis")
+
+    def to_seconds(position):
+        index = max(0, bisect.bisect_right(quarters, position) - 1)
+        return seconds[index] + (position - quarters[index]) * rates[index]
+
+    def to_quarters(position):
+        index = max(0, bisect.bisect_right(seconds, position) - 1)
+        return quarters[index] + (position - seconds[index]) / rates[index]
+
+    return to_seconds, to_quarters
+
+
 def _annotate_chords(source: Path, backing: Path, destination: Path, stage: Path) -> None:
-    """Generate a chord-only overlay and project it onto unchanged vocal XML."""
+    """Project backing harmony by elapsed audio time onto unchanged vocal notes."""
     from music21 import converter, harmony, note, stream
 
     parsed = converter.parse(str(source))
+    accompaniment = converter.parse(str(backing))
+    backing_measures = list(accompaniment.parts[0].getElementsByClass(stream.Measure))
+    backing_seconds, _ = _score_clock(accompaniment)
+    _, vocal_quarters = _score_clock(parsed)
     measures = list(parsed.parts[0].getElementsByClass(stream.Measure))
+    starts = [float(m.getOffsetBySite(parsed.parts[0])) for m in measures]
     overlay = stream.Score()
     part = stream.Part()
     overlay.insert(0, part)
     for original in measures:
         measure = stream.Measure(number=original.number)
+        if original.timeSignature is not None:
+            measure.insert(0, copy.deepcopy(original.timeSignature))
         measure.insert(0, note.Rest(quarterLength=1))
         part.insert(original.getOffsetInHierarchy(parsed.parts[0]), measure)
     targets = list(part.getElementsByClass(stream.Measure))
     inserted = 0
     for candidate in infer_chords(backing):
-        if not 0 <= candidate.measure_index < len(targets):
-            continue
+        if not 0 <= candidate.measure_index < len(backing_measures):
+            raise SelectedScoreError("Inferred chord has no corresponding backing measure")
+        backing_offset = float(
+            backing_measures[candidate.measure_index].getOffsetBySite(accompaniment.parts[0])
+        ) + candidate.offset_quarters
+        position = vocal_quarters(backing_seconds(backing_offset))
+        if position < 0 or position >= float(parsed.parts[0].highestTime):
+            continue  # Accompaniment can continue past the last vocal measure.
+        target_index = max(0, bisect.bisect_right(starts, position) - 1)
         try:
             symbol = harmony.ChordSymbol(candidate.symbol)
-            targets[candidate.measure_index].insert(candidate.offset_quarters, symbol)
+            targets[target_index].insert(position - starts[target_index], symbol)
             inserted += 1
         except (ValueError, TypeError):
             continue
@@ -122,7 +165,7 @@ def _annotate_chords(source: Path, backing: Path, destination: Path, stage: Path
             "melody. A chordless result will not be called a Lead Sheet."
         )
     overlay_path = stage / "harmony.musicxml"
-    overlay.write("musicxml", fp=str(overlay_path))
+    overlay.write("musicxml", fp=str(overlay_path), makeNotation=False)
     project_musicxml_annotations(
         source, overlay_path, destination, include_key=False, include_meter=False,
     )

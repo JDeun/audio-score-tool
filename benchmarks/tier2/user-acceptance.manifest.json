@@ -1,0 +1,104 @@
+{
+  "corpus_version": "user-lead-sheet-2026-11-09-v2-five-songs",
+  "score_mode": "lead_sheet",
+  "selection_policy": "one_final_model_checkpoint_runtime_and_configuration",
+  "acceptance_status": "pending_source_audio_references_and_quality_thresholds",
+  "training_overlap": "unknown_not_a_held_out_generalization_claim",
+  "cases": [
+    {
+      "id": "tinashe-me-so-bad",
+      "title": "Tinashe feat. Ty Dolla $ign & French Montana - Me So Bad",
+      "category": "vocal_lead_sheet",
+      "genre": "rnb_pop",
+      "tags": ["user_acceptance", "lead_sheet", "english", "rap"],
+      "audio": {
+        "locator": "private://audio/tinashe-me-so-bad.wav",
+        "youtube_url": "https://www.youtube.com/watch?v=VaGcPRMY5UM",
+        "version": "official_music_video",
+        "ownership": "user_requested_private_evaluation_rights_not_independently_verified",
+        "redistributable": false
+      },
+      "reference": {
+        "midi": "private://reference/tinashe-me-so-bad.mid",
+        "musicxml": "private://reference/tinashe-me-so-bad.musicxml"
+      },
+      "expected_structure": {"part_count": 1, "has_lyrics": true, "has_chords": true}
+    },
+    {
+      "id": "twice-fancy",
+      "title": "TWICE - FANCY",
+      "category": "vocal_lead_sheet",
+      "genre": "kpop",
+      "tags": ["user_acceptance", "lead_sheet", "korean", "multiple_singers"],
+      "audio": {
+        "locator": "private://audio/twice-fancy.wav",
+        "youtube_url": "https://www.youtube.com/watch?v=kOHB85vDuow",
+        "version": "official_music_video_korean",
+        "ownership": "user_requested_private_evaluation_rights_not_independently_verified",
+        "redistributable": false
+      },
+      "reference": {
+        "midi": "private://reference/twice-fancy.mid",
+        "musicxml": "private://reference/twice-fancy.musicxml"
+      },
+      "expected_structure": {"part_count": 1, "has_lyrics": true, "has_chords": true}
+    },
+    {
+      "id": "green-day-american-idiot",
+      "title": "Green Day - American Idiot",
+      "category": "vocal_lead_sheet",
+      "genre": "rock",
+      "tags": ["user_acceptance", "lead_sheet", "english", "full_band"],
+      "audio": {
+        "locator": "private://audio/green-day-american-idiot.wav",
+        "youtube_url": "https://www.youtube.com/watch?v=K_pblxCEXw8",
+        "version": "original_2004_album_audio_official_2014_upload",
+        "ownership": "user_requested_private_evaluation_rights_not_independently_verified",
+        "redistributable": false
+      },
+      "reference": {
+        "midi": "private://reference/green-day-american-idiot.mid",
+        "musicxml": "private://reference/green-day-american-idiot.musicxml"
+      },
+      "expected_structure": {"part_count": 1, "has_lyrics": true, "has_chords": true}
+    },
+    {
+      "id": "ham-boo-young-my-song",
+      "title": "함부영 - 나의 노래",
+      "category": "vocal_lead_sheet",
+      "genre": "ccm",
+      "tags": ["user_acceptance", "lead_sheet", "korean"],
+      "audio": {
+        "locator": "private://audio/ham-boo-young-my-song.wav",
+        "youtube_url": "https://www.youtube.com/watch?v=2IRxJRM0HvA",
+        "version": "ccm_channel_upload_310s",
+        "ownership": "user_requested_private_evaluation_rights_not_independently_verified",
+        "redistributable": false
+      },
+      "reference": {
+        "midi": "private://reference/ham-boo-young-my-song.mid",
+        "musicxml": "private://reference/ham-boo-young-my-song.musicxml"
+      },
+      "expected_structure": {"part_count": 1, "has_lyrics": true, "has_chords": true}
+    },
+    {
+      "id": "younha-event-horizon",
+      "title": "윤하 - 사건의 지평선",
+      "category": "vocal_lead_sheet",
+      "genre": "pop_rock",
+      "tags": ["user_acceptance", "lead_sheet", "korean", "full_band"],
+      "audio": {
+        "locator": "private://audio/younha-event-horizon.wav",
+        "youtube_url": "https://www.youtube.com/watch?v=j1uXcHwLhHM",
+        "version": "original_2022_album_audio_official_upload",
+        "ownership": "user_requested_private_evaluation_rights_not_independently_verified",
+        "redistributable": false
+      },
+      "reference": {
+        "midi": "private://reference/younha-event-horizon.mid",
+        "musicxml": "private://reference/younha-event-horizon.musicxml"
+      },
+      "expected_structure": {"part_count": 1, "has_lyrics": true, "has_chords": true}
+    }
+  ]
+}

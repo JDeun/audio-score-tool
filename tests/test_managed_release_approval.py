@@ -53,6 +53,15 @@ def _test_catalog(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, component="yo
             },
         },
     }
+    if component == "transcription_engine":
+        digest = hashlib.sha256(b"synthetic model checkpoint").hexdigest()
+        entry["artifacts"][target]["model_identity"] = {
+            "model_key": "mr_mt3",
+            "checkpoint_path": "checkpoints/mr_mt3/mt3.pth",
+            "checkpoint_sha256": digest,
+            "model_revision": "sha256:" + digest,
+            "runtime_revision": entry["upstream_revision"],
+        }
     catalog = tmp_path / "catalog.json"
     catalog.write_text(json.dumps({"schema": 1, "components": {component: entry}}))
     approvals = tmp_path / "approvals.json"
@@ -71,7 +80,7 @@ def _valid_record(component: str, target: str, payload: dict) -> dict:
         name: hashlib.sha256(f"fixture-{name}".encode()).hexdigest()
         for name in payload["tools"]
     }
-    return {
+    record = {
         "catalog_sha256": catalog_fingerprint(payload),
         "remote_evidence": {
             "schema_version": "1",
@@ -101,6 +110,11 @@ def _valid_record(component: str, target: str, payload: dict) -> dict:
             "source_offer_url": "https://example.invalid/source/fixture",
         },
     }
+    if "model_identity" in payload:
+        record["remote_evidence"]["published_model_identity"] = {
+            **payload["model_identity"], "checkpoint_verified": True,
+        }
+    return record
 
 
 def _write_approval(path: Path, component: str, target: str, record: dict) -> None:

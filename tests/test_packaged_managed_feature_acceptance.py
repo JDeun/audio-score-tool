@@ -293,6 +293,7 @@ def test_package_gate_uses_isolated_appdata_and_empty_host_path(monkeypatch, tmp
         (200, b'{"status":"ok"}') if token else (401, b'{}')
     ))
     monkeypatch.setattr(smoke, "_verify_embedded_runtime", lambda *_: None)
+    monkeypatch.setattr("scripts.verify_packaged_omr_pdf.verify_embedded_pdf", lambda *a, **k: None)
     monkeypatch.setattr(smoke, "_verify_managed_delivery", lambda *_: None)
     monkeypatch.setenv("AST_YOUTUBE_QA_RECEIPT_JSON", "operator-review-stub")
     monkeypatch.setattr(real_youtube, "reviewed_youtube_source", lambda raw: {

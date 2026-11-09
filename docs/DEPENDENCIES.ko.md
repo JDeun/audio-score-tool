@@ -39,6 +39,8 @@
 | music21 | MIDI ↔ MusicXML | Python sidecar dependency |
 | Verovio | MusicXML engraving → SVG | Python sidecar dependency |
 | fpdf2 | Verovio SVG page → vector PDF | Python sidecar dependency |
+| Brotli + fontTools | Verovio 내장 WOFF2 텍스트·음악 글꼴을 PDF에 포함 | Python sidecar dependency |
+| Noto Sans KR | 한글 제목·파트명·가사의 PDF 글꼴 | 앱 내장 OFL-1.1 글꼴, 별도 설치 불필요 |
 
 ### 앱 관리형 구성요소
 

@@ -155,6 +155,7 @@ def transcribe(
     emit("music_structure", 48)
 
     structure = analyze_midi_meter_and_pickup(midi_path, structure)
+    warnings.extend(warning for warning in structure.warnings if warning not in warnings)
     pickup_result = normalize_pickup_measure(
         musicxml_path,
         work_dir / "score_with_pickup.musicxml",

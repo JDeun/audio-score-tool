@@ -23,6 +23,8 @@ class MusicStructureAnalysis:
     meter_numerator: int = 4
     meter_denominator: int = 4
     tempo_bpm: float | None = None
+    meter_source: str = "unknown"
+    tempo_source: str = "unknown"
     start_confidence: float = 0.0
     pickup_confidence: float = 0.0
     trimmed: bool = False
@@ -41,7 +43,7 @@ def _decode_analysis_wav(
     cancel_event: Event | None,
 ) -> bool:
     if not command_exists(settings.ffmpeg_cmd):
-        return audio_path.suffix.lower() == ".wav"
+        return False
     try:
         run_command(
             settings.ffmpeg_cmd,
@@ -290,14 +292,27 @@ def analyze_midi_meter_and_pickup(
     absolute = 0
     note_events: list[tuple[int, int]] = []
     signature_events: list[tuple[int, int, int]] = []
+    has_tempo = False
     for message in mido.merge_tracks(mid.tracks):
         absolute += int(message.time)
-        if message.type == "time_signature":
+        if message.type == "set_tempo":
+            has_tempo = True
+        elif message.type == "time_signature":
             signature_events.append(
                 (absolute, int(message.numerator), int(message.denominator))
             )
         elif message.type == "note_on" and int(message.velocity) > 0:
             note_events.append((absolute, int(message.velocity)))
+    beat_seconds, bpm = _tempo_seconds_per_beat(mid)
+    analysis.tempo_bpm = round(bpm, 2)
+    analysis.tempo_source = "midi_event" if has_tempo else "midi_default_120"
+    analysis.meter_source = "midi_event" if signature_events else "fallback_4_4"
+    if not signature_events:
+        analysis.warnings.append(
+            "Model MIDI has no time signature. 4/4 is a display fallback, not an "
+            "audio measurement; automatic pickup normalization was skipped."
+        )
+        return analysis
     if len(note_events) < 4:
         return analysis
 
@@ -340,7 +355,6 @@ def analyze_midi_meter_and_pickup(
     if pickup_ticks >= bar_ticks - step:
         pickup_ticks = 0.0
 
-    beat_seconds, bpm = _tempo_seconds_per_beat(mid)
     pickup_quarters = pickup_ticks / ticks_per_quarter
     confidence = 0.0
     if best_score > 0:

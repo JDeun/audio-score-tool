@@ -15,6 +15,8 @@
 
 `manifest.example.json`은 형식 예시입니다.
 
+`user-acceptance.manifest.json`은 사용자가 최종 판정용으로 지정한 **Me So Bad / FANCY / American Idiot / 나의 노래(함부영) / 사건의 지평선(윤하)** 다섯 곡을 고정합니다. 확인된 영상·녹음 버전을 기록하고 미확인 출처는 임의로 선택하지 않습니다. 첫 범위는 보컬 멜로디·코드·선택적 가사를 포함한 Lead Sheet의 최종 PDF입니다. 원음과 독립 검수 정답은 Git 밖에서 준비하고 실제 바이트 SHA를 기록해야 합니다. 모델 후보·앙상블 조합을 계속 늘리지 않으며, 동일 입력과 기준의 검증 후 **단일 모델·체크포인트·runtime·설정**을 고정합니다. 현재 이 manifest는 선곡 기록이며 실측·정답 확보·품질 승인을 뜻하지 않습니다. 이 다섯 곡의 사전학습 포함 여부도 확인되지 않았으므로 held-out 일반화 근거로 사용하지 않습니다.
+
 `private://reference/example.mid` 같은 locator는 `--corpus-root` 아래의 파일을 가리킵니다. 실제 audio/reference corpus는 Git 밖에서 관리합니다.
 
 ## 엔진별 prediction 생성
