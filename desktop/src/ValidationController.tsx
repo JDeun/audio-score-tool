@@ -28,6 +28,8 @@ type ValidationReport = {
   visual_skipped?: string | null;
   audio?: { overall_similarity: number; alignment_shift_seconds: number; provider: string } | null;
   audio_skipped?: string | null;
+  acoustic?: { melody: { predicted_notes: number; compared_notes: number; octave_suspects: number }; chords: { compared_intervals: number; spectral_warnings: number } } | null;
+  acoustic_skipped?: string | null;
   policy: { llm_required?: boolean; llm_is_advisory: boolean; visual_is_advisory?: boolean; auto_edit: boolean };
 };
 type ValidationSettings = {
@@ -146,7 +148,7 @@ export default function ValidationController() {
 
             <label className="validation-toggle"><input type="checkbox" checked={useLlm} onChange={(event) => setUseLlm(event.target.checked)} /><span>선택 사항 · 텍스트 LLM critic</span></label>
             <label className="validation-toggle"><input type="checkbox" checked={useVisual} onChange={(event) => setUseVisual(event.target.checked)} /><span>선택 사항 · OMR Vision API 비교</span></label>
-            <label className="validation-toggle"><input type="checkbox" checked={useAudio} onChange={(event) => setUseAudio(event.target.checked)} /><span>원음 ↔ 현재 악보 재합성 Audio evidence</span></label>
+            <label className="validation-toggle"><input type="checkbox" checked={useAudio} onChange={(event) => setUseAudio(event.target.checked)} /><span>원음 ↔ 현재 악보 · 보컬 음역·코드·재합성 대조</span></label>
 
             {(useLlm || useVisual) && (
               <div className="validation-settings-grid">
@@ -182,12 +184,14 @@ export default function ValidationController() {
                   {report.visual_skipped && <small>OMR Vision 건너뜀: {report.visual_skipped}</small>}
                   {report.audio && <small>Audio evidence: 유사도 {Math.round(report.audio.overall_similarity * 100)}% · 정렬 shift {report.audio.alignment_shift_seconds.toFixed(2)}s</small>}
                   {report.audio_skipped && <small>Audio evidence 건너뜀: {report.audio_skipped}</small>}
+                  {report.acoustic && <small>보컬 대조 {report.acoustic.melody.compared_notes}/{report.acoustic.melody.predicted_notes}음 · 옥타브 재검토 {report.acoustic.melody.octave_suspects}곳 · 코드 재검토 {report.acoustic.chords.spectral_warnings}/{report.acoustic.chords.compared_intervals}구간. 측정 가능한 구간의 근거이며 전곡 정확도가 아닙니다.</small>}
+                  {report.acoustic_skipped && <small>보컬·코드 대조 건너뜀: {report.acoustic_skipped}</small>}
                 </div>
                 <div className="validation-issues">
                   {report.issues.length === 0 && <p>현재 검사에서 발견된 이상 항목이 없습니다.</p>}
                   {report.issues.map((issue, index) => (
                     <article key={`${issue.source}-${index}`} className={`validation-issue ${issue.severity}`}>
-                      <div><strong>{issue.category}</strong><span>{issue.source === "llm" ? "LLM 가설" : issue.source === "vision" ? "원본 비교" : issue.source === "audio_symbol" ? "Audio evidence" : "규칙 검사"}</span></div>
+                      <div><strong>{issue.category}</strong><span>{issue.source === "llm" ? "LLM 가설" : issue.source === "vision" ? "원본 비교" : ["audio_symbol", "vocal_acoustic", "chord_acoustic"].includes(issue.source ?? "") ? "Audio evidence" : "규칙 검사"}</span></div>
                       <p>{issue.message}</p>
                       {(issue.page || issue.part || issue.measure || typeof issue.start_seconds === "number") && <small>{issue.page ? `P${issue.page}` : ""}{issue.part ? `${issue.page ? " · " : ""}${issue.part}` : ""}{issue.measure ? ` · M${issue.measure}` : ""}{typeof issue.start_seconds === "number" ? ` · ${issue.start_seconds.toFixed(1)}–${(issue.end_seconds ?? issue.start_seconds).toFixed(1)}s` : ""}</small>}
                       {typeof issue.confidence === "number" && ["vision", "audio_symbol"].includes(issue.source ?? "") && <small>confidence {Math.round(issue.confidence * 100)}%</small>}

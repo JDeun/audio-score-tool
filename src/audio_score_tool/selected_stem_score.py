@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import bisect
 import copy
+import json
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -32,6 +33,7 @@ from .transcription_engine import (
     TranscriptionEngineCancelled,
     TranscriptionEngineError,
 )
+from .vocal_evidence import select_vocal_part
 
 
 class SelectedScoreError(RuntimeError):
@@ -50,12 +52,13 @@ def _stem(root: Path, name: str) -> Path:
     return paths[0]
 
 
-def _main_part(score_path: Path, destination: Path, *, part_name: str):
-    """Extract the largest performed part without reserializing its note values.
+def _main_part(score_path: Path, destination: Path, *, part_name: str,
+               vocal_audio: Path | None = None, ffmpeg_cmd: str = "ffmpeg"):
+    """Extract an acoustically selected vocal part without rewriting its notes.
 
     MT3 is a multi-instrument model, so even one isolated stem may yield several
-    overlapping MIDI tracks. Keep one explicit, editable draft and warn that
-    multi-source/program attribution is not established by the separator.
+    overlapping MIDI tracks. Vocal attribution needs independent audio support;
+    the experimental guitar path still keeps its largest performed part.
     """
     root = _score(score_path)
     ns = root.tag.split("}")[0] + "}" if root.tag.startswith("{") else ""
@@ -67,6 +70,12 @@ def _main_part(score_path: Path, destination: Path, *, part_name: str):
     if not eligible or max(eligible, key=lambda item: item[0])[0] == 0:
         raise SelectedScoreError(f"{part_name} stem produced no playable score notes")
     _count, _index, source = max(eligible, key=lambda item: (item[0], -item[1]))
+    if part_name == "Voice" and sum(count > 0 for count, _, _ in eligible) > 1:
+        if vocal_audio is None:
+            raise SelectedScoreError("Multiple vocal parts require waveform evidence")
+        selected_index, report = select_vocal_part(score_path, vocal_audio, ffmpeg_cmd=ffmpeg_cmd)
+        source = parts[selected_index]
+        (score_path.parent / "part-selection.json").write_text(json.dumps(report, indent=2))
     extract_part_musicxml(score_path, source.get("id"), destination)
     selected = _score(destination)
     part = selected.find(f"{ns}part")
@@ -228,7 +237,8 @@ def transcribe_selected_stems(
         with tempfile.TemporaryDirectory(prefix=".selected-score-", dir=output_dir) as folder:
             stage = Path(folder)
             vocal_xml = stage / "vocal.musicxml"
-            root = _main_part(vocal_artifacts.musicxml_path, vocal_xml, part_name="Voice")
+            root = _main_part(vocal_artifacts.musicxml_path, vocal_xml, part_name="Voice",
+                              vocal_audio=vocals, ffmpeg_cmd=settings.ffmpeg_cmd)
             assembled = stage / "assembled.musicxml"
             if guitar is not None:
                 guitar_xml = stage / "guitar.musicxml"

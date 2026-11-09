@@ -84,7 +84,7 @@ def preserve_model_evidence(job: dict, *, jobs_root: Path, asset_root: Path) -> 
     candidates += [score_dir / "native" / name for name in sorted(NATIVE_FILES)]
     candidates += [score_dir.parent / name for name in ("music_structure.json", "chords.json")]
     for role in ("vocal", "guitar", "accompaniment"):
-        candidates += [score_dir / role / name for name in ("score.mid", "score.musicxml")]
+        candidates += [score_dir / role / name for name in ("score.mid", "score.musicxml", "part-selection.json")]
     files = []
     total = 0
     for path in candidates:
