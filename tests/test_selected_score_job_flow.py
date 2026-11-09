@@ -5,7 +5,6 @@ All tests use local synthetic fixtures and never download YouTube content.
 from __future__ import annotations
 
 import sqlite3
-from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
@@ -13,6 +12,7 @@ from audio_score_tool import job_lifecycle_api_v2 as lifecycle
 from audio_score_tool import runtime_services as runtime
 from audio_score_tool import upload_api_v2 as upload
 from audio_score_tool.api import app
+from audio_score_tool.config import Settings
 from audio_score_tool.job_store import JobStore
 
 
@@ -35,7 +35,7 @@ def _prepare(tmp_path, monkeypatch, *, separator=True):
     monkeypatch.setattr(upload, "jobs_dir", lambda: tmp_path / "jobs")
     monkeypatch.setattr(lifecycle, "jobs_dir", lambda: tmp_path / "jobs")
     def defaults():
-        return SimpleNamespace(
+        return Settings(
             demucs_cmd="demucs",
             muscriptor_model="small",
             whisperx_model="small",
@@ -140,6 +140,10 @@ def test_job_sqlite_migrates_without_changing_historical_full_score_intent(tmp_p
         )
     store = JobStore(target)
     assert store.get("historical")["score_mode"] == "full"
+    assert store.get("historical")["transcription_engine"] is None
+    assert store.get("historical")["mt3_model"] is None
+    assert store.get("historical")["native_checkpoint_sha256"] is None
+    assert store.get("historical")["transcription_selection_version"] == 0
     store.create("new", score_mode="guitar_vocal", status="done")
     assert store.get("new")["score_mode"] == "guitar_vocal"
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import shutil
 import uuid
+from dataclasses import replace
 from pathlib import Path
 from threading import Thread
 
@@ -9,6 +10,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from . import api as base_api
 from .job_admission import JobCapacityError, reserve_job
+from .job_transcription_settings import transcription_job_selection
 from .paths import jobs_dir
 from .preflight_v2 import preflight
 from .presets import resolve_job_models
@@ -68,10 +70,15 @@ async def create_job_v2(
             muscriptor_override=muscriptor_model,
             whisperx_override=whisperx_model,
         )
+        selected = replace(
+            defaults, muscriptor_model=resolved_muscriptor,
+            whisperx_model=resolved_whisperx,
+        )
+        selection = transcription_job_selection(selected)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     suffix = base_api._validate_upload(file.filename, base_api._AUDIO_EXTENSIONS, "audio")
-    readiness = preflight(defaults, require_lyrics=False)
+    readiness = preflight(selected, require_lyrics=False)
     if not readiness["ok"]:
         raise HTTPException(
             503,
@@ -94,8 +101,7 @@ async def create_job_v2(
         preset=preset,
         score_mode=score_mode,
         auto_enrich=auto_enrich,
-        muscriptor_model=resolved_muscriptor,
-        whisperx_model=resolved_whisperx,
+        **selection,
     )
     job_dir = jobs_dir() / job_id
     try:

@@ -356,7 +356,9 @@ def test_commercial_youtube_still_starts_after_explicit_confirmation(
     from audio_score_tool import job_lifecycle_api_v2 as jobs
 
     submitted: list[dict] = []
-    monkeypatch.setattr(jobs, "runtime_settings", lambda: Settings(usage_mode="commercial"))
+    monkeypatch.setattr(jobs, "runtime_settings", lambda: Settings(
+        usage_mode="commercial", transcription_engine="mt3_infer",
+    ))
     monkeypatch.setattr(jobs, "preflight", lambda *_a, **_kw: {"ok": True})
     monkeypatch.setattr(jobs, "youtube_tool_status", lambda *_a, **_kw: {"ready": True})
     monkeypatch.setattr(jobs, "jobs_dir", lambda: tmp_path)

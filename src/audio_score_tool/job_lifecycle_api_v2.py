@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import shutil
 import uuid
+from dataclasses import replace
 from pathlib import Path
 from threading import Thread
 
@@ -9,6 +10,10 @@ from fastapi import APIRouter, HTTPException
 
 from . import api as base_api
 from .job_admission import JobCapacityError, reserve_job
+from .job_transcription_settings import (
+    restore_transcription_job_settings,
+    transcription_job_selection,
+)
 from .paths import jobs_dir, song_assets_dir
 from .preflight_v2 import preflight
 from .presets import resolve_job_models
@@ -109,10 +114,15 @@ def create_youtube_job_v2(payload: base_api.YouTubeJobRequest) -> dict:
             muscriptor_override=payload.muscriptor_model,
             whisperx_override=payload.whisperx_model,
         )
+        selected = replace(
+            defaults, muscriptor_model=resolved_muscriptor,
+            whisperx_model=resolved_whisperx,
+        )
+        selection = transcription_job_selection(selected)
     except (YouTubeSourceError, ValueError) as exc:
         raise HTTPException(422, str(exc)) from exc
 
-    readiness = preflight(defaults, require_lyrics=False)
+    readiness = preflight(selected, require_lyrics=False)
     if not readiness["ok"]:
         raise HTTPException(
             503,
@@ -137,8 +147,7 @@ def create_youtube_job_v2(payload: base_api.YouTubeJobRequest) -> dict:
         preset=payload.preset,
         score_mode=score_mode,
         auto_enrich=payload.auto_enrich,
-        muscriptor_model=resolved_muscriptor,
-        whisperx_model=resolved_whisperx,
+        **selection,
     )
     job_dir = jobs_dir() / job_id
     try:
@@ -229,10 +238,25 @@ def retry_job_v2(job_id: str) -> dict:
     }
     if kind == "transcription":
         validate_score_mode(values["score_mode"])
+        try:
+            selected = restore_transcription_job_settings(settings, source)
+            selection = transcription_job_selection(selected)
+            if (
+                source.get("native_checkpoint_sha256") is not None
+                and selection["native_checkpoint_sha256"] != source["native_checkpoint_sha256"]
+            ):
+                raise ValueError("The job's Native checkpoint changed while preparing the retry")
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from exc
+        readiness = preflight(selected, require_lyrics=False)
+        if not readiness["ok"]:
+            raise HTTPException(
+                503,
+                "이 작업에 저장된 채보 모델이 준비되지 않았습니다: " + ", ".join(readiness["missing"]),
+            )
         if needs_stem_separation(values["score_mode"]) and not command_exists(settings.demucs_cmd):
             raise HTTPException(503, "재실행할 선택 악기 분리 도구가 준비되지 않았습니다.")
-        values["muscriptor_model"] = source.get("muscriptor_model") or settings.muscriptor_model
-        values["whisperx_model"] = source.get("whisperx_model") or settings.whisperx_model
+        values.update(selection)
 
     _reserve_or_429(new_id, **values)
     target_dir = jobs_dir() / new_id

@@ -1,11 +1,20 @@
 from __future__ import annotations
 
 import copy
+import math
 import statistics
+import tempfile
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass
+from fractions import Fraction
 from pathlib import Path
 
-from music21 import chord, clef, converter, instrument, key, meter, note, stream
+import mido
+from music21 import chord, clef, converter, instrument, key, meter, note, stream, tempo
+
+from .metrics import midi_notes
+from .midi_ties import restore_instrument_bindings
+from .notation_backend import musicxml_to_midi
 
 
 @dataclass(slots=True)
@@ -60,25 +69,49 @@ def _part_median_pitch(part: stream.Part) -> float | None:
     return statistics.median(values) if values else None
 
 
-def _rename_four_parts(score: stream.Score, output_path: Path) -> ChoirResult:
+def _rename_four_parts(
+    score: stream.Score, source_path: Path, output_path: Path,
+) -> ChoirResult:
     parts = _pitched_parts(score)
     medians = [(_part_median_pitch(part), part) for part in parts]
     if len(parts) != 4 or any(value is None for value, _ in medians):
         return ChoirResult(False, output_path, 0.0, "not-four-pitched-parts", len(parts))
-    ordered = [part for _, part in sorted(medians, key=lambda pair: float(pair[0] or 0), reverse=True)]
-    spread = [float(value or 0) for value, _ in sorted(medians, reverse=True)]
+    # Stable pitch order also handles unison parts without comparing Part objects.
+    ordered = sorted(medians, key=lambda pair: float(pair[0] or 0), reverse=True)
+    spread = [float(value or 0) for value, _ in medians]
     if min(spread) < 30 or max(spread) > 92:
         return ChoirResult(False, output_path, 0.0, "implausible-vocal-range", len(parts))
-    for name, part in zip(_VOICE_NAMES, ordered, strict=True):
-        part.partName = name
-        part.partAbbreviation = name[0] if name != "Bass" else "B"
-        for existing in list(part.recurse().getElementsByClass(instrument.Instrument)):
-            try:
-                existing.instrumentName = name
-            except Exception:
-                pass
-    score.write("musicxml", fp=str(output_path))
-    return ChoirResult(True, output_path, 0.86, "four-part-pitch-order", 4)
+
+    # This operation only labels existing parts. Reserializing their notes via
+    # music21 can quantize arbitrary AMT durations or replace GM instruments.
+    tree = ET.parse(source_path)
+    root = tree.getroot()
+    ns = root.tag.split("}")[0] + "}" if root.tag.startswith("{") else ""
+    xml_parts = root.findall(f"{ns}part")
+    definitions = {
+        element.get("id"): element
+        for element in root.findall(f"{ns}part-list/{ns}score-part")
+    }
+    indices = {id(part): index for index, part in enumerate(score.parts)}
+    if len(xml_parts) != len(score.parts):
+        raise ValueError("Cannot map existing score parts to their MusicXML definitions")
+    for name, (_, part) in zip(_VOICE_NAMES, ordered, strict=True):
+        definition = definitions[xml_parts[indices[id(part)]].get("id")]
+        for tag, value in (("part-name", name), ("part-abbreviation", name[0])):
+            element = definition.find(f"{ns}{tag}")
+            if element is None:
+                element = ET.Element(f"{ns}{tag}")
+                preceding = {f"{ns}identification"}
+                if tag == "part-abbreviation":
+                    preceding.update({f"{ns}part-name", f"{ns}part-name-display"})
+                index = next(
+                    (index for index, child in enumerate(definition) if child.tag not in preceding),
+                    len(definition),
+                )
+                definition.insert(index, element)
+            element.text = value
+    tree.write(output_path, encoding="utf-8", xml_declaration=True)
+    return ChoirResult(True, output_path, 0.86, "four-part-pitch-order", 4, len(xml_parts))
 
 
 def _event_pitch_sets(part: stream.Part) -> list[tuple[float, float, list[int]]]:
@@ -129,12 +162,11 @@ def _assignment_cost(midi: int, voice_index: int, previous: int | None) -> float
 def _assign_pitches(pitches: list[int], previous: list[int | None]) -> list[int | None]:
     if not pitches:
         return [None, None, None, None]
-    candidates = sorted(set(pitches), reverse=True)
-    if len(candidates) >= 4:
-        selected = [candidates[0], candidates[1], candidates[-2], candidates[-1]]
-        if len(candidates) == 4:
-            selected = candidates
-        return selected
+    candidates = sorted(pitches, reverse=True)
+    if len(candidates) > 4 or len(set(candidates)) != len(candidates):
+        raise ValueError("Four voice assignment cannot discard extra or unison chord pitches")
+    if len(candidates) == 4:
+        return candidates
 
     assignment: list[int | None] = [None, None, None, None]
     available = set(range(4))
@@ -147,7 +179,8 @@ def _assign_pitches(pitches: list[int], previous: list[int | None]) -> list[int 
 
 def _copy_measure_context(source_measure: stream.Measure, target: stream.Measure, voice_index: int) -> None:
     for element in source_measure:
-        if isinstance(element, (meter.TimeSignature, key.KeySignature)):
+        if isinstance(element, (meter.TimeSignature, key.KeySignature,
+                                tempo.TempoIndication, instrument.Instrument)):
             target.insert(element.offset, copy.deepcopy(element))
     if voice_index == 0:
         target.insert(0, clef.TrebleClef())
@@ -161,8 +194,18 @@ def _copy_measure_context(source_measure: stream.Measure, target: stream.Measure
 
 def _split_chordal_part(score: stream.Score, part: stream.Part, output_path: Path) -> ChoirResult:
     confidence = _single_part_choir_confidence(part)
-    if confidence < 0.72:
+    if confidence < 0.45:
         return ChoirResult(False, output_path, confidence, "polyphony-confidence-too-low", 1)
+
+    # Voice assignment for overlapping score voices or more than four pitches
+    # needs a real arrangement decision. Do not drop notes to fit four staves.
+    if list(part.recurse().getElementsByClass(stream.Voice)):
+        return ChoirResult(False, output_path, confidence, "nested-voices-require-manual-arrangement", 1)
+    for event in part.recurse().notes:
+        if isinstance(event, chord.Chord):
+            pitches = [pitch.midi for pitch in event.pitches]
+            if len(pitches) > 4 or len(set(pitches)) != len(pitches):
+                return ChoirResult(False, output_path, confidence, "chord-pitches-require-manual-arrangement", 1)
 
     result = stream.Score()
     if score.metadata is not None:
@@ -172,7 +215,11 @@ def _split_chordal_part(score: stream.Score, part: stream.Part, output_path: Pat
         target = stream.Part(id=name.lower())
         target.partName = name
         target.partAbbreviation = name[0] if name != "Bass" else "B"
-        target.insert(0, instrument.Vocalist())
+        # SATB is a notation assignment, not an instruction to relabel the AMT
+        # instrument. Preserve explicit GM variants and later program changes.
+        target.insert(0, copy.deepcopy(part.getInstrument()))
+        for context in part.getElementsByClass(tempo.TempoIndication):
+            target.insert(context.offset, copy.deepcopy(context))
         target_parts.append(target)
         result.append(target)
 
@@ -189,18 +236,22 @@ def _split_chordal_part(score: stream.Score, part: stream.Part, output_path: Pat
 
         for item in source_measure.notes:
             if isinstance(item, note.Note):
-                pitches = [item.pitch.midi]
+                members = [item]
             elif isinstance(item, chord.Chord):
-                pitches = [pitch.midi for pitch in item.pitches]
+                members = list(item.notes)
             else:
                 continue
+            pitches = [member.pitch.midi for member in members]
             assigned = _assign_pitches(pitches, previous)
             for voice_index, midi in enumerate(assigned):
                 if midi is None:
                     continue
-                created = note.Note(midi)
+                # Retain spelling, member-specific ties, articulations and
+                # velocities instead of constructing a new default note.
+                created = copy.deepcopy(next(member for member in members if member.pitch.midi == midi))
                 created.duration = copy.deepcopy(item.duration)
-                created.tie = copy.deepcopy(getattr(item, "tie", None))
+                if created.volume.velocity is None:
+                    created.volume = copy.deepcopy(item.volume)
                 created.lyrics = copy.deepcopy(getattr(item, "lyrics", []))
                 targets[voice_index].insert(item.offset, created)
                 previous[voice_index] = midi
@@ -216,89 +267,104 @@ def _split_chordal_part(score: stream.Score, part: stream.Part, output_path: Pat
     return ChoirResult(True, output_path, confidence, "chordal-satb-assignment", 1)
 
 
+def _tempo_map(path: Path) -> list[tuple[Fraction, int]]:
+    midi = mido.MidiFile(path)
+    absolute = 0
+    values = {Fraction(0): 500_000}
+    for message in mido.merge_tracks(midi.tracks):
+        absolute += message.time
+        if message.type == "set_tempo":
+            values[Fraction(absolute, midi.ticks_per_beat)] = message.tempo
+    result: list[tuple[Fraction, int]] = []
+    for offset, value in sorted(values.items()):
+        if not result or result[-1][1] != value:
+            result.append((offset, value))
+    return result
+
+
+def _preserves_performance(source: Path, candidate: Path, stage: Path) -> bool:
+    """Check exact note multiplicity, instruments, tempo map and sounding times.
+
+    Both XML documents use the same production playback converter. A one
+    microsecond tolerance allows float accumulation, not musical quantization
+    or the much looser benchmark onset/offset matching tolerances.
+    """
+    source_midi = musicxml_to_midi(source, stage / "source.mid")
+    candidate_midi = musicxml_to_midi(candidate, stage / "candidate.mid")
+    original = midi_notes(source_midi)
+    transformed = midi_notes(candidate_midi)
+    if not original or len(original) != len(transformed):
+        return False
+    if _tempo_map(source_midi) != _tempo_map(candidate_midi):
+        return False
+
+    def identity(event):
+        return event.pitch, event.program, event.is_drum
+
+    def order(event):
+        return (*identity(event), event.onset, event.offset)
+
+    for before, after in zip(sorted(original, key=order), sorted(transformed, key=order), strict=True):
+        if identity(before) != identity(after) or not all(
+            math.isclose(left, right, rel_tol=0, abs_tol=1e-6)
+            for left, right in ((before.onset, after.onset), (before.offset, after.offset))
+        ):
+            return False
+    return True
+
+
 def reconstruct_satb(
     musicxml_path: Path,
     output_path: Path,
     *,
     mode: str = "auto",
 ) -> ChoirResult:
+    """Apply an explicit SATB request only if the original performance survives.
+
+    Instrumental polyphony and four pitched parts are not evidence of a choir.
+    Auto mode only recognizes existing SATB labels and leaves the score intact.
+    """
     normalized = mode.strip().lower()
     if normalized not in {"auto", "choir", "off"}:
         raise ValueError("choir mode must be auto, choir, or off")
     if normalized == "off":
         return ChoirResult(False, output_path, 0.0, "disabled", 0)
 
+    source_parts = 0
     try:
         parsed = converter.parse(str(musicxml_path))
-    except Exception as exc:
-        return ChoirResult(False, output_path, 0.0, f"parse-failed:{exc}", 0)
-    if not isinstance(parsed, stream.Score):
-        return ChoirResult(False, output_path, 0.0, "not-a-score", 0)
+        if not isinstance(parsed, stream.Score):
+            return ChoirResult(False, output_path, 0.0, "not-a-score", 0)
+        parts = _pitched_parts(parsed)
+        source_parts = len(parts)
+        if normalized == "auto":
+            labels = {(part.partName or "").strip().casefold() for part in parts}
+            identified = source_parts == 4 and labels == {name.casefold() for name in _VOICE_NAMES}
+            reason = "already-labelled-satb" if identified else "automatic-satb-not-established"
+            return ChoirResult(False, output_path, 0.0, reason, source_parts)
+        if source_parts not in {1, 4}:
+            return ChoirResult(False, output_path, 0.0, "requires-one-or-four-pitched-parts", source_parts)
+        if source_parts == 1 and len(parsed.parts) != 1:
+            return ChoirResult(False, output_path, 0.0, "additional-parts-require-manual-arrangement", source_parts)
 
-    parts = _pitched_parts(parsed)
-    if len(parts) == 4:
-        result = _rename_four_parts(parsed, output_path)
-        if result.applied:
+        restore_instrument_bindings(parsed, musicxml_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix=".choir-", dir=output_path.parent) as folder:
+            stage = Path(folder)
+            candidate = stage / "candidate.musicxml"
+            result = (
+                _rename_four_parts(parsed, musicxml_path, candidate)
+                if source_parts == 4
+                else _split_chordal_part(parsed, parts[0], candidate)
+            )
+            result.output_path = output_path
+            if not result.applied:
+                return result
+            if not _preserves_performance(musicxml_path, candidate, stage):
+                return ChoirResult(False, output_path, result.confidence, "performance-preservation-check-failed", source_parts)
+            candidate.replace(output_path)
             return result
-    if len(parts) != 1:
-        return ChoirResult(False, output_path, 0.0, "auto-requires-one-or-four-pitched-parts", len(parts))
-
-    result = _split_chordal_part(parsed, parts[0], output_path)
-    if normalized == "choir" and not result.applied and result.confidence >= 0.45:
-        # Explicit choir mode lowers only the confidence gate; it never fabricates
-        # voices from monophonic material.
-        original = _single_part_choir_confidence(parts[0])
-        if original >= 0.45:
-            return _split_chordal_part_force(parsed, parts[0], output_path, original)
-    return result
-
-
-def _split_chordal_part_force(
-    score: stream.Score,
-    part: stream.Part,
-    output_path: Path,
-    confidence: float,
-) -> ChoirResult:
-    # Reuse the same safe transformation while temporarily meeting the threshold.
-    # The implementation is intentionally explicit rather than mutating global policy.
-    events = _event_pitch_sets(part)
-    if len(events) < 8 or sum(1 for _, _, pitches in events if len(pitches) >= 2) < 4:
-        return ChoirResult(False, output_path, confidence, "insufficient-polyphony", 1)
-
-    result = stream.Score()
-    if score.metadata is not None:
-        result.metadata = copy.deepcopy(score.metadata)
-    target_parts: list[stream.Part] = []
-    for name in _VOICE_NAMES:
-        target = stream.Part(id=name.lower())
-        target.partName = name
-        target.partAbbreviation = name[0] if name != "Bass" else "B"
-        target.insert(0, instrument.Vocalist())
-        target_parts.append(target)
-        result.append(target)
-
-    previous: list[int | None] = [None, None, None, None]
-    measured = part if list(part.getElementsByClass(stream.Measure)) else part.makeMeasures(inPlace=False)
-    for measure_number, source_measure in enumerate(measured.getElementsByClass(stream.Measure), start=1):
-        targets = [stream.Measure(number=source_measure.number or measure_number) for _ in range(4)]
-        for voice_index, target_measure in enumerate(targets):
-            _copy_measure_context(source_measure, target_measure, voice_index)
-        for item in source_measure.notes:
-            pitches = [item.pitch.midi] if isinstance(item, note.Note) else [p.midi for p in item.pitches]
-            assigned = _assign_pitches(pitches, previous)
-            for voice_index, midi in enumerate(assigned):
-                if midi is None:
-                    continue
-                created = note.Note(midi)
-                created.duration = copy.deepcopy(item.duration)
-                created.lyrics = copy.deepcopy(getattr(item, "lyrics", []))
-                targets[voice_index].insert(item.offset, created)
-                previous[voice_index] = midi
-        for voice_index, target_measure in enumerate(targets):
-            try:
-                target_measure.makeRests(fillGaps=True, inPlace=True)
-            except Exception:
-                pass
-            target_parts[voice_index].append(target_measure)
-    result.write("musicxml", fp=str(output_path))
-    return ChoirResult(True, output_path, confidence, "explicit-choir-satb-assignment", 1)
+    except Exception as exc:
+        # Choir reconstruction is optional. A valid canonical score must never
+        # be lost because an arrangement or its verification cannot be written.
+        return ChoirResult(False, output_path, 0.0, f"unsafe-transformation:{type(exc).__name__}:{exc}", source_parts)

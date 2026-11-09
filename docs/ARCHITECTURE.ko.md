@@ -151,6 +151,21 @@ Song
 
 완료된 관련 Job은 incremental ingestion을 통해 Song으로 동기화합니다. startup/full reconciliation은 복구 경로로 사용합니다. 삭제한 Song이 같은 Job에서 다시 생성되지 않도록 tombstone을 유지합니다.
 
+### 작업별 채보 모델 선택
+
+파일 업로드와 YouTube 입력은 프리셋·직접 선택을 적용한 설정으로 실행 준비를 검사한 뒤, 다음 선택을 Job SQLite에 저장합니다.
+
+- `transcription_engine`: MT3-Infer / MuScriptor / Native 엔진
+- `mt3_model`: MT3 작업의 MR-MT3 / YourMT3 모델
+- `muscriptor_model`, `whisperx_model`: 작업에서 선택한 모델 크기
+- `native_checkpoint_sha256`: Native를 사용할 때만 직접 지정한 체크포인트의 내용 해시
+
+대기 중 기본 설정이 바뀌어도 worker와 재시도는 이 선택을 복원합니다. 실행 명령·경로·토큰은 snapshot에 포함하지 않으며, 현재 설치 상태와 사용 모드·배포판 정책을 다시 검사합니다. 선택한 모델이 제거되었거나 현재 상용 모드/관리형 배포 정책에서 허용되지 않으면 다른 모델로 대체하지 않고 실패합니다. Native 파일은 경로가 바뀌어도 내용이 같으면 사용할 수 있지만, 내용이 바뀌면 기존 작업에 사용할 수 없습니다. 파일 해시는 실행 직전 확인이며 외부 프로세스의 실행 중 파일 교체까지 원자적으로 고정하는 계약은 아닙니다.
+
+이전 버전의 Job에는 엔진 정보가 없으므로 새 컬럼은 `NULL`로 이관하고 UI에 `모델 정보 없음`을 표시합니다. 과거의 MuScriptor 크기 값만으로 실제 엔진을 추정하지 않습니다. 기존 작업을 다시 실행하면 새 시도의 현재 엔진을 명시적으로 기록하며, 과거 실행의 모델 기록을 새로 만들어내지 않습니다. 신규 작업에서 저장된 모델 식별 정보가 손상되었으면 현재 기본값으로 채우지 않습니다.
+
+이 계약은 모델 선택의 일관성에 관한 것입니다. MT3/MuScriptor의 모든 체크포인트 바이트·런타임 버전을 고정하는 연구 provenance나 모델 품질 승인은 별도입니다. 관련 회귀는 `tests/test_job_transcription_identity.py`와 `desktop/e2e/job-model-identity.spec.ts`에서 확인합니다.
+
 ## 저장 계층
 
 ### SQLite canonical state

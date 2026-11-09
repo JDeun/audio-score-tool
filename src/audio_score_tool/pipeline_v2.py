@@ -63,7 +63,7 @@ def transcribe(
     language: str | None = None,
     skip_lyrics: bool = False,
     score_mode: str = "full",
-    choir_mode: str = "auto",
+    choir_mode: str = "off",
     reference_lyrics: dict[str, Any] | None = None,
     settings: Settings | None = None,
     progress: Callable[[str, int], None] | None = None,

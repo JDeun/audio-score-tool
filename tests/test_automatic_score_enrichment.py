@@ -7,8 +7,16 @@ from types import SimpleNamespace
 import pytest
 
 from audio_score_tool import automatic_song_enrichment, runtime_services
+from audio_score_tool.config import Settings
 from audio_score_tool.job_store import JobStore
 from audio_score_tool.source_metadata_hints import title_artist_hints
+
+
+def _ready_worker_settings(monkeypatch):
+    monkeypatch.setattr(runtime_services, "_runtime_settings", lambda **kw: Settings(
+        usage_mode="personal", transcription_engine="mt3_infer", mt3_model="mr_mt3", **kw,
+    ))
+    monkeypatch.setattr(runtime_services, "preflight", lambda *_a, **_kw: {"ok": True})
 
 
 @pytest.mark.parametrize(("raw", "expected"), [
@@ -124,9 +132,7 @@ def test_api_first_lyric_reference_precedes_transcription_and_post_song_lookup(
     monkeypatch.setattr(runtime_services, "_inference_lock", SimpleNamespace(
         release=lambda: calls.append(("release",)),
     ))
-    monkeypatch.setattr(runtime_services, "_runtime_settings", lambda **_k: SimpleNamespace(
-        usage_mode="personal",
-    ))
+    _ready_worker_settings(monkeypatch)
     monkeypatch.setattr(enrichment, "fetch_lrclib_lyrics", mocked_api)
     monkeypatch.setattr(runtime_services, "transcribe", mocked_transcribe)
     monkeypatch.setattr(auto, "enrich_completed_job", mocked_postprocess)
@@ -168,8 +174,7 @@ def test_external_lyrics_api_error_does_not_fail_song_and_falls_back_to_asr(
     monkeypatch.setattr(runtime_services, "_store", FakeStore())
     monkeypatch.setattr(runtime_services, "_acquire_inference_slot", lambda *_: True)
     monkeypatch.setattr(runtime_services, "_inference_lock", SimpleNamespace(release=lambda: None))
-    monkeypatch.setattr(runtime_services, "_runtime_settings",
-                        lambda **_kwargs: SimpleNamespace(usage_mode="personal"))
+    _ready_worker_settings(monkeypatch)
     monkeypatch.setattr(enrichment, "fetch_lrclib_lyrics", fail_api)
     monkeypatch.setattr(runtime_services, "transcribe", transcribe)
     monkeypatch.setattr(auto, "enrich_completed_job", lambda *_args: {"status": "ok"})
@@ -239,8 +244,7 @@ def test_local_file_tags_drive_api_first_lyrics_and_post_job_musicbrainz(
     monkeypatch.setattr(runtime_services, "_inference_lock", SimpleNamespace(
         release=lambda: calls.append(("release",)),
     ))
-    monkeypatch.setattr(runtime_services, "_runtime_settings",
-                        lambda **_kw: SimpleNamespace(usage_mode="personal"))
+    _ready_worker_settings(monkeypatch)
     monkeypatch.setattr(source_identification, "read_embedded_tags", tags)
     monkeypatch.setattr(enrichment, "fetch_lrclib_lyrics", lyrics_api)
     monkeypatch.setattr(runtime_services, "transcribe", transcribe)
@@ -303,8 +307,7 @@ def test_unknown_local_filename_without_tags_skips_lyric_api_but_still_runs_asr(
     monkeypatch.setattr(runtime_services, "_acquire_inference_slot", lambda *_: True)
     monkeypatch.setattr(runtime_services, "_inference_lock",
                         SimpleNamespace(release=lambda: observations.append(("release",))))
-    monkeypatch.setattr(runtime_services, "_runtime_settings",
-                        lambda **_kw: SimpleNamespace(usage_mode="personal"))
+    _ready_worker_settings(monkeypatch)
     monkeypatch.setattr(source_identification, "read_embedded_tags", lambda _: {})
     monkeypatch.setattr(enrichment, "fetch_lrclib_lyrics", no_api)
     monkeypatch.setattr(runtime_services, "transcribe", transcribe)

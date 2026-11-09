@@ -7,6 +7,7 @@ from pathlib import Path
 from threading import Lock
 from typing import Any
 
+from .job_transcription_settings import validate_job_selection
 from .paths import database_path
 from .score_requests import validate_score_mode
 from .sqlite_runtime import connect_sqlite
@@ -43,6 +44,10 @@ class JobStore:
                     preset TEXT,
                     score_mode TEXT NOT NULL DEFAULT 'full',
                     auto_enrich INTEGER NOT NULL DEFAULT 0,
+                    transcription_selection_version INTEGER NOT NULL DEFAULT 0,
+                    transcription_engine TEXT,
+                    mt3_model TEXT,
+                    native_checkpoint_sha256 TEXT,
                     muscriptor_model TEXT,
                     whisperx_model TEXT,
                     error TEXT,
@@ -64,6 +69,15 @@ class JobStore:
             if "auto_enrich" not in columns:
                 # No surprise external requests for previously saved jobs.
                 conn.execute("ALTER TABLE jobs ADD COLUMN auto_enrich INTEGER NOT NULL DEFAULT 0")
+            if "transcription_selection_version" not in columns:
+                conn.execute(
+                    "ALTER TABLE jobs ADD COLUMN transcription_selection_version INTEGER NOT NULL DEFAULT 0"
+                )
+            for column in ("transcription_engine", "mt3_model", "native_checkpoint_sha256"):
+                if column not in columns:
+                    # Old rows did not record an engine. Do not invent one from
+                    # a MuScriptor preset which could have accompanied MT3.
+                    conn.execute(f"ALTER TABLE jobs ADD COLUMN {column} TEXT")
             conn.execute(
                 "CREATE INDEX IF NOT EXISTS idx_jobs_completed_cursor "
                 "ON jobs(status, updated_at, job_id)"
@@ -77,6 +91,14 @@ class JobStore:
         if values.get("source_kind") not in {None, "local", "youtube", "omr", "notation"}:
             raise ValueError("Unsupported Job source_kind")
         mode = validate_score_mode(values.get("score_mode", "full"))
+        selection_version = values.get(
+            "transcription_selection_version", 0 if values.get("transcription_engine") is None else 1,
+        )
+        validate_job_selection(
+            values.get("transcription_engine"), values.get("mt3_model"),
+            values.get("native_checkpoint_sha256"),
+            selection_version=selection_version,
+        )
         now = _now()
         payload = {
             "kind": values.get("kind", "transcription"),
@@ -90,6 +112,10 @@ class JobStore:
             "preset": values.get("preset"),
             "score_mode": mode,
             "auto_enrich": int(bool(values.get("auto_enrich", False))),
+            "transcription_engine": values.get("transcription_engine"),
+            "transcription_selection_version": selection_version,
+            "mt3_model": values.get("mt3_model"),
+            "native_checkpoint_sha256": values.get("native_checkpoint_sha256"),
             "muscriptor_model": values.get("muscriptor_model"),
             "whisperx_model": values.get("whisperx_model"),
             "error": values.get("error"),
@@ -100,14 +126,17 @@ class JobStore:
                 """
                 INSERT INTO jobs (
                     job_id,kind,status,stage,progress,filename,source_kind,language,skip_lyrics,preset,
-                    score_mode,auto_enrich,muscriptor_model,whisperx_model,error,result_json,created_at,updated_at
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    score_mode,auto_enrich,muscriptor_model,whisperx_model,error,result_json,created_at,updated_at,
+                    transcription_engine,mt3_model,native_checkpoint_sha256,transcription_selection_version
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """,
                 (
                     job_id, payload["kind"], payload["status"], payload["stage"], payload["progress"],
                     payload["filename"], payload["source_kind"], payload["language"], payload["skip_lyrics"],
                     payload["preset"], payload["score_mode"], payload["auto_enrich"], payload["muscriptor_model"], payload["whisperx_model"],
                     payload["error"], payload["result_json"], now, now,
+                    payload["transcription_engine"], payload["mt3_model"], payload["native_checkpoint_sha256"],
+                    payload["transcription_selection_version"],
                 ),
             )
 
@@ -115,6 +144,12 @@ class JobStore:
         if not values:
             return
         mapping = dict(values)
+        if {"transcription_engine", "mt3_model", "native_checkpoint_sha256", "transcription_selection_version"} & mapping.keys():
+            validate_job_selection(
+                mapping.get("transcription_engine"), mapping.get("mt3_model"),
+                mapping.get("native_checkpoint_sha256"),
+                selection_version=mapping.get("transcription_selection_version"),
+            )
         if "score_mode" in mapping:
             mapping["score_mode"] = validate_score_mode(mapping["score_mode"])
         if "source_kind" in mapping and mapping["source_kind"] not in {None, "local", "youtube", "omr", "notation"}:
