@@ -81,6 +81,14 @@
 
 PDF는 `MusicXML → Verovio SVG → fpdf2 vector PDF` 경로로 앱 내부에서 생성합니다.
 
+### MuScriptor 비상업 채보 실행 경로 (#55)
+
+모델 관리자가 사용자의 Hugging Face 라이선스 수락·인증 후 다운로드한 동일 버전의 `model.safetensors`와 `config.json`이 HF cache에 모두 있어야 MuScriptor를 실행합니다. 앱은 해당 **local snapshot 경로**를 `--model`에 전달하므로, 추론 subprocess가 사용자 세션 token을 공유하거나 모델을 임의로 다시 다운로드할 필요가 없습니다. inference 시에는 HF offline 설정을 강제합니다. 캐시 파일/구조가 불완전하거나 model config가 선택한 small/medium/large와 불일치하면 unavailable로 표시합니다.
+
+MuScriptor CLI의 `--format sheets`는 외부 MuseScore 4를 요구하므로 호출하지 않습니다. 대신 `--format midi --output <app job>/score.mid`로 추론한 후 앱에 내장된 `music21`로 `score.musicxml`을 생성하고, 사용자의 명시적 최종 출판 시 Verovio/fpdf2로 PDF를 만듭니다. MIDI에 note-on 이벤트가 없거나 파일 형식이 손상된 경우 작업을 성공으로 처리하지 않습니다.
+
+**검증 범위:** 위 연결은 실제 런타임/권한/성능의 출시 검증이 아니라 코드와 합성 MIDI에 대한 회귀 계약입니다. 모델 SHA-256·고정 revision·상용 재배포 승인은 별도 증빙이 필요하고, 공개 가중치는 CC BY-NC 4.0으로 상용 모드에서 차단합니다.
+
 ## 개발자 override
 
 source checkout과 integration debugging을 위해 `AST_*_CMD` 환경변수 일부를 유지할 수 있습니다. 이것은 다음 목적에 한정합니다.

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import shutil
 import threading
 import time
@@ -11,8 +10,9 @@ from fastapi import APIRouter, HTTPException
 from huggingface_hub import HfApi, snapshot_download
 from pydantic import BaseModel, Field
 
-from .config import component_dir, packaged_runtime
 from .hf_session import active_token, authenticated, clear_session, identity, set_session
+from .muscriptor_cache import cached_muscriptor_checkpoint, hf_home
+from .notation_backend import backend_status
 from .runner import command_exists
 from .runtime_settings import runtime_settings
 from .settings_store import SettingsStore
@@ -87,12 +87,7 @@ def _update_job(store: dict[str, dict], key: str, **changes) -> None:
 
 
 def _hf_home() -> Path:
-    if packaged_runtime():
-        return component_dir() / "models" / "huggingface"
-    raw = os.getenv("HF_HOME")
-    if raw:
-        return Path(raw).expanduser()
-    return Path.home() / ".cache" / "huggingface"
+    return hf_home()
 
 
 def _hub_root() -> Path:
@@ -122,17 +117,13 @@ def _directory_size(path: Path) -> int:
 def _model_cached(repo_id: str) -> tuple[bool, int]:
     root = _repo_cache_dir(repo_id)
     size = _directory_size(root)
-    snapshots = root / "snapshots"
-    has_weights = False
-    if snapshots.exists():
-        try:
-            for snapshot in snapshots.iterdir():
-                if snapshot.is_dir() and any(snapshot.rglob("*.safetensors")):
-                    has_weights = True
-                    break
-        except OSError:
-            has_weights = False
-    return has_weights, size
+    # Merely seeing a .safetensors name in a half-downloaded HF snapshot used
+    # to make the UI advertise a model as ready. Require the matching original
+    # config and the selected revision's actual local model file.
+    for variant, spec in MUSCRIPTOR_MODELS.items():
+        if repo_id == spec["repo_id"]:
+            return cached_muscriptor_checkpoint(variant, cache_root=_hub_root()) is not None, size
+    return False, size
 
 
 def _model_payload(variant: str, settings, *, runtime_ready: bool) -> dict:
@@ -170,7 +161,9 @@ def model_manager_status() -> dict:
     home.mkdir(parents=True, exist_ok=True)
     disk_anchor = home.parent if home.parent.exists() else Path.home()
     disk = shutil.disk_usage(disk_anchor)
-    runtime_ready = command_exists(settings.muscriptor_cmd)
+    runtime_ready = (
+        command_exists(settings.muscriptor_cmd) and backend_status(settings)["music21"]
+    )
     return {
         "usage_mode": settings.usage_mode,
         "selected_engine": settings.transcription_engine,
@@ -358,6 +351,8 @@ def select_model(payload: DownloadRequest) -> dict:
             "모델 가중치는 캐시에 있지만 MuScriptor 실행 런타임이 없습니다. "
             "Setup Center에서 실행 환경을 확인하세요.",
         )
+    if not backend_status(settings)["music21"]:
+        raise HTTPException(409, "내장 MIDI→MusicXML 변환기(music21)가 준비되지 않았습니다.")
     _store.update({
         "transcription_engine": "muscriptor",
         "muscriptor_model": payload.variant,

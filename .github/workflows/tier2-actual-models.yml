@@ -19,6 +19,8 @@ on:
       - 'scripts/sheetsage2_infer_adapter.py'
       - 'scripts/generate_tier2_smoke_audio.py'
       - 'src/audio_score_tool/transcription_engine.py'
+      - 'src/audio_score_tool/muscriptor_cache.py'
+      - 'tests/test_muscriptor_offline_cached_midi.py'
       - 'src/audio_score_tool/sheetsage_hybrid.py'
       - 'tests/test_tier2_actual_model_smoke.py'
       - 'tests/test_tier2_hybrid_smoke.py'
@@ -193,12 +195,15 @@ jobs:
           retention-days: 7
 
   muscriptor:
-    name: MuScriptor small CPU transcription
-    if: ${{ vars.ENABLE_MUSCRIPTOR == 'true' }}
+    name: MuScriptor small CPU transcription (credential-gated, research-only)
+    # Never report a "successful model smoke" on a PR without an authorized
+    # audio input. Enable deliberately through workflow_dispatch + repo variable.
+    if: ${{ vars.ENABLE_MUSCRIPTOR == 'true' && inputs.youtube_url != '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 100
     env:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_HOME: ${{ runner.temp }}/ast-muscriptor-hf
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -206,26 +211,101 @@ jobs:
       - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           python-version: '3.11'
-      - name: Install model and audio tools
+      - name: Install pinned MuScriptor and AudioScoreTool notation runtime
+        shell: bash
         run: |
+          set -euo pipefail
           sudo apt-get update && sudo apt-get install -y ffmpeg
-          python -m pip install muscriptor yt-dlp
-      - name: Download permitted YouTube audio
-        if: inputs.youtube_url != ''
+          python -m pip install --disable-pip-version-check \
+            'muscriptor @ git+https://github.com/muscriptor/muscriptor.git@8a1ef88672cc23c26619adaff37ec48d82c0b906' \
+            'yt-dlp'
+          python -m pip install --disable-pip-version-check -e .
+      - name: Download user-reviewed audio for research only
         env:
           BENCHMARK_URL: ${{ inputs.youtube_url }}
         run: python scripts/download_youtube_benchmark.py "$BENCHMARK_URL" out/chords.wav
-      - name: Run MuScriptor inference
-        if: inputs.youtube_url != ''
+      - name: Explicitly fetch approved private weights into the app-managed cache
+        shell: bash
         run: |
-          mkdir -p out/muscriptor
-          muscriptor transcribe out/chords.wav --format sheets --output out/muscriptor --device cpu --model small --detect-tempo best-effort
-          test -s out/muscriptor/score.mid
-          test -s out/muscriptor/score.musicxml
-      - name: Upload MuScriptor results
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from huggingface_hub import snapshot_download
+          from audio_score_tool.muscriptor_cache import cached_muscriptor_checkpoint, hub_root
+          token = os.environ.get("HF_TOKEN")
+          if not token:
+              raise SystemExit("Blocked: HF_TOKEN and license acceptance required for MuScriptor")
+          snapshot_download(
+              repo_id="MuScriptor/muscriptor-small",
+              token=token,
+              cache_dir=str(hub_root()),
+          )
+          if cached_muscriptor_checkpoint("small") is None:
+              raise SystemExit("Blocked: incomplete MuScriptor small checkpoint/config")
+          print("Approved private small checkpoint and adjacent config available locally")
+          PY
+      - name: Run actual product engine with offline weights and embedded MusicXML
+        shell: bash
+        env:
+          HF_TOKEN: ''
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          import mido
+          from audio_score_tool.config import Settings
+          from audio_score_tool.muscriptor_cache import cached_muscriptor_checkpoint
+          from audio_score_tool.transcription_engine import MuScriptorEngine
+          weight = cached_muscriptor_checkpoint("small")
+          if weight is None:
+              raise SystemExit("Checkpoint disappeared before inference")
+          engine = MuScriptorEngine(Settings(
+              usage_mode="personal", transcription_engine="muscriptor",
+              muscriptor_cmd="muscriptor", muscriptor_model="small",
+          ))
+          artifacts = engine.transcribe(Path("out/chords.wav"), Path("out/muscriptor"), device="cpu")
+          midi = mido.MidiFile(str(artifacts.midi_path))
+          notes = sum(
+              msg.type == "note_on" and msg.velocity > 0
+              for track in midi.tracks for msg in track
+          )
+          if notes <= 0:
+              raise SystemExit("MuScriptor reported success without any performed notes")
+          digest = hashlib.sha256()
+          with weight.open("rb") as stream:
+              for chunk in iter(lambda: stream.read(8 * 1024 * 1024), b""):
+                  digest.update(chunk)
+          report = {
+              "schema_version": 1,
+              "status": "executed",
+              "task": "private-noncommercial-multi-instrument-amt",
+              "model": "MuScriptor/muscriptor-small",
+              "snapshot_revision": weight.parent.name,
+              "checkpoint_sha256": digest.hexdigest(),
+              "upstream_runtime_commit": "8a1ef88672cc23c26619adaff37ec48d82c0b906",
+              "midi_sha256": hashlib.sha256(artifacts.midi_path.read_bytes()).hexdigest(),
+              "musicxml_sha256": hashlib.sha256(artifacts.musicxml_path.read_bytes()).hexdigest(),
+              "midi_note_on_events": notes,
+              "performed_with_embedded_midi_converter": True,
+              "redistribution_approved": False,
+              "commercial_default_selected": False,
+          }
+          Path("out/muscriptor/verification.pending.json").write_text(
+              json.dumps(report, indent=2) + "\n", encoding="utf-8",
+          )
+          print(json.dumps({
+              "status": "executed", "midi_note_on_events": notes,
+              "commercial_default_selected": False,
+          }))
+          PY
+      - name: Upload metadata-only MuScriptor research evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: muscriptor-${{ github.run_id }}
-          path: out/muscriptor/
+          name: muscriptor-research-${{ github.run_id }}
+          path: out/muscriptor/verification.pending.json
           if-no-files-found: warn
+          retention-days: 7

@@ -32,7 +32,9 @@ def preflight(settings: Settings | None = None, *, require_lyrics: bool = False)
         missing.append(f"transcription_engine:{engine.key}")
     if require_lyrics and not tools["whisperx"]:
         missing.append("whisperx")
-    if engine.key == "muscriptor" and not huggingface_authenticated():
+    # Inference uses a locally downloaded, user-approved checkpoint. A live
+    # HF session token is needed to download it, not to transcribe offline.
+    if engine.key == "muscriptor" and not engine.ready() and not huggingface_authenticated():
         missing.append("huggingface_auth")
     if not tools["embedded_pdf"]:
         missing.append("embedded_pdf_renderer")
