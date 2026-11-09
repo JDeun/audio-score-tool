@@ -5,7 +5,6 @@ All tests use local synthetic fixtures and never download YouTube content.
 from __future__ import annotations
 
 import sqlite3
-from pathlib import Path
 from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
@@ -35,12 +34,13 @@ def _prepare(tmp_path, monkeypatch, *, separator=True):
     monkeypatch.setattr(lifecycle.base_api, "_store", store)
     monkeypatch.setattr(upload, "jobs_dir", lambda: tmp_path / "jobs")
     monkeypatch.setattr(lifecycle, "jobs_dir", lambda: tmp_path / "jobs")
-    defaults = lambda: SimpleNamespace(
-        demucs_cmd="demucs",
-        muscriptor_model="small",
-        whisperx_model="small",
-        usage_mode="personal",
-    )
+    def defaults():
+        return SimpleNamespace(
+            demucs_cmd="demucs",
+            muscriptor_model="small",
+            whisperx_model="small",
+            usage_mode="personal",
+        )
     monkeypatch.setattr(upload, "runtime_settings", defaults)
     monkeypatch.setattr(lifecycle, "runtime_settings", defaults)
     monkeypatch.setattr(upload, "preflight", lambda *_a, **_kw: {"ok": True, "missing": []})
