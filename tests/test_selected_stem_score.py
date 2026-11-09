@@ -202,3 +202,68 @@ def test_original_source_never_becomes_an_unverified_fallback_stem(tmp_path, mon
             engine=FakeEngine(), device="cpu", demucs_device="cpu",
         )
     assert not (tmp_path / "out" / "score.musicxml").exists()
+
+
+def test_guitar_vocal_independent_tempos_share_elapsed_audio_clock(tmp_path, monkeypatch):
+    """One source can change tempo while the other is constant: notes remain synchronized."""
+    from music21 import converter
+
+    def different_tempo_score(output_dir):
+        output_dir.mkdir(parents=True)
+        vocal = output_dir.name == "vocal"
+        midi = mido.MidiFile(type=1, ticks_per_beat=480)
+        clock = mido.MidiTrack()
+        if vocal:
+            clock.append(mido.MetaMessage("set_tempo", tempo=1_000_000, time=0))
+            clock.append(mido.MetaMessage("set_tempo", tempo=500_000, time=480))
+        else:
+            clock.append(mido.MetaMessage("set_tempo", tempo=750_000, time=0))
+        midi.tracks.append(clock)
+
+        def to_tick(seconds):
+            if not vocal:
+                return round(seconds * 480 * 1_000_000 / 750_000)
+            return round(seconds * 480) if seconds <= 1 else round(480 + (seconds - 1) * 960)
+
+        program = 40 if vocal else 24
+        events = [(0, 0, mido.Message("program_change", channel=0, program=program))]
+        for index, seconds in enumerate((0.25, 1.25, 2.25)):
+            onset, finish = to_tick(seconds), to_tick(seconds + 0.25)
+            pitch = (60 if vocal else 55) + index
+            events.extend([
+                (onset, 1, mido.Message("note_on", channel=0, note=pitch, velocity=83)),
+                (finish, 0, mido.Message("note_off", channel=0, note=pitch, velocity=0)),
+            ])
+        events.sort(key=lambda row: (row[0], row[1]))
+        notes = mido.MidiTrack()
+        previous = 0
+        for tick, _kind, message in events:
+            notes.append(message.copy(time=tick - previous))
+            previous = tick
+        midi.tracks.append(notes)
+        source_midi = output_dir / "score.mid"
+        source_xml = output_dir / "score.musicxml"
+        midi.save(source_midi)
+        midi_to_musicxml(source_midi, source_xml)
+        return TranscriptionArtifacts(source_midi, source_xml)
+
+    monkeypatch.setattr(sys.modules[__name__], "_fake_model_score", different_tempo_score)
+    (artifacts, _, warnings), _engine = _run(tmp_path, monkeypatch, "guitar_vocal")
+    assert any("experimental" in warning for warning in warnings)
+    expected = midi_notes(tmp_path / "output" / "vocal" / "score.mid") + midi_notes(
+        tmp_path / "output" / "guitar" / "score.mid"
+    )
+    actual = midi_notes(artifacts.midi_path)
+
+    def note_key(n):
+        return n.is_drum, n.program, n.pitch, n.onset, n.offset
+
+    assert len(actual) == len(expected) == 6
+    for produced, original in zip(sorted(actual, key=note_key), sorted(expected, key=note_key)):
+        assert (produced.pitch, produced.program, produced.is_drum) == (
+            original.pitch, original.program, original.is_drum,
+        )
+        assert produced.onset == pytest.approx(original.onset, abs=0.002)
+        assert produced.offset == pytest.approx(original.offset, abs=0.002)
+    published = converter.parse(str(artifacts.musicxml_path))
+    assert [part.partName for part in published.parts] == ["Voice", "Guitar"]

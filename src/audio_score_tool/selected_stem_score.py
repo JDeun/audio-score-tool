@@ -22,6 +22,7 @@ from .musicxml_parts import extract_part_musicxml
 from .notation_backend import musicxml_to_midi
 from .runner import CommandCancelled, CommandError, command_exists, run_command
 from .score_requests import validate_score_mode
+from .selected_stem_timeline import align_selected_role_scores
 from .transcription_engine import (
     BaseTranscriptionEngine,
     TranscriptionArtifacts,
@@ -206,16 +207,17 @@ def transcribe_selected_stems(
     try:
         with tempfile.TemporaryDirectory(prefix=".selected-score-", dir=output_dir) as folder:
             stage = Path(folder)
-            root = _main_part(vocal_artifacts.musicxml_path, stage / "vocal.musicxml", part_name="Voice")
-            ns = root.tag.split("}")[0] + "}" if root.tag.startswith("{") else ""
-            if guitar is not None:
-                second = _main_part(harmonic_artifacts.musicxml_path, stage / "guitar.musicxml", part_name="Guitar")
-                for node in second.iter():
-                    node.tag = ns + node.tag.rsplit("}", 1)[-1]
-                root.find(f"{ns}part-list").append(second.find(f"{ns}part-list/{ns}score-part"))
-                root.append(second.find(f"{ns}part"))
+            vocal_xml = stage / "vocal.musicxml"
+            root = _main_part(vocal_artifacts.musicxml_path, vocal_xml, part_name="Voice")
             assembled = stage / "assembled.musicxml"
-            ET.ElementTree(root).write(assembled, encoding="utf-8", xml_declaration=True)
+            if guitar is not None:
+                guitar_xml = stage / "guitar.musicxml"
+                _main_part(harmonic_artifacts.musicxml_path, guitar_xml, part_name="Guitar")
+                # XML parts can carry different tempo/meter maps. Reconstruct a
+                # shared clock from their real elapsed seconds before joining.
+                align_selected_role_scores(vocal_xml, guitar_xml, assembled, stage)
+            else:
+                ET.ElementTree(root).write(assembled, encoding="utf-8", xml_declaration=True)
             if guitar is None:
                 annotated = stage / "annotated.musicxml"
                 _annotate_chords(assembled, harmonic_artifacts.musicxml_path, annotated, stage)
