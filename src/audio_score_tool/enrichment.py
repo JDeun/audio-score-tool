@@ -163,19 +163,41 @@ def lookup_musicbrainz_recording_choice(
     if not candidate.get("title") or not candidate.get("artist"):
         raise EnrichmentError("Selected recording has no verified title/artist")
 
-    # The MusicBrainz recording lookup may return only a paged subset of all
-    # releases. If a selected release is absent we fail *closed* rather than
-    # accepting the album name the client displayed in an old search result.
+    # A recording lookup only returns a subset of linked releases. If the
+    # chosen one is absent, verify the *other direction* using the official
+    # release detail and its actual track recording IDs. This avoids falsely
+    # rejecting legitimate albums beyond the first 25 links, while ensuring
+    # an unrelated album can never be grafted onto the user's score.
     album = None
     release_date = None
     if release_id is not None:
         releases = response.get("releases")
-        if not isinstance(releases, list):
-            raise EnrichmentError("MusicBrainz did not provide linked releases")
         matching = [
-            release for release in releases if isinstance(release, dict)
-            and release.get("id") == release_id
+            release for release in (releases if isinstance(releases, list) else [])
+            if isinstance(release, dict) and release.get("id") == release_id
         ]
+        if not matching:
+            detail = _musicbrainz_request(
+                f"release/{release_id}", {"inc": "recordings"},
+            )
+            if not isinstance(detail, dict) or detail.get("id") != release_id:
+                raise EnrichmentError("MusicBrainz release identity did not match")
+            media = detail.get("media")
+            linked = any(
+                isinstance(track, dict)
+                and isinstance(track.get("recording"), dict)
+                and track["recording"].get("id") == recording_id
+                for medium in (media if isinstance(media, list) else [])
+                if isinstance(medium, dict)
+                for track in (
+                    medium.get("tracks") if isinstance(medium.get("tracks"), list) else []
+                )
+            )
+            if not linked:
+                raise EnrichmentError(
+                    "Requested album release is not verified as linked to the recording"
+                )
+            matching = [detail]
         if len(matching) != 1 or not matching[0].get("title"):
             raise EnrichmentError(
                 "Requested album release is not verified as linked to the recording"
