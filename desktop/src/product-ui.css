@@ -349,3 +349,34 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .001ms !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
 }
+
+
+/* Stem-targeted score requests: explicit user intent with readable warnings. */
+.score-mode-choices {
+  min-width: 0;
+  border: 0;
+  margin: 16px 0 4px;
+  padding: 0;
+}
+.score-mode-choices legend {
+  font-weight: 650;
+  margin-bottom: 10px;
+}
+.score-mode-option {
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid var(--line, #d5dce5);
+  border-radius: 12px;
+  padding: 12px;
+}
+.score-mode-option:has(input:checked) {
+  border-color: var(--accent, #638acb);
+  background: var(--surface-subtle, rgba(106, 145, 205, 0.08));
+}
+.score-mode-option input[type="radio"] {
+  margin: 3px 0 0;
+}
+.score-mode-option span { display: flex; flex-direction: column; gap: 4px; }
+.score-mode-option small { line-height: 1.45; opacity: 0.8; }
