@@ -23,8 +23,8 @@ from .presets import list_presets, resolve_job_models
 from .runtime_settings import runtime_settings
 from .score_requests import validate_score_mode
 from .settings_store import SettingsStore
-from .source_metadata_hints import title_artist_hints
 from .setup_info import setup_instructions
+from .source_metadata_hints import title_artist_hints
 from .system_status import storage_status
 from .youtube import (
     YouTubeSourceCancelled,
