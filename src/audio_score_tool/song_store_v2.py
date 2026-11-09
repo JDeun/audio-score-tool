@@ -12,6 +12,7 @@ from typing import Any
 
 from .paths import cache_dir, database_path, exports_dir, jobs_dir, song_assets_dir
 from .settings_store import SettingsStore
+from .score_requests import requested_parts_for_mode, validate_score_mode
 from .sqlite_runtime import connect_sqlite
 
 
@@ -320,6 +321,12 @@ class SongStoreV2:
             audio = None
             if self._source_kind(job) in {"local", "youtube"}:
                 audio = self._preserve_original_audio(job_id)
+            mode = validate_score_mode(job.get("score_mode") or "full")
+            self.set_analysis(job_id, "score_request", {
+                "score_mode": mode,
+                "requested_parts": requested_parts_for_mode(mode),
+                "source_kind": self._source_kind(job),
+            })
             self._ingest_json_file(job_id, "automatic_chords", result.get("chord_report"))
             self._ingest_json_file(job_id, "lyrics_transcript", result.get("transcript_json"))
             work_dir = result.get("work_dir")
