@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
@@ -39,6 +40,12 @@ def _same(left: object, right: str) -> bool:
         " ".join(unicodedata.normalize("NFKC", left).casefold().split())
         == " ".join(unicodedata.normalize("NFKC", right).casefold().split())
     )
+
+
+def _safe_http_status(exc: Exception) -> int | None:
+    """Expose HTTP code only, never URL, error body or remote lyric content."""
+    match = re.search(r"\\bHTTP Error ([1-5][0-9]{2})\\b", str(exc))
+    return int(match.group(1)) if match else None
 
 
 def check_live_providers(
@@ -87,6 +94,7 @@ def check_live_providers(
     except (EnrichmentError, ValueError, OSError, TypeError) as exc:
         mb["status"] = "inconclusive"
         mb["reason"] = type(exc).__name__
+        mb["http_status"] = _safe_http_status(exc)
     result["providers"]["musicbrainz"] = mb
 
     lrclib: dict[str, Any] = {"status": "inconclusive", "reason": None}
@@ -110,6 +118,7 @@ def check_live_providers(
             lrclib["synced_available"] = bool(lyrics.get("synced"))
     except (EnrichmentError, ValueError, OSError, TypeError) as exc:
         lrclib["reason"] = type(exc).__name__
+        lrclib["http_status"] = _safe_http_status(exc)
     result["providers"]["lrclib"] = lrclib
 
     result["both_provider_contracts_live"] = (
@@ -139,9 +148,11 @@ def main() -> int:
         "both_provider_contracts_live": report["both_provider_contracts_live"],
         "musicbrainz_status": report["providers"]["musicbrainz"]["status"],
         "musicbrainz_reason": report["providers"]["musicbrainz"]["reason"],
+        "musicbrainz_http_status": report["providers"]["musicbrainz"].get("http_status"),
         "musicbrainz_work_status": report["providers"]["musicbrainz"].get("work_status"),
         "lrclib_status": report["providers"]["lrclib"]["status"],
         "lrclib_reason": report["providers"]["lrclib"]["reason"],
+        "lrclib_http_status": report["providers"]["lrclib"].get("http_status"),
     }, sort_keys=True))
     return 1 if args.strict_live and not report["both_provider_contracts_live"] else 0
 
