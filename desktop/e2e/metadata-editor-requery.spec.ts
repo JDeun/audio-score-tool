@@ -199,3 +199,123 @@ test("unsaved edits are saved before external metadata re-query", async ({ page 
   await expect.poll(() => calls.length).toBe(2);
   expect(calls).toEqual(["save", "lookup"]);
 });
+
+
+// A single song can have several real recordings on different albums.
+// The UI must expose the choice and send only IDs to the verifying backend.
+test("ambiguous recordings are shown as distinct album options and a chosen edition is verified", async ({ page }) => {
+  let revision = 1;
+  let album = "Unknown";
+  let composer = "Unknown";
+  const selections: Array<Record<string, unknown>> = [];
+  const mbid1 = "00000000-0000-0000-0000-000000000001";
+  const mbid2 = "00000000-0000-0000-0000-000000000002";
+  const release1 = "11111111-1111-1111-1111-111111111111";
+  const release2 = "22222222-2222-2222-2222-222222222222";
+
+  const song = () => ({
+    song_id: "versions", title: "American Idiot", artist: "Green Day",
+    source_kind: "local", revision,
+    exports: { pdf: false, midi: false, musicxml: false }, parts: [],
+  });
+  await page.route("**/api/health", (route) => route.fulfill({
+    json: {
+      status: "ok", device_plan: { muscriptor_device: "cpu" },
+      preflight: { ok: true, missing: [], tools: {} },
+      presets: { recommended: "quality", presets: [] },
+      system: { hf_authenticated: false, jobs_bytes: 0, disk_free_bytes: 1024 },
+    },
+  }));
+  await page.route("**/api/engines", (route) => route.fulfill({
+    json: { usage_mode: "personal", engines: [], recommendation: null },
+  }));
+  await page.route("**/api/songs", (route) => route.fulfill({
+    json: { songs: [song()] },
+  }));
+  await page.route("**/api/songs/versions", (route) => route.fulfill({
+    json: song(),
+  }));
+  await page.route("**/api/songs/versions/notes", (route) => route.fulfill({
+    json: { song: song(), parts: [], notes: [], chords: [] },
+  }));
+  await page.route("**/api/songs/versions/structure", (route) => route.fulfill({
+    json: { measures: [] },
+  }));
+  await page.route("**/api/songs/versions/score", (route) => route.fulfill({
+    contentType: "application/xml",
+    body: '<score-partwise version="4.0"><part-list><score-part id="P1">' +
+      '<part-name>Voice</part-name></score-part></part-list>' +
+      '<part id="P1"><measure number="1"><note><rest/><duration>1</duration>' +
+      '<type>quarter</type></note></measure></part></score-partwise>',
+  }));
+  await page.route("**/api/songs/versions/publication", (route) => route.fulfill({
+    json: { settings: { album, composer, performer: "Green Day", lyricist: "Unknown" } },
+  }));
+  await page.route("**/api/songs/versions/enrich", (route) => {
+    const data = route.request().postDataJSON() as Record<string, unknown>;
+    expect(data.require_exact_match).toBe(true);
+    return route.fulfill({
+      json: {
+        metadata: {
+          candidates: [
+            {
+              title: "American Idiot", artist: "Green Day",
+              recording_mbid: mbid1, release_mbid: release1,
+              album: "Promotional Single", score: 100,
+            },
+            {
+              title: "American Idiot", artist: "Green Day",
+              recording_mbid: mbid2, release_mbid: release2,
+              album: "Studio Album", score: 100,
+            },
+          ],
+          selected: {
+            match_scope: "song_identity_only_ambiguous_recording",
+            title: "American Idiot", artist: "Green Day", score: 100,
+          },
+          applied: true, error: null,
+        },
+        lyrics_source: "whisperx", lyrics: null,
+      },
+    });
+  });
+  await page.route("**/api/songs/versions/select-recording", (route) => {
+    selections.push(route.request().postDataJSON() as Record<string, unknown>);
+    album = "Studio Album";
+    composer = "Verified composer";
+    revision += 1;
+    return route.fulfill({ json: {
+      applied: true, changed: true,
+      song: song(),
+      publication: { album, composer },
+      selection: {
+        recording_mbid: mbid2, release_mbid: release2,
+        writer_relations_verified: true,
+      },
+    } });
+  });
+  await page.addInitScript(() => {
+    localStorage.setItem("ast-onboarding-v1", "done");
+    localStorage.setItem("ast-setup-center-v2", "dismissed");
+    localStorage.setItem("ast-section", "songs");
+  });
+  await page.goto("/");
+  await expect(page.locator(".score-toolbar h2")).toHaveText("American Idiot");
+  await page.getByRole("button", { name: "메타데이터 관리·재조회" }).click();
+  const dialog = page.getByRole("dialog", { name: "곡 정보 보강" });
+  await expect(dialog.getByLabel("앨범명")).toHaveValue("Unknown");
+  await dialog.getByRole("button", { name: "곡 정보·가사 자동 조회" }).click();
+  await expect(dialog.getByText(/동일한 곡명과 아티스트의 녹음 버전/)).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "이 버전 적용: Promotional Single" })).toBeVisible();
+  await dialog.getByRole("button", { name: "이 버전 적용: Studio Album" }).click();
+  await expect.poll(() => selections.length).toBe(1);
+  expect(selections[0]).toEqual({
+    recording_mbid: mbid2,
+    release_mbid: release2,
+    expected_revision: 1,
+    musicbrainz_commercial_entitlement: false,
+  });
+  await expect(dialog.getByLabel("앨범명")).toHaveValue("Studio Album");
+  await expect(dialog.getByLabel("작곡가")).toHaveValue("Verified composer");
+  await expect(dialog.getByText(/검증된 녹음 버전의 정보/)).toBeVisible();
+});

@@ -23,6 +23,7 @@ from audio_score_tool.enrichment import (
     EnrichmentError,
     choose_high_confidence,
     fetch_lrclib_lyrics,
+    lookup_musicbrainz_recording_choice,
     lookup_musicbrainz_work_credits,
     search_musicbrainz,
 )
@@ -53,6 +54,7 @@ def check_live_providers(
     recording_search: Callable[..., list[dict[str, Any]]] = search_musicbrainz,
     work_lookup: Callable[..., dict[str, Any]] = lookup_musicbrainz_work_credits,
     lyrics_fetch: Callable[..., dict[str, Any] | None] = fetch_lrclib_lyrics,
+    recording_choice_lookup: Callable[..., dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Return only statuses and shape checks. Never include a single lyric word."""
     result: dict[str, Any] = {
@@ -107,6 +109,23 @@ def check_live_providers(
             mb["composer_relation_present"] = bool(credits.get("composer"))
             mb["lyricist_relation_present"] = bool(credits.get("lyricist"))
             mb["album_present"] = bool(selected.get("album"))
+            if recording_choice_lookup is not None:
+                # Exercise the SAME exact recording/release verifier used by
+                # the desktop selection popup. The result contains IDs and
+                # metadata only; never return HTTP bodies or lyrics.
+                choice = recording_choice_lookup(
+                    str(selected["recording_mbid"]),
+                    release_mbid=selected.get("release_mbid"),
+                )
+                mb["recording_choice_binding_verified"] = (
+                    _same(choice.get("title"), _MB_TRACK)
+                    and _same(choice.get("artist"), _MB_ARTIST)
+                    and choice.get("recording_mbid") == selected.get("recording_mbid")
+                    and choice.get("release_mbid") == selected.get("release_mbid")
+                )
+                if not mb["recording_choice_binding_verified"]:
+                    mb["status"] = "inconclusive"
+                    mb["reason"] = "selected_recording_mismatch"
     except (EnrichmentError, ValueError, OSError, TypeError) as exc:
         mb["status"] = "inconclusive"
         mb["reason"] = type(exc).__name__
@@ -154,7 +173,9 @@ def main() -> int:
     target = args.output.expanduser().resolve()
     if target.exists() or target.is_symlink():
         parser.error("Output must be a new JSON file")
-    report = check_live_providers()
+    report = check_live_providers(
+        recording_choice_lookup=lookup_musicbrainz_recording_choice,
+    )
     target.parent.mkdir(parents=True, exist_ok=True)
     with target.open("x", encoding="utf-8") as stream:
         json.dump(report, stream, indent=2, sort_keys=True, ensure_ascii=False)
@@ -166,6 +187,9 @@ def main() -> int:
         "musicbrainz_reason": report["providers"]["musicbrainz"]["reason"],
         "musicbrainz_http_status": report["providers"]["musicbrainz"].get("http_status"),
         "musicbrainz_work_status": report["providers"]["musicbrainz"].get("work_status"),
+        "musicbrainz_recording_choice_verified": report["providers"]["musicbrainz"].get(
+            "recording_choice_binding_verified"
+        ),
         "lrclib_status": report["providers"]["lrclib"]["status"],
         "lrclib_reason": report["providers"]["lrclib"]["reason"],
         "lrclib_http_status": report["providers"]["lrclib"].get("http_status"),
