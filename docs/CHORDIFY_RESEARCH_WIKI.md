@@ -3,6 +3,30 @@
 ## Executive findings
 Chordify is a **chord-and-beat-aligned play-along product**, not a full multi-instrument AMT engine. Its official technical explanation describes spectrogram inputs, separate deep neural networks for automatic chord recognition and beat/downbeat tracking, and time-aligned chord display. Its paid MIDI exports contain **chord notes, not full instrumentation**. AudioScoreTool should benchmark **harmonic transcription independently from note transcription**, while distinguishing chord-only MIDI from full-song MIDI.
 
+## 2026-11-09 — 현재 연구 연결 상태
+
+관련 연구 이슈는 모두 **open**이며, 아래의 기존 조사·구현 이력과 실제 corpus 실측 완료 여부를 구분합니다.
+
+- [#58](https://github.com/JDeun/audio-score-tool/issues/58): CASD·Isophonics·Billboard·ChoCo의 코드 annotation 확보와 녹음 정렬·이용 조건 검증.
+- [#53](https://github.com/JDeun/audio-score-tool/issues/53): Chordify와 SheetSage 계열의 동일 녹음 기반 실제 비교. [수동 코드 입력기](../scripts/import_manual_chord_chart.py)와 [비교 CLI](../scripts/compare_chord_playalong.py)는 연결되어 있으며, 정당하게 확보한 다중 곡의 실측이 남습니다.
+- [#57](https://github.com/JDeun/audio-score-tool/issues/57): 실제 음악 corpus와 독립 reference 확보·검증. URL이나 후보 곡 이름만으로 평가용 음원·정답 쌍이 준비된 것으로 간주하지 않습니다.
+
+[Chordify 공식 CASD](https://github.com/chordify/CASD#overview)는 **50곡 × 4명 전문가의 코드 참조 주석**을 JAMS/Harte 형식으로 공개합니다. 원본 음원·분리 stems·개별 음표 정답 MIDI는 제공하지 않으며, 이 공개 주석 집합을 현행 Chordify 서비스의 **전체 학습 데이터**라고 확정할 근거도 없습니다. 여러 전문가의 주석을 유지하는 [CASD importer](../scripts/import_casd_annotations.py)를 통해 코드 평가에 사용하고, 녹음은 별도로 확보해 동일 버전·시간축을 확인해야 합니다.
+
+**코드 WCSR과 full-score note F1은 별도 지표입니다.** CASD는 시간 구간별 화성 주석을 평가하는 근거이며, 전체 악기 음표의 pitch/onset/offset/GM 평가에는 독립 note MIDI가 필요합니다. 새 [혼합음원 대 분리 stem AMT 실험](research/MIX_VS_STEMS_ABLATION_2026-11-09.md)은 후자의 연구이며, #53의 Chordify 코드 정확도 실측을 대체하지 않습니다.
+
+### 공개 원본 주석 가져오기 확인
+
+공식 CASD commit `f9f8f7d4542f7cd75c0c29fe867da89f350ea7b1`의 원본 JAMS 세 개를 내려받아 pinned tree의 Git blob/크기와 SHA-256을 확인했다. 기존 `extract_casd()`와 엄격한 `_jams()` 구간 검증이 모두 통과했으며, 원본 metadata의 길이를 그대로 사용했다. [검사 결과와 원본·코드 해시](research/CASD_ANNOTATION_IMPORT_2026-11-09.json)는 metadata만 기록한다.
+
+| 원본 | metadata 길이 | 전문가 수 | 전문가별 구간 수 | 가져오기 / 전체 시간 구간 검증 |
+| --- | ---: | ---: | --- | --- |
+| `jams/12.jams` | 218.8초 | 4 | 454 / 454 / 454 / 454 | 통과 / 통과 |
+| `jams/92.jams` | 243.0초 | 4 | 605 / 605 / 605 / 605 | 통과 / 통과 |
+| `jams/1012.jams` | 291.6초 | 4 | 617 / 617 / 617 / 617 | 통과 / 통과 |
+
+총 12개 전문가 그룹의 6,704개 구간을 보존했다. 검사한 주석은 0초부터 원본 metadata 길이까지 누락·겹침·범위 초과 없이 이어졌다. 이는 **세 원본 파일의 구조·시간 구간 호환성** 확인이다. 음원을 내려받거나 녹음 해시를 임의로 만들지 않았으며, 음원 매칭·Harte 라벨 의미·모델 정확도는 검증하지 않았다. 실제 녹음 기반 #53/#58 인수 조건은 계속 남는다.
+
 ## Verified sources
 - Technology and architecture: https://chordify.net/pages/technology-algorithm-explained/
 - Beat/downbeat tracking: https://chordify.net/pages/algorithm-summer-bootcamp/

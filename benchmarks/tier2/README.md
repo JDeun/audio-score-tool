@@ -538,3 +538,40 @@ Only metadata-only per-track JSON plus an explicitly four-case macro control
 are uploaded; author audio/MIDI, interim MusicXML, and model weights remain
 private. The report is not held-out, human edit-to-publish or commercial
 release quality evidence.
+
+## 2026-11-09 — 혼합음원 직접 채보와 Demucs 전 stem 채보 A/B
+
+연구 runner [scripts.run_cocochorales_stem_ablation](../../scripts/run_cocochorales_stem_ablation.py)는 같은 원본 WAV·독립 reference MIDI에 대해 **혼합음원 직접 AMT**와 **Demucs가 추정한 모든 stem을 각각 AMT한 결과**를 비교합니다. 두 경로는 같은 AMT checkpoint·runtime·seed를 사용합니다. 기본 후보는 Demucs `htdemucs_6s`의 drums/bass/other/vocals/guitar/piano 6개 전부이며, `--separator htdemucs`로 4-stem 조건도 별도 실행할 수 있습니다. 원본 전체 길이를 사용하며 trim·시간 정렬 탐색·낮은 에너지 stem 제외·정답에 따른 stem 선택을 적용하지 않습니다.
+
+분리 실행은 [scripts.separate_benchmark_stems](../../scripts/separate_benchmark_stems.py)가 담당합니다. Demucs 4.0.1, shifts 1, PCM16/rescale과 Python·NumPy·Torch seed를 고정하고, 새 비공개 디렉터리에서 정확한 4/6개 출력의 SHA-256·sample rate·channels·frames·길이를 검증합니다. 선택한 공식 checkpoint의 실측 SHA-256과 공식 prefix, 모델 YAML, runtime/options를 기록하며 이미 존재하는 분리 결과는 재사용하지 않습니다. 고정 seed가 서로 다른 기기·runtime의 비트 단위 동일성을 보장하지는 않습니다.
+
+아래는 저장소 루트에서 실행하는 최소 예시입니다. `/private/amt-env`에는 [실험 workflow](../../.github/workflows/cocochorales-stem-ablation.yml)와 같은 모델별 고정 환경을 설치하고, 원본 corpus·검증된 pairs/registry/source-proof·정확한 AMT checkpoint는 미리 비공개 경로에 준비합니다. 작업 디렉터리와 report 파일은 새 경로여야 합니다.
+
+```bash
+# 분리 helper만 실행: 진행 로그는 stderr, 검증 metadata는 stdout.
+TORCH_HOME=/private/coco/torch-cache /private/amt-env/bin/python \
+  -m scripts.separate_benchmark_stems \
+  /private/coco/corpus/audio/source.wav /private/coco/separation-inspection \
+  --model htdemucs_6s --device cpu --seed 0 \
+  > /private/coco/separation-proof.json
+
+# 동일 author sample의 mix/stems A/B를 실제 실행하고 평가.
+TORCH_HOME=/private/coco/torch-cache /private/amt-env/bin/python \
+  -m scripts.run_cocochorales_stem_ablation \
+  --pairs /private/coco/evidence/pairs.json \
+  --registry /private/coco/evidence/reviewed-registry.json \
+  --source-proof /private/coco/evidence/source-proof.pending.json \
+  --corpus-root /private/coco/corpus \
+  --work-root /private/coco/ablation-run-001 \
+  --checkpoint-root /private/coco/checkpoints \
+  --model mr_mt3 --separator htdemucs_6s --device cpu \
+  --output /private/coco/reports/mr-mt3-case.json
+```
+
+[전용 scorer](../../src/audio_score_tool/stem_ablation.py)는 stem별 **raw note multiset의 합집합**을 초 단위 시간축에서 평가합니다. MIDI를 병합·재직렬화하거나 중복 음을 제거하거나 GM 프로그램을 바꾸지 않습니다. onset F1, onset+offset F1, instrument-aware onset+offset F1마다 독립적인 **최대 일대일 이분 매칭**을 사용합니다. onset 허용치는 50 ms, offset 허용치는 `max(50 ms, reference 음 길이의 20%)`입니다. 중복 예측도 각각 예측 음 수에 포함됩니다.
+
+유효한 빈 MIDI는 **0개 음 예측**으로 평가에 포함합니다. 한 stem이라도 분리·추론·검증에 실패하면 separated 경로는 incomplete이며, 성공한 stem만 골라 완성 결과로 집계하지 않습니다. `--aggregate`는 동일 모델·분리 설정·측정 계약의 case report를 받아 네 공식 예제의 완전한 비교 여부를 확인합니다. 불완전한 실행은 JSON에 실패를 남기고 비영 종료 코드를 반환합니다.
+
+현재 범위는 upstream 저자가 공개한 **train split의 4곡**입니다. held-out 일반화, 원본 정답 stem 대비 SDR, 최종 MusicXML/PDF 품질, 사람 편집 시간은 측정하지 않습니다. WAV·분리 stem·reference/prediction MIDI·모델 weights는 저장소와 공개 artifact에 포함하지 않고, CI에는 검증된 JSON metadata만 남깁니다.
+
+구현과 실행 추적: [PR #195](https://github.com/JDeun/audio-score-tool/pull/195), [CI run 42584934707](https://github.com/JDeun/audio-score-tool/actions/runs/42584934707). 두 모델 모두 네 곡의 양쪽 경로가 완료됐습니다. 이번 조건에서 onset+offset macro F1은 MR-MT3 **43.91% → 28.92%**, YourMT3+ **67.41% → 16.62%**로 낮아져 전체 악보의 직접 채보 기본 경로를 유지합니다. 원본 자료의 범위, 다른 지표, 처리시간, 모델 간 분리 WAV 바이트 차이와 해석은 [실험 보고서](../../docs/research/MIX_VS_STEMS_ABLATION_2026-11-09.md), 원본 metadata는 [영구 증거 JSON](../../docs/research/MIX_VS_STEMS_EVIDENCE_2026-11-09.json)에 기록했습니다.

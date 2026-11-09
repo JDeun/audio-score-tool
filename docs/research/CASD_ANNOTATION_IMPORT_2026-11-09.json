@@ -1,0 +1,347 @@
+{
+  "schema_version": 1,
+  "purpose": "CASD original annotation compatibility audit only",
+  "audit_date": "2026-11-09",
+  "source_repository": "https://github.com/chordify/CASD",
+  "source_commit": "f9f8f7d4542f7cd75c0c29fe867da89f350ea7b1",
+  "source_commit_date": "2019-06-14T07:41:15Z",
+  "source_tree": "d86be617782bf7637940ff50762f0a938f4a1837",
+  "selection": "README examples 12 and 92 plus first lexical JAMS 1012; annotation-format audit only",
+  "source_license": "CC-BY-NC-SA-4.0",
+  "source_license_url": "https://github.com/chordify/CASD/blob/f9f8f7d4542f7cd75c0c29fe867da89f350ea7b1/LICENSE.md",
+  "files": [
+    {
+      "source_path": "jams/12.jams",
+      "source_url": "https://github.com/chordify/CASD/blob/f9f8f7d4542f7cd75c0c29fe867da89f350ea7b1/jams/12.jams",
+      "source_bytes": 283005,
+      "source_sha256": "4e00bdefc52ab7838bc7367f8a75ca34aa22454eaf2c5064d6b890c53f8610db",
+      "source_git_blob_sha1": "e9e848c08e711934fd0196b78157b2e2f8419f63",
+      "source_git_blob_verified": true,
+      "metadata_duration_seconds": 218.8,
+      "metadata_duration_is_finite_positive": true,
+      "namespace_counts": {
+        "chord": 4
+      },
+      "annotators": [
+        {
+          "original_annotation_index": 0,
+          "original_annotator": {
+            "instrument": "Guitar",
+            "id": "A1"
+          },
+          "annotation_time": 0,
+          "annotation_duration": 218.8,
+          "interval_count": 454,
+          "original_interval_count": 454,
+          "first_start": 0.0,
+          "last_end": 218.8,
+          "tail_difference_from_metadata_seconds": 0.0,
+          "first_gap_or_overlap_examples": [],
+          "gap_or_overlap_count_at_1e_minus_5_seconds": 0
+        },
+        {
+          "original_annotation_index": 1,
+          "original_annotator": {
+            "instrument": "Guitar",
+            "id": "A2"
+          },
+          "annotation_time": 0,
+          "annotation_duration": 218.8,
+          "interval_count": 454,
+          "original_interval_count": 454,
+          "first_start": 0.0,
+          "last_end": 218.8,
+          "tail_difference_from_metadata_seconds": 0.0,
+          "first_gap_or_overlap_examples": [],
+          "gap_or_overlap_count_at_1e_minus_5_seconds": 0
+        },
+        {
+          "original_annotation_index": 2,
+          "original_annotator": {
+            "instrument": "Piano",
+            "id": "A3"
+          },
+          "annotation_time": 0,
+          "annotation_duration": 218.8,
+          "interval_count": 454,
+          "original_interval_count": 454,
+          "first_start": 0.0,
+          "last_end": 218.8,
+          "tail_difference_from_metadata_seconds": 0.0,
+          "first_gap_or_overlap_examples": [],
+          "gap_or_overlap_count_at_1e_minus_5_seconds": 0
+        },
+        {
+          "original_annotation_index": 3,
+          "original_annotator": {
+            "instrument": "Piano",
+            "id": "A4"
+          },
+          "annotation_time": 0,
+          "annotation_duration": 218.8,
+          "interval_count": 454,
+          "original_interval_count": 454,
+          "first_start": 0.0,
+          "last_end": 218.8,
+          "tail_difference_from_metadata_seconds": 0.0,
+          "first_gap_or_overlap_examples": [],
+          "gap_or_overlap_count_at_1e_minus_5_seconds": 0
+        }
+      ],
+      "extract_casd": {
+        "status": "passed",
+        "annotator_count": 4,
+        "interval_counts": [
+          454,
+          454,
+          454,
+          454
+        ],
+        "total_intervals": 1816
+      },
+      "strict_jams": {
+        "status": "passed",
+        "duration_source": "unchanged file_metadata.duration",
+        "annotator_count": 4,
+        "interval_counts": [
+          454,
+          454,
+          454,
+          454
+        ]
+      },
+      "source_bytes_unchanged_after_import": true
+    },
+    {
+      "source_path": "jams/92.jams",
+      "source_url": "https://github.com/chordify/CASD/blob/f9f8f7d4542f7cd75c0c29fe867da89f350ea7b1/jams/92.jams",
+      "source_bytes": 376770,
+      "source_sha256": "c0565ad159ccc406c859dd9d0004d34387985f86dd5955f029de16a73b92a1bc",
+      "source_git_blob_sha1": "7db6b313882e6118dff3e7a8c976a21a2c978118",
+      "source_git_blob_verified": true,
+      "metadata_duration_seconds": 243.0,
+      "metadata_duration_is_finite_positive": true,
+      "namespace_counts": {
+        "chord": 4
+      },
+      "annotators": [
+        {
+          "original_annotation_index": 0,
+          "original_annotator": {
+            "instrument": "Guitar",
+            "id": "A1"
+          },
+          "annotation_time": 0,
+          "annotation_duration": 243.0,
+          "interval_count": 605,
+          "original_interval_count": 605,
+          "first_start": 0.0,
+          "last_end": 243.0,
+          "tail_difference_from_metadata_seconds": 0.0,
+          "first_gap_or_overlap_examples": [],
+          "gap_or_overlap_count_at_1e_minus_5_seconds": 0
+        },
+        {
+          "original_annotation_index": 1,
+          "original_annotator": {
+            "instrument": "Guitar",
+            "id": "A2"
+          },
+          "annotation_time": 0,
+          "annotation_duration": 243.0,
+          "interval_count": 605,
+          "original_interval_count": 605,
+          "first_start": 0.0,
+          "last_end": 243.0,
+          "tail_difference_from_metadata_seconds": 0.0,
+          "first_gap_or_overlap_examples": [],
+          "gap_or_overlap_count_at_1e_minus_5_seconds": 0
+        },
+        {
+          "original_annotation_index": 2,
+          "original_annotator": {
+            "instrument": "Piano",
+            "id": "A3"
+          },
+          "annotation_time": 0,
+          "annotation_duration": 243.0,
+          "interval_count": 605,
+          "original_interval_count": 605,
+          "first_start": 0.0,
+          "last_end": 243.0,
+          "tail_difference_from_metadata_seconds": 0.0,
+          "first_gap_or_overlap_examples": [],
+          "gap_or_overlap_count_at_1e_minus_5_seconds": 0
+        },
+        {
+          "original_annotation_index": 3,
+          "original_annotator": {
+            "instrument": "Piano",
+            "id": "A4"
+          },
+          "annotation_time": 0,
+          "annotation_duration": 243.0,
+          "interval_count": 605,
+          "original_interval_count": 605,
+          "first_start": 0.0,
+          "last_end": 243.0,
+          "tail_difference_from_metadata_seconds": 0.0,
+          "first_gap_or_overlap_examples": [],
+          "gap_or_overlap_count_at_1e_minus_5_seconds": 0
+        }
+      ],
+      "extract_casd": {
+        "status": "passed",
+        "annotator_count": 4,
+        "interval_counts": [
+          605,
+          605,
+          605,
+          605
+        ],
+        "total_intervals": 2420
+      },
+      "strict_jams": {
+        "status": "passed",
+        "duration_source": "unchanged file_metadata.duration",
+        "annotator_count": 4,
+        "interval_counts": [
+          605,
+          605,
+          605,
+          605
+        ]
+      },
+      "source_bytes_unchanged_after_import": true
+    },
+    {
+      "source_path": "jams/1012.jams",
+      "source_url": "https://github.com/chordify/CASD/blob/f9f8f7d4542f7cd75c0c29fe867da89f350ea7b1/jams/1012.jams",
+      "source_bytes": 384339,
+      "source_sha256": "e4c38256b29312eb025bcfb70773e501076063e0888ad686e6e8942c1faf6f1a",
+      "source_git_blob_sha1": "5195f97da81290a14ff72ba9c330f07c14feeb71",
+      "source_git_blob_verified": true,
+      "metadata_duration_seconds": 291.6,
+      "metadata_duration_is_finite_positive": true,
+      "namespace_counts": {
+        "chord": 4
+      },
+      "annotators": [
+        {
+          "original_annotation_index": 0,
+          "original_annotator": {
+            "instrument": "Guitar",
+            "id": "A1"
+          },
+          "annotation_time": 0,
+          "annotation_duration": 291.6,
+          "interval_count": 617,
+          "original_interval_count": 617,
+          "first_start": 0.0,
+          "last_end": 291.6,
+          "tail_difference_from_metadata_seconds": 0.0,
+          "first_gap_or_overlap_examples": [],
+          "gap_or_overlap_count_at_1e_minus_5_seconds": 0
+        },
+        {
+          "original_annotation_index": 1,
+          "original_annotator": {
+            "instrument": "Guitar",
+            "id": "A2"
+          },
+          "annotation_time": 0,
+          "annotation_duration": 291.6,
+          "interval_count": 617,
+          "original_interval_count": 617,
+          "first_start": 0.0,
+          "last_end": 291.6,
+          "tail_difference_from_metadata_seconds": 0.0,
+          "first_gap_or_overlap_examples": [],
+          "gap_or_overlap_count_at_1e_minus_5_seconds": 0
+        },
+        {
+          "original_annotation_index": 2,
+          "original_annotator": {
+            "instrument": "Piano",
+            "id": "A3"
+          },
+          "annotation_time": 0,
+          "annotation_duration": 291.6,
+          "interval_count": 617,
+          "original_interval_count": 617,
+          "first_start": 0.0,
+          "last_end": 291.6,
+          "tail_difference_from_metadata_seconds": 0.0,
+          "first_gap_or_overlap_examples": [],
+          "gap_or_overlap_count_at_1e_minus_5_seconds": 0
+        },
+        {
+          "original_annotation_index": 3,
+          "original_annotator": {
+            "instrument": "Piano",
+            "id": "A4"
+          },
+          "annotation_time": 0,
+          "annotation_duration": 291.6,
+          "interval_count": 617,
+          "original_interval_count": 617,
+          "first_start": 0.0,
+          "last_end": 291.6,
+          "tail_difference_from_metadata_seconds": 0.0,
+          "first_gap_or_overlap_examples": [],
+          "gap_or_overlap_count_at_1e_minus_5_seconds": 0
+        }
+      ],
+      "extract_casd": {
+        "status": "passed",
+        "annotator_count": 4,
+        "interval_counts": [
+          617,
+          617,
+          617,
+          617
+        ],
+        "total_intervals": 2468
+      },
+      "strict_jams": {
+        "status": "passed",
+        "duration_source": "unchanged file_metadata.duration",
+        "annotator_count": 4,
+        "interval_counts": [
+          617,
+          617,
+          617,
+          617
+        ]
+      },
+      "source_bytes_unchanged_after_import": true
+    }
+  ],
+  "audio_downloaded": false,
+  "audio_recording_identity_verified": false,
+  "recording_audio_hash_created": false,
+  "annotation_accuracy_measured": false,
+  "model_inference_run": false,
+  "source_annotations_modified": false,
+  "repository_code_or_documents_modified": false,
+  "summary": {
+    "source_file_count": 3,
+    "extract_casd_passed": 3,
+    "strict_jams_passed": 3,
+    "annotator_groups": 12,
+    "imported_intervals": 6704,
+    "timing_or_coverage_errors_observed": false
+  },
+  "harte_label_semantics_validated": false,
+  "importer_code_revision": "0b29d98dca01ed29c4ee528b9a0bb9ff4aecb6b9",
+  "importer_source_files": [
+    {
+      "path": "scripts/import_casd_annotations.py",
+      "sha256": "fd56de57a045cdb13d2142be389b857806c94691b319e8c3f002eef798ae9875"
+    },
+    {
+      "path": "scripts/import_chord_reference.py",
+      "sha256": "6fc4274844041885451662d551418769c37b83e5e0691e404fa9815e9a5bce9a"
+    }
+  ]
+}

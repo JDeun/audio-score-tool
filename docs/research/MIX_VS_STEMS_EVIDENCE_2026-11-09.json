@@ -1,0 +1,2848 @@
+{
+  "actions_checkout_sha": "1c06610de5ec2742c6b97572b9df20a309329502",
+  "amt_checkpoint_proofs": {
+    "mr_mt3": {
+      "checkpoint_bytes": 183672643,
+      "checkpoint_sha256": "b8a3807ed265059abd25ad7f68142c06c35e8f6144dcaa45bd55946a3745398f",
+      "checkpoint_sha256_verified": true,
+      "immutable_revision_requested": true,
+      "model": "mr_mt3",
+      "model_checkpoint_deserialized": false,
+      "model_redistribution_approved": false,
+      "redistribution_status": "pending",
+      "release_catalog_modified": false,
+      "schema_version": "1",
+      "upstream_repository": "gudgud1014/MR-MT3",
+      "upstream_revision": "7bd24c3e1dc26468a6a9354c0a4f174405c9bad8",
+      "upstream_source_url": "https://huggingface.co/gudgud1014/MR-MT3/resolve/7bd24c3e1dc26468a6a9354c0a4f174405c9bad8/mt3.pth"
+    },
+    "yourmt3": {
+      "checkpoint_bytes": 561544628,
+      "checkpoint_deserialized": false,
+      "checkpoint_sha256": "ae38e415c79efd5592dcb9b658cdb99ddb11d4c4e1eaa364cab04a052473fc25",
+      "checkpoint_sha256_verified": true,
+      "immutable_revision_requested": true,
+      "license_review": "source/checkpoint/runtime redistribution rights pending",
+      "model": "yourmt3",
+      "model_redistribution_approved": false,
+      "model_variant": "YPTF.MoE+Multi (noPS)",
+      "redistribution_status": "pending",
+      "release_catalog_modified": false,
+      "schema_version": "1",
+      "upstream_repository": "mimbres/YourMT3",
+      "upstream_repository_type": "space",
+      "upstream_revision": "5e66c1ea173a8186e0d20432b841d3180cc015b5",
+      "upstream_source_url": "https://huggingface.co/spaces/mimbres/YourMT3/resolve/5e66c1ea173a8186e0d20432b841d3180cc015b5/amt/logs/2024/mc13_256_g4_all_v7_mt3f_sqr_rms_moe_wf4_n8k2_silu_rope_rp_b36_nops/checkpoints/last.ckpt"
+    }
+  },
+  "artifacts": {
+    "mr_mt3": {
+      "aggregate_file_sha256": "5941f6650c8eaf719e674b3bb42793a9d4395875b2db75ba15c75253ae4d119f",
+      "id": 13658809102,
+      "url": "https://github.com/JDeun/audio-score-tool/actions/runs/42584934707/artifacts/13658809102",
+      "zip_sha256": "5c8f5a5e564f0a93ad47b7a60a47c64e6fc51c5c3e00e2298d9197b450e81626"
+    },
+    "yourmt3": {
+      "aggregate_file_sha256": "be035893e5b1e1455d236a1b86dc151f7b3b7b8e7e036b07d0c268b57cfdc880",
+      "id": 13659648656,
+      "url": "https://github.com/JDeun/audio-score-tool/actions/runs/42584934707/artifacts/13659648656",
+      "zip_sha256": "143c0e14056c3bf1fa6fa924aade7667796184586c8a14a59d446d82f410a57e"
+    }
+  },
+  "date": "2026-11-09",
+  "local_review": {
+    "artifact_zip_digests_verified": true,
+    "case_reports_reaggregated_and_equal": true,
+    "cross_model_pcm_difference_measured": false,
+    "cross_model_separated_wav_byte_identical": false,
+    "cross_model_separated_wav_hash_differences": 24,
+    "cross_model_separator_identity_equal": true,
+    "per_stem_input_output_hashes_linked": true,
+    "raw_midi_events_rescored_locally": false,
+    "same_original_audio_and_reference_across_models": true,
+    "source_proof_hashes_recomputed": true
+  },
+  "model_redistribution_approved": false,
+  "original_aggregate_reports": {
+    "mr_mt3": {
+      "all_cases_complete": true,
+      "all_samples_in_train_split": true,
+      "cases": [
+        {
+          "audio_sha256": "0870c900011e455fae7f2d481a8694f2331e0ead88b16edb99c8a846aa374c89",
+          "both_scored": true,
+          "direct_mix": {
+            "audio_sha256": "0870c900011e455fae7f2d481a8694f2331e0ead88b16edb99c8a846aa374c89",
+            "empty_prediction": false,
+            "inference_seconds": 27.475483,
+            "metrics": {
+              "floating_point_epsilon_seconds": 1e-12,
+              "instrument_identity": "pitched_gm_program_or_percussion",
+              "instrument_onset_offset": {
+                "f1": 0.11009174311926606,
+                "matched": 12,
+                "precision": 0.09302325581395349,
+                "recall": 0.1348314606741573
+              },
+              "method": "maximum_bipartite_one_to_one_note_events_v1",
+              "offset_minimum_tolerance_seconds": 0.05,
+              "offset_reference_duration_ratio": 0.2,
+              "onset": {
+                "f1": 0.6055045871559633,
+                "matched": 66,
+                "precision": 0.5116279069767442,
+                "recall": 0.7415730337078652
+              },
+              "onset_offset": {
+                "f1": 0.4036697247706422,
+                "matched": 44,
+                "precision": 0.34108527131782945,
+                "recall": 0.4943820224719101
+              },
+              "onset_tolerance_seconds": 0.05,
+              "predicted_note_count": 129,
+              "reference_note_count": 89
+            },
+            "predicted_note_count": 129,
+            "prediction_midi_sha256": "ae55c24928c609444627820c867b268913b1fa9a3e4bb55347dc7dc2e1d1e870",
+            "status": "scored"
+          },
+          "estimated_stems": {
+            "inference_seconds": 73.334271,
+            "metrics": {
+              "floating_point_epsilon_seconds": 1e-12,
+              "instrument_identity": "pitched_gm_program_or_percussion",
+              "instrument_onset_offset": {
+                "f1": 0.07518796992481203,
+                "matched": 10,
+                "precision": 0.05649717514124294,
+                "recall": 0.11235955056179775
+              },
+              "method": "maximum_bipartite_one_to_one_note_events_v1",
+              "offset_minimum_tolerance_seconds": 0.05,
+              "offset_reference_duration_ratio": 0.2,
+              "onset": {
+                "f1": 0.5263157894736842,
+                "matched": 70,
+                "precision": 0.3954802259887006,
+                "recall": 0.7865168539325843
+              },
+              "onset_offset": {
+                "f1": 0.3082706766917293,
+                "matched": 41,
+                "precision": 0.23163841807909605,
+                "recall": 0.4606741573033708
+              },
+              "onset_tolerance_seconds": 0.05,
+              "predicted_note_count": 177,
+              "reference_note_count": 89
+            },
+            "predicted_note_count": 177,
+            "separation": {
+              "bitwise_determinism_claimed": false,
+              "checkpoint": {
+                "bytes": 54996327,
+                "cached_before_run": true,
+                "filename": "5c90dfd2-34c22ccb.th",
+                "inventory_scope": "selected_model_signature_only",
+                "official_full_sha256_available": false,
+                "official_sha256_prefix": "34c22ccb",
+                "prefix_verified": true,
+                "sha256": "34c22ccb381c6f9fdbf324f04e1e2fe21aaaf293f5ded163a162697ff9a02ddd",
+                "source_url": "https://dl.fbaipublicfiles.com/demucs/hybrid_transformer/5c90dfd2-34c22ccb.th"
+              },
+              "cuda_rng_seeded": false,
+              "demucs_version": "4.0.1",
+              "device": "cpu",
+              "duration_tolerance_output_samples": 1,
+              "elapsed_scope": "demucs_cli_including_model_load",
+              "elapsed_seconds": 10.43329,
+              "identity": {
+                "checkpoint_sha256": "34c22ccb381c6f9fdbf324f04e1e2fe21aaaf293f5ded163a162697ff9a02ddd",
+                "demucs_version": "4.0.1",
+                "device": "cpu",
+                "model": "htdemucs_6s",
+                "model_yaml_sha256": "207405151270af8fd81c2373c25d27950916682ac91dca7884a11ce13dad6f58",
+                "options": {
+                  "bits_per_sample": 16,
+                  "clip_mode": "rescale",
+                  "filename": "{track}/{stem}.{ext}",
+                  "jobs": 0,
+                  "overlap": 0.25,
+                  "sample_format": "PCM_S",
+                  "segment": null,
+                  "shifts": 1,
+                  "split": true,
+                  "two_stems": null
+                },
+                "runtime": {
+                  "numpy": "2.4.6",
+                  "python": "3.11.18",
+                  "torch": "2.7.1+cpu",
+                  "torchaudio": "2.7.1+cpu"
+                },
+                "seed": 0
+              },
+              "input": {
+                "bytes": 800940,
+                "channels": 1,
+                "duration_seconds": 25.028,
+                "frames": 400448,
+                "sample_rate": 16000,
+                "sample_width_bytes": 2,
+                "sha256": "0870c900011e455fae7f2d481a8694f2331e0ead88b16edb99c8a846aa374c89"
+              },
+              "model": "htdemucs_6s",
+              "options": {
+                "bits_per_sample": 16,
+                "clip_mode": "rescale",
+                "filename": "{track}/{stem}.{ext}",
+                "jobs": 0,
+                "overlap": 0.25,
+                "sample_format": "PCM_S",
+                "segment": null,
+                "shifts": 1,
+                "split": true,
+                "two_stems": null
+              },
+              "package_model": {
+                "manifest_sha256": "7258eee911e5963e6270983d7072832e90e1ed96b25bb26aadf12f9867109bf9",
+                "reference_source_revision": "ef66d254cd6d558e207eeff2c4b8d053db2e77dd",
+                "signature": "5c90dfd2",
+                "yaml_sha256": "207405151270af8fd81c2373c25d27950916682ac91dca7884a11ce13dad6f58",
+                "yaml_text": "models: ['5c90dfd2']\n"
+              },
+              "purpose": "private-demucs-separation-ablation",
+              "rng_seeded": [
+                "python_random",
+                "numpy",
+                "torch"
+              ],
+              "runtime": {
+                "numpy": "2.4.6",
+                "python": "3.11.18",
+                "torch": "2.7.1+cpu",
+                "torchaudio": "2.7.1+cpu"
+              },
+              "schema_version": 1,
+              "seed": 0,
+              "source_media_published": false,
+              "stems": {
+                "bass": {
+                  "bytes": 4415018,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.2,
+                  "duration_seconds": 25.028004535147392,
+                  "frames": 1103735,
+                  "relative_path": "htdemucs_6s/mix/bass.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "3f0cff14e3f98b677aa1cc1edde2baeedb5cd3941ebac7f76aa70daa3fbf74a3"
+                },
+                "drums": {
+                  "bytes": 4415018,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.2,
+                  "duration_seconds": 25.028004535147392,
+                  "frames": 1103735,
+                  "relative_path": "htdemucs_6s/mix/drums.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "c745504036567a506f53eb26449fd8fce51dda65b09aba9ebd962cb9629233dc"
+                },
+                "guitar": {
+                  "bytes": 4415018,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.2,
+                  "duration_seconds": 25.028004535147392,
+                  "frames": 1103735,
+                  "relative_path": "htdemucs_6s/mix/guitar.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "dd8df23f25944d27fac245f4def3c52c5765ef864d9b33d63d6f606a0b08b011"
+                },
+                "other": {
+                  "bytes": 4415018,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.2,
+                  "duration_seconds": 25.028004535147392,
+                  "frames": 1103735,
+                  "relative_path": "htdemucs_6s/mix/other.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "3acedfc50f28f2627f931dc07932c999887716ff28ad3eb286da48e574f4e022"
+                },
+                "piano": {
+                  "bytes": 4415018,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.2,
+                  "duration_seconds": 25.028004535147392,
+                  "frames": 1103735,
+                  "relative_path": "htdemucs_6s/mix/piano.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "7c140d35048ef2dbd58213287d69d5d17ecd6d0e4780471cb2ffa648d7433011"
+                },
+                "vocals": {
+                  "bytes": 4415018,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.2,
+                  "duration_seconds": 25.028004535147392,
+                  "frames": 1103735,
+                  "relative_path": "htdemucs_6s/mix/vocals.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "aeb8179feb587f4c6519c0b0a4a0811d05b7b0ce5a3ebe9c1ad362767bfcbd41"
+                }
+              },
+              "torch_load_environment": {
+                "force_no_weights_only": null,
+                "force_weights_only": null,
+                "modified_by_runner": false
+              }
+            },
+            "status": "scored",
+            "stems": {
+              "bass": {
+                "audio_sha256": "3f0cff14e3f98b677aa1cc1edde2baeedb5cd3941ebac7f76aa70daa3fbf74a3",
+                "empty_prediction": false,
+                "inference_seconds": 11.086494,
+                "predicted_note_count": 14,
+                "prediction_midi_sha256": "f5d469fb54cf58a357823aa4d09dac434f1b6c7af44666c438190a7bf18e24ff",
+                "status": "scored"
+              },
+              "drums": {
+                "audio_sha256": "c745504036567a506f53eb26449fd8fce51dda65b09aba9ebd962cb9629233dc",
+                "empty_prediction": true,
+                "inference_seconds": 5.224597,
+                "predicted_note_count": 0,
+                "prediction_midi_sha256": "38df09dd14db5d3efea23fa68d4a20fcf5f596ce084a93101ab9779b707f3759",
+                "status": "scored"
+              },
+              "guitar": {
+                "audio_sha256": "dd8df23f25944d27fac245f4def3c52c5765ef864d9b33d63d6f606a0b08b011",
+                "empty_prediction": false,
+                "inference_seconds": 6.12535,
+                "predicted_note_count": 3,
+                "prediction_midi_sha256": "efc55191952c17501d3084ce18be2e7ae414973c86ec09c92cbbfb2af9bcb86e",
+                "status": "scored"
+              },
+              "other": {
+                "audio_sha256": "3acedfc50f28f2627f931dc07932c999887716ff28ad3eb286da48e574f4e022",
+                "empty_prediction": false,
+                "inference_seconds": 24.81691,
+                "predicted_note_count": 119,
+                "prediction_midi_sha256": "388b04880fb607dea2c6684c4905b61e40e7596fb2317bce9689fd9e933e6f41",
+                "status": "scored"
+              },
+              "piano": {
+                "audio_sha256": "7c140d35048ef2dbd58213287d69d5d17ecd6d0e4780471cb2ffa648d7433011",
+                "empty_prediction": false,
+                "inference_seconds": 13.541526,
+                "predicted_note_count": 34,
+                "prediction_midi_sha256": "f7bac8a90df71ecc874519e008348911555d5056fb5984ff389ee9f95f33a761",
+                "status": "scored"
+              },
+              "vocals": {
+                "audio_sha256": "aeb8179feb587f4c6519c0b0a4a0811d05b7b0ce5a3ebe9c1ad362767bfcbd41",
+                "empty_prediction": false,
+                "inference_seconds": 12.539394,
+                "predicted_note_count": 7,
+                "prediction_midi_sha256": "98394a9eae839b0a155b7088b03195af2bbc870a4cde37236b4f21235d9976f6",
+                "status": "scored"
+              }
+            }
+          },
+          "paired_fingerprint": "15a67336c1eb9fb2fdfad813e534fd68ac666c41a6209954f6f8ad7482cec43a",
+          "reference_midi_sha256": "a288cfede8c5e74a5eaac4010ac150773012e634f3d6a87121b8ccc3c86ba7ca",
+          "reference_note_count": 89,
+          "source_proof_sha256": "a3b11fce146717c3d2ba5fc2cf07caf183cd422026ef87a698cc258cded95bc5",
+          "split": "train",
+          "stems_minus_mix_f1": {
+            "instrument_onset_offset": -0.03490377,
+            "onset": -0.0791888,
+            "onset_offset": -0.09539905
+          },
+          "track_id": "brass_track049013"
+        },
+        {
+          "audio_sha256": "3329f8d7d56d9f0e414a3f6ec9985d8d56df002ddce935b5edf204750ee36af1",
+          "both_scored": true,
+          "direct_mix": {
+            "audio_sha256": "3329f8d7d56d9f0e414a3f6ec9985d8d56df002ddce935b5edf204750ee36af1",
+            "empty_prediction": false,
+            "inference_seconds": 46.115692,
+            "metrics": {
+              "floating_point_epsilon_seconds": 1e-12,
+              "instrument_identity": "pitched_gm_program_or_percussion",
+              "instrument_onset_offset": {
+                "f1": 0.04912280701754386,
+                "matched": 7,
+                "precision": 0.03888888888888889,
+                "recall": 0.06666666666666667
+              },
+              "method": "maximum_bipartite_one_to_one_note_events_v1",
+              "offset_minimum_tolerance_seconds": 0.05,
+              "offset_reference_duration_ratio": 0.2,
+              "onset": {
+                "f1": 0.5754385964912281,
+                "matched": 82,
+                "precision": 0.45555555555555555,
+                "recall": 0.780952380952381
+              },
+              "onset_offset": {
+                "f1": 0.3508771929824561,
+                "matched": 50,
+                "precision": 0.2777777777777778,
+                "recall": 0.47619047619047616
+              },
+              "onset_tolerance_seconds": 0.05,
+              "predicted_note_count": 180,
+              "reference_note_count": 105
+            },
+            "predicted_note_count": 180,
+            "prediction_midi_sha256": "29cac0b25029db4b178a0483eeb167672c895e56c0541d224a267273a65dd01f",
+            "status": "scored"
+          },
+          "estimated_stems": {
+            "inference_seconds": 99.267656,
+            "metrics": {
+              "floating_point_epsilon_seconds": 1e-12,
+              "instrument_identity": "pitched_gm_program_or_percussion",
+              "instrument_onset_offset": {
+                "f1": 0.01729106628242075,
+                "matched": 3,
+                "precision": 0.012396694214876033,
+                "recall": 0.02857142857142857
+              },
+              "method": "maximum_bipartite_one_to_one_note_events_v1",
+              "offset_minimum_tolerance_seconds": 0.05,
+              "offset_reference_duration_ratio": 0.2,
+              "onset": {
+                "f1": 0.4553314121037464,
+                "matched": 79,
+                "precision": 0.32644628099173556,
+                "recall": 0.7523809523809524
+              },
+              "onset_offset": {
+                "f1": 0.30547550432276654,
+                "matched": 53,
+                "precision": 0.2190082644628099,
+                "recall": 0.5047619047619047
+              },
+              "onset_tolerance_seconds": 0.05,
+              "predicted_note_count": 242,
+              "reference_note_count": 105
+            },
+            "predicted_note_count": 242,
+            "separation": {
+              "bitwise_determinism_claimed": false,
+              "checkpoint": {
+                "bytes": 54996327,
+                "cached_before_run": true,
+                "filename": "5c90dfd2-34c22ccb.th",
+                "inventory_scope": "selected_model_signature_only",
+                "official_full_sha256_available": false,
+                "official_sha256_prefix": "34c22ccb",
+                "prefix_verified": true,
+                "sha256": "34c22ccb381c6f9fdbf324f04e1e2fe21aaaf293f5ded163a162697ff9a02ddd",
+                "source_url": "https://dl.fbaipublicfiles.com/demucs/hybrid_transformer/5c90dfd2-34c22ccb.th"
+              },
+              "cuda_rng_seeded": false,
+              "demucs_version": "4.0.1",
+              "device": "cpu",
+              "duration_tolerance_output_samples": 1,
+              "elapsed_scope": "demucs_cli_including_model_load",
+              "elapsed_seconds": 9.951857,
+              "identity": {
+                "checkpoint_sha256": "34c22ccb381c6f9fdbf324f04e1e2fe21aaaf293f5ded163a162697ff9a02ddd",
+                "demucs_version": "4.0.1",
+                "device": "cpu",
+                "model": "htdemucs_6s",
+                "model_yaml_sha256": "207405151270af8fd81c2373c25d27950916682ac91dca7884a11ce13dad6f58",
+                "options": {
+                  "bits_per_sample": 16,
+                  "clip_mode": "rescale",
+                  "filename": "{track}/{stem}.{ext}",
+                  "jobs": 0,
+                  "overlap": 0.25,
+                  "sample_format": "PCM_S",
+                  "segment": null,
+                  "shifts": 1,
+                  "split": true,
+                  "two_stems": null
+                },
+                "runtime": {
+                  "numpy": "2.4.6",
+                  "python": "3.11.18",
+                  "torch": "2.7.1+cpu",
+                  "torchaudio": "2.7.1+cpu"
+                },
+                "seed": 0
+              },
+              "input": {
+                "bytes": 829484,
+                "channels": 1,
+                "duration_seconds": 25.92,
+                "frames": 414720,
+                "sample_rate": 16000,
+                "sample_width_bytes": 2,
+                "sha256": "3329f8d7d56d9f0e414a3f6ec9985d8d56df002ddce935b5edf204750ee36af1"
+              },
+              "model": "htdemucs_6s",
+              "options": {
+                "bits_per_sample": 16,
+                "clip_mode": "rescale",
+                "filename": "{track}/{stem}.{ext}",
+                "jobs": 0,
+                "overlap": 0.25,
+                "sample_format": "PCM_S",
+                "segment": null,
+                "shifts": 1,
+                "split": true,
+                "two_stems": null
+              },
+              "package_model": {
+                "manifest_sha256": "7258eee911e5963e6270983d7072832e90e1ed96b25bb26aadf12f9867109bf9",
+                "reference_source_revision": "ef66d254cd6d558e207eeff2c4b8d053db2e77dd",
+                "signature": "5c90dfd2",
+                "yaml_sha256": "207405151270af8fd81c2373c25d27950916682ac91dca7884a11ce13dad6f58",
+                "yaml_text": "models: ['5c90dfd2']\n"
+              },
+              "purpose": "private-demucs-separation-ablation",
+              "rng_seeded": [
+                "python_random",
+                "numpy",
+                "torch"
+              ],
+              "runtime": {
+                "numpy": "2.4.6",
+                "python": "3.11.18",
+                "torch": "2.7.1+cpu",
+                "torchaudio": "2.7.1+cpu"
+              },
+              "schema_version": 1,
+              "seed": 0,
+              "source_media_published": false,
+              "stems": {
+                "bass": {
+                  "bytes": 4572366,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 25.92,
+                  "frames": 1143072,
+                  "relative_path": "htdemucs_6s/mix/bass.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "dcaa104b4ca1d3329adaf6cfdc919a2a166ddcb123e83c021b3b0388399436e4"
+                },
+                "drums": {
+                  "bytes": 4572366,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 25.92,
+                  "frames": 1143072,
+                  "relative_path": "htdemucs_6s/mix/drums.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "c911d88d192a0f6d807bd95ee23ff1b482bc6ad25f6a7af028bc04b55dbab5f9"
+                },
+                "guitar": {
+                  "bytes": 4572366,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 25.92,
+                  "frames": 1143072,
+                  "relative_path": "htdemucs_6s/mix/guitar.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "2c582675629219386bb0581deafbce72e160ca69c1b8aec7c2c6a56687892984"
+                },
+                "other": {
+                  "bytes": 4572366,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 25.92,
+                  "frames": 1143072,
+                  "relative_path": "htdemucs_6s/mix/other.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "853a07b66f09bb813ecbd7df7866cda6c52bc1844fbbc233f4f8d7156afa5f05"
+                },
+                "piano": {
+                  "bytes": 4572366,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 25.92,
+                  "frames": 1143072,
+                  "relative_path": "htdemucs_6s/mix/piano.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "be0d8e42c1e3420eda18757ab8cdda5485143a48e44936903d06db38daae45b9"
+                },
+                "vocals": {
+                  "bytes": 4572366,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 25.92,
+                  "frames": 1143072,
+                  "relative_path": "htdemucs_6s/mix/vocals.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "5675e06a9d7c8ef10486022085552f6d13a2d1dda1adae189fa52f0e8aaf277e"
+                }
+              },
+              "torch_load_environment": {
+                "force_no_weights_only": null,
+                "force_weights_only": null,
+                "modified_by_runner": false
+              }
+            },
+            "status": "scored",
+            "stems": {
+              "bass": {
+                "audio_sha256": "dcaa104b4ca1d3329adaf6cfdc919a2a166ddcb123e83c021b3b0388399436e4",
+                "empty_prediction": false,
+                "inference_seconds": 7.781802,
+                "predicted_note_count": 3,
+                "prediction_midi_sha256": "87a28d9b19966e5be82cd8c3310965908d4f32f26a588a8539cc99be063efa4a",
+                "status": "scored"
+              },
+              "drums": {
+                "audio_sha256": "c911d88d192a0f6d807bd95ee23ff1b482bc6ad25f6a7af028bc04b55dbab5f9",
+                "empty_prediction": true,
+                "inference_seconds": 5.074654,
+                "predicted_note_count": 0,
+                "prediction_midi_sha256": "38df09dd14db5d3efea23fa68d4a20fcf5f596ce084a93101ab9779b707f3759",
+                "status": "scored"
+              },
+              "guitar": {
+                "audio_sha256": "2c582675629219386bb0581deafbce72e160ca69c1b8aec7c2c6a56687892984",
+                "empty_prediction": false,
+                "inference_seconds": 12.693022,
+                "predicted_note_count": 30,
+                "prediction_midi_sha256": "de159e256fe52a8c6652733d464f146cde7d529a15b80ec677ab754cfb64bff7",
+                "status": "scored"
+              },
+              "other": {
+                "audio_sha256": "853a07b66f09bb813ecbd7df7866cda6c52bc1844fbbc233f4f8d7156afa5f05",
+                "empty_prediction": false,
+                "inference_seconds": 41.015192,
+                "predicted_note_count": 172,
+                "prediction_midi_sha256": "53e192d4813aa98ea99c709200a0c7338b694572dff023176add8420667b478d",
+                "status": "scored"
+              },
+              "piano": {
+                "audio_sha256": "be0d8e42c1e3420eda18757ab8cdda5485143a48e44936903d06db38daae45b9",
+                "empty_prediction": false,
+                "inference_seconds": 7.430622,
+                "predicted_note_count": 7,
+                "prediction_midi_sha256": "44c50ad42bdd238e1f5354f75633483d84615d0a038010186753a3c5fccdcc52",
+                "status": "scored"
+              },
+              "vocals": {
+                "audio_sha256": "5675e06a9d7c8ef10486022085552f6d13a2d1dda1adae189fa52f0e8aaf277e",
+                "empty_prediction": false,
+                "inference_seconds": 25.272364,
+                "predicted_note_count": 30,
+                "prediction_midi_sha256": "fed1f9ffd2cbd765ffa581048e59860ebd1ab2eca387b644001915a8ad910489",
+                "status": "scored"
+              }
+            }
+          },
+          "paired_fingerprint": "a2b7c0888415f7a72ac67a98f170bc225d846ec301de9fc2592f896b830d627b",
+          "reference_midi_sha256": "61519652ae44c3e1328470e4253e94336e91fb0006875ee157622a5c26dbf788",
+          "reference_note_count": 105,
+          "source_proof_sha256": "96cc0f6a661659deb2e7c3f9c3d0b68a1bf4d50b6e2eed8a5013e6a119e2d506",
+          "split": "train",
+          "stems_minus_mix_f1": {
+            "instrument_onset_offset": -0.03183174,
+            "onset": -0.12010718,
+            "onset_offset": -0.04540169
+          },
+          "track_id": "random_track145011"
+        },
+        {
+          "audio_sha256": "cd9dd7d76185cdceed85155b77ca0292061f8752eb3b0e4f3942439f99fc9519",
+          "both_scored": true,
+          "direct_mix": {
+            "audio_sha256": "cd9dd7d76185cdceed85155b77ca0292061f8752eb3b0e4f3942439f99fc9519",
+            "empty_prediction": false,
+            "inference_seconds": 29.527875,
+            "metrics": {
+              "floating_point_epsilon_seconds": 1e-12,
+              "instrument_identity": "pitched_gm_program_or_percussion",
+              "instrument_onset_offset": {
+                "f1": 0.5213675213675214,
+                "matched": 61,
+                "precision": 0.488,
+                "recall": 0.5596330275229358
+              },
+              "method": "maximum_bipartite_one_to_one_note_events_v1",
+              "offset_minimum_tolerance_seconds": 0.05,
+              "offset_reference_duration_ratio": 0.2,
+              "onset": {
+                "f1": 0.7521367521367521,
+                "matched": 88,
+                "precision": 0.704,
+                "recall": 0.8073394495412844
+              },
+              "onset_offset": {
+                "f1": 0.5897435897435898,
+                "matched": 69,
+                "precision": 0.552,
+                "recall": 0.6330275229357798
+              },
+              "onset_tolerance_seconds": 0.05,
+              "predicted_note_count": 125,
+              "reference_note_count": 109
+            },
+            "predicted_note_count": 125,
+            "prediction_midi_sha256": "5e39b77fe4372f9295918ed28ec292ec7b03585d9564521dd82014bf7237c5dc",
+            "status": "scored"
+          },
+          "estimated_stems": {
+            "inference_seconds": 365.919528,
+            "metrics": {
+              "floating_point_epsilon_seconds": 1e-12,
+              "instrument_identity": "pitched_gm_program_or_percussion",
+              "instrument_onset_offset": {
+                "f1": 0.1951219512195122,
+                "matched": 40,
+                "precision": 0.132890365448505,
+                "recall": 0.3669724770642202
+              },
+              "method": "maximum_bipartite_one_to_one_note_events_v1",
+              "offset_minimum_tolerance_seconds": 0.05,
+              "offset_reference_duration_ratio": 0.2,
+              "onset": {
+                "f1": 0.4195121951219512,
+                "matched": 86,
+                "precision": 0.2857142857142857,
+                "recall": 0.7889908256880734
+              },
+              "onset_offset": {
+                "f1": 0.28292682926829266,
+                "matched": 58,
+                "precision": 0.19269102990033224,
+                "recall": 0.5321100917431193
+              },
+              "onset_tolerance_seconds": 0.05,
+              "predicted_note_count": 301,
+              "reference_note_count": 109
+            },
+            "predicted_note_count": 301,
+            "separation": {
+              "bitwise_determinism_claimed": false,
+              "checkpoint": {
+                "bytes": 54996327,
+                "cached_before_run": false,
+                "filename": "5c90dfd2-34c22ccb.th",
+                "inventory_scope": "selected_model_signature_only",
+                "official_full_sha256_available": false,
+                "official_sha256_prefix": "34c22ccb",
+                "prefix_verified": true,
+                "sha256": "34c22ccb381c6f9fdbf324f04e1e2fe21aaaf293f5ded163a162697ff9a02ddd",
+                "source_url": "https://dl.fbaipublicfiles.com/demucs/hybrid_transformer/5c90dfd2-34c22ccb.th"
+              },
+              "cuda_rng_seeded": false,
+              "demucs_version": "4.0.1",
+              "device": "cpu",
+              "duration_tolerance_output_samples": 1,
+              "elapsed_scope": "demucs_cli_including_model_load",
+              "elapsed_seconds": 11.648902,
+              "identity": {
+                "checkpoint_sha256": "34c22ccb381c6f9fdbf324f04e1e2fe21aaaf293f5ded163a162697ff9a02ddd",
+                "demucs_version": "4.0.1",
+                "device": "cpu",
+                "model": "htdemucs_6s",
+                "model_yaml_sha256": "207405151270af8fd81c2373c25d27950916682ac91dca7884a11ce13dad6f58",
+                "options": {
+                  "bits_per_sample": 16,
+                  "clip_mode": "rescale",
+                  "filename": "{track}/{stem}.{ext}",
+                  "jobs": 0,
+                  "overlap": 0.25,
+                  "sample_format": "PCM_S",
+                  "segment": null,
+                  "shifts": 1,
+                  "split": true,
+                  "two_stems": null
+                },
+                "runtime": {
+                  "numpy": "2.4.6",
+                  "python": "3.11.18",
+                  "torch": "2.7.1+cpu",
+                  "torchaudio": "2.7.1+cpu"
+                },
+                "seed": 0
+              },
+              "input": {
+                "bytes": 992684,
+                "channels": 1,
+                "duration_seconds": 31.02,
+                "frames": 496320,
+                "sample_rate": 16000,
+                "sample_width_bytes": 2,
+                "sha256": "cd9dd7d76185cdceed85155b77ca0292061f8752eb3b0e4f3942439f99fc9519"
+              },
+              "model": "htdemucs_6s",
+              "options": {
+                "bits_per_sample": 16,
+                "clip_mode": "rescale",
+                "filename": "{track}/{stem}.{ext}",
+                "jobs": 0,
+                "overlap": 0.25,
+                "sample_format": "PCM_S",
+                "segment": null,
+                "shifts": 1,
+                "split": true,
+                "two_stems": null
+              },
+              "package_model": {
+                "manifest_sha256": "7258eee911e5963e6270983d7072832e90e1ed96b25bb26aadf12f9867109bf9",
+                "reference_source_revision": "ef66d254cd6d558e207eeff2c4b8d053db2e77dd",
+                "signature": "5c90dfd2",
+                "yaml_sha256": "207405151270af8fd81c2373c25d27950916682ac91dca7884a11ce13dad6f58",
+                "yaml_text": "models: ['5c90dfd2']\n"
+              },
+              "purpose": "private-demucs-separation-ablation",
+              "rng_seeded": [
+                "python_random",
+                "numpy",
+                "torch"
+              ],
+              "runtime": {
+                "numpy": "2.4.6",
+                "python": "3.11.18",
+                "torch": "2.7.1+cpu",
+                "torchaudio": "2.7.1+cpu"
+              },
+              "schema_version": 1,
+              "seed": 0,
+              "source_media_published": false,
+              "stems": {
+                "bass": {
+                  "bytes": 5472006,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 31.02,
+                  "frames": 1367982,
+                  "relative_path": "htdemucs_6s/mix/bass.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "281b1ad2427b31574fa87217254fa29c262ccc1ad237c697a90c414c2459858f"
+                },
+                "drums": {
+                  "bytes": 5472006,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 31.02,
+                  "frames": 1367982,
+                  "relative_path": "htdemucs_6s/mix/drums.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "ba4fd9708399215fa650fdf8c956333fde753cfae66ca18fb2f1a24fdf58b5e7"
+                },
+                "guitar": {
+                  "bytes": 5472006,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 31.02,
+                  "frames": 1367982,
+                  "relative_path": "htdemucs_6s/mix/guitar.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "f96418371c800474c10af3c06aa44203eb4247a172029d27375d46f480e91025"
+                },
+                "other": {
+                  "bytes": 5472006,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 31.02,
+                  "frames": 1367982,
+                  "relative_path": "htdemucs_6s/mix/other.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "8ff869f2c74d479a39ea30f1ebca49dd3ca86f436271e131b5365affe78abaf1"
+                },
+                "piano": {
+                  "bytes": 5472006,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 31.02,
+                  "frames": 1367982,
+                  "relative_path": "htdemucs_6s/mix/piano.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "440560082a4e1c162c7e31f2cc43d8b381b1f578c30fd14a3a38b78dc713fbba"
+                },
+                "vocals": {
+                  "bytes": 5472006,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 31.02,
+                  "frames": 1367982,
+                  "relative_path": "htdemucs_6s/mix/vocals.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "cee7460d5da0c194e6cdd8fd442e168d982a81f5e522dd0c541bed2b2b360364"
+                }
+              },
+              "torch_load_environment": {
+                "force_no_weights_only": null,
+                "force_weights_only": null,
+                "modified_by_runner": false
+              }
+            },
+            "status": "scored",
+            "stems": {
+              "bass": {
+                "audio_sha256": "281b1ad2427b31574fa87217254fa29c262ccc1ad237c697a90c414c2459858f",
+                "empty_prediction": false,
+                "inference_seconds": 8.931432,
+                "predicted_note_count": 11,
+                "prediction_midi_sha256": "038bfa934dc945f56f8eb9677145c856e5c497f5d5f1a5c2ea99b465399d2592",
+                "status": "scored"
+              },
+              "drums": {
+                "audio_sha256": "ba4fd9708399215fa650fdf8c956333fde753cfae66ca18fb2f1a24fdf58b5e7",
+                "empty_prediction": true,
+                "inference_seconds": 7.478271,
+                "predicted_note_count": 0,
+                "prediction_midi_sha256": "38df09dd14db5d3efea23fa68d4a20fcf5f596ce084a93101ab9779b707f3759",
+                "status": "scored"
+              },
+              "guitar": {
+                "audio_sha256": "f96418371c800474c10af3c06aa44203eb4247a172029d27375d46f480e91025",
+                "empty_prediction": false,
+                "inference_seconds": 7.929408,
+                "predicted_note_count": 2,
+                "prediction_midi_sha256": "14d61aba9880543d52622d3338a74f364391bebe3e10c95658a34cb2cfa22682",
+                "status": "scored"
+              },
+              "other": {
+                "audio_sha256": "8ff869f2c74d479a39ea30f1ebca49dd3ca86f436271e131b5365affe78abaf1",
+                "empty_prediction": false,
+                "inference_seconds": 50.171687,
+                "predicted_note_count": 171,
+                "prediction_midi_sha256": "4a0333861c23d25cdd7424461138c11f3e8c6187b247d5a6e782823ca3f93a8d",
+                "status": "scored"
+              },
+              "piano": {
+                "audio_sha256": "440560082a4e1c162c7e31f2cc43d8b381b1f578c30fd14a3a38b78dc713fbba",
+                "empty_prediction": false,
+                "inference_seconds": 271.05343,
+                "predicted_note_count": 105,
+                "prediction_midi_sha256": "10037ed6b108625bc81d291de600c0aa687f1da1fa52bd50078c4279b0332674",
+                "status": "scored"
+              },
+              "vocals": {
+                "audio_sha256": "cee7460d5da0c194e6cdd8fd442e168d982a81f5e522dd0c541bed2b2b360364",
+                "empty_prediction": false,
+                "inference_seconds": 20.3553,
+                "predicted_note_count": 12,
+                "prediction_midi_sha256": "da611f9e67104e45f7469699aa5bfce8378075740dac918cf8b3119057e898c0",
+                "status": "scored"
+              }
+            }
+          },
+          "paired_fingerprint": "4fbe1b7eea852050d47e7825363d78192e7d3080c20048dfe9aa15f59010122e",
+          "reference_midi_sha256": "6d5f0b8e8d5e6712794d8e3ad8eeec78772b616693eec1e8d1a41c4bca17a0f7",
+          "reference_note_count": 109,
+          "source_proof_sha256": "3b0a5022c5ea57aca8f0da87a3d42f310faf060885fa840749a8ae7ef456369c",
+          "split": "train",
+          "stems_minus_mix_f1": {
+            "instrument_onset_offset": -0.32624557,
+            "onset": -0.33262456,
+            "onset_offset": -0.30681676
+          },
+          "track_id": "string_track001010"
+        },
+        {
+          "audio_sha256": "8973316f18703ec97ae5965e62933cbc44b81a54408df459514dcf52e2c0b851",
+          "both_scored": true,
+          "direct_mix": {
+            "audio_sha256": "8973316f18703ec97ae5965e62933cbc44b81a54408df459514dcf52e2c0b851",
+            "empty_prediction": false,
+            "inference_seconds": 22.363853,
+            "metrics": {
+              "floating_point_epsilon_seconds": 1e-12,
+              "instrument_identity": "pitched_gm_program_or_percussion",
+              "instrument_onset_offset": {
+                "f1": 0.22807017543859648,
+                "matched": 26,
+                "precision": 0.21138211382113822,
+                "recall": 0.24761904761904763
+              },
+              "method": "maximum_bipartite_one_to_one_note_events_v1",
+              "offset_minimum_tolerance_seconds": 0.05,
+              "offset_reference_duration_ratio": 0.2,
+              "onset": {
+                "f1": 0.6754385964912281,
+                "matched": 77,
+                "precision": 0.6260162601626016,
+                "recall": 0.7333333333333333
+              },
+              "onset_offset": {
+                "f1": 0.41228070175438597,
+                "matched": 47,
+                "precision": 0.3821138211382114,
+                "recall": 0.44761904761904764
+              },
+              "onset_tolerance_seconds": 0.05,
+              "predicted_note_count": 123,
+              "reference_note_count": 105
+            },
+            "predicted_note_count": 123,
+            "prediction_midi_sha256": "5cf02317951d502517bad9cb1f9ec98e7473bb828cfd1f8e041c069fa27db954",
+            "status": "scored"
+          },
+          "estimated_stems": {
+            "inference_seconds": 86.3195,
+            "metrics": {
+              "floating_point_epsilon_seconds": 1e-12,
+              "instrument_identity": "pitched_gm_program_or_percussion",
+              "instrument_onset_offset": {
+                "f1": 0.04878048780487805,
+                "matched": 6,
+                "precision": 0.0425531914893617,
+                "recall": 0.05714285714285714
+              },
+              "method": "maximum_bipartite_one_to_one_note_events_v1",
+              "offset_minimum_tolerance_seconds": 0.05,
+              "offset_reference_duration_ratio": 0.2,
+              "onset": {
+                "f1": 0.5121951219512195,
+                "matched": 63,
+                "precision": 0.44680851063829785,
+                "recall": 0.6
+              },
+              "onset_offset": {
+                "f1": 0.2601626016260163,
+                "matched": 32,
+                "precision": 0.22695035460992907,
+                "recall": 0.3047619047619048
+              },
+              "onset_tolerance_seconds": 0.05,
+              "predicted_note_count": 141,
+              "reference_note_count": 105
+            },
+            "predicted_note_count": 141,
+            "separation": {
+              "bitwise_determinism_claimed": false,
+              "checkpoint": {
+                "bytes": 54996327,
+                "cached_before_run": true,
+                "filename": "5c90dfd2-34c22ccb.th",
+                "inventory_scope": "selected_model_signature_only",
+                "official_full_sha256_available": false,
+                "official_sha256_prefix": "34c22ccb",
+                "prefix_verified": true,
+                "sha256": "34c22ccb381c6f9fdbf324f04e1e2fe21aaaf293f5ded163a162697ff9a02ddd",
+                "source_url": "https://dl.fbaipublicfiles.com/demucs/hybrid_transformer/5c90dfd2-34c22ccb.th"
+              },
+              "cuda_rng_seeded": false,
+              "demucs_version": "4.0.1",
+              "device": "cpu",
+              "duration_tolerance_output_samples": 1,
+              "elapsed_scope": "demucs_cli_including_model_load",
+              "elapsed_seconds": 8.754747,
+              "identity": {
+                "checkpoint_sha256": "34c22ccb381c6f9fdbf324f04e1e2fe21aaaf293f5ded163a162697ff9a02ddd",
+                "demucs_version": "4.0.1",
+                "device": "cpu",
+                "model": "htdemucs_6s",
+                "model_yaml_sha256": "207405151270af8fd81c2373c25d27950916682ac91dca7884a11ce13dad6f58",
+                "options": {
+                  "bits_per_sample": 16,
+                  "clip_mode": "rescale",
+                  "filename": "{track}/{stem}.{ext}",
+                  "jobs": 0,
+                  "overlap": 0.25,
+                  "sample_format": "PCM_S",
+                  "segment": null,
+                  "shifts": 1,
+                  "split": true,
+                  "two_stems": null
+                },
+                "runtime": {
+                  "numpy": "2.4.6",
+                  "python": "3.11.18",
+                  "torch": "2.7.1+cpu",
+                  "torchaudio": "2.7.1+cpu"
+                },
+                "seed": 0
+              },
+              "input": {
+                "bytes": 576428,
+                "channels": 1,
+                "duration_seconds": 18.012,
+                "frames": 288192,
+                "sample_rate": 16000,
+                "sample_width_bytes": 2,
+                "sha256": "8973316f18703ec97ae5965e62933cbc44b81a54408df459514dcf52e2c0b851"
+              },
+              "model": "htdemucs_6s",
+              "options": {
+                "bits_per_sample": 16,
+                "clip_mode": "rescale",
+                "filename": "{track}/{stem}.{ext}",
+                "jobs": 0,
+                "overlap": 0.25,
+                "sample_format": "PCM_S",
+                "segment": null,
+                "shifts": 1,
+                "split": true,
+                "two_stems": null
+              },
+              "package_model": {
+                "manifest_sha256": "7258eee911e5963e6270983d7072832e90e1ed96b25bb26aadf12f9867109bf9",
+                "reference_source_revision": "ef66d254cd6d558e207eeff2c4b8d053db2e77dd",
+                "signature": "5c90dfd2",
+                "yaml_sha256": "207405151270af8fd81c2373c25d27950916682ac91dca7884a11ce13dad6f58",
+                "yaml_text": "models: ['5c90dfd2']\n"
+              },
+              "purpose": "private-demucs-separation-ablation",
+              "rng_seeded": [
+                "python_random",
+                "numpy",
+                "torch"
+              ],
+              "runtime": {
+                "numpy": "2.4.6",
+                "python": "3.11.18",
+                "torch": "2.7.1+cpu",
+                "torchaudio": "2.7.1+cpu"
+              },
+              "schema_version": 1,
+              "seed": 0,
+              "source_media_published": false,
+              "stems": {
+                "bass": {
+                  "bytes": 3177398,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.8,
+                  "duration_seconds": 18.012018140589568,
+                  "frames": 794330,
+                  "relative_path": "htdemucs_6s/mix/bass.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "016145865842df4a367b5a91bb2658ce73c39fdcab3433b5c4226f9b3772789c"
+                },
+                "drums": {
+                  "bytes": 3177398,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.8,
+                  "duration_seconds": 18.012018140589568,
+                  "frames": 794330,
+                  "relative_path": "htdemucs_6s/mix/drums.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "f43d4bf6d4a840af0e7eb8a9c9157fd5651ae6712fb028a9815b49ed305e8e9d"
+                },
+                "guitar": {
+                  "bytes": 3177398,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.8,
+                  "duration_seconds": 18.012018140589568,
+                  "frames": 794330,
+                  "relative_path": "htdemucs_6s/mix/guitar.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "72aa43d2d3fafacb60f4d2a710c1ffb911aa076efb46d22d9178892a17e4bd7e"
+                },
+                "other": {
+                  "bytes": 3177398,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.8,
+                  "duration_seconds": 18.012018140589568,
+                  "frames": 794330,
+                  "relative_path": "htdemucs_6s/mix/other.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "b2ef689a4d6120f23a38324f8b377856ad29448a91a18e03702853a58f66c958"
+                },
+                "piano": {
+                  "bytes": 3177398,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.8,
+                  "duration_seconds": 18.012018140589568,
+                  "frames": 794330,
+                  "relative_path": "htdemucs_6s/mix/piano.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "30347bbe432b2e4793dceb41aee1ac5109285975c03d9dcde73793743b03578e"
+                },
+                "vocals": {
+                  "bytes": 3177398,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.8,
+                  "duration_seconds": 18.012018140589568,
+                  "frames": 794330,
+                  "relative_path": "htdemucs_6s/mix/vocals.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "7fb87e740a75f8d4e654b9afa154a08783611ff5a4bae126851f05baf18a73d2"
+                }
+              },
+              "torch_load_environment": {
+                "force_no_weights_only": null,
+                "force_weights_only": null,
+                "modified_by_runner": false
+              }
+            },
+            "status": "scored",
+            "stems": {
+              "bass": {
+                "audio_sha256": "016145865842df4a367b5a91bb2658ce73c39fdcab3433b5c4226f9b3772789c",
+                "empty_prediction": false,
+                "inference_seconds": 35.994967,
+                "predicted_note_count": 23,
+                "prediction_midi_sha256": "588d13e2190778bc66b31c39e05bb5ebbe2a7ac33c42b7dcda7ae1b5c5d2f536",
+                "status": "scored"
+              },
+              "drums": {
+                "audio_sha256": "f43d4bf6d4a840af0e7eb8a9c9157fd5651ae6712fb028a9815b49ed305e8e9d",
+                "empty_prediction": true,
+                "inference_seconds": 4.67324,
+                "predicted_note_count": 0,
+                "prediction_midi_sha256": "38df09dd14db5d3efea23fa68d4a20fcf5f596ce084a93101ab9779b707f3759",
+                "status": "scored"
+              },
+              "guitar": {
+                "audio_sha256": "72aa43d2d3fafacb60f4d2a710c1ffb911aa076efb46d22d9178892a17e4bd7e",
+                "empty_prediction": true,
+                "inference_seconds": 5.323873,
+                "predicted_note_count": 0,
+                "prediction_midi_sha256": "38df09dd14db5d3efea23fa68d4a20fcf5f596ce084a93101ab9779b707f3759",
+                "status": "scored"
+              },
+              "other": {
+                "audio_sha256": "b2ef689a4d6120f23a38324f8b377856ad29448a91a18e03702853a58f66c958",
+                "empty_prediction": false,
+                "inference_seconds": 27.225421,
+                "predicted_note_count": 118,
+                "prediction_midi_sha256": "dc69a15b9147900e12aed5149a122f3feccea20b9bfa505fb310dd3168f6bf83",
+                "status": "scored"
+              },
+              "piano": {
+                "audio_sha256": "30347bbe432b2e4793dceb41aee1ac5109285975c03d9dcde73793743b03578e",
+                "empty_prediction": true,
+                "inference_seconds": 6.325513,
+                "predicted_note_count": 0,
+                "prediction_midi_sha256": "38df09dd14db5d3efea23fa68d4a20fcf5f596ce084a93101ab9779b707f3759",
+                "status": "scored"
+              },
+              "vocals": {
+                "audio_sha256": "7fb87e740a75f8d4e654b9afa154a08783611ff5a4bae126851f05baf18a73d2",
+                "empty_prediction": true,
+                "inference_seconds": 6.776486,
+                "predicted_note_count": 0,
+                "prediction_midi_sha256": "38df09dd14db5d3efea23fa68d4a20fcf5f596ce084a93101ab9779b707f3759",
+                "status": "scored"
+              }
+            }
+          },
+          "paired_fingerprint": "ec2e9e567d05179dd3da1867f402536caa0558ef40a65eb190251b7dd2c7873e",
+          "reference_midi_sha256": "d2a75ef1ba44bb4eb2623cc0804d7377e6840a1b98ea85d1adba40a3c05e0b49",
+          "reference_note_count": 105,
+          "source_proof_sha256": "e6e275da51ad48d9d09ba2f8f41f2705bd4b2e6ba20e2e8e0b83b391c8c91197",
+          "split": "train",
+          "stems_minus_mix_f1": {
+            "instrument_onset_offset": -0.17928969,
+            "onset": -0.16324347,
+            "onset_offset": -0.1521181
+          },
+          "track_id": "woodwind_track097010"
+        }
+      ],
+      "commercial_default_selected": false,
+      "complete_paired_case_count": 4,
+      "device": "cpu",
+      "evaluation_method": "maximum_bipartite_one_to_one_note_events_v1",
+      "ground_truth_stem_control_measured": false,
+      "heldout_generalization_measured": false,
+      "human_editing_time_measured": false,
+      "macro_f1": {
+        "direct_mix": {
+          "instrument_onset_offset": 0.22716306,
+          "onset": 0.65212963,
+          "onset_offset": 0.4391428
+        },
+        "estimated_stems": {
+          "instrument_onset_offset": 0.08409537,
+          "onset": 0.47833863,
+          "onset_offset": 0.2892089
+        }
+      },
+      "macro_stems_minus_mix_f1": {
+        "instrument_onset_offset": -0.14306769,
+        "onset": -0.173791,
+        "onset_offset": -0.1499339
+      },
+      "model_identity": {
+        "checkpoint_auto_download": false,
+        "checkpoint_sha256": "b8a3807ed265059abd25ad7f68142c06c35e8f6144dcaa45bd55946a3745398f",
+        "checkpoint_source_revision": "7bd24c3e1dc26468a6a9354c0a4f174405c9bad8",
+        "entrypoint": "audio_score_tool.mt3_program_midi.main",
+        "model": "mr_mt3",
+        "mr_program_preservation": true,
+        "python": "3.11.18",
+        "runtime_versions": {
+          "demucs": "4.0.1",
+          "mt3-infer": "0.2.0",
+          "torch": "2.7.1+cpu",
+          "torchaudio": "2.7.1+cpu",
+          "transformers": "4.57.6"
+        },
+        "seed": 0,
+        "torch_threads": 2
+      },
+      "model_redistribution_approved": false,
+      "musicxml_pdf_quality_measured": false,
+      "protocol": {
+        "audio_crop": "entire original recording; no trim, shift, or alignment search",
+        "duplicate_notes_removed": false,
+        "empty_prediction_policy": "valid empty MIDI counts as zero, never as a skipped stem",
+        "failure_policy": "any failed stem makes the separated arm incomplete",
+        "programs_relabelled": false,
+        "same_amt_checkpoint_and_runtime_for_both_arms": true,
+        "stem_combination": "raw note multiset union in seconds; no MIDI reserialization",
+        "stem_selection": "all separator outputs; no energy threshold or reference selection"
+      },
+      "purpose": "same-source-mix-vs-estimated-stems-amt",
+      "release_quality_approved": false,
+      "schema_version": 1,
+      "separator": "htdemucs_6s",
+      "source_code_revision": "1c06610de5ec2742c6b97572b9df20a309329502",
+      "source_media_published": false,
+      "source_separation_sdr_measured": false
+    },
+    "yourmt3": {
+      "all_cases_complete": true,
+      "all_samples_in_train_split": true,
+      "cases": [
+        {
+          "audio_sha256": "0870c900011e455fae7f2d481a8694f2331e0ead88b16edb99c8a846aa374c89",
+          "both_scored": true,
+          "direct_mix": {
+            "audio_sha256": "0870c900011e455fae7f2d481a8694f2331e0ead88b16edb99c8a846aa374c89",
+            "empty_prediction": false,
+            "inference_seconds": 31.80187,
+            "metrics": {
+              "floating_point_epsilon_seconds": 1e-12,
+              "instrument_identity": "pitched_gm_program_or_percussion",
+              "instrument_onset_offset": {
+                "f1": 0.175,
+                "matched": 14,
+                "precision": 0.19718309859154928,
+                "recall": 0.15730337078651685
+              },
+              "method": "maximum_bipartite_one_to_one_note_events_v1",
+              "offset_minimum_tolerance_seconds": 0.05,
+              "offset_reference_duration_ratio": 0.2,
+              "onset": {
+                "f1": 0.7625,
+                "matched": 61,
+                "precision": 0.8591549295774648,
+                "recall": 0.6853932584269663
+              },
+              "onset_offset": {
+                "f1": 0.6,
+                "matched": 48,
+                "precision": 0.676056338028169,
+                "recall": 0.5393258426966292
+              },
+              "onset_tolerance_seconds": 0.05,
+              "predicted_note_count": 71,
+              "reference_note_count": 89
+            },
+            "predicted_note_count": 71,
+            "prediction_midi_sha256": "063584a85add87f0c97d5f50097955856a06cd1ab174d69fa5d6c5c67ff185c4",
+            "status": "scored"
+          },
+          "estimated_stems": {
+            "inference_seconds": 194.905726,
+            "metrics": {
+              "floating_point_epsilon_seconds": 1e-12,
+              "instrument_identity": "pitched_gm_program_or_percussion",
+              "instrument_onset_offset": {
+                "f1": 0.05343511450381679,
+                "matched": 14,
+                "precision": 0.03218390804597701,
+                "recall": 0.15730337078651685
+              },
+              "method": "maximum_bipartite_one_to_one_note_events_v1",
+              "offset_minimum_tolerance_seconds": 0.05,
+              "offset_reference_duration_ratio": 0.2,
+              "onset": {
+                "f1": 0.2862595419847328,
+                "matched": 75,
+                "precision": 0.1724137931034483,
+                "recall": 0.8426966292134831
+              },
+              "onset_offset": {
+                "f1": 0.18702290076335878,
+                "matched": 49,
+                "precision": 0.11264367816091954,
+                "recall": 0.550561797752809
+              },
+              "onset_tolerance_seconds": 0.05,
+              "predicted_note_count": 435,
+              "reference_note_count": 89
+            },
+            "predicted_note_count": 435,
+            "separation": {
+              "bitwise_determinism_claimed": false,
+              "checkpoint": {
+                "bytes": 54996327,
+                "cached_before_run": true,
+                "filename": "5c90dfd2-34c22ccb.th",
+                "inventory_scope": "selected_model_signature_only",
+                "official_full_sha256_available": false,
+                "official_sha256_prefix": "34c22ccb",
+                "prefix_verified": true,
+                "sha256": "34c22ccb381c6f9fdbf324f04e1e2fe21aaaf293f5ded163a162697ff9a02ddd",
+                "source_url": "https://dl.fbaipublicfiles.com/demucs/hybrid_transformer/5c90dfd2-34c22ccb.th"
+              },
+              "cuda_rng_seeded": false,
+              "demucs_version": "4.0.1",
+              "device": "cpu",
+              "duration_tolerance_output_samples": 1,
+              "elapsed_scope": "demucs_cli_including_model_load",
+              "elapsed_seconds": 16.816788,
+              "identity": {
+                "checkpoint_sha256": "34c22ccb381c6f9fdbf324f04e1e2fe21aaaf293f5ded163a162697ff9a02ddd",
+                "demucs_version": "4.0.1",
+                "device": "cpu",
+                "model": "htdemucs_6s",
+                "model_yaml_sha256": "207405151270af8fd81c2373c25d27950916682ac91dca7884a11ce13dad6f58",
+                "options": {
+                  "bits_per_sample": 16,
+                  "clip_mode": "rescale",
+                  "filename": "{track}/{stem}.{ext}",
+                  "jobs": 0,
+                  "overlap": 0.25,
+                  "sample_format": "PCM_S",
+                  "segment": null,
+                  "shifts": 1,
+                  "split": true,
+                  "two_stems": null
+                },
+                "runtime": {
+                  "numpy": "2.4.6",
+                  "python": "3.11.18",
+                  "torch": "2.7.1+cpu",
+                  "torchaudio": "2.7.1+cpu"
+                },
+                "seed": 0
+              },
+              "input": {
+                "bytes": 800940,
+                "channels": 1,
+                "duration_seconds": 25.028,
+                "frames": 400448,
+                "sample_rate": 16000,
+                "sample_width_bytes": 2,
+                "sha256": "0870c900011e455fae7f2d481a8694f2331e0ead88b16edb99c8a846aa374c89"
+              },
+              "model": "htdemucs_6s",
+              "options": {
+                "bits_per_sample": 16,
+                "clip_mode": "rescale",
+                "filename": "{track}/{stem}.{ext}",
+                "jobs": 0,
+                "overlap": 0.25,
+                "sample_format": "PCM_S",
+                "segment": null,
+                "shifts": 1,
+                "split": true,
+                "two_stems": null
+              },
+              "package_model": {
+                "manifest_sha256": "7258eee911e5963e6270983d7072832e90e1ed96b25bb26aadf12f9867109bf9",
+                "reference_source_revision": "ef66d254cd6d558e207eeff2c4b8d053db2e77dd",
+                "signature": "5c90dfd2",
+                "yaml_sha256": "207405151270af8fd81c2373c25d27950916682ac91dca7884a11ce13dad6f58",
+                "yaml_text": "models: ['5c90dfd2']\n"
+              },
+              "purpose": "private-demucs-separation-ablation",
+              "rng_seeded": [
+                "python_random",
+                "numpy",
+                "torch"
+              ],
+              "runtime": {
+                "numpy": "2.4.6",
+                "python": "3.11.18",
+                "torch": "2.7.1+cpu",
+                "torchaudio": "2.7.1+cpu"
+              },
+              "schema_version": 1,
+              "seed": 0,
+              "source_media_published": false,
+              "stems": {
+                "bass": {
+                  "bytes": 4415018,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.2,
+                  "duration_seconds": 25.028004535147392,
+                  "frames": 1103735,
+                  "relative_path": "htdemucs_6s/mix/bass.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "86cac16a895783ffeefc67cd65291d8dc14f7fe3b3c81ebb62ff2a2d22745778"
+                },
+                "drums": {
+                  "bytes": 4415018,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.2,
+                  "duration_seconds": 25.028004535147392,
+                  "frames": 1103735,
+                  "relative_path": "htdemucs_6s/mix/drums.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "a7a23f0b5b093fed7c297460238d7b6e64346119f6f3c12b6841e4dd3e6254af"
+                },
+                "guitar": {
+                  "bytes": 4415018,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.2,
+                  "duration_seconds": 25.028004535147392,
+                  "frames": 1103735,
+                  "relative_path": "htdemucs_6s/mix/guitar.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "34a9cc2050614522f84b0ad4af401a9b0a826817612af1e884b6f363f4428039"
+                },
+                "other": {
+                  "bytes": 4415018,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.2,
+                  "duration_seconds": 25.028004535147392,
+                  "frames": 1103735,
+                  "relative_path": "htdemucs_6s/mix/other.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "8f0ab13f3e0ed0dc83ffb8dad7120057f91b9c26dff41320b1b67bb08325c495"
+                },
+                "piano": {
+                  "bytes": 4415018,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.2,
+                  "duration_seconds": 25.028004535147392,
+                  "frames": 1103735,
+                  "relative_path": "htdemucs_6s/mix/piano.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "be9dc59eedf466e89c41cb06b44384c3756d391629541e40aef8f78a8ee88107"
+                },
+                "vocals": {
+                  "bytes": 4415018,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.2,
+                  "duration_seconds": 25.028004535147392,
+                  "frames": 1103735,
+                  "relative_path": "htdemucs_6s/mix/vocals.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "90fc7a447e8f97c111d8951643503a8e65a85b83f9555bf3b8c7e79a88b90dd7"
+                }
+              },
+              "torch_load_environment": {
+                "force_no_weights_only": null,
+                "force_weights_only": null,
+                "modified_by_runner": false
+              }
+            },
+            "status": "scored",
+            "stems": {
+              "bass": {
+                "audio_sha256": "86cac16a895783ffeefc67cd65291d8dc14f7fe3b3c81ebb62ff2a2d22745778",
+                "empty_prediction": false,
+                "inference_seconds": 36.465765,
+                "predicted_note_count": 101,
+                "prediction_midi_sha256": "18070ec30a937ba8ecbe5f08e3238ac80dc1f64afc650eaeb65b6aa592237853",
+                "status": "scored"
+              },
+              "drums": {
+                "audio_sha256": "a7a23f0b5b093fed7c297460238d7b6e64346119f6f3c12b6841e4dd3e6254af",
+                "empty_prediction": false,
+                "inference_seconds": 31.447849,
+                "predicted_note_count": 75,
+                "prediction_midi_sha256": "fd8ca29b4f749c5fef2053ff56f194509a3370399f273b151146fd36c1088db0",
+                "status": "scored"
+              },
+              "guitar": {
+                "audio_sha256": "34a9cc2050614522f84b0ad4af401a9b0a826817612af1e884b6f363f4428039",
+                "empty_prediction": false,
+                "inference_seconds": 25.831315,
+                "predicted_note_count": 32,
+                "prediction_midi_sha256": "8dd46cd49b8d59d1d096abad3c1936309644df995f07065a11d83941aa58edab",
+                "status": "scored"
+              },
+              "other": {
+                "audio_sha256": "8f0ab13f3e0ed0dc83ffb8dad7120057f91b9c26dff41320b1b67bb08325c495",
+                "empty_prediction": false,
+                "inference_seconds": 31.195737,
+                "predicted_note_count": 86,
+                "prediction_midi_sha256": "2feefe24cc207c7cf47cdceffc85ea832625ad0cd8a3f779373b4bb6cec8ae23",
+                "status": "scored"
+              },
+              "piano": {
+                "audio_sha256": "be9dc59eedf466e89c41cb06b44384c3756d391629541e40aef8f78a8ee88107",
+                "empty_prediction": false,
+                "inference_seconds": 29.289782,
+                "predicted_note_count": 43,
+                "prediction_midi_sha256": "a3347ab2fa64fe1429877b9d75f4773fb0688aeeeb961c6e165517305cd2f679",
+                "status": "scored"
+              },
+              "vocals": {
+                "audio_sha256": "90fc7a447e8f97c111d8951643503a8e65a85b83f9555bf3b8c7e79a88b90dd7",
+                "empty_prediction": false,
+                "inference_seconds": 40.675278,
+                "predicted_note_count": 98,
+                "prediction_midi_sha256": "20ad328f54abc771127206e8a1f27188d9ad668f6d1da7f39ad6670610b8ac77",
+                "status": "scored"
+              }
+            }
+          },
+          "paired_fingerprint": "15a67336c1eb9fb2fdfad813e534fd68ac666c41a6209954f6f8ad7482cec43a",
+          "reference_midi_sha256": "a288cfede8c5e74a5eaac4010ac150773012e634f3d6a87121b8ccc3c86ba7ca",
+          "reference_note_count": 89,
+          "source_proof_sha256": "a3b11fce146717c3d2ba5fc2cf07caf183cd422026ef87a698cc258cded95bc5",
+          "split": "train",
+          "stems_minus_mix_f1": {
+            "instrument_onset_offset": -0.12156489,
+            "onset": -0.47624046,
+            "onset_offset": -0.4129771
+          },
+          "track_id": "brass_track049013"
+        },
+        {
+          "audio_sha256": "3329f8d7d56d9f0e414a3f6ec9985d8d56df002ddce935b5edf204750ee36af1",
+          "both_scored": true,
+          "direct_mix": {
+            "audio_sha256": "3329f8d7d56d9f0e414a3f6ec9985d8d56df002ddce935b5edf204750ee36af1",
+            "empty_prediction": false,
+            "inference_seconds": 31.194635,
+            "metrics": {
+              "floating_point_epsilon_seconds": 1e-12,
+              "instrument_identity": "pitched_gm_program_or_percussion",
+              "instrument_onset_offset": {
+                "f1": 0.0,
+                "matched": 0,
+                "precision": 0.0,
+                "recall": 0.0
+              },
+              "method": "maximum_bipartite_one_to_one_note_events_v1",
+              "offset_minimum_tolerance_seconds": 0.05,
+              "offset_reference_duration_ratio": 0.2,
+              "onset": {
+                "f1": 0.7839195979899497,
+                "matched": 78,
+                "precision": 0.8297872340425532,
+                "recall": 0.7428571428571429
+              },
+              "onset_offset": {
+                "f1": 0.5628140703517588,
+                "matched": 56,
+                "precision": 0.5957446808510638,
+                "recall": 0.5333333333333333
+              },
+              "onset_tolerance_seconds": 0.05,
+              "predicted_note_count": 94,
+              "reference_note_count": 105
+            },
+            "predicted_note_count": 94,
+            "prediction_midi_sha256": "24fe670e8bf227b6b12ba045cffce145697c93c284ede0fc78d14616b917124d",
+            "status": "scored"
+          },
+          "estimated_stems": {
+            "inference_seconds": 250.664806,
+            "metrics": {
+              "floating_point_epsilon_seconds": 1e-12,
+              "instrument_identity": "pitched_gm_program_or_percussion",
+              "instrument_onset_offset": {
+                "f1": 0.014354066985645933,
+                "matched": 6,
+                "precision": 0.008207934336525308,
+                "recall": 0.05714285714285714
+              },
+              "method": "maximum_bipartite_one_to_one_note_events_v1",
+              "offset_minimum_tolerance_seconds": 0.05,
+              "offset_reference_duration_ratio": 0.2,
+              "onset": {
+                "f1": 0.1937799043062201,
+                "matched": 81,
+                "precision": 0.11080711354309165,
+                "recall": 0.7714285714285715
+              },
+              "onset_offset": {
+                "f1": 0.145933014354067,
+                "matched": 61,
+                "precision": 0.08344733242134063,
+                "recall": 0.580952380952381
+              },
+              "onset_tolerance_seconds": 0.05,
+              "predicted_note_count": 731,
+              "reference_note_count": 105
+            },
+            "predicted_note_count": 731,
+            "separation": {
+              "bitwise_determinism_claimed": false,
+              "checkpoint": {
+                "bytes": 54996327,
+                "cached_before_run": true,
+                "filename": "5c90dfd2-34c22ccb.th",
+                "inventory_scope": "selected_model_signature_only",
+                "official_full_sha256_available": false,
+                "official_sha256_prefix": "34c22ccb",
+                "prefix_verified": true,
+                "sha256": "34c22ccb381c6f9fdbf324f04e1e2fe21aaaf293f5ded163a162697ff9a02ddd",
+                "source_url": "https://dl.fbaipublicfiles.com/demucs/hybrid_transformer/5c90dfd2-34c22ccb.th"
+              },
+              "cuda_rng_seeded": false,
+              "demucs_version": "4.0.1",
+              "device": "cpu",
+              "duration_tolerance_output_samples": 1,
+              "elapsed_scope": "demucs_cli_including_model_load",
+              "elapsed_seconds": 16.589908,
+              "identity": {
+                "checkpoint_sha256": "34c22ccb381c6f9fdbf324f04e1e2fe21aaaf293f5ded163a162697ff9a02ddd",
+                "demucs_version": "4.0.1",
+                "device": "cpu",
+                "model": "htdemucs_6s",
+                "model_yaml_sha256": "207405151270af8fd81c2373c25d27950916682ac91dca7884a11ce13dad6f58",
+                "options": {
+                  "bits_per_sample": 16,
+                  "clip_mode": "rescale",
+                  "filename": "{track}/{stem}.{ext}",
+                  "jobs": 0,
+                  "overlap": 0.25,
+                  "sample_format": "PCM_S",
+                  "segment": null,
+                  "shifts": 1,
+                  "split": true,
+                  "two_stems": null
+                },
+                "runtime": {
+                  "numpy": "2.4.6",
+                  "python": "3.11.18",
+                  "torch": "2.7.1+cpu",
+                  "torchaudio": "2.7.1+cpu"
+                },
+                "seed": 0
+              },
+              "input": {
+                "bytes": 829484,
+                "channels": 1,
+                "duration_seconds": 25.92,
+                "frames": 414720,
+                "sample_rate": 16000,
+                "sample_width_bytes": 2,
+                "sha256": "3329f8d7d56d9f0e414a3f6ec9985d8d56df002ddce935b5edf204750ee36af1"
+              },
+              "model": "htdemucs_6s",
+              "options": {
+                "bits_per_sample": 16,
+                "clip_mode": "rescale",
+                "filename": "{track}/{stem}.{ext}",
+                "jobs": 0,
+                "overlap": 0.25,
+                "sample_format": "PCM_S",
+                "segment": null,
+                "shifts": 1,
+                "split": true,
+                "two_stems": null
+              },
+              "package_model": {
+                "manifest_sha256": "7258eee911e5963e6270983d7072832e90e1ed96b25bb26aadf12f9867109bf9",
+                "reference_source_revision": "ef66d254cd6d558e207eeff2c4b8d053db2e77dd",
+                "signature": "5c90dfd2",
+                "yaml_sha256": "207405151270af8fd81c2373c25d27950916682ac91dca7884a11ce13dad6f58",
+                "yaml_text": "models: ['5c90dfd2']\n"
+              },
+              "purpose": "private-demucs-separation-ablation",
+              "rng_seeded": [
+                "python_random",
+                "numpy",
+                "torch"
+              ],
+              "runtime": {
+                "numpy": "2.4.6",
+                "python": "3.11.18",
+                "torch": "2.7.1+cpu",
+                "torchaudio": "2.7.1+cpu"
+              },
+              "schema_version": 1,
+              "seed": 0,
+              "source_media_published": false,
+              "stems": {
+                "bass": {
+                  "bytes": 4572366,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 25.92,
+                  "frames": 1143072,
+                  "relative_path": "htdemucs_6s/mix/bass.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "d32c523bb73acc970024ed197a1264306b5ed6ee5f4fd60c60bd42a2120efd90"
+                },
+                "drums": {
+                  "bytes": 4572366,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 25.92,
+                  "frames": 1143072,
+                  "relative_path": "htdemucs_6s/mix/drums.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "5851395997f9b9f1a1b08e863709e0f0be41cc714e7a4f2be6c36f518bc735d3"
+                },
+                "guitar": {
+                  "bytes": 4572366,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 25.92,
+                  "frames": 1143072,
+                  "relative_path": "htdemucs_6s/mix/guitar.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "3cf9eed2cc0302c60f53d5881b72671979c143ce4a3fa39362897bed318d9778"
+                },
+                "other": {
+                  "bytes": 4572366,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 25.92,
+                  "frames": 1143072,
+                  "relative_path": "htdemucs_6s/mix/other.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "9559dd559e5335dee0e278633c70f614d7fb23ce03177cef2fa47d5f578051e0"
+                },
+                "piano": {
+                  "bytes": 4572366,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 25.92,
+                  "frames": 1143072,
+                  "relative_path": "htdemucs_6s/mix/piano.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "525d4859bd28237f95c48ee46d418c8412a628530a564b6f74af92d5891918fc"
+                },
+                "vocals": {
+                  "bytes": 4572366,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 25.92,
+                  "frames": 1143072,
+                  "relative_path": "htdemucs_6s/mix/vocals.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "ba3aa785bb5ca2360f781bc91965de9b666ef75a271e3ee5d63b52ac0d03cbcb"
+                }
+              },
+              "torch_load_environment": {
+                "force_no_weights_only": null,
+                "force_weights_only": null,
+                "modified_by_runner": false
+              }
+            },
+            "status": "scored",
+            "stems": {
+              "bass": {
+                "audio_sha256": "d32c523bb73acc970024ed197a1264306b5ed6ee5f4fd60c60bd42a2120efd90",
+                "empty_prediction": false,
+                "inference_seconds": 69.105519,
+                "predicted_note_count": 191,
+                "prediction_midi_sha256": "7e45b130ee386f0457f6885f89d1da99f47fc13d896c14268fff5c55b4b6f0b2",
+                "status": "scored"
+              },
+              "drums": {
+                "audio_sha256": "5851395997f9b9f1a1b08e863709e0f0be41cc714e7a4f2be6c36f518bc735d3",
+                "empty_prediction": false,
+                "inference_seconds": 36.862198,
+                "predicted_note_count": 119,
+                "prediction_midi_sha256": "5d756e2781e00a65f0216aceba986b9e117e45e1c5c3ea9d4cfef02fdc981268",
+                "status": "scored"
+              },
+              "guitar": {
+                "audio_sha256": "3cf9eed2cc0302c60f53d5881b72671979c143ce4a3fa39362897bed318d9778",
+                "empty_prediction": false,
+                "inference_seconds": 35.213158,
+                "predicted_note_count": 69,
+                "prediction_midi_sha256": "b3de7b4d0aef275e67d5795381269e0ef10d56a8d6bb159435582145f03eaebf",
+                "status": "scored"
+              },
+              "other": {
+                "audio_sha256": "9559dd559e5335dee0e278633c70f614d7fb23ce03177cef2fa47d5f578051e0",
+                "empty_prediction": false,
+                "inference_seconds": 30.442,
+                "predicted_note_count": 101,
+                "prediction_midi_sha256": "78e1883183acb571c4a1adefeb7bcf3a258a127e26dbaa779b25b5029f49735b",
+                "status": "scored"
+              },
+              "piano": {
+                "audio_sha256": "525d4859bd28237f95c48ee46d418c8412a628530a564b6f74af92d5891918fc",
+                "empty_prediction": false,
+                "inference_seconds": 42.72962,
+                "predicted_note_count": 140,
+                "prediction_midi_sha256": "2e007f415988e2327a91bffbbd09d0a765f96852eea624d8dfc2728e0b6dabd9",
+                "status": "scored"
+              },
+              "vocals": {
+                "audio_sha256": "ba3aa785bb5ca2360f781bc91965de9b666ef75a271e3ee5d63b52ac0d03cbcb",
+                "empty_prediction": false,
+                "inference_seconds": 36.312311,
+                "predicted_note_count": 111,
+                "prediction_midi_sha256": "d8a3449f82840fb1803228d0625b4de8e52c45836abcf1c7bbf981134bdbc165",
+                "status": "scored"
+              }
+            }
+          },
+          "paired_fingerprint": "a2b7c0888415f7a72ac67a98f170bc225d846ec301de9fc2592f896b830d627b",
+          "reference_midi_sha256": "61519652ae44c3e1328470e4253e94336e91fb0006875ee157622a5c26dbf788",
+          "reference_note_count": 105,
+          "source_proof_sha256": "96cc0f6a661659deb2e7c3f9c3d0b68a1bf4d50b6e2eed8a5013e6a119e2d506",
+          "split": "train",
+          "stems_minus_mix_f1": {
+            "instrument_onset_offset": 0.01435407,
+            "onset": -0.59013969,
+            "onset_offset": -0.41688106
+          },
+          "track_id": "random_track145011"
+        },
+        {
+          "audio_sha256": "cd9dd7d76185cdceed85155b77ca0292061f8752eb3b0e4f3942439f99fc9519",
+          "both_scored": true,
+          "direct_mix": {
+            "audio_sha256": "cd9dd7d76185cdceed85155b77ca0292061f8752eb3b0e4f3942439f99fc9519",
+            "empty_prediction": false,
+            "inference_seconds": 44.437452,
+            "metrics": {
+              "floating_point_epsilon_seconds": 1e-12,
+              "instrument_identity": "pitched_gm_program_or_percussion",
+              "instrument_onset_offset": {
+                "f1": 0.0,
+                "matched": 0,
+                "precision": 0.0,
+                "recall": 0.0
+              },
+              "method": "maximum_bipartite_one_to_one_note_events_v1",
+              "offset_minimum_tolerance_seconds": 0.05,
+              "offset_reference_duration_ratio": 0.2,
+              "onset": {
+                "f1": 0.9327354260089686,
+                "matched": 104,
+                "precision": 0.9122807017543859,
+                "recall": 0.9541284403669725
+              },
+              "onset_offset": {
+                "f1": 0.8071748878923767,
+                "matched": 90,
+                "precision": 0.7894736842105263,
+                "recall": 0.8256880733944955
+              },
+              "onset_tolerance_seconds": 0.05,
+              "predicted_note_count": 114,
+              "reference_note_count": 109
+            },
+            "predicted_note_count": 114,
+            "prediction_midi_sha256": "d3bfa4ef8acef5d97e10553f627a191ca0324c214df798e3037d52900790faa9",
+            "status": "scored"
+          },
+          "estimated_stems": {
+            "inference_seconds": 421.11409,
+            "metrics": {
+              "floating_point_epsilon_seconds": 1e-12,
+              "instrument_identity": "pitched_gm_program_or_percussion",
+              "instrument_onset_offset": {
+                "f1": 0.0,
+                "matched": 0,
+                "precision": 0.0,
+                "recall": 0.0
+              },
+              "method": "maximum_bipartite_one_to_one_note_events_v1",
+              "offset_minimum_tolerance_seconds": 0.05,
+              "offset_reference_duration_ratio": 0.2,
+              "onset": {
+                "f1": 0.1815068493150685,
+                "matched": 106,
+                "precision": 0.10009442870632672,
+                "recall": 0.9724770642201835
+              },
+              "onset_offset": {
+                "f1": 0.15753424657534246,
+                "matched": 92,
+                "precision": 0.08687440982058546,
+                "recall": 0.8440366972477065
+              },
+              "onset_tolerance_seconds": 0.05,
+              "predicted_note_count": 1059,
+              "reference_note_count": 109
+            },
+            "predicted_note_count": 1059,
+            "separation": {
+              "bitwise_determinism_claimed": false,
+              "checkpoint": {
+                "bytes": 54996327,
+                "cached_before_run": false,
+                "filename": "5c90dfd2-34c22ccb.th",
+                "inventory_scope": "selected_model_signature_only",
+                "official_full_sha256_available": false,
+                "official_sha256_prefix": "34c22ccb",
+                "prefix_verified": true,
+                "sha256": "34c22ccb381c6f9fdbf324f04e1e2fe21aaaf293f5ded163a162697ff9a02ddd",
+                "source_url": "https://dl.fbaipublicfiles.com/demucs/hybrid_transformer/5c90dfd2-34c22ccb.th"
+              },
+              "cuda_rng_seeded": false,
+              "demucs_version": "4.0.1",
+              "device": "cpu",
+              "duration_tolerance_output_samples": 1,
+              "elapsed_scope": "demucs_cli_including_model_load",
+              "elapsed_seconds": 19.952045,
+              "identity": {
+                "checkpoint_sha256": "34c22ccb381c6f9fdbf324f04e1e2fe21aaaf293f5ded163a162697ff9a02ddd",
+                "demucs_version": "4.0.1",
+                "device": "cpu",
+                "model": "htdemucs_6s",
+                "model_yaml_sha256": "207405151270af8fd81c2373c25d27950916682ac91dca7884a11ce13dad6f58",
+                "options": {
+                  "bits_per_sample": 16,
+                  "clip_mode": "rescale",
+                  "filename": "{track}/{stem}.{ext}",
+                  "jobs": 0,
+                  "overlap": 0.25,
+                  "sample_format": "PCM_S",
+                  "segment": null,
+                  "shifts": 1,
+                  "split": true,
+                  "two_stems": null
+                },
+                "runtime": {
+                  "numpy": "2.4.6",
+                  "python": "3.11.18",
+                  "torch": "2.7.1+cpu",
+                  "torchaudio": "2.7.1+cpu"
+                },
+                "seed": 0
+              },
+              "input": {
+                "bytes": 992684,
+                "channels": 1,
+                "duration_seconds": 31.02,
+                "frames": 496320,
+                "sample_rate": 16000,
+                "sample_width_bytes": 2,
+                "sha256": "cd9dd7d76185cdceed85155b77ca0292061f8752eb3b0e4f3942439f99fc9519"
+              },
+              "model": "htdemucs_6s",
+              "options": {
+                "bits_per_sample": 16,
+                "clip_mode": "rescale",
+                "filename": "{track}/{stem}.{ext}",
+                "jobs": 0,
+                "overlap": 0.25,
+                "sample_format": "PCM_S",
+                "segment": null,
+                "shifts": 1,
+                "split": true,
+                "two_stems": null
+              },
+              "package_model": {
+                "manifest_sha256": "7258eee911e5963e6270983d7072832e90e1ed96b25bb26aadf12f9867109bf9",
+                "reference_source_revision": "ef66d254cd6d558e207eeff2c4b8d053db2e77dd",
+                "signature": "5c90dfd2",
+                "yaml_sha256": "207405151270af8fd81c2373c25d27950916682ac91dca7884a11ce13dad6f58",
+                "yaml_text": "models: ['5c90dfd2']\n"
+              },
+              "purpose": "private-demucs-separation-ablation",
+              "rng_seeded": [
+                "python_random",
+                "numpy",
+                "torch"
+              ],
+              "runtime": {
+                "numpy": "2.4.6",
+                "python": "3.11.18",
+                "torch": "2.7.1+cpu",
+                "torchaudio": "2.7.1+cpu"
+              },
+              "schema_version": 1,
+              "seed": 0,
+              "source_media_published": false,
+              "stems": {
+                "bass": {
+                  "bytes": 5472006,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 31.02,
+                  "frames": 1367982,
+                  "relative_path": "htdemucs_6s/mix/bass.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "b823047c3a5bade887c1d6838f0935280fbe993aca814694145e3a91f07dd142"
+                },
+                "drums": {
+                  "bytes": 5472006,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 31.02,
+                  "frames": 1367982,
+                  "relative_path": "htdemucs_6s/mix/drums.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "4d845d1cd135efc071149a6c1186c98fa91fc9b3c0941c1b6d3362a0ee1e7630"
+                },
+                "guitar": {
+                  "bytes": 5472006,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 31.02,
+                  "frames": 1367982,
+                  "relative_path": "htdemucs_6s/mix/guitar.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "4ba8555c6f08e747f1bacc19863a031c7dd2cf3bb5128f82b8af64fe5bbd9ad0"
+                },
+                "other": {
+                  "bytes": 5472006,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 31.02,
+                  "frames": 1367982,
+                  "relative_path": "htdemucs_6s/mix/other.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "e5d310e35246d660a752c90531a2c1bfb4be5cec19e6bc81a3af99ab22591695"
+                },
+                "piano": {
+                  "bytes": 5472006,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 31.02,
+                  "frames": 1367982,
+                  "relative_path": "htdemucs_6s/mix/piano.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "cb2575891e0298656f4032f980584d6493f74d21bbac520eda45d7b3d1a73874"
+                },
+                "vocals": {
+                  "bytes": 5472006,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.0,
+                  "duration_seconds": 31.02,
+                  "frames": 1367982,
+                  "relative_path": "htdemucs_6s/mix/vocals.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "26512ae270f2e9509b3cc56e7b18da2b28d6353dcc4e041097e320fbcff378a1"
+                }
+              },
+              "torch_load_environment": {
+                "force_no_weights_only": null,
+                "force_weights_only": null,
+                "modified_by_runner": false
+              }
+            },
+            "status": "scored",
+            "stems": {
+              "bass": {
+                "audio_sha256": "b823047c3a5bade887c1d6838f0935280fbe993aca814694145e3a91f07dd142",
+                "empty_prediction": false,
+                "inference_seconds": 76.829189,
+                "predicted_note_count": 110,
+                "prediction_midi_sha256": "231b39e9acf75012c71726e679b44f13111f4e43eefee440d8f30a9246f4437a",
+                "status": "scored"
+              },
+              "drums": {
+                "audio_sha256": "4d845d1cd135efc071149a6c1186c98fa91fc9b3c0941c1b6d3362a0ee1e7630",
+                "empty_prediction": false,
+                "inference_seconds": 84.39824,
+                "predicted_note_count": 286,
+                "prediction_midi_sha256": "e9a97bb9e793e619481f9eee8355348b46b04b433234ff73fcd5d2aa95c508f9",
+                "status": "scored"
+              },
+              "guitar": {
+                "audio_sha256": "4ba8555c6f08e747f1bacc19863a031c7dd2cf3bb5128f82b8af64fe5bbd9ad0",
+                "empty_prediction": false,
+                "inference_seconds": 56.66986,
+                "predicted_note_count": 148,
+                "prediction_midi_sha256": "1b1dcd5710d7e6b5297f2c34f2a768713c6ad187696d83cfcf702715f351b349",
+                "status": "scored"
+              },
+              "other": {
+                "audio_sha256": "e5d310e35246d660a752c90531a2c1bfb4be5cec19e6bc81a3af99ab22591695",
+                "empty_prediction": false,
+                "inference_seconds": 43.24012,
+                "predicted_note_count": 109,
+                "prediction_midi_sha256": "e45d5669d0480d501e318790043c9210c6670f25058fab67d6765e98e652dc8e",
+                "status": "scored"
+              },
+              "piano": {
+                "audio_sha256": "cb2575891e0298656f4032f980584d6493f74d21bbac520eda45d7b3d1a73874",
+                "empty_prediction": false,
+                "inference_seconds": 79.035882,
+                "predicted_note_count": 190,
+                "prediction_midi_sha256": "397d9cac6c15f332f117b29d7d00d556a11eebc9c4c73b4df94f3999ec33a6ce",
+                "status": "scored"
+              },
+              "vocals": {
+                "audio_sha256": "26512ae270f2e9509b3cc56e7b18da2b28d6353dcc4e041097e320fbcff378a1",
+                "empty_prediction": false,
+                "inference_seconds": 80.940799,
+                "predicted_note_count": 216,
+                "prediction_midi_sha256": "ca805bb46ce1638377001adea7ce7b2ca8b4d6e3b5e27a14317a9bd795517cf4",
+                "status": "scored"
+              }
+            }
+          },
+          "paired_fingerprint": "4fbe1b7eea852050d47e7825363d78192e7d3080c20048dfe9aa15f59010122e",
+          "reference_midi_sha256": "6d5f0b8e8d5e6712794d8e3ad8eeec78772b616693eec1e8d1a41c4bca17a0f7",
+          "reference_note_count": 109,
+          "source_proof_sha256": "3b0a5022c5ea57aca8f0da87a3d42f310faf060885fa840749a8ae7ef456369c",
+          "split": "train",
+          "stems_minus_mix_f1": {
+            "instrument_onset_offset": 0.0,
+            "onset": -0.75122858,
+            "onset_offset": -0.64964064
+          },
+          "track_id": "string_track001010"
+        },
+        {
+          "audio_sha256": "8973316f18703ec97ae5965e62933cbc44b81a54408df459514dcf52e2c0b851",
+          "both_scored": true,
+          "direct_mix": {
+            "audio_sha256": "8973316f18703ec97ae5965e62933cbc44b81a54408df459514dcf52e2c0b851",
+            "empty_prediction": false,
+            "inference_seconds": 27.03462,
+            "metrics": {
+              "floating_point_epsilon_seconds": 1e-12,
+              "instrument_identity": "pitched_gm_program_or_percussion",
+              "instrument_onset_offset": {
+                "f1": 0.0,
+                "matched": 0,
+                "precision": 0.0,
+                "recall": 0.0
+              },
+              "method": "maximum_bipartite_one_to_one_note_events_v1",
+              "offset_minimum_tolerance_seconds": 0.05,
+              "offset_reference_duration_ratio": 0.2,
+              "onset": {
+                "f1": 0.8584905660377359,
+                "matched": 91,
+                "precision": 0.8504672897196262,
+                "recall": 0.8666666666666667
+              },
+              "onset_offset": {
+                "f1": 0.7264150943396226,
+                "matched": 77,
+                "precision": 0.719626168224299,
+                "recall": 0.7333333333333333
+              },
+              "onset_tolerance_seconds": 0.05,
+              "predicted_note_count": 107,
+              "reference_note_count": 105
+            },
+            "predicted_note_count": 107,
+            "prediction_midi_sha256": "786ea09271e2e883a79b91eee5634b04414b77772815ff9d8832ad61ce1d521f",
+            "status": "scored"
+          },
+          "estimated_stems": {
+            "inference_seconds": 246.643645,
+            "metrics": {
+              "floating_point_epsilon_seconds": 1e-12,
+              "instrument_identity": "pitched_gm_program_or_percussion",
+              "instrument_onset_offset": {
+                "f1": 0.0,
+                "matched": 0,
+                "precision": 0.0,
+                "recall": 0.0
+              },
+              "method": "maximum_bipartite_one_to_one_note_events_v1",
+              "offset_minimum_tolerance_seconds": 0.05,
+              "offset_reference_duration_ratio": 0.2,
+              "onset": {
+                "f1": 0.24,
+                "matched": 84,
+                "precision": 0.1411764705882353,
+                "recall": 0.8
+              },
+              "onset_offset": {
+                "f1": 0.1742857142857143,
+                "matched": 61,
+                "precision": 0.10252100840336134,
+                "recall": 0.580952380952381
+              },
+              "onset_tolerance_seconds": 0.05,
+              "predicted_note_count": 595,
+              "reference_note_count": 105
+            },
+            "predicted_note_count": 595,
+            "separation": {
+              "bitwise_determinism_claimed": false,
+              "checkpoint": {
+                "bytes": 54996327,
+                "cached_before_run": true,
+                "filename": "5c90dfd2-34c22ccb.th",
+                "inventory_scope": "selected_model_signature_only",
+                "official_full_sha256_available": false,
+                "official_sha256_prefix": "34c22ccb",
+                "prefix_verified": true,
+                "sha256": "34c22ccb381c6f9fdbf324f04e1e2fe21aaaf293f5ded163a162697ff9a02ddd",
+                "source_url": "https://dl.fbaipublicfiles.com/demucs/hybrid_transformer/5c90dfd2-34c22ccb.th"
+              },
+              "cuda_rng_seeded": false,
+              "demucs_version": "4.0.1",
+              "device": "cpu",
+              "duration_tolerance_output_samples": 1,
+              "elapsed_scope": "demucs_cli_including_model_load",
+              "elapsed_seconds": 13.512716,
+              "identity": {
+                "checkpoint_sha256": "34c22ccb381c6f9fdbf324f04e1e2fe21aaaf293f5ded163a162697ff9a02ddd",
+                "demucs_version": "4.0.1",
+                "device": "cpu",
+                "model": "htdemucs_6s",
+                "model_yaml_sha256": "207405151270af8fd81c2373c25d27950916682ac91dca7884a11ce13dad6f58",
+                "options": {
+                  "bits_per_sample": 16,
+                  "clip_mode": "rescale",
+                  "filename": "{track}/{stem}.{ext}",
+                  "jobs": 0,
+                  "overlap": 0.25,
+                  "sample_format": "PCM_S",
+                  "segment": null,
+                  "shifts": 1,
+                  "split": true,
+                  "two_stems": null
+                },
+                "runtime": {
+                  "numpy": "2.4.6",
+                  "python": "3.11.18",
+                  "torch": "2.7.1+cpu",
+                  "torchaudio": "2.7.1+cpu"
+                },
+                "seed": 0
+              },
+              "input": {
+                "bytes": 576428,
+                "channels": 1,
+                "duration_seconds": 18.012,
+                "frames": 288192,
+                "sample_rate": 16000,
+                "sample_width_bytes": 2,
+                "sha256": "8973316f18703ec97ae5965e62933cbc44b81a54408df459514dcf52e2c0b851"
+              },
+              "model": "htdemucs_6s",
+              "options": {
+                "bits_per_sample": 16,
+                "clip_mode": "rescale",
+                "filename": "{track}/{stem}.{ext}",
+                "jobs": 0,
+                "overlap": 0.25,
+                "sample_format": "PCM_S",
+                "segment": null,
+                "shifts": 1,
+                "split": true,
+                "two_stems": null
+              },
+              "package_model": {
+                "manifest_sha256": "7258eee911e5963e6270983d7072832e90e1ed96b25bb26aadf12f9867109bf9",
+                "reference_source_revision": "ef66d254cd6d558e207eeff2c4b8d053db2e77dd",
+                "signature": "5c90dfd2",
+                "yaml_sha256": "207405151270af8fd81c2373c25d27950916682ac91dca7884a11ce13dad6f58",
+                "yaml_text": "models: ['5c90dfd2']\n"
+              },
+              "purpose": "private-demucs-separation-ablation",
+              "rng_seeded": [
+                "python_random",
+                "numpy",
+                "torch"
+              ],
+              "runtime": {
+                "numpy": "2.4.6",
+                "python": "3.11.18",
+                "torch": "2.7.1+cpu",
+                "torchaudio": "2.7.1+cpu"
+              },
+              "schema_version": 1,
+              "seed": 0,
+              "source_media_published": false,
+              "stems": {
+                "bass": {
+                  "bytes": 3177398,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.8,
+                  "duration_seconds": 18.012018140589568,
+                  "frames": 794330,
+                  "relative_path": "htdemucs_6s/mix/bass.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "71c54fbe0b521f9794e1efc27902148ef42f25a3e15a7862e398c7a59c573b7d"
+                },
+                "drums": {
+                  "bytes": 3177398,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.8,
+                  "duration_seconds": 18.012018140589568,
+                  "frames": 794330,
+                  "relative_path": "htdemucs_6s/mix/drums.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "f2358671e3ea279c386499db220b525ef11407a5f893a7ae473441afd51b9aa4"
+                },
+                "guitar": {
+                  "bytes": 3177398,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.8,
+                  "duration_seconds": 18.012018140589568,
+                  "frames": 794330,
+                  "relative_path": "htdemucs_6s/mix/guitar.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "cd542ca2d677ed5591a88a52cf82dabb0e5f6ff77b719a7a4ee16551b82f0a5f"
+                },
+                "other": {
+                  "bytes": 3177398,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.8,
+                  "duration_seconds": 18.012018140589568,
+                  "frames": 794330,
+                  "relative_path": "htdemucs_6s/mix/other.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "3a2a79f6a0264fb8a4709f46c9da86b943bc8e48496d9835a93d745f3d7d77ff"
+                },
+                "piano": {
+                  "bytes": 3177398,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.8,
+                  "duration_seconds": 18.012018140589568,
+                  "frames": 794330,
+                  "relative_path": "htdemucs_6s/mix/piano.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "0737485537d34413a7579fdbed5f9b6748d72910e46e3d3dad012b61acdb382e"
+                },
+                "vocals": {
+                  "bytes": 3177398,
+                  "channels": 2,
+                  "duration_error_output_samples": 0.8,
+                  "duration_seconds": 18.012018140589568,
+                  "frames": 794330,
+                  "relative_path": "htdemucs_6s/mix/vocals.wav",
+                  "sample_rate": 44100,
+                  "sample_width_bytes": 2,
+                  "sha256": "e65fb976d09f0765769ea2f48a70b395438b6958f9107b34278dbd2fbca94a08"
+                }
+              },
+              "torch_load_environment": {
+                "force_no_weights_only": null,
+                "force_weights_only": null,
+                "modified_by_runner": false
+              }
+            },
+            "status": "scored",
+            "stems": {
+              "bass": {
+                "audio_sha256": "71c54fbe0b521f9794e1efc27902148ef42f25a3e15a7862e398c7a59c573b7d",
+                "empty_prediction": false,
+                "inference_seconds": 50.748522,
+                "predicted_note_count": 122,
+                "prediction_midi_sha256": "68d89468cf5f6ac3c1f367cd6932646ed29180178ec443cc08730d3f0a9b5dc8",
+                "status": "scored"
+              },
+              "drums": {
+                "audio_sha256": "f2358671e3ea279c386499db220b525ef11407a5f893a7ae473441afd51b9aa4",
+                "empty_prediction": false,
+                "inference_seconds": 54.007494,
+                "predicted_note_count": 120,
+                "prediction_midi_sha256": "3597f8d46771d68c732a935d19456c66e080535cd8869038a0cd894280f56e65",
+                "status": "scored"
+              },
+              "guitar": {
+                "audio_sha256": "cd542ca2d677ed5591a88a52cf82dabb0e5f6ff77b719a7a4ee16551b82f0a5f",
+                "empty_prediction": false,
+                "inference_seconds": 27.789931,
+                "predicted_note_count": 69,
+                "prediction_midi_sha256": "7185c74a469183cf252089b36c21fa084dae068fe7fe9d6278888a888a4bf270",
+                "status": "scored"
+              },
+              "other": {
+                "audio_sha256": "3a2a79f6a0264fb8a4709f46c9da86b943bc8e48496d9835a93d745f3d7d77ff",
+                "empty_prediction": false,
+                "inference_seconds": 24.280019,
+                "predicted_note_count": 84,
+                "prediction_midi_sha256": "938c6330f77339b12b884af160158199e54a18f5656e1511e09b668dbeabc81a",
+                "status": "scored"
+              },
+              "piano": {
+                "audio_sha256": "0737485537d34413a7579fdbed5f9b6748d72910e46e3d3dad012b61acdb382e",
+                "empty_prediction": false,
+                "inference_seconds": 28.094142,
+                "predicted_note_count": 54,
+                "prediction_midi_sha256": "4d01d8d4c567b75619ca5e5e2817387a7e358cc4f6fd5015b1d7d753308e779b",
+                "status": "scored"
+              },
+              "vocals": {
+                "audio_sha256": "e65fb976d09f0765769ea2f48a70b395438b6958f9107b34278dbd2fbca94a08",
+                "empty_prediction": false,
+                "inference_seconds": 61.723537,
+                "predicted_note_count": 146,
+                "prediction_midi_sha256": "5c7d875ab01988586a566e5bc59a6580c261a2747fc1bb785866987382a2b3a6",
+                "status": "scored"
+              }
+            }
+          },
+          "paired_fingerprint": "ec2e9e567d05179dd3da1867f402536caa0558ef40a65eb190251b7dd2c7873e",
+          "reference_midi_sha256": "d2a75ef1ba44bb4eb2623cc0804d7377e6840a1b98ea85d1adba40a3c05e0b49",
+          "reference_note_count": 105,
+          "source_proof_sha256": "e6e275da51ad48d9d09ba2f8f41f2705bd4b2e6ba20e2e8e0b83b391c8c91197",
+          "split": "train",
+          "stems_minus_mix_f1": {
+            "instrument_onset_offset": 0.0,
+            "onset": -0.61849057,
+            "onset_offset": -0.55212938
+          },
+          "track_id": "woodwind_track097010"
+        }
+      ],
+      "commercial_default_selected": false,
+      "complete_paired_case_count": 4,
+      "device": "cpu",
+      "evaluation_method": "maximum_bipartite_one_to_one_note_events_v1",
+      "ground_truth_stem_control_measured": false,
+      "heldout_generalization_measured": false,
+      "human_editing_time_measured": false,
+      "macro_f1": {
+        "direct_mix": {
+          "instrument_onset_offset": 0.04375,
+          "onset": 0.8344114,
+          "onset_offset": 0.67410101
+        },
+        "estimated_stems": {
+          "instrument_onset_offset": 0.0169473,
+          "onset": 0.22538657,
+          "onset_offset": 0.16619397
+        }
+      },
+      "macro_stems_minus_mix_f1": {
+        "instrument_onset_offset": -0.0268027,
+        "onset": -0.60902482,
+        "onset_offset": -0.50790705
+      },
+      "model_identity": {
+        "checkpoint_auto_download": false,
+        "checkpoint_sha256": "ae38e415c79efd5592dcb9b658cdb99ddb11d4c4e1eaa364cab04a052473fc25",
+        "checkpoint_source_revision": "5e66c1ea173a8186e0d20432b841d3180cc015b5",
+        "entrypoint": "audio_score_tool.mt3_program_midi.main",
+        "model": "yourmt3",
+        "mr_program_preservation": false,
+        "python": "3.11.18",
+        "runtime_versions": {
+          "demucs": "4.0.1",
+          "mt3-infer": "0.2.0",
+          "torch": "2.7.1+cpu",
+          "torchaudio": "2.7.1+cpu",
+          "transformers": "4.44.2"
+        },
+        "seed": 0,
+        "torch_threads": 2
+      },
+      "model_redistribution_approved": false,
+      "musicxml_pdf_quality_measured": false,
+      "protocol": {
+        "audio_crop": "entire original recording; no trim, shift, or alignment search",
+        "duplicate_notes_removed": false,
+        "empty_prediction_policy": "valid empty MIDI counts as zero, never as a skipped stem",
+        "failure_policy": "any failed stem makes the separated arm incomplete",
+        "programs_relabelled": false,
+        "same_amt_checkpoint_and_runtime_for_both_arms": true,
+        "stem_combination": "raw note multiset union in seconds; no MIDI reserialization",
+        "stem_selection": "all separator outputs; no energy threshold or reference selection"
+      },
+      "purpose": "same-source-mix-vs-estimated-stems-amt",
+      "release_quality_approved": false,
+      "schema_version": 1,
+      "separator": "htdemucs_6s",
+      "source_code_revision": "1c06610de5ec2742c6b97572b9df20a309329502",
+      "source_media_published": false,
+      "source_separation_sdr_measured": false
+    }
+  },
+  "pr_head_sha": "0b29d98dca01ed29c4ee528b9a0bb9ff4aecb6b9",
+  "purpose": "observed-complete-CocoChorales-mix-versus-stems-engine-comparison",
+  "raw_audio_stems_midi_or_checkpoints_included": false,
+  "release_quality_approved": false,
+  "schema_version": 1,
+  "source_proofs": {
+    "brass_track049013": {
+      "archive_bytes": 14796241,
+      "archive_git_blob_sha1": "edeac26f1f47825a3ce7f55ec2a9ffd62cdacf58",
+      "archive_sha256": "1aac4c6ad8b00e1ab0aa8f593627578e9fa48c99e551a00685986ed271f058b6",
+      "attribution": {
+        "changes": "Dataset media unchanged; model predictions and statistics separately generated",
+        "creator": "Yusong Wu and CocoChorales contributors",
+        "license": "CC-BY-4.0",
+        "license_page": "https://magenta.tensorflow.org/datasets/cocochorales"
+      },
+      "case_count": 1,
+      "commercial_model_redistribution_approved": false,
+      "dataset": "cocochorales",
+      "model_inference_performed": false,
+      "official_archive_path": "cocochorales/assets/sample_examples/pieces/brass_track049013.zip",
+      "official_format_source_commit": "4647edbce6719fe907e17fcc072651def168eaa5",
+      "official_release": "official-sample-site@7a0b15e7be365a6b062027c38ce0f8d57ed1d98a",
+      "official_sample_page": "https://lukewys.github.io/cocochorales/",
+      "official_source": "https://magenta.tensorflow.org/datasets/cocochorales",
+      "operator_rights_reviewed": true,
+      "paired_fingerprint": "15a67336c1eb9fb2fdfad813e534fd68ac666c41a6209954f6f8ad7482cec43a",
+      "schema_version": 1,
+      "selected_uncompressed_bytes": 805204,
+      "source_kind": "official-sample-zip",
+      "source_media_published": false,
+      "source_repository": "lukewys/lukewys.github.io",
+      "source_revision": "7a0b15e7be365a6b062027c38ce0f8d57ed1d98a",
+      "track_count": 1,
+      "tracks": [
+        {
+          "duration_seconds": 25.028,
+          "instruments": [
+            {
+              "instrument": "trumpet",
+              "midi_program": 56,
+              "voice": 0
+            },
+            {
+              "instrument": "horn",
+              "midi_program": 60,
+              "voice": 1
+            },
+            {
+              "instrument": "trombone",
+              "midi_program": 57,
+              "voice": 2
+            },
+            {
+              "instrument": "tuba",
+              "midi_program": 58,
+              "voice": 3
+            }
+          ],
+          "metadata_sha256": "3e56958f410b782ee04cbaf3597be4a9c30d093654ab3c290c51ff9ea903f224",
+          "midi_duration_seconds": 24.03125,
+          "mix_midi_sha256": "a288cfede8c5e74a5eaac4010ac150773012e634f3d6a87121b8ccc3c86ba7ca",
+          "mix_wav_sha256": "0870c900011e455fae7f2d481a8694f2331e0ead88b16edb99c8a846aa374c89",
+          "reference_note_on_count": 89,
+          "reference_voice_count_from_metadata": 4,
+          "split": "train",
+          "track_id": "brass_track049013"
+        }
+      ],
+      "upstream_rights_independently_verified": false
+    },
+    "random_track145011": {
+      "archive_bytes": 15303828,
+      "archive_git_blob_sha1": "6a249460961ba661056f7602001c6e2f55ffa449",
+      "archive_sha256": "2a1e11f0145b66362b4aef6b5a6545296d3e658d891e70858720306a6ef427ac",
+      "attribution": {
+        "changes": "Dataset media unchanged; model predictions and statistics separately generated",
+        "creator": "Yusong Wu and CocoChorales contributors",
+        "license": "CC-BY-4.0",
+        "license_page": "https://magenta.tensorflow.org/datasets/cocochorales"
+      },
+      "case_count": 1,
+      "commercial_model_redistribution_approved": false,
+      "dataset": "cocochorales",
+      "model_inference_performed": false,
+      "official_archive_path": "cocochorales/assets/sample_examples/pieces/random_track145011.zip",
+      "official_format_source_commit": "4647edbce6719fe907e17fcc072651def168eaa5",
+      "official_release": "official-sample-site@7a0b15e7be365a6b062027c38ce0f8d57ed1d98a",
+      "official_sample_page": "https://lukewys.github.io/cocochorales/",
+      "official_source": "https://magenta.tensorflow.org/datasets/cocochorales",
+      "operator_rights_reviewed": true,
+      "paired_fingerprint": "a2b7c0888415f7a72ac67a98f170bc225d846ec301de9fc2592f896b830d627b",
+      "schema_version": 1,
+      "selected_uncompressed_bytes": 834559,
+      "source_kind": "official-sample-zip",
+      "source_media_published": false,
+      "source_repository": "lukewys/lukewys.github.io",
+      "source_revision": "7a0b15e7be365a6b062027c38ce0f8d57ed1d98a",
+      "track_count": 1,
+      "tracks": [
+        {
+          "duration_seconds": 25.92,
+          "instruments": [
+            {
+              "instrument": "trumpet",
+              "midi_program": 56,
+              "voice": 0
+            },
+            {
+              "instrument": "viola",
+              "midi_program": 41,
+              "voice": 1
+            },
+            {
+              "instrument": "clarinet",
+              "midi_program": 71,
+              "voice": 2
+            },
+            {
+              "instrument": "cello",
+              "midi_program": 42,
+              "voice": 3
+            }
+          ],
+          "metadata_sha256": "fffd438792287f182b3fd713fb22187dbec18ecc3662137b191048e394659aff",
+          "midi_duration_seconds": 24.922053,
+          "mix_midi_sha256": "61519652ae44c3e1328470e4253e94336e91fb0006875ee157622a5c26dbf788",
+          "mix_wav_sha256": "3329f8d7d56d9f0e414a3f6ec9985d8d56df002ddce935b5edf204750ee36af1",
+          "reference_note_on_count": 105,
+          "reference_voice_count_from_metadata": 4,
+          "split": "train",
+          "track_id": "random_track145011"
+        }
+      ],
+      "upstream_rights_independently_verified": false
+    },
+    "string_track001010": {
+      "archive_bytes": 18345823,
+      "archive_git_blob_sha1": "81fd702d468094a11b30cc2d41e87a85da4651b7",
+      "archive_sha256": "ffe955c473a88c02a52344562b5d7a8551e93dc61ed811e5045030b117b0bac3",
+      "attribution": {
+        "changes": "Dataset media unchanged; model predictions and statistics separately generated",
+        "creator": "Yusong Wu and CocoChorales contributors",
+        "license": "CC-BY-4.0",
+        "license_page": "https://magenta.tensorflow.org/datasets/cocochorales"
+      },
+      "case_count": 1,
+      "commercial_model_redistribution_approved": false,
+      "dataset": "cocochorales",
+      "model_inference_performed": false,
+      "official_archive_path": "cocochorales/assets/sample_examples/pieces/string_track001010.zip",
+      "official_format_source_commit": "4647edbce6719fe907e17fcc072651def168eaa5",
+      "official_release": "official-sample-site@7a0b15e7be365a6b062027c38ce0f8d57ed1d98a",
+      "official_sample_page": "https://lukewys.github.io/cocochorales/",
+      "official_source": "https://magenta.tensorflow.org/datasets/cocochorales",
+      "operator_rights_reviewed": true,
+      "paired_fingerprint": "4fbe1b7eea852050d47e7825363d78192e7d3080c20048dfe9aa15f59010122e",
+      "schema_version": 1,
+      "selected_uncompressed_bytes": 997961,
+      "source_kind": "official-sample-zip",
+      "source_media_published": false,
+      "source_repository": "lukewys/lukewys.github.io",
+      "source_revision": "7a0b15e7be365a6b062027c38ce0f8d57ed1d98a",
+      "track_count": 1,
+      "tracks": [
+        {
+          "duration_seconds": 31.02,
+          "instruments": [
+            {
+              "instrument": "violin",
+              "midi_program": 40,
+              "voice": 0
+            },
+            {
+              "instrument": "violin",
+              "midi_program": 40,
+              "voice": 1
+            },
+            {
+              "instrument": "viola",
+              "midi_program": 41,
+              "voice": 2
+            },
+            {
+              "instrument": "cello",
+              "midi_program": 42,
+              "voice": 3
+            }
+          ],
+          "metadata_sha256": "01d737c723e76b32a7f959c50c5f3daf12f628ba1a9c8e772809379e7b14bd31",
+          "midi_duration_seconds": 30.023438,
+          "mix_midi_sha256": "6d5f0b8e8d5e6712794d8e3ad8eeec78772b616693eec1e8d1a41c4bca17a0f7",
+          "mix_wav_sha256": "cd9dd7d76185cdceed85155b77ca0292061f8752eb3b0e4f3942439f99fc9519",
+          "reference_note_on_count": 109,
+          "reference_voice_count_from_metadata": 4,
+          "split": "train",
+          "track_id": "string_track001010"
+        }
+      ],
+      "upstream_rights_independently_verified": false
+    },
+    "woodwind_track097010": {
+      "archive_bytes": 10719458,
+      "archive_git_blob_sha1": "f36e7059df65c8cfbbc854dcf714b97362e27083",
+      "archive_sha256": "b528b11b4b6d54be559abd93a2a186eabbcb8afe4ee7b6b99a63e47ddbef03ec",
+      "attribution": {
+        "changes": "Dataset media unchanged; model predictions and statistics separately generated",
+        "creator": "Yusong Wu and CocoChorales contributors",
+        "license": "CC-BY-4.0",
+        "license_page": "https://magenta.tensorflow.org/datasets/cocochorales"
+      },
+      "case_count": 1,
+      "commercial_model_redistribution_approved": false,
+      "dataset": "cocochorales",
+      "model_inference_performed": false,
+      "official_archive_path": "cocochorales/assets/sample_examples/pieces/woodwind_track097010.zip",
+      "official_format_source_commit": "4647edbce6719fe907e17fcc072651def168eaa5",
+      "official_release": "official-sample-site@7a0b15e7be365a6b062027c38ce0f8d57ed1d98a",
+      "official_sample_page": "https://lukewys.github.io/cocochorales/",
+      "official_source": "https://magenta.tensorflow.org/datasets/cocochorales",
+      "operator_rights_reviewed": true,
+      "paired_fingerprint": "ec2e9e567d05179dd3da1867f402536caa0558ef40a65eb190251b7dd2c7873e",
+      "schema_version": 1,
+      "selected_uncompressed_bytes": 581499,
+      "source_kind": "official-sample-zip",
+      "source_media_published": false,
+      "source_repository": "lukewys/lukewys.github.io",
+      "source_revision": "7a0b15e7be365a6b062027c38ce0f8d57ed1d98a",
+      "track_count": 1,
+      "tracks": [
+        {
+          "duration_seconds": 18.012,
+          "instruments": [
+            {
+              "instrument": "flute",
+              "midi_program": 73,
+              "voice": 0
+            },
+            {
+              "instrument": "oboe",
+              "midi_program": 68,
+              "voice": 1
+            },
+            {
+              "instrument": "clarinet",
+              "midi_program": 71,
+              "voice": 2
+            },
+            {
+              "instrument": "bassoon",
+              "midi_program": 70,
+              "voice": 3
+            }
+          ],
+          "metadata_sha256": "5b97a5e1804bad33312bd16d3980e0c6a18c533fc153dde62f43e1c4bb8ae755",
+          "midi_duration_seconds": 17.012122,
+          "mix_midi_sha256": "d2a75ef1ba44bb4eb2623cc0804d7377e6840a1b98ea85d1adba40a3c05e0b49",
+          "mix_wav_sha256": "8973316f18703ec97ae5965e62933cbc44b81a54408df459514dcf52e2c0b851",
+          "reference_note_on_count": 105,
+          "reference_voice_count_from_metadata": 4,
+          "split": "train",
+          "track_id": "woodwind_track097010"
+        }
+      ],
+      "upstream_rights_independently_verified": false
+    }
+  },
+  "workflow_conclusion": "success",
+  "workflow_run_id": 42584934707,
+  "workflow_url": "https://github.com/JDeun/audio-score-tool/actions/runs/42584934707"
+}
