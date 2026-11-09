@@ -72,8 +72,10 @@ def test_auto_enrichment_reuses_existing_revision_safe_enrich_api(monkeypatch):
         ("analysis", "job-1", "automatic_enrichment", "applied"),
     ]
     complete["filename"] = "Unknown title"
+    # A partial mock Song has no valid original title; preserve it rather
+    # than asserting that the Unknown placeholder could be committed.
     assert automatic_song_enrichment.enrich_completed_job(complete)["status"] == (
-        "no_trusted_title_artist_hint"
+        "unknown_not_applied"
     )
     complete["auto_enrich"] = False
     assert automatic_song_enrichment.enrich_completed_job(complete)["status"] == "disabled"
