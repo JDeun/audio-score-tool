@@ -149,12 +149,12 @@ def update_engine(payload: EngineSettingsPayload) -> dict:
             raise HTTPException(
                 409, "배포 앱에서는 사용자 지정 실행 명령을 사용할 수 없습니다."
             )
+    current = runtime_settings(store=_store)
     if payload.transcription_engine == "muscriptor":
         # The Model Manager's /api/models/select endpoint already rejects
         # unready variants. Keep this alternative settings route equally
         # strict; never persist a selected but unusable transcription engine.
-        current = runtime_settings(store=_store)
-        variant = payload.muscriptor_model or "large"
+        variant = payload.muscriptor_model or current.muscriptor_model
         candidate = replace(
             current,
             usage_mode=payload.usage_mode,
@@ -195,9 +195,11 @@ def update_engine(payload: EngineSettingsPayload) -> dict:
             "usage_mode": payload.usage_mode,
             "transcription_engine": payload.transcription_engine,
             "mt3_infer_cmd": payload.mt3_infer_cmd,
-            "mt3_model": managed or payload.mt3_model or "yourmt3",
+            # Updating one engine must not silently reset the other
+            # provider's installed/default model selection.
+            "mt3_model": managed or payload.mt3_model or current.mt3_model,
             "muscriptor_cmd": payload.muscriptor_cmd,
-            "muscriptor_model": payload.muscriptor_model or "large",
+            "muscriptor_model": payload.muscriptor_model or current.muscriptor_model,
             "native_engine_cmd": payload.native_engine_cmd,
             "native_checkpoint": checkpoint,
         }
