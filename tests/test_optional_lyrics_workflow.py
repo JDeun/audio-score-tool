@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -96,3 +97,43 @@ def test_real_cancellation_is_not_downgraded_to_warning(tmp_path: Path, monkeypa
     monkeypatch.setattr(pipeline_v2, "run_command", cancel)
     with pytest.raises(PipelineCancelled):
         pipeline_v2.transcribe(audio, tmp_path / "out", settings=settings)
+
+
+
+@pytest.mark.parametrize(("api_lyrics", "expected_source"), [
+    ("hello", "lrclib"),
+    ("completely unrelated API text another story", "whisperx"),
+])
+def test_external_lyrics_are_api_text_first_but_aligned_to_real_asr_timings(
+    tmp_path: Path, monkeypatch, api_lyrics: str, expected_source: str,
+):
+    audio, settings = _prepared(tmp_path, monkeypatch)
+    monkeypatch.setattr(
+        pipeline_v2, "command_exists", lambda cmd: cmd == "test-whisperx"
+    )
+    def fake_asr(_command, args, **_kwargs):
+        directory = Path(args[args.index("--output_dir") + 1])
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / "audio.json").write_text(json.dumps({
+            "segments": [{"words": [
+                {"word": "hello", "start": 0.0, "end": 0.5, "score": 0.9}
+            ]}]
+        }), encoding="utf-8")
+
+    monkeypatch.setattr(pipeline_v2, "run_command", fake_asr)
+    result = pipeline_v2.transcribe(
+        audio, tmp_path / "out", settings=settings,
+        skip_lyrics=False, language="en",
+        reference_lyrics={
+            "provider": "lrclib", "lyrics": api_lyrics, "synced": False
+        },
+    )
+    assert result.lyric_musicxml_path is not None
+    assert result.lyric_musicxml_path.is_file()
+    alignment = json.loads((result.work_dir / "alignment.json").read_text())
+    assert alignment["lyrics_source"] == expected_source
+    assert alignment["external_lyrics_available"] is True
+    assert alignment["attached_token_count"] > 0
+    assert result.transcript_json_path is not None
+    if expected_source == "whisperx":
+        assert any("did not align reliably" in w for w in result.warnings)
