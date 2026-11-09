@@ -21,6 +21,7 @@ from .pipeline_v2 import transcribe
 from .preflight_v2 import preflight
 from .presets import list_presets, resolve_job_models
 from .runtime_settings import runtime_settings
+from .score_requests import validate_score_mode
 from .settings_store import SettingsStore
 from .setup_info import setup_instructions
 from .system_status import storage_status
@@ -123,6 +124,7 @@ class YouTubeJobRequest(BaseModel):
     language: str | None = None
     skip_lyrics: bool = False
     preset: str = "auto"
+    score_mode: str = "full"
     muscriptor_model: str | None = None
     whisperx_model: str | None = None
 
@@ -200,6 +202,8 @@ def _execute_transcription(
         _store.update(job_id, stage=stage, progress=min(100, mapped))
 
     try:
+        stored = _store.get(job_id) or {}
+        mode = validate_score_mode(stored.get("score_mode", "full"))
         result = transcribe(
             audio,
             jobs_dir() / job_id / "outputs",
@@ -211,6 +215,7 @@ def _execute_transcription(
             ),
             progress=report_progress,
             cancel_event=cancel_event,
+            **({"score_mode": mode} if mode != "full" else {}),
         )
         if cancel_event.is_set():
             _store.update(job_id, status="cancelled", stage="cancelled")

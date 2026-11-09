@@ -8,6 +8,7 @@ from threading import Lock
 from typing import Any
 
 from .paths import database_path
+from .score_requests import validate_score_mode
 from .sqlite_runtime import connect_sqlite
 
 
@@ -40,6 +41,7 @@ class JobStore:
                     language TEXT,
                     skip_lyrics INTEGER NOT NULL DEFAULT 0,
                     preset TEXT,
+                    score_mode TEXT NOT NULL DEFAULT 'full',
                     muscriptor_model TEXT,
                     whisperx_model TEXT,
                     error TEXT,
@@ -56,6 +58,8 @@ class JobStore:
                 # Older jobs cannot be re-attributed safely from a title; NULL
                 # preserves the historical best-effort fallback without inventing origin.
                 conn.execute("ALTER TABLE jobs ADD COLUMN source_kind TEXT")
+            if "score_mode" not in columns:
+                conn.execute("ALTER TABLE jobs ADD COLUMN score_mode TEXT NOT NULL DEFAULT 'full'")
             conn.execute(
                 "CREATE INDEX IF NOT EXISTS idx_jobs_completed_cursor "
                 "ON jobs(status, updated_at, job_id)"
@@ -68,6 +72,7 @@ class JobStore:
     def create(self, job_id: str, **values: Any) -> None:
         if values.get("source_kind") not in {None, "local", "youtube", "omr", "notation"}:
             raise ValueError("Unsupported Job source_kind")
+        mode = validate_score_mode(values.get("score_mode", "full"))
         now = _now()
         payload = {
             "kind": values.get("kind", "transcription"),
@@ -79,6 +84,7 @@ class JobStore:
             "language": values.get("language"),
             "skip_lyrics": int(bool(values.get("skip_lyrics", False))),
             "preset": values.get("preset"),
+            "score_mode": mode,
             "muscriptor_model": values.get("muscriptor_model"),
             "whisperx_model": values.get("whisperx_model"),
             "error": values.get("error"),
@@ -89,13 +95,13 @@ class JobStore:
                 """
                 INSERT INTO jobs (
                     job_id,kind,status,stage,progress,filename,source_kind,language,skip_lyrics,preset,
-                    muscriptor_model,whisperx_model,error,result_json,created_at,updated_at
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    score_mode,muscriptor_model,whisperx_model,error,result_json,created_at,updated_at
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """,
                 (
                     job_id, payload["kind"], payload["status"], payload["stage"], payload["progress"],
                     payload["filename"], payload["source_kind"], payload["language"], payload["skip_lyrics"],
-                    payload["preset"], payload["muscriptor_model"], payload["whisperx_model"],
+                    payload["preset"], payload["score_mode"], payload["muscriptor_model"], payload["whisperx_model"],
                     payload["error"], payload["result_json"], now, now,
                 ),
             )
@@ -104,6 +110,8 @@ class JobStore:
         if not values:
             return
         mapping = dict(values)
+        if "score_mode" in mapping:
+            mapping["score_mode"] = validate_score_mode(mapping["score_mode"])
         if "source_kind" in mapping and mapping["source_kind"] not in {None, "local", "youtube", "omr", "notation"}:
             raise ValueError("Unsupported Job source_kind")
         if "result" in mapping:
