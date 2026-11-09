@@ -99,8 +99,8 @@ def test_setup_remove_calls_owned_component_manager(monkeypatch):
 
 
 def test_unpublished_demucs_cannot_be_installed_from_setup_center():
-    from audio_score_tool.managed_publication_readiness import check_publication
     from audio_score_tool.managed_component_catalog import platform_key
+    from audio_score_tool.managed_publication_readiness import check_publication
 
     status = TestClient(app).get("/api/setup/center")
     assert status.status_code == 200
