@@ -210,6 +210,22 @@ def test_sheetsage_rejects_unmappable_harte_chords(label):
         _parse_chord_symbol(label)
 
 
+@pytest.mark.parametrize("label,root,bass,classes", [
+    ("C:maj/3", 0, 4, {0, 4, 7}),
+    ("Bb:min/b3", 10, 1, {10, 1, 5}),
+    ("G:7/b7", 7, 5, {7, 11, 2, 5}),
+    ("F#:maj7/7", 6, 5, {6, 10, 1, 5}),
+    ("C:sus4(b7)", 0, 0, {0, 5, 7, 10}),
+])
+def test_native_sheetsage2_full_chord_vocabulary_preserves_inversions(label, root, bass, classes):
+    from audio_score_tool.sheetsage_hybrid import _parse_chord_symbol
+
+    symbol = _parse_chord_symbol(label)
+    assert symbol.root().pitchClass == root
+    assert symbol.bass().pitchClass == bass
+    assert {p.pitchClass for p in symbol.pitches} == classes
+
+
 @pytest.mark.parametrize(
     ("label", "tonic", "mode"),
     [
