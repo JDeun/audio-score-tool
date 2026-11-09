@@ -297,3 +297,80 @@ def test_inactive_native_model_is_not_read(flow, monkeypatch):
     assert response.status_code == 202
     flow.threads[-1].finish()
     assert flow.store.get(response.json()["job_id"])["status"] == "done"
+
+
+def test_youtube_retry_without_downloaded_audio_recovers_same_video_and_model(flow, monkeypatch):
+    reply = submit(flow, "youtube", url="https://youtu.be/abcdef12345?si=secret-tracking&list=private")
+    assert reply.status_code == 202, reply.text
+    job_id = reply.json()["job_id"]
+    old = flow.store.get(job_id)
+    assert old["youtube_video_id"] == "abcdef12345"
+    assert "secret-tracking" not in str(old)
+    assert old["source_authorized"] is False
+    flow.store.update(job_id, status="failed", stage="failed")
+    flow.settings = replace(flow.settings, mt3_model="yourmt3")
+
+    seen_urls = []
+    previous_download = runtime.download_youtube_audio
+
+    def capture(url, *args, **kwargs):
+        seen_urls.append(url)
+        return previous_download(url, *args, **kwargs)
+
+    monkeypatch.setattr(runtime, "download_youtube_audio", capture)
+    response = flow.client.post(f"/api/jobs/{job_id}/retry")
+    assert response.status_code == 202, response.text
+    new_id = response.json()["job_id"]
+    new = flow.store.get(new_id)
+    assert new["youtube_video_id"] == "abcdef12345"
+    assert new["mt3_model"] == "mr_mt3"
+    assert flow.threads[-1].target is api._youtube_worker
+    flow.threads[-1].finish()
+    assert flow.store.get(new_id)["status"] == "done"
+    assert seen_urls == ["https://www.youtube.com/watch?v=abcdef12345"]
+    assert flow.inferred[-1].mt3_model == "mr_mt3"
+
+
+def test_youtube_retry_reuses_downloaded_audio_without_redownloading(flow, monkeypatch):
+    reply = submit(flow, "youtube")
+    original_id = reply.json()["job_id"]
+    flow.threads[-1].finish()
+    assert flow.store.get(original_id)["status"] == "done"
+    monkeypatch.setattr(runtime, "download_youtube_audio", lambda *_a, **_kw: (
+        _ for _ in ()).throw(AssertionError("Existing YouTube audio must be reused")))
+    response = flow.client.post(f"/api/jobs/{original_id}/retry")
+    assert response.status_code == 202, response.text
+    assert flow.threads[-1].target is api._worker
+    flow.threads[-1].finish()
+    assert flow.store.get(response.json()["job_id"])["status"] == "done"
+
+
+def test_youtube_retry_missing_legacy_identity_cannot_guess_video(flow):
+    flow.store.create("old-video", status="failed", source_kind="youtube")
+    response = flow.client.post("/api/jobs/old-video/retry")
+    assert response.status_code == 409
+    assert len(flow.store.list()) == 1
+    assert flow.threads == []
+
+
+def test_youtube_retry_rechecks_commercial_rights(flow):
+    reply = submit(flow, "youtube")
+    assert reply.status_code == 202
+    flow.store.update(reply.json()["job_id"], status="failed")
+    flow.settings = replace(flow.settings, usage_mode="commercial")
+    response = flow.client.post(f"/api/jobs/{reply.json()['job_id']}/retry")
+    assert response.status_code == 422
+    assert len(flow.store.list()) == 1
+    assert len(flow.threads) == 1
+
+
+def test_youtube_retry_rejects_corrupted_stored_video_id(flow):
+    reply = submit(flow, "youtube")
+    job_id = reply.json()["job_id"]
+    flow.store.update(job_id, status="failed")
+    with flow.store._connect() as conn:
+        conn.execute("UPDATE jobs SET youtube_video_id=? WHERE job_id=?",
+                     ("https://example.invalid/bad", job_id))
+    response = flow.client.post(f"/api/jobs/{job_id}/retry")
+    assert response.status_code == 409
+    assert len(flow.store.list()) == 1

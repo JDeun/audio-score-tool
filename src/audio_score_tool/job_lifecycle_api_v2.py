@@ -21,7 +21,12 @@ from .runner import command_exists
 from .runtime_settings import runtime_settings
 from .score_requests import needs_stem_separation, validate_score_mode
 from .song_store_v2 import SongStoreV2
-from .youtube import YouTubeSourceError, validate_youtube_url, youtube_tool_status
+from .youtube import (
+    YouTubeSourceError,
+    canonical_youtube_url,
+    youtube_tool_status,
+    youtube_video_id,
+)
 
 router = APIRouter(tags=["jobs-v2"])
 _songs = SongStoreV2()
@@ -98,7 +103,8 @@ def _restore_staged_workspace(original: Path | None, staged: Path | None) -> Non
 @router.post("/api/jobs/youtube", status_code=202)
 def create_youtube_job_v2(payload: base_api.YouTubeJobRequest) -> dict:
     try:
-        url = validate_youtube_url(payload.url)
+        video_id = youtube_video_id(payload.url)
+        url = canonical_youtube_url(video_id)
         defaults = runtime_settings()
         score_mode = validate_score_mode(payload.score_mode)
         # The desktop default is private, noncommercial practice; do not ask
@@ -142,6 +148,8 @@ def create_youtube_job_v2(payload: base_api.YouTubeJobRequest) -> dict:
         progress=0,
         filename="YouTube import",
         source_kind="youtube",
+        youtube_video_id=video_id,
+        source_authorized=payload.authorized,
         language=payload.language,
         skip_lyrics=payload.skip_lyrics,
         preset=payload.preset,
@@ -191,6 +199,7 @@ def _retry_input_source(job_id: str, kind: str) -> Path:
         path
         for path in (jobs_dir() / job_id).glob(pattern)
         if path.is_file() and not path.is_symlink() and path.suffix.lower() in allowed
+        and path.stat().st_size > 0
     )
     if not candidates:
         raise HTTPException(404, f"Original {kind} input is missing.")
@@ -208,8 +217,28 @@ def retry_job_v2(job_id: str) -> dict:
         raise HTTPException(409, "Running jobs cannot be retried.")
 
     kind = str(source.get("kind") or "transcription")
-    original = _retry_input_source(job_id, kind)
     settings = runtime_settings()
+    youtube_source = kind == "transcription" and source.get("source_kind") == "youtube"
+    try:
+        original = _retry_input_source(job_id, kind)
+    except HTTPException as exc:
+        if not youtube_source or exc.status_code != 404:
+            raise
+        original = None
+
+    retry_url: str | None = None
+    if youtube_source:
+        if getattr(settings, "usage_mode", "personal") != "personal" and not source.get("source_authorized"):
+            raise HTTPException(422, "이 YouTube 작업을 다시 처리할 권한 확인이 필요합니다.")
+        if original is None:
+            try:
+                retry_url = canonical_youtube_url(source.get("youtube_video_id"))
+            except YouTubeSourceError as exc:
+                raise HTTPException(
+                    409, "이전 YouTube 작업에 복구 가능한 영상 ID가 없습니다. URL로 새 작업을 시작하세요.",
+                ) from exc
+            if not youtube_tool_status(settings)["ready"]:
+                raise HTTPException(503, "YouTube 가져오기 구성요소가 준비되지 않았습니다.")
     if kind == "omr":
         from .omr import audiveris_status
 
@@ -230,6 +259,8 @@ def retry_job_v2(job_id: str) -> dict:
         "progress": 0,
         "filename": source.get("filename"),
         "source_kind": source.get("source_kind"),
+        "youtube_video_id": source.get("youtube_video_id") if youtube_source else None,
+        "source_authorized": source.get("source_authorized", False) if youtube_source else False,
         "language": source.get("language"),
         "preset": source.get("preset") or default_presets[kind],
         "score_mode": source.get("score_mode") or "full",
@@ -260,10 +291,11 @@ def retry_job_v2(job_id: str) -> dict:
 
     _reserve_or_429(new_id, **values)
     target_dir = jobs_dir() / new_id
-    copied = target_dir / original.name
+    copied = target_dir / original.name if original is not None else None
     try:
         target_dir.mkdir(parents=True, exist_ok=False)
-        _copy_retry_input(original, copied)
+        if original is not None and copied is not None:
+            _copy_retry_input(original, copied)
 
         if kind == "benchmark":
             reference_source = original.parent / "reference.mid"
@@ -292,11 +324,13 @@ def retry_job_v2(job_id: str) -> dict:
                 daemon=True,
             )
         else:
+            # An already downloaded input is reused. If the original download
+            # failed before producing audio, resume from the trusted video ID.
             thread = Thread(
-                target=base_api._worker,
+                target=base_api._youtube_worker if retry_url is not None else base_api._worker,
                 args=(
                     new_id,
-                    copied,
+                    retry_url if retry_url is not None else copied,
                     source.get("language"),
                     source.get("skip_lyrics", False),
                     values["muscriptor_model"],

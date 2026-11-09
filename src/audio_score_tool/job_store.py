@@ -11,6 +11,7 @@ from .job_transcription_settings import validate_job_selection
 from .paths import database_path
 from .score_requests import validate_score_mode
 from .sqlite_runtime import connect_sqlite
+from .youtube import canonical_youtube_url
 
 
 def _now() -> str:
@@ -44,6 +45,8 @@ class JobStore:
                     preset TEXT,
                     score_mode TEXT NOT NULL DEFAULT 'full',
                     auto_enrich INTEGER NOT NULL DEFAULT 0,
+                    youtube_video_id TEXT,
+                    source_authorized INTEGER NOT NULL DEFAULT 0,
                     transcription_selection_version INTEGER NOT NULL DEFAULT 0,
                     transcription_engine TEXT,
                     mt3_model TEXT,
@@ -69,6 +72,10 @@ class JobStore:
             if "auto_enrich" not in columns:
                 # No surprise external requests for previously saved jobs.
                 conn.execute("ALTER TABLE jobs ADD COLUMN auto_enrich INTEGER NOT NULL DEFAULT 0")
+            if "youtube_video_id" not in columns:
+                conn.execute("ALTER TABLE jobs ADD COLUMN youtube_video_id TEXT")
+            if "source_authorized" not in columns:
+                conn.execute("ALTER TABLE jobs ADD COLUMN source_authorized INTEGER NOT NULL DEFAULT 0")
             if "transcription_selection_version" not in columns:
                 conn.execute(
                     "ALTER TABLE jobs ADD COLUMN transcription_selection_version INTEGER NOT NULL DEFAULT 0"
@@ -91,6 +98,11 @@ class JobStore:
         if values.get("source_kind") not in {None, "local", "youtube", "omr", "notation"}:
             raise ValueError("Unsupported Job source_kind")
         mode = validate_score_mode(values.get("score_mode", "full"))
+        video_id = values.get("youtube_video_id")
+        if video_id is not None:
+            canonical_youtube_url(video_id)
+            if values.get("source_kind") != "youtube":
+                raise ValueError("YouTube identity requires source_kind=youtube")
         selection_version = values.get(
             "transcription_selection_version", 0 if values.get("transcription_engine") is None else 1,
         )
@@ -112,6 +124,8 @@ class JobStore:
             "preset": values.get("preset"),
             "score_mode": mode,
             "auto_enrich": int(bool(values.get("auto_enrich", False))),
+            "youtube_video_id": video_id,
+            "source_authorized": int(bool(values.get("source_authorized", False))),
             "transcription_engine": values.get("transcription_engine"),
             "transcription_selection_version": selection_version,
             "mt3_model": values.get("mt3_model"),
@@ -127,8 +141,9 @@ class JobStore:
                 INSERT INTO jobs (
                     job_id,kind,status,stage,progress,filename,source_kind,language,skip_lyrics,preset,
                     score_mode,auto_enrich,muscriptor_model,whisperx_model,error,result_json,created_at,updated_at,
-                    transcription_engine,mt3_model,native_checkpoint_sha256,transcription_selection_version
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    transcription_engine,mt3_model,native_checkpoint_sha256,transcription_selection_version,
+                    youtube_video_id,source_authorized
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """,
                 (
                     job_id, payload["kind"], payload["status"], payload["stage"], payload["progress"],
@@ -136,7 +151,8 @@ class JobStore:
                     payload["preset"], payload["score_mode"], payload["auto_enrich"], payload["muscriptor_model"], payload["whisperx_model"],
                     payload["error"], payload["result_json"], now, now,
                     payload["transcription_engine"], payload["mt3_model"], payload["native_checkpoint_sha256"],
-                    payload["transcription_selection_version"],
+                    payload["transcription_selection_version"], payload["youtube_video_id"],
+                    payload["source_authorized"],
                 ),
             )
 
@@ -150,6 +166,10 @@ class JobStore:
                 mapping.get("native_checkpoint_sha256"),
                 selection_version=mapping.get("transcription_selection_version"),
             )
+        if "youtube_video_id" in mapping and mapping["youtube_video_id"] is not None:
+            canonical_youtube_url(mapping["youtube_video_id"])
+        if "source_authorized" in mapping:
+            mapping["source_authorized"] = int(bool(mapping["source_authorized"]))
         if "score_mode" in mapping:
             mapping["score_mode"] = validate_score_mode(mapping["score_mode"])
         if "source_kind" in mapping and mapping["source_kind"] not in {None, "local", "youtube", "omr", "notation"}:
@@ -218,6 +238,7 @@ class JobStore:
         result = dict(row)
         result["skip_lyrics"] = bool(result["skip_lyrics"])
         result["auto_enrich"] = bool(result["auto_enrich"])
+        result["source_authorized"] = bool(result["source_authorized"])
         raw = result.pop("result_json", None)
         result["result_corrupt"] = False
         if not raw:
