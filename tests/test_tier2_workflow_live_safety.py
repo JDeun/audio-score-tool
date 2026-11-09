@@ -61,4 +61,38 @@ def test_real_gated_muscriptor_only_uploads_metadata_evidence():
     for disallowed in ("out/**/*.mid", "out/**/*.musicxml", "out/muscriptor/score"):
         assert disallowed not in upload
     assert "HF_TOKEN: ''" in content
-    assert "MuScriptorEngine" in content
+    assert "scripts.run_muscriptor_source_qa" in content
+    product_runner = Path("scripts/run_muscriptor_source_qa.py").read_text(encoding="utf-8")
+    assert "MuScriptorEngine" in product_runner
+
+
+def test_opt_in_muscriptor_can_reuse_reviewed_author_wav_and_independent_midi():
+    workflow = _read()
+    dispatch = workflow.split("\n  workflow_dispatch:\n", 1)[1].split(
+        "\npermissions:\n", 1
+    )[0]
+    job = workflow.split("\n  muscriptor:\n", 1)[1]
+    assert "muscriptor_source:" in dispatch
+    assert "- cocochorales-author-train" in dispatch
+    assert "- authorized-youtube" in dispatch
+    assert "default: none" in dispatch
+    assert "github.event_name == 'workflow_dispatch'" in job
+    assert "vars.ENABLE_MUSCRIPTOR == 'true'" in job
+    assert "inputs.muscriptor_source == 'cocochorales-author-train'" in job
+    assert "inputs.muscriptor_source == 'authorized-youtube'" in job
+    assert "inputs.youtube_url == ''" in job
+    # The same immutable author example as the existing MR/YourMT3 pair run.
+    assert "string_track001010" in job
+    assert "7a0b15e7be365a6b062027c38ce0f8d57ed1d98a" in job
+    assert "scripts.prepare_cocochorales_official_sample" in job
+    assert "AST_MUSCRIPTOR_EVIDENCE_ROOT" in job
+    assert "AST_MUSCRIPTOR_CORPUS_ROOT" in job
+    assert "scripts.run_muscriptor_source_qa" in job
+    assert "HF_TOKEN: ''" in job
+
+    # Never publish the author sample/reference or raw predicted files,
+    # regardless of whether the model inference completes or fails.
+    publish = job.split("- name: Upload metadata-only MuScriptor research evidence", 1)[1]
+    assert "path: out/muscriptor/verification.pending.json" in publish
+    for extension in (".wav", ".mid", ".musicxml", ".safetensors", ".zip"):
+        assert extension not in publish

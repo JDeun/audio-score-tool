@@ -425,3 +425,58 @@ The YourMT3 checkpoint is downloaded privately from the original Hugging Face Sp
 For each candidate the private run writes a per-case provenance and `four-ensemble-score.pending.json` with onset/offset/instrument F1, predicted vs reference GM histograms, part counts, inference time, failure count, original media and reference SHA-256. The final `pair-and-compare` job rejects a different upstream source proof SHA, audio SHA, reference MIDI SHA, split or case count and produces **JSON-only** `head-to-head.pending.json`. The two candidate jobs may run concurrently on separate GitHub-hosted VMs, but CPU contention within one runner is avoided. Their hardware class is the same; exact CPU frequency/thermal conditions are not guaranteed equal, so latency comparisons remain approximate.
 
 **This is an engineering A/B on four author-published *train-split* synthesized Bach-style ensemble examples, not an independent held-out/test benchmark.** The comparison emits a research-only ordering if all four pairs were scored; `commercial_default_selected=false`, `release_quality_approved=false`, `heldout_generalization_measured=false`. The YourMT3 upstream code repository's GPL-3.0 notice and Space/model checkpoint license/weights redistribution conditions remain separate legal review. Do not infer an authorized commercial runtime or remove other model implementations from a four-song result. The next production decision requires the held-out real-music Golden Set, equal editorial completion protocol, legitimate model/source redistribution rights, and human editing cost metrics.
+
+
+## Reuse issue #154's official author sample for real MuScriptor CPU QA (#55)
+
+The existing [CocoChorales author examples](https://lukewys.github.io/cocochorales/)
+are **real files published by their authors**, with independent MIDI references
+for each WAV. They have already been used in the [MR-MT3 vs YourMT3 paired
+comparison](https://github.com/JDeun/audio-score-tool/actions/runs/42535843289).
+A new YouTube URL is **not necessary** to execute the first genuine MuScriptor
+small inference. Do not confuse this original-source engineering sample with
+a held-out recording: the four author examples are all `train` split.
+
+To run the gated small model, open [Actions → Tier 2 Actual Model Smoke
+Tests](https://github.com/JDeun/audio-score-tool/actions/workflows/tier2-actual-models.yml)
+and select **Run workflow** with:
+
+- `muscriptor_source = cocochorales-author-train`
+- `youtube_url` left **empty**
+- Repository Variable `ENABLE_MUSCRIPTOR = true` deliberately configured for
+  the research run
+- Repository Secret `HF_TOKEN` securely configured for a Hugging Face account
+  that has **explicitly accepted** the noncommercial MuScriptor small license
+
+Never include the token in an issue, workflow input or commit. Missing
+credentials or absent model-license access are **blocked/skipped, not a score
+of zero**. Normal `pull_request` CI does not start this gated job.
+
+The manual job downloads `string_track001010.zip` from exact upstream author
+commit `7a0b15e7be365a6b062027c38ce0f8d57ed1d98a`, verifies the pinned Git
+blob and original `mix.wav`/`mix.mid` with the existing
+`prepare_cocochorales_official_sample` source/rights checks, then privately
+downloads MuScriptor small. Inference **clears `HF_TOKEN`**, runs the actual
+AudioScoreTool MuScriptor engine with offline weights, and evaluates the MIDI
+and MusicXML against the original reference using the same onset, onset+offset
+and exact-GM instrument metrics as the MR-MT3/YourMT3 experiments.
+
+Only `out/muscriptor/verification.pending.json` leaves the CI runner.
+Its source/audio/reference/checkpoint/output hashes, F1, model runtime commit
+and inference duration can be compared with earlier candidate results without
+exposing model weights, original WAV, reference MIDI or predicted scores.
+The receipt explicitly marks the sample as `dataset_split=train` and keeps
+`checkpoint_revision_pinned_before_download=false`,
+`redistribution_approved=false`, `heldout_generalization_measured=false`,
+`release_quality_approved=false`. No human edit-time metric is fabricated.
+
+The alternative `muscriptor_source=authorized-youtube` requires a separately
+reviewed `youtube_url` and reports **N/A** for F1 because it lacks an independent
+MIDI reference. The Tinashe example mentioned in [#57](https://github.com/JDeun/audio-score-tool/issues/57)
+is a research candidate, not an authorized pinned media URI and reference-MIDI
+pair. Do not silently substitute it for the original author audio.
+
+This first gated run is only the small/CPU/author-train engineering gate.
+Medium/large GPU or MPS, held-out real-genre quality, user edit-to-publish
+time, independent checkpoint redistribution provenance, and platform packages
+remain separate blockers (#55, #34, #29).

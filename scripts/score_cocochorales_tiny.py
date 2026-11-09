@@ -1,4 +1,4 @@
-"""Score actual MT3 MIDI/MusicXML against verified CocoChorales tiny pairs.
+"""Score actual AMT MIDI/MusicXML against verified CocoChorales pairs.
 
 Requires already-generated predictions and an original official-shard receipt.
 Never runs or downloads a model, music, or third-party binaries. Onset-only
@@ -265,15 +265,15 @@ def score_cocochorales(
     case_ids = tuple(x["id"] for x in records)
     if (
         version != benchmark_manifest["corpus_version"] or ids != case_ids
-        or engine.id not in {"mt3_infer", "mr-mt3"}
+        or engine.id not in {"mt3_infer", "mr-mt3", "muscriptor"}
     ):
-        raise ValueError("Actual MT3 prediction provenance differs from verified paired corpus")
+        raise ValueError("Actual AMT prediction provenance differs from verified paired corpus")
     raw_times = prediction_source.get("case_inference_seconds")
     if raw_times is not None and (
         not isinstance(raw_times, dict) or set(raw_times) != set(case_ids)
         or any(type(n) not in {int, float} or not math.isfinite(n) or n < 0 for n in raw_times.values())
     ):
-        raise ValueError("MT3 inference time provenance is incomplete or invalid")
+        raise ValueError("AMT inference time provenance is incomplete or invalid")
 
     measured = []
     for case in records:
@@ -334,7 +334,10 @@ def score_cocochorales(
         })
     return {
         "schema_version": 1,
-        "purpose": "cocochorales-tiny-mt3-note-evaluation",
+        "purpose": (
+            "cocochorales-muscriptor-note-evaluation"
+            if engine.id == "muscriptor" else "cocochorales-tiny-mt3-note-evaluation"
+        ),
         "dataset_id": "cocochorales",
         "dataset_kind": "synthetic_satb_chorale_not_real_commercial_music",
         "split": split,
@@ -344,7 +347,10 @@ def score_cocochorales(
         "source_evidence_sha256": hashlib.sha256(
             json.dumps(source_proof, sort_keys=True, separators=(",", ":")).encode()
         ).hexdigest(),
-        "mt3_prediction_evidence_sha256": _sha(root / "tier2-prediction-provenance.json"),
+        (
+            "muscriptor_prediction_evidence_sha256"
+            if engine.id == "muscriptor" else "mt3_prediction_evidence_sha256"
+        ): _sha(root / "tier2-prediction-provenance.json"),
         "engine": {
             "id": engine.id, "model_revision": engine.model_revision,
             "runtime_revision": engine.runtime_revision, "artifact_sha256": engine.artifact_sha256,
@@ -361,7 +367,7 @@ def score_cocochorales(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Score native MT3 predictions on tiny CocoChorales")
+    parser = argparse.ArgumentParser(description="Score real AMT predictions on verified CocoChorales audio/MIDI pairs")
     parser.add_argument("--pairs", type=Path, required=True)
     parser.add_argument("--registry", type=Path, required=True)
     parser.add_argument("--source-proof", type=Path, required=True)
