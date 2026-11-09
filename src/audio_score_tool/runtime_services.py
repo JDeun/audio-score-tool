@@ -24,7 +24,7 @@ from .runtime_settings import runtime_settings
 from .score_requests import validate_score_mode
 from .settings_store import SettingsStore
 from .setup_info import setup_instructions
-from .source_metadata_hints import title_artist_hints
+from .source_metadata_hints import resolve_source_lookup_hints
 from .system_status import storage_status
 from .youtube import (
     YouTubeSourceCancelled,
@@ -212,7 +212,10 @@ def _execute_transcription(
             whisperx_model=whisperx_model,
         )
         hint = (
-            title_artist_hints(stored.get("filename"))
+            resolve_source_lookup_hints(
+                stored.get("source_kind"), stored.get("filename"),
+                audio_path=audio if stored.get("source_kind") == "local" else None,
+            )
             if stored.get("auto_enrich") is True else None
         )
         api_lyrics = None
@@ -223,8 +226,9 @@ def _execute_transcription(
             from .enrichment import EnrichmentError, fetch_lrclib_lyrics
 
             try:
-                title, artist = hint
-                api_lyrics = fetch_lrclib_lyrics(title, artist)
+                api_lyrics = fetch_lrclib_lyrics(
+                    hint.title, hint.artist, album=hint.album,
+                )
             except EnrichmentError as exc:
                 api_warning = (
                     f"External lyric API unavailable ({type(exc).__name__}); "
@@ -257,8 +261,12 @@ def _execute_transcription(
                 progress=100,
                 result=result.as_dict(),
             )
-            if hint and stored.get("auto_enrich") is True:
+            if stored.get("auto_enrich") is True:
                 completed_for_enrichment = _store.get(job_id)
+                if completed_for_enrichment is not None:
+                    # Internal, in-memory query evidence only; no audio bytes
+                    # and no filename parsing during remote metadata lookup.
+                    completed_for_enrichment["_source_lookup_hints"] = hint
     except PipelineCancelled:
         _store.update(job_id, status="cancelled", stage="cancelled")
     except Exception as exc:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import unicodedata
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
@@ -41,6 +42,7 @@ class EnrichRequest(BaseModel):
     lyrics_api_key_env: str | None = None
     apply_reference_lyrics: bool = True
     auto_lyrics: bool = True
+    require_exact_match: bool = False
 
 
 class IdentifySourceRequest(BaseModel):
@@ -74,20 +76,34 @@ def _apply_metadata(
     try:
         current_publication = _publication.read(song_id)
         updated_publication = dict(current_publication)
-        # Only fill missing credits. Never overwrite a user's manually edited
-        # album, performer, composer, lyricist or release date.
-        if selected.get("provider") == "musicbrainz":
+        auto_unknown = (
+            (_store.analysis(song_id, "automatic_enrichment") or {}).get("status")
+            == "unknown"
+        )
+
+        def fillable(field: str) -> bool:
+            current = str(updated_publication.get(field) or "").strip()
+            return not current or (auto_unknown and current == "Unknown")
+
+        # Unknown is an explicit unresolved marker, not an artist/author
+        # guess. Missing credits can later be filled by verified API matches;
+        # user-entered credits are never overwritten by automatic lookup.
+        if selected.get("provider") == "unresolved":
+            for field in ("album", "performer", "release_date", "composer", "lyricist"):
+                if not str(updated_publication.get(field) or "").strip():
+                    updated_publication[field] = "Unknown"
+        elif selected.get("provider") == "musicbrainz":
             for field, suggested in (
                 ("album", selected.get("album")),
                 ("performer", next_artist),
                 ("release_date", selected.get("first_release_date")),
             ):
-                if suggested and not str(updated_publication.get(field) or "").strip():
+                if suggested and fillable(field):
                     updated_publication[field] = str(suggested).strip()[:300]
             if selected.get("songwriters_verified") is True:
                 for field in ("composer", "lyricist"):
                     value = selected.get(field)
-                    if value and not str(updated_publication.get(field) or "").strip():
+                    if value and fillable(field):
                         updated_publication[field] = str(value).strip()[:200]
         expected_revision = int(song["revision"])
         credits_changed = updated_publication != current_publication
@@ -115,6 +131,17 @@ def _apply_metadata(
         # Fail closed without changing the canonical Song, exporting an
         # incomplete revision, or reapplying stale source-identification data.
         return False
+
+
+def _same_song_identity(left: object, right: object) -> bool:
+    """Conservative exact identity after Unicode/case/space normalization."""
+    if not isinstance(left, str) or not isinstance(right, str):
+        return False
+    return (
+        bool(left.strip()) and bool(right.strip())
+        and " ".join(unicodedata.normalize("NFKC", left).casefold().split())
+        == " ".join(unicodedata.normalize("NFKC", right).casefold().split())
+    )
 
 
 def _with_work_credits(selected: dict) -> tuple[dict, str | None]:
@@ -326,6 +353,12 @@ def enrich_song(song_id: str, payload: EnrichRequest) -> dict:
         candidates = []
         metadata_error = "MusicBrainz commercial API entitlement not confirmed"
 
+    if payload.require_exact_match:
+        candidates = [
+            item for item in candidates
+            if _same_song_identity(item.get("title"), title)
+            and _same_song_identity(item.get("artist"), artist)
+        ]
     selected = choose_high_confidence(candidates, threshold=payload.metadata_threshold)
     work_credits_error = None
     if selected:
