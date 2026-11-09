@@ -104,6 +104,7 @@ def test_score_observations_preserve_ties_and_tempo_changes():
 
 def test_real_decoder_then_pitch_analysis_without_optional_ml_dependencies(tmp_path):
     from audio_score_tool.config import Settings
+    from audio_score_tool.demucs_runtime import prepare_demucs_audio
     from audio_score_tool.runner import command_exists
     command = Settings().ffmpeg_cmd
     if not command_exists(command):
@@ -118,3 +119,10 @@ def test_real_decoder_then_pitch_analysis_without_optional_ml_dependencies(tmp_p
     times, pitches = ve.vocal_pitch_track(path, ffmpeg_cmd=command)
     assert len(times) > 10
     assert np.nanmedian(pitches) == pytest.approx(69, abs=0.1)
+    prepared = prepare_demucs_audio(path, tmp_path / "stereo.wav", settings=Settings(ffmpeg_cmd=command))
+    with wave.open(str(prepared)) as handle:
+        assert handle.getnchannels() == 2
+        assert handle.getframerate() == 44100
+        stereo = np.frombuffer(handle.readframes(handle.getnframes()), dtype="<i2").reshape(-1, 2)
+        assert np.array_equal(stereo[:, 0], stereo[:, 1])
+    assert path.is_file()

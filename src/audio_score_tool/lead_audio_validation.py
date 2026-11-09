@@ -13,7 +13,7 @@ from .audio_symbol_validation import (
     _read_pcm16,
 )
 from .config import Settings
-from .demucs_runtime import demucs_ready, demucs_repo_args
+from .demucs_runtime import demucs_ready, demucs_repo_args, prepare_demucs_audio
 from .runner import CommandError, run_command
 from .score_timing import score_time_clocks
 from .selected_stem_score import SelectedScoreError, _stem
@@ -114,9 +114,10 @@ def validate_lead_audio(*, source_audio: Path, xml_text: str, settings: Settings
     with tempfile.TemporaryDirectory(prefix="ast-lead-audio-") as folder:
         root = Path(folder)
         try:
+            prepared = prepare_demucs_audio(source_audio, root / "source.wav", settings=settings)
             run_command(settings.demucs_cmd, ["-n", "htdemucs", *demucs_repo_args(settings),
                         "--two-stems", "vocals", "--shifts", "0", "-d", "cpu", "-o", root,
-                        source_audio], timeout_seconds=1800)
+                        prepared], timeout_seconds=1800)
             return compare_lead_stems(vocal_audio=_stem(root, "vocals"),
                                       backing_audio=_stem(root, "no_vocals"), xml_text=xml_text,
                                       ffmpeg_cmd=settings.ffmpeg_cmd, origin_seconds=origin_seconds)

@@ -19,7 +19,7 @@ import mido
 
 from .auto_chords import infer_chords
 from .config import Settings, packaged_runtime
-from .demucs_runtime import demucs_repo_args, managed_demucs_repository
+from .demucs_runtime import demucs_repo_args, managed_demucs_repository, prepare_demucs_audio
 from .musicxml_metadata_projection import _score, project_musicxml_annotations
 from .musicxml_parts import extract_part_musicxml
 from .notation_backend import musicxml_to_midi
@@ -195,8 +195,10 @@ def transcribe_selected_stems(
     args: list[str | Path] = ["-n", model, *demucs_repo_args(settings)]
     if mode == "lead_sheet":
         args += ["--two-stems", "vocals"]
-    args += ["-d", demucs_device, "-o", stems_root, audio_path]
     try:
+        prepared = prepare_demucs_audio(audio_path, stems_root / "source.wav", settings=settings,
+                                         cancel_event=cancel_event)
+        args += ["-d", demucs_device, "-o", stems_root, prepared]
         run_command(settings.demucs_cmd, args, cancel_event=cancel_event)
     except CommandCancelled as exc:
         raise TranscriptionEngineCancelled("Requested stem separation cancelled") from exc

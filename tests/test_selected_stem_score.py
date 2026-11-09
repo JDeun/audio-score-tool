@@ -56,6 +56,7 @@ def _run(tmp_path: Path, monkeypatch, mode: str, *, no_guitar: bool = False):
     engine = FakeEngine()
 
     monkeypatch.setattr(stems, "command_exists", lambda _: True)
+    monkeypatch.setattr(stems, "prepare_demucs_audio", lambda source, *_a, **_k: source)
 
     def fake_demucs(_command, args, **kwargs):
         assert args[0] == "-n"
@@ -193,6 +194,7 @@ def test_missing_separator_blocks_before_any_model_execution(tmp_path, monkeypat
 def test_original_source_never_becomes_an_unverified_fallback_stem(tmp_path, monkeypatch):
     monkeypatch.setattr(stems, "command_exists", lambda _: True)
     monkeypatch.setattr(stems, "run_command", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(stems, "prepare_demucs_audio", lambda source, *_a, **_k: source)
     audio = tmp_path / "source.wav"
     audio.write_bytes(b"source")
     with pytest.raises(stems.SelectedScoreError, match="vocals"):

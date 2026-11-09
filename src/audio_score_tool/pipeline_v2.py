@@ -12,7 +12,7 @@ from typing import Any
 from .auto_chords import apply_inferred_chords
 from .choir_postprocess import reconstruct_satb
 from .config import Settings, packaged_runtime
-from .demucs_runtime import demucs_repo_args, managed_demucs_repository
+from .demucs_runtime import demucs_repo_args, managed_demucs_repository, prepare_demucs_audio
 from .devices import detect_device_plan
 from .lyrics import attach_lyrics_to_musicxml, expand_korean_syllables, load_whisperx_words
 from .models import PipelineResult
@@ -277,6 +277,8 @@ def transcribe(
             not packaged_runtime() or managed_demucs_repository(settings) is not None
         ):
             try:
+                prepared = prepare_demucs_audio(transcription_audio, work_dir / "demucs-input.wav",
+                                                settings=settings, cancel_event=cancel_event)
                 run_command(
                     settings.demucs_cmd,
                     [
@@ -287,7 +289,7 @@ def transcribe(
                         device.demucs_device,
                         "-o",
                         stems_dir,
-                        transcription_audio,
+                        prepared,
                     ],
                     cancel_event=cancel_event,
                 )
