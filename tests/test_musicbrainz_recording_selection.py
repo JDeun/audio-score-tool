@@ -87,7 +87,10 @@ def example(tmp_path, monkeypatch):
     return client, store, publication
 
 
-def _mock_recording_api(monkeypatch, *, missing_release=False, wrong_artist=False, work=True):
+def _mock_recording_api(
+    monkeypatch, *, missing_release=False, wrong_artist=False,
+    work=True, linked_in_release=False,
+):
     calls = []
 
     def response(path, params):
@@ -105,6 +108,16 @@ def _mock_recording_api(monkeypatch, *, missing_release=False, wrong_artist=Fals
                 "releases": [] if missing_release else [{
                     "id": _RELEASE_2, "title": "Studio Album", "date": "2004-09-21",
                 }],
+            }
+        if path == f"release/{_RELEASE_2}" and params == {"inc": "recordings"}:
+            return {
+                "id": _RELEASE_2, "title": "Studio Album",
+                "date": "2004-09-21",
+                "media": [{"tracks": [{
+                    "recording": {
+                        "id": _RECORDING_2 if linked_in_release else _RECORDING_1,
+                    },
+                }]}],
             }
         if path == f"recording/{_RECORDING_2}" and params == {"inc": "work-rels"}:
             return {
@@ -182,10 +195,29 @@ def test_release_mbid_must_be_proven_linked_to_selected_recording(
     })
     assert result.status_code == 422
     assert "not verified" in result.json()["detail"]
-    assert len(calls) == 1
+    assert len(calls) == 2
     assert store.get("selected-song")["revision"] == 2
     assert store.score_xml("selected-song") == original_xml
     assert publication.read("selected-song") == original_credits
+
+
+def test_selected_release_link_can_be_verified_from_release_tracks_beyond_recording_page(
+    example, monkeypatch,
+):
+    client, store, publication = example
+    calls = _mock_recording_api(
+        monkeypatch, missing_release=True, linked_in_release=True,
+    )
+    result = client.post("/api/songs/selected-song/select-recording", json={
+        "recording_mbid": _RECORDING_2,
+        "release_mbid": _RELEASE_2,
+        "expected_revision": 2,
+    })
+    assert result.status_code == 200, result.text
+    assert store.get("selected-song")["revision"] == 3
+    assert publication.read("selected-song")["album"] == "Studio Album"
+    assert any(path == f"release/{_RELEASE_2}" for path, _ in calls)
+    assert len(calls) == 4
 
 
 def test_wrong_artist_recording_cannot_override_correct_song(
