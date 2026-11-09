@@ -298,3 +298,38 @@ def test_track_summary_identifies_possible_midi_to_musicxml_part_loss(tmp_path):
     assert diagnostic["midi_to_musicxml_track_count_reduction_observed"] is True
     assert len(diagnostic["prediction_gm_program_note_counts"]) == 2
     assert diagnostic["diagnosis_is_observation_not_causal_proof"] is True
+
+
+def test_muscriptor_real_prediction_can_use_same_source_bound_score_protocol(tmp_path):
+    """The genuine AMT model identity must not change note tolerances or rights."""
+    pairs, registry, source, root, predictions = _fixture(tmp_path)
+    provenance = predictions / "tier2-prediction-provenance.json"
+    payload = json.loads(provenance.read_text(encoding="utf-8"))
+    payload["engine"] = {
+        "id": "muscriptor",
+        "model_revision": "sha256:" + "d" * 64,
+        "runtime_revision": "muscriptor-git-" + "e" * 40,
+        "artifact_sha256": "d" * 64,
+    }
+    provenance.write_text(json.dumps(payload), encoding="utf-8")
+    result = _score(pairs, registry, source, root, predictions)
+    assert result["engine"]["id"] == "muscriptor"
+    assert result["purpose"] == "cocochorales-muscriptor-note-evaluation"
+    assert result["scored_case_count"] == 1
+    assert result["cases"][0]["note_onset_f1"] == pytest.approx(1.0)
+    assert result["cases"][0]["instrument_onset_offset_f1"] == pytest.approx(1.0)
+    assert len(result["muscriptor_prediction_evidence_sha256"]) == 64
+    assert "mt3_prediction_evidence_sha256" not in result
+    assert result["release_quality_approved"] is False
+    assert result["model_redistribution_approved"] is False
+    assert result["product_publish_time_measured"] is False
+
+
+def test_unrecognized_model_does_not_enter_source_bound_scoring(tmp_path):
+    pairs, registry, source, root, predictions = _fixture(tmp_path)
+    provenance = predictions / "tier2-prediction-provenance.json"
+    payload = json.loads(provenance.read_text(encoding="utf-8"))
+    payload["engine"]["id"] = "unreviewed-opaque-model"
+    provenance.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="Actual AMT prediction provenance"):
+        _score(pairs, registry, source, root, predictions)
