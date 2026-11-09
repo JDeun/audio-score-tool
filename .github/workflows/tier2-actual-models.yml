@@ -294,7 +294,7 @@ jobs:
               "commercial_default_selected": False,
           }
           Path("out/muscriptor/verification.pending.json").write_text(
-              json.dumps(report, indent=2) + "\\n", encoding="utf-8",
+              json.dumps(report, indent=2) + "\n", encoding="utf-8",
           )
           print(json.dumps({
               "status": "executed", "midi_note_on_events": notes,
