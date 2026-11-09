@@ -615,7 +615,7 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
               </p>
             )}
           </fieldset>
-          <label className="switch-field">
+          <div className="switch-field">
             <span>곡 정보·가사 자동 보강</span>
             <button className={`product-switch ${autoEnrich ? "on" : ""}`}
               aria-pressed={autoEnrich}
