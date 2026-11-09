@@ -83,6 +83,31 @@ def test_comparison_prioritizes_publish_time_before_note_f1(tmp_path: Path):
     assert result["case_fingerprint"] == "c" * 64
 
 
+@pytest.mark.parametrize("field,value", [
+    ("mean_time_to_publish_seconds", float("nan")),
+    ("mean_time_to_publish_seconds", -1),
+    ("mean_total_edit_actions", float("inf")),
+    ("mean_total_edit_actions", -1),
+    ("mean_note_f1", float("nan")),
+    ("mean_note_f1", 1.1),
+    ("successful_export_rate", float("nan")),
+    ("successful_export_rate", 1.1),
+    ("case_count", True),
+])
+def test_invalid_metrics_cannot_qualify_as_final_model(tmp_path, field, value):
+    paths = [tmp_path / "invalid.json", tmp_path / "valid.json"]
+    for index, path in enumerate(paths):
+        _write_report(path, engine_id=str(index), publish_time=100, edits=10,
+                      note_f1=0.9, export_rate=1, all_exports=True)
+    payload = json.loads(paths[0].read_text())
+    payload["summary"][field] = value
+    paths[0].write_text(json.dumps(payload))
+    result = compare_tier2_reports(paths)
+    assert result["recommended_engine"] == "1"
+    invalid = next(row for row in result["ranking"] if row["engine_id"] == "0")
+    assert invalid["qualified"] is False
+
+
 def test_comparison_rejects_mixing_legacy_counts_with_timed_annotation_metrics(tmp_path):
     paths = [tmp_path / "old.json", tmp_path / "new.json"]
     for index, path in enumerate(paths):
