@@ -21,8 +21,8 @@ from .music_structure import (
 )
 from .paths import song_assets_dir
 from .pickup_normalization import normalize_pickup_measure
-from .reference_lyrics import align_reference_lyrics
 from .pipeline import PipelineCancelled, PipelineError, _find_one, _find_whisper_json
+from .reference_lyrics import align_reference_lyrics
 from .runner import CommandCancelled, CommandError, command_exists, run_command
 from .score_requests import validate_score_mode
 from .selected_stem_score import SelectedScoreError, transcribe_selected_stems
