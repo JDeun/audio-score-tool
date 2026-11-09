@@ -92,7 +92,7 @@ PDF renderer의 notation engine은 Verovio이며 MuseScore/LilyPond fallback을 
 MusicXML → Verovio SVG → fpdf2 PDF
 ```
 
-SVG 텍스트·음악 기호는 Verovio가 포함한 Liberation/Leipzig 글꼴을 PDF에 포함합니다. WOFF2 해제에는 MIT 라이선스의 Brotli를 사용하며, fontTools는 기존 fpdf2 의존성을 재사용합니다. 한글 제목·가사·파트명에는 [Google Fonts의 Noto Sans KR](https://github.com/google/fonts/tree/b38c5c93af322c45f633e17ac440ec1e6c94d489/ofl/notosanskr)을 함께 배포합니다. 원본 글꼴은 수정하지 않으며 OFL-1.1 전문·저작권 고지와 source revision/SHA-256을 `src/audio_score_tool/fonts/` 및 frozen sidecar에 포함합니다. PDF에 사용된 글리프만 포함하는 처리는 출력 시 수행합니다.
+SVG 텍스트·음악 기호는 Verovio가 포함한 Liberation/Leipzig 글꼴을 PDF에 포함합니다. WOFF2 해제에는 MIT 라이선스의 Brotli를 사용하며, fontTools는 기존 fpdf2 의존성을 재사용합니다. 한글 제목·가사·파트명에는 [Google Fonts의 Noto Sans KR](https://github.com/google/fonts/tree/b38c5c93af322c45f633e17ac440ec1e6c94d489/ofl/notosanskr)을 함께 배포합니다. 원본의 전체 글리프를 유지한 정적 굵기 400/700을 생성하여 WOFF2로 무손실 압축합니다. OFL-1.1 전문·저작권 고지와 원본·변환 파일의 source revision/SHA-256을 `src/audio_score_tool/fonts/` 및 frozen sidecar에 포함합니다. PDF에 사용된 글리프만 포함하는 처리는 출력 시 수행합니다.
 
 ## 9. OpenSheetMusicDisplay
 

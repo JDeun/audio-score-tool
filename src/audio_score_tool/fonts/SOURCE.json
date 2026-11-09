@@ -1,12 +1,21 @@
 {
   "family": "Noto Sans KR",
-  "file": "NotoSansKR.ttf",
   "upstream_repository": "https://github.com/google/fonts",
   "upstream_revision": "b38c5c93af322c45f633e17ac440ec1e6c94d489",
   "upstream_path": "ofl/notosanskr/NotoSansKR[wght].ttf",
   "upstream_git_blob": "b386890ba945e1f39448a6b59f20c5d194f58808",
-  "sha256": "194018e6b2b293a7964f037b25c0249ce1418bc9ab3c971060a03aa57861e252",
   "license": "OFL-1.1",
   "license_file": "OFL-NotoSansKR.txt",
-  "modifications": "none; font variation instances and PDF subsets are generated only during export"
+  "modifications": "fontTools 4.64.0 static weight instances 400/700 with updateFontNames=True, lossless WOFF2 compression; all upstream codepoints retained; PDF glyph subsets are generated during export",
+  "upstream_sha256": "194018e6b2b293a7964f037b25c0249ce1418bc9ab3c971060a03aa57861e252",
+  "files": {
+    "NotoSansKR-Regular.woff2": {
+      "sha256": "8b7b7785c43fb9bd1170031f271204b6238c4b5aad0e470c6779c5588a2ce18e",
+      "bytes": 2072844
+    },
+    "NotoSansKR-Bold.woff2": {
+      "sha256": "36bd21e132a78bb3ea0dd57753b853649a9183a7c51ca30c18a2ed782ffad497",
+      "bytes": 2121388
+    }
+  }
 }

@@ -365,31 +365,35 @@ def musicxml_to_pdf_embedded(
         pdf.set_auto_page_break(False)
         with tempfile.TemporaryDirectory(prefix="audioscore-verovio-") as raw_work:
             work = Path(raw_work)
-            _register_pdf_fonts(pdf, work)
-            for page_number in range(1, page_count + 1):
-                if cancel_event is not None and cancel_event.is_set():
-                    raise NotationBackendError("PDF 생성이 취소되었습니다.")
-                svg_text = toolkit.renderToSVG(page_number)
-                if not svg_text.strip():
-                    raise NotationBackendError(
-                        f"Verovio가 {page_number}페이지 SVG를 생성하지 않았습니다."
-                    )
-                svg_text = _normalize_verovio_svg_for_fpdf2(svg_text)
-                if 'font-family="NotoSansKR"' in svg_text and "notosanskr" not in pdf.fonts:
-                    pdf.add_font(
-                        family="NotoSansKR",
-                        fname=Path(__file__).parent / "fonts" / "NotoSansKR.ttf",
-                        variations={
-                            "": {"wght": 400}, "B": {"wght": 700},
-                            "I": {"wght": 400}, "BI": {"wght": 700},
-                        },
-                    )
-                width_mm, height_mm = _svg_dimensions_mm(svg_text)
-                svg_path = work / f"page-{page_number}.svg"
-                svg_path.write_text(svg_text, encoding="utf-8")
-                pdf.add_page(format=(width_mm, height_mm))
-                pdf.image(str(svg_path), x=0, y=0, w=width_mm, h=height_mm)
-        pdf.output(str(target))
+            try:
+                _register_pdf_fonts(pdf, work)
+                for page_number in range(1, page_count + 1):
+                    if cancel_event is not None and cancel_event.is_set():
+                        raise NotationBackendError("PDF 생성이 취소되었습니다.")
+                    svg_text = toolkit.renderToSVG(page_number)
+                    if not svg_text.strip():
+                        raise NotationBackendError(
+                            f"Verovio가 {page_number}페이지 SVG를 생성하지 않았습니다."
+                        )
+                    svg_text = _normalize_verovio_svg_for_fpdf2(svg_text)
+                    if 'font-family="NotoSansKR"' in svg_text and "notosanskr" not in pdf.fonts:
+                        for style, weight in (("", "Regular"), ("I", "Regular"),
+                                              ("B", "Bold"), ("BI", "Bold")):
+                            pdf.add_font(
+                                family="NotoSansKR", style=style,
+                                fname=Path(__file__).parent / "fonts" / f"NotoSansKR-{weight}.woff2",
+                            )
+                    width_mm, height_mm = _svg_dimensions_mm(svg_text)
+                    svg_path = work / f"page-{page_number}.svg"
+                    svg_path.write_text(svg_text, encoding="utf-8")
+                    pdf.add_page(format=(width_mm, height_mm))
+                    pdf.image(str(svg_path), x=0, y=0, w=width_mm, h=height_mm)
+                pdf.output(str(target))
+            finally:
+                # Windows cannot delete temporary fonts while fpdf2 holds them open.
+                for font in pdf.fonts.values():
+                    if close := getattr(font, "close", None):
+                        close()
     except (NotationBackendError, NotationBackendUnavailable):
         raise
     except Exception as exc:

@@ -60,6 +60,44 @@ def test_render_pdf_is_self_contained(tmp_path: Path):
     assert not list(tmp_path.glob("*.ly"))
 
 
+@pytest.mark.parametrize("render_fails", [False, True])
+def test_pdf_closes_font_files_before_temporary_directory_cleanup(tmp_path, monkeypatch, render_fails):
+    import tempfile
+
+    from fpdf import FPDF
+
+    from audio_score_tool import notation_backend
+
+    documents = []
+
+    class TrackedPDF(FPDF):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            documents.append(self)
+
+        def image(self, *args, **kwargs):
+            if render_fails:
+                raise ValueError("render failure")
+            return super().image(*args, **kwargs)
+
+    class WindowsDirectory(tempfile.TemporaryDirectory):
+        def __exit__(self, *args):
+            # Simulate Windows refusing to remove an open font file.
+            assert documents[0].fonts
+            assert all(font.ttfont.reader is None for font in documents[0].fonts.values())
+            return super().__exit__(*args)
+
+    monkeypatch.setattr("fpdf.FPDF", TrackedPDF)
+    monkeypatch.setattr(notation_backend.tempfile, "TemporaryDirectory", WindowsDirectory)
+    source = tmp_path / "score.musicxml"
+    source.write_text(SIMPLE_SCORE, encoding="utf-8")
+    if render_fails:
+        with pytest.raises(NotationBackendError, match="render failure"):
+            render_pdf(source, tmp_path / "score.pdf")
+    else:
+        render_pdf(source, tmp_path / "score.pdf")
+
+
 def test_pdf_preserves_unicode_punctuation_and_printed_metronome(tmp_path, caplog):
     source = tmp_path / "unicode.musicxml"
     source.write_text(SIMPLE_SCORE.replace(
