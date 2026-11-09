@@ -163,7 +163,8 @@ def _validate_fidelity(expected: list[_Performed], result: Path) -> None:
     actual = midi_notes(result)
     if len(actual) != len(expected):
         raise StemTimelineError("Stem score assembly changed the number of performed notes")
-    keys = lambda note: (note.is_drum, note.program if not note.is_drum else 0, note.pitch)
+    def keys(note):
+        return (note.is_drum, note.program if not note.is_drum else 0, note.pitch)
     left = sorted(expected, key=lambda note: (*keys(note), note.onset, note.offset))
     right = sorted(actual, key=lambda note: (*keys(note), note.onset, note.offset))
     for source, target in zip(left, right):
