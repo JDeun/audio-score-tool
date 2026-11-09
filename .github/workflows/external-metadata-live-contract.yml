@@ -1,0 +1,71 @@
+name: External Metadata and Lyrics API Live Contract
+
+# Run only when provider compatibility is being changed or explicitly requested.
+# The test performs public title/artist metadata lookups and reads LRCLIB's
+# documented example in runner memory. No user media, audio, lyrics, tokens,
+# full provider bodies or model weights are logged/uploaded.
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/external-metadata-live-contract.yml'
+      - 'scripts/check_metadata_providers_live.py'
+      - 'tests/test_metadata_providers_live_contract.py'
+      - 'src/audio_score_tool/enrichment.py'
+      - 'src/audio_score_tool/safe_http.py'
+  workflow_dispatch:
+    inputs:
+      strict_live:
+        description: 'Fail when either public service is unreachable or unverified'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: metadata-live-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  live-schema:
+    name: MusicBrainz work metadata and LRCLIB exact-lyrics live query
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout source without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup pinned Python and uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: 0.12.10
+          python-version: '3.12'
+      - name: Install frozen project dependencies
+        run: uv sync --frozen --extra dev
+      - name: Validate probe's metadata-only contract offline
+        run: uv run --frozen pytest -q tests/test_metadata_providers_live_contract.py
+      - name: Check actual public APIs; capture only metadata-only JSON statuses
+        shell: bash
+        env:
+          GH_EVENT: ${{ github.event_name }}
+          STRICT_LIVE: ${{ inputs.strict_live }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/metadata-live"
+          if [[ "$GH_EVENT" == "workflow_dispatch" && "$STRICT_LIVE" == "true" ]]; then
+            uv run --frozen python -m scripts.check_metadata_providers_live \
+              --output "$RUNNER_TEMP/metadata-live/live-provider-contract.pending.json" \
+              --strict-live
+          else
+            uv run --frozen python -m scripts.check_metadata_providers_live \
+              --output "$RUNNER_TEMP/metadata-live/live-provider-contract.pending.json"
+          fi
+      - name: Upload metadata-only provider status; never lyrics or HTTP bodies
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: external-provider-live-status-pending-${{ github.run_id }}
+          path: ${{ runner.temp }}/metadata-live/live-provider-contract.pending.json
+          if-no-files-found: warn
+          retention-days: 14
