@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Event
@@ -129,6 +130,35 @@ def validate_youtube_url(value: str) -> str:
         return value
 
     raise YouTubeSourceError("Use a YouTube watch, Shorts, live, embed, or youtu.be video URL.")
+
+
+_VIDEO_ID = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+
+def youtube_video_id(value: str) -> str:
+    """Extract one video identifier from an already validated YouTube link.
+
+    Drop playlist, tracking and timestamp query parameters before persisting a
+    retry source. Never persist the original pasted URL or its full query string.
+    """
+    parsed = urlparse(validate_youtube_url(value))
+    host = (parsed.hostname or "").lower().rstrip(".")
+    if parsed.path == "/watch" and host != "youtu.be":
+        video_id = parse_qs(parsed.query).get("v", [""])[0].strip()
+    elif host == "youtu.be":
+        video_id = parsed.path.strip("/").split("/", 1)[0]
+    else:
+        video_id = parsed.path.strip("/").split("/", 1)[-1].split("/", 1)[0]
+    if _VIDEO_ID.fullmatch(video_id) is None:
+        raise YouTubeSourceError("YouTube video ID is invalid.")
+    return video_id
+
+
+def canonical_youtube_url(video_id: str | None) -> str:
+    """Construct a safe replayable watch URL from stored opaque video identity."""
+    if not isinstance(video_id, str) or _VIDEO_ID.fullmatch(video_id) is None:
+        raise YouTubeSourceError("Stored YouTube video ID is missing or invalid.")
+    return f"https://www.youtube.com/watch?v={video_id}"
 
 
 def youtube_tool_status(settings: Settings | None = None) -> dict:
