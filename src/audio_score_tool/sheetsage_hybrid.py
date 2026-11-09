@@ -5,8 +5,6 @@ import json
 import math
 import os
 import re
-import shlex
-import subprocess
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -14,39 +12,75 @@ from typing import Any
 from music21 import chord, converter, harmony, key, meter, note, stream, tempo
 
 from .musicxml_metadata_projection import project_musicxml_annotations
+from .runner import CommandError, run_command
+from .runtime_settings import runtime_settings
 
 
 class SheetSageError(ValueError):
     """Invalid or unavailable SheetSage2 analysis."""
 
 
-def run_sheetsage_adapter(audio: Path, output: Path, *, command: str | None = None) -> dict[str, Any]:
-    """Execute a pinned, separately installed SheetSage2 CLI adapter.
+_MAX_EVENTS_JSON_BYTES = 16 * 1024 * 1024
+_MAX_EVENTS_PER_TYPE = 100_000
 
-    The command must accept: <audio> <output-json>. The adapter is responsible for
-    producing schema_version=1, and for loading the licensed SheetSage2 checkpoint.
-    No arbitrary Python model code is imported in the AudioScoreTool process.
+
+def run_sheetsage_adapter(audio: Path, output: Path, *, command: str | None = None) -> dict[str, Any]:
+    """Execute opt-in, noncommercial SheetSage2 inference with a verified runtime.
+
+    The command accepts <audio> <output-json>. In packaged mode the shared
+    runner requires a registered, checksum-validated managed executable. Never
+    use arbitrary subprocess/PATH fallbacks, accept stale output as new evidence,
+    or overwrite a previous valid analysis on an inference failure.
     """
+    if runtime_settings().usage_mode == "commercial":
+        raise SheetSageError(
+            "SheetSage2 public checkpoints are CC BY-NC and unavailable in commercial mode."
+        )
     executable = command or os.environ.get("AST_SHEETSAGE2_ADAPTER")
-    if not executable:
+    if not executable or not executable.strip():
         raise SheetSageError("Set AST_SHEETSAGE2_ADAPTER to a reviewed SheetSage2 executable")
+    if not audio.is_file():
+        raise SheetSageError("SheetSage2 input audio is missing")
     output.parent.mkdir(parents=True, exist_ok=True)
-    argv = shlex.split(executable)
-    if not argv:
-        raise SheetSageError("empty SheetSage2 adapter command")
-    subprocess.run([*argv, str(audio), str(output)], check=True)
-    return load_sheetsage_events(output)
+    # Separate staging ensures the existing event JSON is not accidentally
+    # accepted when the adapter exits 0 without writing any new output.
+    with tempfile.TemporaryDirectory(prefix=".sheetsage2-events-", dir=output.parent) as folder:
+        staged = Path(folder) / "events.json"
+        try:
+            run_command(executable, [audio, staged], timeout_seconds=1800)
+        except CommandError as exc:
+            # An external model's stderr may contain credentials or private
+            # paths. Do not propagate it into API/user-facing errors.
+            raise SheetSageError(
+                "SheetSage2 execution failed; check the reviewed managed runtime."
+            ) from exc
+        if not staged.is_file() or staged.is_symlink():
+            raise SheetSageError("SheetSage2 adapter did not produce fresh events JSON")
+        events = load_sheetsage_events(staged)
+        if events.get("model") != "sheetsage2":
+            raise SheetSageError("SheetSage2 adapter output has no confirmed model identity")
+        staged.replace(output)
+    return events
 
 
 def load_sheetsage_events(path: Path) -> dict[str, Any]:
-    """Read normalized SheetSage2 output; never infer absent musical events."""
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    """Read bounded normalized events; never infer absent musical events."""
+    try:
+        if path.stat().st_size > _MAX_EVENTS_JSON_BYTES:
+            raise SheetSageError("SheetSage2 events JSON exceeds the allowed size")
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError) as exc:
+        if isinstance(exc, SheetSageError):
+            raise
+        raise SheetSageError("SheetSage2 events JSON is missing or invalid") from exc
     if not isinstance(payload, dict) or payload.get("schema_version") != 1:
         raise SheetSageError("SheetSage2 adapter must produce schema_version=1 JSON")
     for name in ("chords", "beats", "downbeats", "keys"):
         events = payload.get(name, [])
         if not isinstance(events, list):
             raise SheetSageError(f"{name} must be an array")
+        if len(events) > _MAX_EVENTS_PER_TYPE:
+            raise SheetSageError(f"{name} contains too many events")
         last = -1.0
         for event in events:
             if not isinstance(event, dict):
