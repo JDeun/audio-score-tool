@@ -48,18 +48,29 @@ def _json_request(
 def _musicbrainz_request(path: str, params: dict[str, str]) -> Any:
     global _last_mb_request
     with _mb_lock:
-        now = time.monotonic()
-        delay = 1.0 - (now - _last_mb_request)
-        if delay > 0:
-            time.sleep(delay)
         query = urllib.parse.urlencode({**params, "fmt": "json"})
-        try:
-            return _json_request(
-                f"{MUSICBRAINZ_BASE}/{path}?{query}",
-                headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
-            )
-        finally:
-            _last_mb_request = time.monotonic()
+        for attempt in range(2):
+            now = time.monotonic()
+            delay = 1.0 - (now - _last_mb_request)
+            if delay > 0:
+                time.sleep(delay)
+            try:
+                return _json_request(
+                    f"{MUSICBRAINZ_BASE}/{path}?{query}",
+                    headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+                )
+            except EnrichmentError as exc:
+                # MusicBrainz occasionally responds with a temporary 5xx.
+                # Retry ONCE after a delay. Never auto-retry 429 or 403:
+                # honor the public service rate limit and user opt-in.
+                if attempt or not any(
+                    f"HTTP Error {code}" in str(exc) for code in (502, 503, 504)
+                ):
+                    raise
+                time.sleep(2.0)
+            finally:
+                _last_mb_request = time.monotonic()
+        raise EnrichmentError("MusicBrainz temporary outage persisted after bounded retry")
 
 
 def _recording_candidate(item: dict[str, Any]) -> dict[str, Any]:
