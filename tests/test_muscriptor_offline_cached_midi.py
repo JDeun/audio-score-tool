@@ -10,13 +10,12 @@ import sys
 from pathlib import Path
 
 import mido
-from music21 import converter, note
 import pytest
+from music21 import converter, note
 
 from audio_score_tool import model_manager_api, preflight_v2, transcription_engine
 from audio_score_tool.config import Settings
 from audio_score_tool.muscriptor_cache import cached_muscriptor_checkpoint
-
 
 _REV = "a" * 40
 _CONFIGS = {
