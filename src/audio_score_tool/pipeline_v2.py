@@ -127,7 +127,7 @@ def transcribe(
         )
 
     selected_vocals_path: Path | None = None
-    emit("stem_separation" if score_mode != "full" else "transcription", 8)
+    emit("transcription" if score_mode == "full" or engine.key == "sheetsage2" else "stem_separation", 8)
     try:
         if score_mode == "full" or engine.key == "sheetsage2":
             artifacts = engine.transcribe(

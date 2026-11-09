@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-11-09",
+  "reviewed_at": "2026-11-10",
   "purpose": "role-separated-research-candidate-shortlist-not-a-model-selection",
   "automated_model_selection_approved": false,
   "commercial_baseline_approved": false,
@@ -181,14 +181,26 @@
         "chord_estimation",
         "beat_downbeat"
       ],
-      "implementation": "new_adapter_not_integrated",
+      "implementation": "real_vocal_measured_optional_engine",
       "license_gate": "noncommercial_weights",
       "issues": [
         43,
         53
       ],
       "source": "https://huggingface.co/m-a-p/SheetSage2",
-      "note": "Melody/chords/beat/downbeat/key/structure, not a substitute for full-instrument multi-part AMT"
+      "note": "Official pinned MERT-v2 runtime: vocadito 40, strict onset/offset F1=0; PC onset=.39836785; 1 empty vocal. Optional personal lead-sheet engine, no default/commercial approval.",
+      "vocal_evaluation": {
+        "dataset": "vocadito-v3",
+        "recordings": 40,
+        "annotators": 2,
+        "onset_f1": 0.0,
+        "onset_offset_f1": 0.0,
+        "pitch_class_onset_f1_secondary": 0.39836785,
+        "empty_vocal_cases": 1,
+        "training_overlap": "unknown",
+        "publishing_quality_approved": false,
+        "evidence": "docs/research/SHEETSAGE2_VOCADITO_2026-11-10.json"
+      }
     },
     {
       "id": "chordino-nnls",

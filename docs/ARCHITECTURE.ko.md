@@ -155,7 +155,7 @@ Song
 
 파일 업로드와 YouTube 입력은 프리셋·직접 선택을 적용한 설정으로 실행 준비를 검사한 뒤, 다음 선택을 Job SQLite에 저장합니다.
 
-- `transcription_engine`: MT3-Infer / MuScriptor / Native 엔진
+- `transcription_engine`: MT3-Infer / MuScriptor / Native / 개인용 SheetSage2 엔진
 - `mt3_model`: MT3 작업의 MR-MT3 / YourMT3 모델
 - `muscriptor_model`, `whisperx_model`: 작업에서 선택한 모델 크기
 - `native_checkpoint_sha256`: Native를 사용할 때만 직접 지정한 체크포인트의 내용 해시

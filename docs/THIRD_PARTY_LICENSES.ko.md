@@ -30,7 +30,7 @@ AudioScoreTool 자체 코드는 Apache-2.0입니다. 그러나 bundled/managed c
 ### `commercial`
 
 - 상업적 제품/서비스/배포 경로
-- MuScriptor 공개 weights 차단
+- MuScriptor 및 SheetSage2/MERT-v2 공개 weights 차단
 - 상업 사용이 허용되는 checkpoint/provider만 선택
 
 `usage_mode`는 법률 판단을 대신하지 않으며 명백한 비상업 weights가 상용 경로에 실수로 들어가는 것을 막는 기술적 안전장치입니다.
@@ -43,6 +43,10 @@ AudioScoreTool 자체 코드는 Apache-2.0입니다. 그러나 bundled/managed c
 - commercial에서는 차단
 
 ## 4. MT3-Infer / YourMT3+ / MR-MT3
+
+### SheetSage2 / MERT-v2 별도 Lead Sheet 실험
+
+두 모델의 공개 가중치는 CC BY-NC 4.0이다. [고정 revision·전체 파일 SHA](../benchmarks/tier2/sheetsage2-pins.json)와 [실행 근거](research/SHEETSAGE2_VOCADITO_2026-11-10.md)를 기록했다. 검토한 원격 소스를 고정·검증한 개인/비상업 개발용 프로세스에서만 실행한다. `commercial`에서는 차단하며, 가중치를 프로젝트 Apache-2.0으로 재라이선스하거나 배포 앱의 승인된 managed component로 표시하지 않는다.
 
 ### MT3-Infer
 

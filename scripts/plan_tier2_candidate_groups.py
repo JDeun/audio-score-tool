@@ -23,6 +23,7 @@ _STATUSES = {
     "auth_runtime_not_verified", "unintegrated_research", "no_pretrained_weights",
     "research_adapter_available", "new_adapter_not_integrated", "not_integrated",
     "new_research_candidate", "manual_reference_export_only",
+    "real_vocal_measured_optional_engine",
 }
 _UNSAFE_FOR_COMMERCIAL = {
     "noncommercial_weights", "no_upstream_license", "unknown",
@@ -114,6 +115,8 @@ def plan_candidate_group(
             status = "manual_comparison_only"
         elif implementation == "real_author_train_measured":
             status = "needs_shared_heldout_corpus_and_production_review"
+        elif implementation == "real_vocal_measured_optional_engine":
+            status = "optional_engine_measured_publishing_quality_not_approved"
         elif implementation == "research_adapter_available":
             status = "adapter_available_requires_model_checkpoint_and_same_corpus"
         else:

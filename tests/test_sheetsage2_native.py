@@ -2,6 +2,7 @@
 import hashlib
 import json
 import sys
+import xml.etree.ElementTree as ET
 from dataclasses import replace
 
 import pytest
@@ -53,6 +54,15 @@ def test_vocal_import_keeps_chords_key_meter_and_audio_clock(tmp_path):
     assert [m.ratioString for m in score.recurse().getElementsByClass(meter.TimeSignature)] == ["3/4"]
     assert [k.sharps for k in score.recurse().getElementsByClass(key.KeySignature)] == [1]
     assert [m.number for m in score.recurse().getElementsByClass(tempo.MetronomeMark)] == [60, 120]
+    xml = ET.parse(target)
+    assert len(xml.findall(".//metronome[@print-object='no']")) == 1
+    assert len(xml.findall(".//sound[@tempo]")) == 2
+    from audio_score_tool.notation_backend import _verovio_toolkit
+
+    toolkit = _verovio_toolkit()
+    assert toolkit.loadFile(str(target))
+    svg = ET.fromstring(toolkit.renderToSVG(1))
+    assert len([g for g in svg.iter() if "tempo" in g.get("class", "").split()]) == 1
 
 
 def test_voice_and_changed_bar_grid_fail_explicitly(tmp_path):

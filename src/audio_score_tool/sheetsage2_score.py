@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import math
 import re
+import xml.etree.ElementTree as ET
 from fractions import Fraction
 from pathlib import Path
 
@@ -114,6 +115,23 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
         previous_end = end
     target.parent.mkdir(parents=True, exist_ok=True)
     score.write("musicxml", fp=str(target))
+    # music21 omits this flag on tempo marks; serialize MusicXML's print-object.
+    tree = ET.parse(target)
+    for measure_index, xml_measure in enumerate(tree.getroot().findall("./part/measure")):
+        tempo_index = 0
+        for direction in xml_measure.findall("direction"):
+            sound = direction.find("sound[@tempo]")
+            metronome = direction.find("./direction-type/metronome")
+            if sound is None or metronome is None:
+                continue
+            visible_index = 1 if mapping[0].get("leading_rest", 0) else 0
+            visible = measure_index == 0 and tempo_index == visible_index
+            if visible:
+                metronome.find("per-minute").text = str(round(float(sound.get("tempo"))))
+            else:
+                metronome.set("print-object", "no")
+            tempo_index += 1
+    tree.write(target, encoding="utf-8", xml_declaration=True)
     return {"model_revision": MODEL_REVISION, "checkpoint_sha256": CHECKPOINT_SHA256,
             "measures": len(measures), "vocal_notes": len(list(part.recurse().getElementsByClass(note.Note))),
             "chord_symbols": len(list(part.recurse().getElementsByClass(harmony.ChordSymbol))),
