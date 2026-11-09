@@ -515,3 +515,26 @@ can quantize offsets and alter program mapping; compare against the raw MIDI
 and investigate deltas before attributing every discrepancy to the model.
 Author-supplied CocoChorales 4 tracks are **train** samples; held-out real
 genre F1 and time-to-publish remain mandatory before choosing a release model.
+
+### Reference-only codec calibration for the MusicXML score F1 (#34)
+
+A final MusicXML score can receive a lower note F1 than the model's raw MIDI,
+but the score evaluation itself reads XML via music21 and converts it back to
+MIDI. That round-trip may change timing, quantization or instrument programs.
+Do not attribute the entire difference to the neural model until this codec
+effect is measured independently.
+
+The [CocoChorales Reference MusicXML Roundtrip Control](https://github.com/JDeun/audio-score-tool/actions/workflows/coco-reference-musicxml-control.yml)
+uses the exact four source-pinned **author train** samples from #154, extracts
+the unchanged **reference MIDI** under the same source proof, converts the
+reference MIDI → MusicXML → MIDI using pinned music21 10.5.0, and scores
+its note-onset / onset+offset / strict GM instrument F1 against the original
+reference MIDI. There is **no model** in this experiment. Control F1 below
+1.0 quantifies the score codec's contribution under the current measurement
+convention, not a model's error. The control is an additional baseline, not
+an automatic correction factor to subtract from model F1.
+
+Only metadata-only per-track JSON plus an explicitly four-case macro control
+are uploaded; author audio/MIDI, interim MusicXML, and model weights remain
+private. The report is not held-out, human edit-to-publish or commercial
+release quality evidence.
