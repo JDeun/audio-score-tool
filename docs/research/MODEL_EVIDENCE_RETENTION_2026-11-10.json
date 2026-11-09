@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "source_commit": "bb303203b11ba7fc54fdd03c87024b7f4b16a5f0",
+  "new_inference": false,
+  "test": "actual five model outputs, cloned owned workspaces, real DELETE /api/jobs, fresh SongStore reload",
+  "original_workspaces_deleted": false,
+  "cases": [
+    {
+      "id": "tinashe-me-so-bad",
+      "status": "passed",
+      "audio_sha256": "f39788b3075e9117661481470289c6e79ce25171f7a256936a2167bdae49fd65",
+      "preserved_files": 32,
+      "preserved_bytes": 1054910,
+      "manifest_sha256": "d52dd025c45c827ff8cf5db65777f953762820d61e656c76c61833882379e4bb",
+      "source_audio_survived": true,
+      "canonical_xml_survived": true,
+      "raw_prediction_integrity_passed": true
+    },
+    {
+      "id": "twice-fancy",
+      "status": "passed",
+      "audio_sha256": "5e1b5613b3863ea3babd2dc22bc9fa8ba62deb2ae44d48c8885f832ab56f01ec",
+      "preserved_files": 32,
+      "preserved_bytes": 1269291,
+      "manifest_sha256": "a46d9035f2c49713b75c222faf789409e89449706088e8cb99c4bf6af4fcfae6",
+      "source_audio_survived": true,
+      "canonical_xml_survived": true,
+      "raw_prediction_integrity_passed": true
+    },
+    {
+      "id": "green-day-american-idiot",
+      "status": "passed",
+      "audio_sha256": "aedb875ba145c1f5cd21a0a86713d11dff1de9701512b8f1c7e4a40fa4fdf680",
+      "preserved_files": 32,
+      "preserved_bytes": 1601582,
+      "manifest_sha256": "828147175d10c0ac40be635d8071f1954558b1bacd9b25f0ed8d7b6a8030eda0",
+      "source_audio_survived": true,
+      "canonical_xml_survived": true,
+      "raw_prediction_integrity_passed": true
+    },
+    {
+      "id": "ham-boo-young-my-song",
+      "status": "passed",
+      "audio_sha256": "871118a06f5021b94f6e56c9066fca50670582f5e530bcee9290e2db270d8ac7",
+      "preserved_files": 32,
+      "preserved_bytes": 1195725,
+      "manifest_sha256": "01240f6c5bd8c4c6991d89275a89113614845328338d078135d8e4569740a677",
+      "source_audio_survived": true,
+      "canonical_xml_survived": true,
+      "raw_prediction_integrity_passed": true
+    },
+    {
+      "id": "younha-event-horizon",
+      "status": "passed",
+      "audio_sha256": "2d84bd77253c96851db8bde4cd76de0b7bf7101cf07f79ff8dbf2d03f1d23dce",
+      "preserved_files": 32,
+      "preserved_bytes": 1609700,
+      "manifest_sha256": "2ed04bb02b4851a8fafdee0840df5a74235820d48d83ef51da2ef3005e1860aa",
+      "source_audio_survived": true,
+      "canonical_xml_survived": true,
+      "raw_prediction_integrity_passed": true
+    }
+  ]
+}

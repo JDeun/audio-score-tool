@@ -373,6 +373,8 @@ def delete_job_v2(job_id: str) -> dict:
                 409,
                 "완료된 악보가 아직 곡 라이브러리에 안전하게 저장되지 않았습니다. 작업을 삭제하지 않았습니다.",
             )
+        if not _songs.preserve_job_evidence(job):
+            raise HTTPException(409, "모델 원본 예측을 안전하게 보존하지 못해 작업을 삭제하지 않았습니다.")
 
     original, staged = _stage_job_workspace_for_delete(job_id)
     try:

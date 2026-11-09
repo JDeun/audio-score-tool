@@ -84,6 +84,7 @@ def normalize_native_result(result: dict) -> dict:
                "model": "sheetsage2", "model_revision": PINS["model"]["revision"],
                "checkpoint_sha256": PINS["model"]["files"]["model.safetensors"],
                "base_model_revision": PINS["mert"]["revision"],
+               "base_checkpoint_sha256": PINS["mert"]["files"]["model.safetensors"],
                "chords": [], "keys": [], "beats": [], "downbeats": [], "meters": []}
     for name, target in (("chord", "chords"), ("key", "keys")):
         for start, end, label in rows(name, 3):
@@ -142,6 +143,17 @@ def main() -> int:
         result = model.transcribe(audio.T, sampling_rate=rate,
                                   output_dir=args.output.parent / "native", dtype="fp32", preset="default")
         payload = normalize_native_result(result)
+        import hashlib
+        import platform
+        from importlib.metadata import version
+
+        payload["runtime"] = {
+            "python": platform.python_version(), "platform": platform.platform(),
+            "packages": {name: version(name) for name in ("torch", "transformers", "numpy", "soundfile")},
+            "adapter_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            "device": args.device, "dtype": "fp32", "preset": "default", "seed": 0,
+            "threads": 4, "sampling_rate": rate,
+        }
     else:
         from sheetsage import SheetSageTranscriber
 
