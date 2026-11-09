@@ -621,7 +621,7 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
               aria-pressed={autoEnrich}
               onClick={() => setAutoEnrich((current) => !current)}><i />{autoEnrich ? "자동 조회" : "조회 안 함"}</button>
             <small>곡 제목이 ‘아티스트 - 제목’ 형식이면 외부 API에 이름만 조회합니다. 음원 파일은 업로드하지 않습니다. 가사 API 불가 시 사용 가능한 WhisperX 인식 결과를 사용합니다.</small>
-          </label>
+          </div>
           {preset === "custom" && <div className="custom-model-row"><label><span>MuScriptor</span><select value={muscriptorModel} onChange={(event) => setMuscriptorModel(event.target.value)}><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></label><label><span>WhisperX</span><select value={whisperxModel} disabled={!lyrics} onChange={(event) => setWhisperxModel(event.target.value)}><option value="small">Small</option><option value="medium">Medium</option><option value="large-v3">Large v3</option></select></label></div>}
           <div className="primary-action-row">{!health?.preflight.ok && <span className="setup-needed">일부 실행 환경을 확인해야 합니다. 설정 메뉴에서 상태를 확인하세요.</span>}<button className="primary-button large" disabled={busy || active || offline || !health?.preflight.ok || (sourceMode === "youtube" && health?.youtube?.ready === false) || (sourceMode === "file" ? !file : !youtubeMetadata || (!personalYoutube && !youtubeAuthorized)) || (scoreMode !== "full" && health?.preflight.tools.demucs !== true)} onClick={() => void startTranscription()}>{active ? "작업 진행 중" : "자동 채보 시작"}</button></div>
         </section>
