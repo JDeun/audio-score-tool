@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import shutil
 import threading
 import time
@@ -11,10 +10,9 @@ from fastapi import APIRouter, HTTPException
 from huggingface_hub import HfApi, snapshot_download
 from pydantic import BaseModel, Field
 
-from .config import packaged_runtime
+from .hf_session import active_token, authenticated, clear_session, identity, set_session
 from .muscriptor_cache import cached_muscriptor_checkpoint, hf_home
 from .notation_backend import backend_status
-from .hf_session import active_token, authenticated, clear_session, identity, set_session
 from .runner import command_exists
 from .runtime_settings import runtime_settings
 from .settings_store import SettingsStore
