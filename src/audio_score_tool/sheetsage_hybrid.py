@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import bisect
+import copy
 import json
 import math
 import os
@@ -9,11 +10,12 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from music21 import chord, converter, harmony, key, meter, note, stream, tempo
+from music21 import chord, converter, harmony, key, meter, note, stream
 
 from .musicxml_metadata_projection import project_musicxml_annotations
 from .runner import CommandError, run_command
 from .runtime_settings import runtime_settings
+from .score_timing import score_time_clocks
 
 
 class SheetSageError(ValueError):
@@ -98,14 +100,6 @@ def load_sheetsage_events(path: Path) -> dict[str, Any]:
             if name in ("chords", "keys") and not isinstance(event.get("label"), str):
                 raise SheetSageError(f"{name} event requires label")
     return payload
-
-
-def _quarter_offset(seconds: float, *, bpm: float, beats: list[dict[str, Any]] | None = None) -> float:
-    if not beats or len(beats) < 2:
-        return seconds * bpm / 60.0
-    anchors = [float(beat['time_seconds']) for beat in beats]
-    index = min(max(bisect.bisect_right(anchors, seconds) - 1, 0), len(anchors) - 2)
-    return index + (seconds - anchors[index]) / (anchors[index + 1] - anchors[index])
 
 
 # SheetSage2 emits Harte-style labels (e.g. C:aug); music21 expects C+.
@@ -196,13 +190,14 @@ def merge_sheetsage_musicxml(
 ) -> dict[str, Any]:
     """Preserve AMT note parts; add SheetSage2 harmony/key/meter metadata.
 
-    Mapping from seconds to score position assumes constant tempo unless an
-    explicit bpm is supplied. Do not claim this is beat-aligned on rubato audio.
+    Annotations follow the unchanged AMT score's tempo map. A detected beat
+    grid cannot replace that clock without also reconstructing the note grid.
     """
     if not math.isfinite(bpm) or bpm <= 0:
         raise SheetSageError("bpm must be positive")
     events = load_sheetsage_events(sheetsage_json)
     score = converter.parse(str(amt_musicxml))
+    _, to_quarters = score_time_clocks(score, fallback_bpm=bpm)
     parts = list(score.parts)
     if not parts:
         raise SheetSageError("AMT MusicXML has no parts")
@@ -227,6 +222,8 @@ def merge_sheetsage_musicxml(
     target = stream.Part()
     for original_measure in source_measures:
         measure = stream.Measure(number=original_measure.number)
+        if original_measure.timeSignature is not None:
+            measure.insert(0, copy.deepcopy(original_measure.timeSignature))
         # Use a short placeholder rest instead of the original performed
         # measure length: a sustained polyphonic note can extend beyond a
         # barline, which causes music21 to rebar an overlay into measure N+1.
@@ -238,7 +235,6 @@ def merge_sheetsage_musicxml(
         target.insert(float(original_measure.getOffsetBySite(source_part)), measure)
     annotation_score.append(target)
     added = {"chords": 0, "keys": 0, "meter": 0}
-    beats = events.get("beats", [])
     for event in events.get("chords", []):
         label = event["label"].strip()
         if label in {"", "N", "N.C.", "no_chord"}:
@@ -248,7 +244,7 @@ def merge_sheetsage_musicxml(
         except Exception as exc:
             raise SheetSageError(f"unsupported chord label: {label}") from exc
         _insert_score_element(
-            target, _quarter_offset(event["time_seconds"], bpm=bpm, beats=beats), symbol
+            target, to_quarters(event["time_seconds"]), symbol
         )
         added["chords"] += 1
     for event in events.get("keys", []):
@@ -257,7 +253,7 @@ def merge_sheetsage_musicxml(
         except Exception as exc:
             raise SheetSageError(f"unsupported key label: {event['label']}") from exc
         _insert_score_element(
-            target, _quarter_offset(event["time_seconds"], bpm=bpm, beats=beats), signature
+            target, to_quarters(event["time_seconds"]), signature
         )
         added["keys"] += 1
     signature = events.get("meter")
@@ -272,7 +268,7 @@ def merge_sheetsage_musicxml(
     with tempfile.TemporaryDirectory(prefix=".sheetsage-stage-", dir=destination.parent) as stage_dir:
         staged = Path(stage_dir) / "staged.musicxml"
         lossless = Path(stage_dir) / "lossless.musicxml"
-        annotation_score.write("musicxml", fp=str(staged))
+        annotation_score.write("musicxml", fp=str(staged), makeNotation=False)
         project_musicxml_annotations(
             amt_musicxml, staged, lossless,
             include_key=bool(events.get("keys")),
@@ -282,8 +278,8 @@ def merge_sheetsage_musicxml(
     if not destination.is_file():
         raise SheetSageError("MusicXML merge did not produce an output")
     return {"schema_version": 1, "added": added, "source": str(amt_musicxml),
-            "sheetsage": str(sheetsage_json), "tempo_assumption_bpm": bpm,
-            "alignment": "beat_interpolated" if len(beats) >= 2 else "constant_bpm"
+            "sheetsage": str(sheetsage_json), "fallback_bpm": bpm,
+            "alignment": "source_score_tempo_map", "beat_grid_applied": False,
 }
 
 
@@ -298,20 +294,7 @@ def normalize_lead_sheet_musicxml(
     if not math.isfinite(fallback_bpm) or fallback_bpm <= 0:
         raise SheetSageError("fallback_bpm must be positive")
     score = converter.parse(str(lead_sheet))
-    marks = [(0.0, fallback_bpm)]
-    for mark in score.recurse().getElementsByClass(tempo.MetronomeMark):
-        value = mark.getQuarterBPM()
-        if value is not None and math.isfinite(value) and value > 0:
-            marks.append((float(mark.getOffsetInHierarchy(score)), float(value)))
-    marks.sort(key=lambda pair: pair[0])
-    def to_seconds(offset: float) -> float:
-        elapsed = 0.0
-        for index, (start, rate) in enumerate(marks):
-            if start >= offset:
-                break
-            end = min(offset, marks[index + 1][0] if index + 1 < len(marks) else offset)
-            elapsed += max(0.0, end - start) * 60.0 / rate
-        return elapsed
+    to_seconds, _ = score_time_clocks(score, fallback_bpm=fallback_bpm)
     chords = []
     keys = []
     for element in score.recurse():
@@ -323,7 +306,7 @@ def normalize_lead_sheet_musicxml(
         elif isinstance(element, key.Key):
             keys.append({
                 "time_seconds": to_seconds(float(element.getOffsetInHierarchy(score))),
-                "label": element.tonic.name,
+                "label": f"{element.tonic.name.replace('-', 'b')}:{element.mode}",
             })
     chords.sort(key=lambda event: event["time_seconds"])
     keys.sort(key=lambda event: event["time_seconds"])

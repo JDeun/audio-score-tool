@@ -16,6 +16,8 @@ outputs/
 *.m4a
 
 desktop/node_modules/
+desktop/test-results/
+desktop/playwright-report/
 desktop/dist/
 desktop/src-tauri/target/
 dist-sidecar/
