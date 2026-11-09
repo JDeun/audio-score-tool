@@ -147,6 +147,36 @@ def _voices(notes: list[_Note]) -> list[list[list[_Note]]]:
     return voices
 
 
+def _group_parts(notes: list[_Note]) -> dict[tuple[int, int, int], list[_Note]]:
+    """Coalesce sequential channel reuse within one track/program only.
+
+    A MIDI serializer may assign a different idle channel when the same
+    instrument returns. Its source track still identifies the score part.
+    Concurrent channels can represent independent parts (including in type 0
+    MIDI), so any cross-channel overlap keeps that entire group separated.
+    """
+    candidates: dict[tuple[int, int, bool], list[_Note]] = defaultdict(list)
+    for note in notes:
+        candidates[(note.track, note.program, note.channel == 9)].append(note)
+    parts: dict[tuple[int, int, int], list[_Note]] = defaultdict(list)
+    for (track, program, _is_drum), part_notes in candidates.items():
+        latest_end: dict[int, int] = {}
+        concurrent_channels = False
+        for note in sorted(part_notes, key=lambda n: (n.start, n.end, n.channel)):
+            if any(channel != note.channel and end > note.start
+                   for channel, end in latest_end.items()):
+                concurrent_channels = True
+                break
+            latest_end[note.channel] = max(latest_end.get(note.channel, 0), note.end)
+        if concurrent_channels:
+            for note in part_notes:
+                parts[(track, note.channel, program)].append(note)
+        else:
+            channel = min(note.channel for note in part_notes)
+            parts[(track, channel, program)].extend(part_notes)
+    return parts
+
+
 def _bars(end: int, divisions: int, meters: dict[int, tuple[int, int]]):
     changes = sorted(meters)
     start = 0
@@ -163,7 +193,7 @@ def _bars(end: int, divisions: int, meters: dict[int, tuple[int, int]]):
 
 
 def midi_to_score_xml(source: Path, target: Path) -> Path:
-    """Write one score part per source track/channel/program, at original ticks."""
+    """Write score parts at original ticks, retaining independent instruments."""
     ppq, names, notes, tempos, meters, keys, lyrics = _read_midi(source)
     # Also represent fractional bar lengths for unusual PPQ/meter combinations.
     divisions = math.lcm(ppq, *(denominator for _, denominator in meters.values()))
@@ -174,9 +204,7 @@ def midi_to_score_xml(source: Path, target: Path) -> Path:
     meters = {tick * scale: value for tick, value in meters.items()}
     keys = {tick * scale: value for tick, value in keys.items()}
     lyrics = {(track, tick * scale): text for (track, tick), text in lyrics.items()}
-    parts = defaultdict(list)
-    for note in notes:
-        parts[(note.track, note.channel, note.program)].append(note)
+    parts = _group_parts(notes)
     bars = list(_bars(max(n.end for n in notes), divisions, meters))
     root = ET.Element("score-partwise", version="4.0")
     part_list = ET.SubElement(root, "part-list")

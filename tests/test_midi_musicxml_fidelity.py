@@ -80,6 +80,49 @@ def test_overlapping_repeated_pitch_keeps_both_onsets_and_fifo_offsets(tmp_path)
     _roundtrip(tmp_path, [_note(60, 0.0, 1.0), _note(60, 0.5, 1.5)])
 
 
+def test_sequential_channel_reuse_preserves_the_serializers_two_instrument_parts(tmp_path):
+    source, score, _ = _roundtrip(tmp_path, [
+        _note(60, 0.0, 0.25, program=40),
+        _note(64, 0.5, 1.5, program=41),
+        _note(67, 0.75, 1.0, program=40),
+    ])
+    note_channels = [
+        {message.channel for message in track
+         if message.type == "note_on" and message.velocity > 0}
+        for track in mido.MidiFile(source).tracks
+    ]
+    assert {0, 1} in note_channels  # GM40 returns on a different idle channel.
+    assert sum(bool(channels) for channels in note_channels) == 2
+    assert len(ET.parse(score).getroot().findall("part")) == 2
+
+
+@pytest.mark.parametrize("separate_tracks", [False, True], ids=[
+    "concurrent_channels_in_type0", "sequential_channels_in_separate_tracks",
+])
+def test_independent_same_program_parts_remain_separate(tmp_path, separate_tracks):
+    midi = mido.MidiFile(type=1 if separate_tracks else 0, ticks_per_beat=480)
+    first = mido.MidiTrack([
+        mido.Message("program_change", channel=0, program=40, time=0),
+        mido.Message("note_on", channel=0, note=60, velocity=90, time=0),
+        mido.Message("note_off", channel=0, note=60, time=480),
+    ])
+    second = mido.MidiTrack([
+        mido.Message("program_change", channel=1, program=40, time=0),
+        mido.Message("note_on", channel=1, note=67, velocity=90,
+                     time=480 if separate_tracks else 240),
+        mido.Message("note_off", channel=1, note=67, time=480),
+    ])
+    midi.tracks = [first, second] if separate_tracks else [mido.merge_tracks([first, second])]
+    source = tmp_path / "independent.mid"
+    score = tmp_path / "independent.musicxml"
+    output = tmp_path / "independent-export.mid"
+    midi.save(source)
+    midi_to_musicxml(source, score)
+    musicxml_to_midi(score, output)
+    _assert_performance(source, output)
+    assert len(ET.parse(score).getroot().findall("part")) == 2
+
+
 def test_arbitrary_ticks_and_one_tick_notes_are_not_rounded_to_notated_values(tmp_path):
     source, score, _ = _roundtrip(tmp_path, [
         _note(60, 57 / 440, 58 / 440),
