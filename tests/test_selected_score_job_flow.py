@@ -65,6 +65,7 @@ def test_file_upload_persists_selected_guitar_vocal_and_legacy_defaults_full(
     assert response.status_code == 202, response.text
     row = store.get(response.json()["job_id"])
     assert row["score_mode"] == "guitar_vocal"
+    assert row["auto_enrich"] is True
     assert row["skip_lyrics"] is True
     assert NoStartThread.created[-1].args[0] == row["job_id"]
     normal = TestClient(app).post(
@@ -89,6 +90,7 @@ def test_youtube_score_request_can_choose_lead_sheet_without_ownership_proof(
     )
     assert response.status_code == 202, response.text
     assert store.get(response.json()["job_id"])["score_mode"] == "lead_sheet"
+    assert store.get(response.json()["job_id"])["auto_enrich"] is True
     assert store.get(response.json()["job_id"])["source_kind"] == "youtube"
 
 
@@ -150,11 +152,12 @@ def test_retry_preserves_requested_parts_and_avoids_unavailable_separator(
     original.parent.mkdir(parents=True)
     original.write_bytes(b"original-private-input")
     store.create("old", kind="transcription", source_kind="local",
-                 status="failed", score_mode="guitar_vocal")
+                 status="failed", score_mode="guitar_vocal", auto_enrich=True)
     reply = TestClient(app).post("/api/jobs/old/retry")
     assert reply.status_code == 202, reply.text
     new = store.get(reply.json()["job_id"])
     assert new["score_mode"] == "guitar_vocal"
+    assert new["auto_enrich"] is True
     assert new["source_kind"] == "local"
     monkeypatch.setattr(lifecycle, "command_exists", lambda *_a: False)
     stop = TestClient(app).post("/api/jobs/old/retry")

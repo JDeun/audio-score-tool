@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 from collections.abc import Callable
 from pathlib import Path
 from threading import Event
+from typing import Any
 
 from .auto_chords import apply_inferred_chords
 from .choir_postprocess import reconstruct_satb
@@ -21,6 +22,7 @@ from .music_structure import (
 from .paths import song_assets_dir
 from .pickup_normalization import normalize_pickup_measure
 from .pipeline import PipelineCancelled, PipelineError, _find_one, _find_whisper_json
+from .reference_lyrics import align_reference_lyrics
 from .runner import CommandCancelled, CommandError, command_exists, run_command
 from .score_requests import validate_score_mode
 from .selected_stem_score import SelectedScoreError, transcribe_selected_stems
@@ -62,6 +64,7 @@ def transcribe(
     skip_lyrics: bool = False,
     score_mode: str = "full",
     choir_mode: str = "auto",
+    reference_lyrics: dict[str, Any] | None = None,
     settings: Settings | None = None,
     progress: Callable[[str, int], None] | None = None,
     cancel_event: Event | None = None,
@@ -301,11 +304,39 @@ def transcribe(
         emit("lyrics_asr", 89)
 
         aligned_tokens = expand_korean_syllables(words) if language == "ko" else words
+        lyrics_source = "whisperx"
+        reference_stats: dict[str, Any] | None = None
+        # API lyrics are the text reference; WhisperX is still necessary for
+        # acoustic word timing and score-note alignment.
+        if reference_lyrics and isinstance(reference_lyrics.get("lyrics"), str):
+            try:
+                candidate, stats = align_reference_lyrics(
+                    json.loads(transcript_json.read_text(encoding="utf-8")),
+                    reference_lyrics["lyrics"],
+                    language=language,
+                )
+                reference_stats = stats
+                if candidate and stats.get("coverage", 0) >= 0.3:
+                    aligned_tokens = candidate
+                    lyrics_source = str(reference_lyrics.get("provider") or "external_api")
+                else:
+                    warnings.append(
+                        "External lyric text did not align reliably with the acoustic "
+                        "transcript; using WhisperX transcription instead."
+                    )
+            except (ValueError, TypeError, KeyError, OSError) as exc:
+                warnings.append(
+                    f"External lyric alignment could not be verified ({type(exc).__name__}); "
+                    "using WhisperX transcription instead."
+                )
         emit("lyric_alignment", 92)
         lyric_musicxml = work_dir / "score_with_lyrics.musicxml"
         part_id, attached = attach_lyrics_to_musicxml(musicxml_path, lyric_musicxml, aligned_tokens)
         metadata = {
             "language": language,
+            "lyrics_source": lyrics_source,
+            "external_lyrics_available": reference_lyrics is not None,
+            "external_lyrics_alignment": reference_stats,
             "selected_part_id": part_id,
             "word_count": len(words),
             "lyric_token_count": len(aligned_tokens),

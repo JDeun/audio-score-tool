@@ -103,3 +103,18 @@ test("commercial mode keeps explicit rights confirmation", async ({ page }) => {
   await expect.poll(() => recorded.length).toBe(1);
   expect(recorded[0]).toMatchObject({ authorized: true });
 });
+
+
+test("personal YouTube metadata and lyrics lookup defaults on and can be disabled", async ({ page }) => {
+  const recorded: Record<string, unknown>[] = [];
+  await prepareYoutubePage(page, recorded, "personal");
+  const automatic = page.getByRole("button", { name: "자동 조회" });
+  await expect(automatic).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "자동 채보 시작" })).toBeEnabled();
+  await automatic.click();
+  const disabled = page.getByRole("button", { name: "조회 안 함" });
+  await expect(disabled).toHaveAttribute("aria-pressed", "false");
+  await page.getByRole("button", { name: "자동 채보 시작" }).click();
+  await expect.poll(() => recorded.length).toBe(1);
+  expect(recorded[0]).toMatchObject({ auto_enrich: false });
+});

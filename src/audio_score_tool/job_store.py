@@ -42,6 +42,7 @@ class JobStore:
                     skip_lyrics INTEGER NOT NULL DEFAULT 0,
                     preset TEXT,
                     score_mode TEXT NOT NULL DEFAULT 'full',
+                    auto_enrich INTEGER NOT NULL DEFAULT 0,
                     muscriptor_model TEXT,
                     whisperx_model TEXT,
                     error TEXT,
@@ -60,6 +61,9 @@ class JobStore:
                 conn.execute("ALTER TABLE jobs ADD COLUMN source_kind TEXT")
             if "score_mode" not in columns:
                 conn.execute("ALTER TABLE jobs ADD COLUMN score_mode TEXT NOT NULL DEFAULT 'full'")
+            if "auto_enrich" not in columns:
+                # No surprise external requests for previously saved jobs.
+                conn.execute("ALTER TABLE jobs ADD COLUMN auto_enrich INTEGER NOT NULL DEFAULT 0")
             conn.execute(
                 "CREATE INDEX IF NOT EXISTS idx_jobs_completed_cursor "
                 "ON jobs(status, updated_at, job_id)"
@@ -85,6 +89,7 @@ class JobStore:
             "skip_lyrics": int(bool(values.get("skip_lyrics", False))),
             "preset": values.get("preset"),
             "score_mode": mode,
+            "auto_enrich": int(bool(values.get("auto_enrich", False))),
             "muscriptor_model": values.get("muscriptor_model"),
             "whisperx_model": values.get("whisperx_model"),
             "error": values.get("error"),
@@ -95,13 +100,13 @@ class JobStore:
                 """
                 INSERT INTO jobs (
                     job_id,kind,status,stage,progress,filename,source_kind,language,skip_lyrics,preset,
-                    score_mode,muscriptor_model,whisperx_model,error,result_json,created_at,updated_at
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    score_mode,auto_enrich,muscriptor_model,whisperx_model,error,result_json,created_at,updated_at
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """,
                 (
                     job_id, payload["kind"], payload["status"], payload["stage"], payload["progress"],
                     payload["filename"], payload["source_kind"], payload["language"], payload["skip_lyrics"],
-                    payload["preset"], payload["score_mode"], payload["muscriptor_model"], payload["whisperx_model"],
+                    payload["preset"], payload["score_mode"], payload["auto_enrich"], payload["muscriptor_model"], payload["whisperx_model"],
                     payload["error"], payload["result_json"], now, now,
                 ),
             )
@@ -118,6 +123,8 @@ class JobStore:
             mapping["result_json"] = json.dumps(mapping.pop("result"))
         if "skip_lyrics" in mapping:
             mapping["skip_lyrics"] = int(bool(mapping["skip_lyrics"]))
+        if "auto_enrich" in mapping:
+            mapping["auto_enrich"] = int(bool(mapping["auto_enrich"]))
         mapping["updated_at"] = _now()
         assignments = ", ".join(f"{key}=?" for key in mapping)
         with self._lock, self._connect() as conn:
@@ -175,6 +182,7 @@ class JobStore:
     def _row(row: sqlite3.Row) -> dict[str, Any]:
         result = dict(row)
         result["skip_lyrics"] = bool(result["skip_lyrics"])
+        result["auto_enrich"] = bool(result["auto_enrich"])
         raw = result.pop("result_json", None)
         result["result_corrupt"] = False
         if not raw:

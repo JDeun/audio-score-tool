@@ -54,6 +54,7 @@ async def create_job_v2(
     skip_lyrics: bool = Form(False),
     preset: str = Form("auto"),
     score_mode: str = Form("full"),
+    auto_enrich: bool = Form(True),
     muscriptor_model: str | None = Form(None),
     whisperx_model: str | None = Form(None),
 ) -> dict:
@@ -92,6 +93,7 @@ async def create_job_v2(
         skip_lyrics=skip_lyrics,
         preset=preset,
         score_mode=score_mode,
+        auto_enrich=auto_enrich,
         muscriptor_model=resolved_muscriptor,
         whisperx_model=resolved_whisperx,
     )
