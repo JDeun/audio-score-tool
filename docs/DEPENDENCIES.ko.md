@@ -101,6 +101,14 @@ source checkout과 integration debugging을 위해 `AST_*_CMD` 환경변수 일�
 
 패키지 모드(`AST_PACKAGED=1`)의 `GET /api/health`, `GET /api/setup`, `GET /api/engines`는 `packaged_runtime: true`를 반환합니다. 이 모드에서 UI는 개발용 실행 파일 경로 입력을 숨기고 Setup Center의 managed component 설치·검증·복구 상태를 안내합니다. `PUT /api/settings/tool-paths`를 직접 호출해도 HTTP 409로 거부하며, 이전에 저장된 개발 경로를 packaged runtime이 실행하지 않는 기존 정책은 유지합니다. 엔진 선택·모델 크기 설정은 계속 제공하되, 개발용 Native 실행 명령은 배포 사용자에게 제공하지 않습니다.
 
+### SheetSage2 선택 분석 어댑터 (연구 전용, #43)
+
+SheetSage2 공개 체크포인트는 **CC BY-NC 4.0**이며 상용 모드에서 실행할 수 없습니다. 해당 기능은 현재 승인된 필수 배포 구성요소가 아니므로, 모델을 자동으로 설치하거나 제품 기본 채보 엔진으로 승격하지 않습니다.
+
+개발자 PoC의 `AST_SHEETSAGE2_ADAPTER`는 원음과 새 이벤트 JSON 출력 경로를 인수로 받습니다. 이 실행은 공통 `run_command`를 통과합니다. 즉 `AST_PACKAGED=1`에서는 검증된 앱 관리형 실행파일이 아니면 실행이 거부되며, 시스템 PATH나 임의 Python 래퍼로 우회할 수 없습니다. 모델이 반환하는 `schema_version=1` JSON은 크기·시간축 및 `model=sheetsage2`를 검증한 후에만 기존 분석 파일을 원자적으로 갱신합니다. 이전 결과가 남아 있더라도 새 실행이 실패하면 성공으로 재사용하지 않습니다.
+
+이는 **선택 분석기 실행 경계 강화**이지 신규 사용자 기능의 end-to-end 출시 승인이 아닙니다. checkpoint revision/hash, 별도 재배포 권리, clean-machine 성능, 오디오→Song 자동 보강 및 실측 KPI는 #43, #29에서 계속 추적합니다.
+
 ## 배포 acceptance
 
 stable release 후보는 깨끗한 Windows/macOS 환경에서 다음 조건을 만족해야 합니다.
