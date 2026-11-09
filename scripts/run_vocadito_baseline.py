@@ -7,11 +7,9 @@ Requires the separate pinned model environment and optional mir_eval==0.8.2.
 from __future__ import annotations
 
 import argparse
-import csv
 import hashlib
 import io
 import json
-import math
 import platform
 import subprocess
 import wave
@@ -20,8 +18,6 @@ from importlib.metadata import version
 from pathlib import Path
 from statistics import mean
 
-import numpy as np
-
 from scripts import fetch_pinned_mrmt3_checkpoint as mr
 from scripts import fetch_pinned_yourmt3_checkpoint as your
 from scripts.run_cocochorales_stem_ablation import (
@@ -29,51 +25,12 @@ from scripts.run_cocochorales_stem_ablation import (
     infer_raw_midi,
     sha256,
 )
+from scripts.vocadito_reference import read_notes, score_annotations
 
 SOURCE_URL = "https://zenodo.org/records/5578807"
 ARCHIVE_MD5 = "dea40fd18f14d899643c4ba221b33a46"
 ARCHIVE_BYTES = 58_492_257
 CASE_IDS = tuple(f"vocadito_{index}" for index in range(1, 41))
-
-
-def read_notes(raw: bytes) -> tuple[np.ndarray, np.ndarray]:
-    """Retain original annotation Hz; note columns are start, Hz, duration."""
-    intervals, pitches = [], []
-    for row in csv.reader(io.StringIO(raw.decode("utf-8"))):
-        if len(row) != 3:
-            raise ValueError("Vocadito note row must contain start, Hz, duration")
-        start, pitch, duration = map(float, row)
-        if (not all(math.isfinite(x) for x in (start, pitch, duration))
-                or start < 0 or pitch <= 0 or duration <= 0):
-            raise ValueError("Vocadito note row contains an invalid time or pitch")
-        intervals.append((start, start + duration))
-        pitches.append(pitch)
-    if not intervals:
-        raise ValueError("Vocadito human annotation is empty")
-    order = np.argsort(np.asarray(intervals)[:, 0], kind="stable")
-    return np.asarray(intervals)[order], np.asarray(pitches)[order]
-
-
-def score_annotations(notes, raw: bytes) -> dict:
-    import mir_eval
-
-    reference_intervals, reference_pitches = read_notes(raw)
-    pitched = [n for n in notes if not n.is_drum and n.offset > n.onset]
-    intervals = np.asarray([(n.onset, n.offset) for n in pitched], dtype=float).reshape(-1, 2)
-    pitches = np.asarray([440.0 * 2 ** ((n.pitch - 69) / 12) for n in pitched])
-    result = {"reference_note_count": len(reference_pitches)}
-    for name, ratio in (("onset", None), ("onset_offset", 0.2)):
-        # Empty output remains a scored zero, without mir_eval's empty-input warning.
-        if not pitched:
-            result[name + "_f1"] = 0.0
-            continue
-        _, _, f1, _ = mir_eval.transcription.precision_recall_f1_overlap(
-            reference_intervals, reference_pitches, intervals, pitches,
-            onset_tolerance=0.05, pitch_tolerance=50.0,
-            offset_ratio=ratio, offset_min_tolerance=0.05,
-        )
-        result[name + "_f1"] = round(float(f1), 8)
-    return result
 
 
 def run(archive: Path, checkpoint_root: Path, output: Path, *, model: str) -> dict:

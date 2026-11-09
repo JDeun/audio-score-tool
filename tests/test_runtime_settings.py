@@ -4,6 +4,15 @@ from audio_score_tool.runtime_settings import runtime_settings
 from audio_score_tool.settings_store import SettingsStore
 
 
+def test_explicit_engine_environment_is_not_replaced_by_personal_default(tmp_path, monkeypatch):
+    monkeypatch.setenv("AST_TRANSCRIPTION_ENGINE", "sheetsage2")
+    monkeypatch.setenv("AST_USAGE_MODE", "personal")
+    store = SettingsStore(tmp_path / "settings.json")
+    assert runtime_settings(store=store).transcription_engine == "sheetsage2"
+    store.update({"transcription_engine": "mt3_infer"})
+    assert runtime_settings(store=store).transcription_engine == "mt3_infer"
+
+
 def test_runtime_settings_migrates_legacy_yourmt3_engine_from_store(tmp_path: Path):
     store = SettingsStore(tmp_path / "settings.json")
     store.update(

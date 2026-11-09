@@ -5,6 +5,7 @@ import shutil
 import xml.etree.ElementTree as ET
 from collections.abc import Callable
 from pathlib import Path
+from statistics import median
 from threading import Event
 from typing import Any
 
@@ -25,7 +26,7 @@ from .pickup_normalization import normalize_pickup_measure
 from .pipeline import PipelineCancelled, PipelineError, _find_one, _find_whisper_json
 from .reference_lyrics import align_reference_lyrics
 from .runner import CommandCancelled, CommandError, command_exists, run_command
-from .score_requests import validate_score_mode
+from .score_requests import validate_engine_score_mode, validate_score_mode
 from .selected_stem_score import SelectedScoreError, transcribe_selected_stems
 from .transcription_engine import (
     TranscriptionEngineCancelled,
@@ -107,6 +108,7 @@ def transcribe(
 
     device = detect_device_plan()
     engine = resolve_transcription_engine(settings)
+    validate_engine_score_mode(score_mode, engine.key)
 
     emit("music_structure", 3)
     try:
@@ -126,9 +128,9 @@ def transcribe(
         )
 
     selected_vocals_path: Path | None = None
-    emit("stem_separation" if score_mode != "full" else "transcription", 8)
+    emit("transcription" if score_mode == "full" or engine.key == "sheetsage2" else "stem_separation", 8)
     try:
-        if score_mode == "full":
+        if score_mode == "full" or engine.key == "sheetsage2":
             artifacts = engine.transcribe(
                 transcription_audio,
                 score_dir,
@@ -154,7 +156,31 @@ def transcribe(
     _remove_eager_render_artifacts(score_dir, artifacts.initial_pdf_path)
     emit("music_structure", 48)
 
-    structure = analyze_midi_meter_and_pickup(midi_path, structure)
+    if engine.key == "sheetsage2":
+        analysis = json.loads((score_dir / "analysis.json").read_text())
+        beats = analysis.get("beats", [])
+        try:
+            numerator, denominator = map(int, analysis["meter"].split("/"))
+            periods = [
+                (b["time_seconds"] - a["time_seconds"]) * a["denominator"] / 4
+                for a, b in zip(beats, beats[1:])
+                if a["numerator"] == b["numerator"] and a["denominator"] == b["denominator"]
+                and b["beat"] == a["beat"] % a["numerator"] + 1
+                and b["time_seconds"] > a["time_seconds"]
+            ]
+            structure.tempo_bpm = round(60 / median(periods), 2)
+        except (KeyError, TypeError, ValueError, ZeroDivisionError) as exc:
+            raise PipelineError("SheetSage2 has no valid audio beat/meter clock") from exc
+        structure.meter_numerator, structure.meter_denominator = numerator, denominator
+        structure.meter_source = "sheetsage2_audio_model"
+        structure.tempo_source = "sheetsage2_audio_grid"
+        downbeats = analysis.get("downbeats", [])
+        origin = structure.music_start_seconds if structure.trimmed else 0.0
+        structure.first_downbeat_seconds = origin + downbeats[0]["time_seconds"] if downbeats else None
+        # The model's notation is already metrical; do not apply a second MIDI heuristic.
+        structure.pickup_confidence = 0.0
+    else:
+        structure = analyze_midi_meter_and_pickup(midi_path, structure)
     warnings.extend(warning for warning in structure.warnings if warning not in warnings)
     pickup_result = normalize_pickup_measure(
         musicxml_path,
@@ -199,7 +225,11 @@ def transcribe(
     emit("chord_analysis", 55)
     chord_report = work_dir / "chords.json"
     try:
-        inferred_chords = apply_inferred_chords(musicxml_path, report_path=chord_report)
+        if engine.key == "sheetsage2":
+            inferred_chords = analysis.get("chords", [])
+            chord_report.write_text(json.dumps({"source": "sheetsage2", "chords": inferred_chords}))
+        else:
+            inferred_chords = apply_inferred_chords(musicxml_path, report_path=chord_report)
         if not inferred_chords and score_mode != "lead_sheet":
             warnings.append(
                 "Automatic chord analysis did not find sufficiently confident chord changes. "

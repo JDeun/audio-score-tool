@@ -49,7 +49,7 @@ def _write_pickup_midi(path: Path) -> None:
 def test_midi_pickup_analysis_emits_meter_and_tempo(tmp_path: Path) -> None:
     midi = tmp_path / "pickup.mid"
     _write_pickup_midi(midi)
-    analysis = analyze_midi_meter_and_pickup(midi, MusicStructureAnalysis(music_start_seconds=3.0))
+    analysis = analyze_midi_meter_and_pickup(midi, MusicStructureAnalysis(music_start_seconds=3.0, trimmed=True))
 
     assert analysis.meter_numerator == 4
     assert analysis.meter_denominator == 4
@@ -57,6 +57,16 @@ def test_midi_pickup_analysis_emits_meter_and_tempo(tmp_path: Path) -> None:
     assert 115 <= analysis.tempo_bpm <= 125
     assert analysis.first_downbeat_seconds is not None
     assert analysis.first_downbeat_seconds >= 3.0
+
+
+def test_unapplied_intro_estimate_does_not_shift_the_score_clock(tmp_path):
+    midi = tmp_path / "source.mid"
+    _write_pickup_midi(midi)
+    base = analyze_midi_meter_and_pickup(midi, MusicStructureAnalysis())
+    untrimmed = analyze_midi_meter_and_pickup(midi, MusicStructureAnalysis(music_start_seconds=170))
+    trimmed = analyze_midi_meter_and_pickup(midi, MusicStructureAnalysis(music_start_seconds=170, trimmed=True))
+    assert untrimmed.first_downbeat_seconds == base.first_downbeat_seconds
+    assert trimmed.first_downbeat_seconds == 170 + base.first_downbeat_seconds
 
 
 def test_truncated_wav_skips_optional_start_analysis_without_hiding_engine_validation(tmp_path, monkeypatch):

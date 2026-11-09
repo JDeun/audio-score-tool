@@ -17,6 +17,7 @@ from audio_score_tool.transcription_engine import TranscriptionArtifacts
 
 
 class ChordalEngine:
+    key = "synthetic_chordal"
     display_name = "Synthetic AMT"
 
     def __init__(self, *, overlap: bool):

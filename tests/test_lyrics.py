@@ -51,3 +51,22 @@ def test_attach_lyrics(tmp_path: Path):
     assert "<text>하</text>" in text
     assert "<text>나</text>" in text
     assert "<text>님</text>" in text
+
+
+def test_lyric_note_clock_follows_tempo_changes():
+    import xml.etree.ElementTree as ET
+
+    from audio_score_tool.lyrics import _part_notes
+
+    root = ET.fromstring(XML)
+    part = root.find("part")
+    measure = ET.SubElement(part, "measure", number="2")
+    ET.SubElement(ET.SubElement(measure, "direction"), "sound", tempo="60")
+    for step in ("G", "A"):
+        pitch_note = ET.SubElement(measure, "note")
+        pitch = ET.SubElement(pitch_note, "pitch")
+        ET.SubElement(pitch, "step").text = step
+        ET.SubElement(pitch, "octave").text = "4"
+        ET.SubElement(pitch_note, "duration").text = "1"
+    refs = _part_notes(root)["P1"]
+    assert [r.onset_seconds for r in refs] == [0, .5, 1, 1.5, 2, 3]

@@ -10,7 +10,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from music21 import chord, converter, harmony, key, meter, note, stream
+from music21 import chord, converter, harmony, key, meter, note, pitch, stream
 
 from .musicxml_metadata_projection import project_musicxml_annotations
 from .runner import CommandError, run_command
@@ -113,6 +113,7 @@ _HARTE_QUALITY_TO_MUSIC21 = {
     "5": "power",
     "sus2": "sus2",
     "sus4": "sus4",
+    "sus4(b7)": "7sus4",
     "6": "6",
     "maj6": "6",
     "min6": "m6",
@@ -136,16 +137,31 @@ _HARTE_QUALITY_TO_MUSIC21 = {
     "min13": "m13",
 }
 
+_HARTE_BASS_INTERVALS = {
+    "2": "M2", "3": "M3", "b3": "m3", "5": "P5", "7": "M7", "b7": "m7",
+}
+_SHEETSAGE_INVERSIONS = {
+    "maj": {"2", "3", "5"}, "min": {"2", "b3", "5"},
+    "maj7": {"3", "5", "7"}, "min7": {"b3", "5", "b7"},
+    "7": {"3", "5", "b7"},
+}
+
 
 def _parse_chord_symbol(label: str) -> harmony.ChordSymbol:
     """Convert recognized Harte triad/seventh labels into music21 notation."""
     if ":" not in label:
         return harmony.ChordSymbol(label)
-    root, quality = label.split(":", 1)
+    root, suffix = label.split(":", 1)
+    quality, slash, bass = suffix.partition("/")
     if not re.fullmatch(r"[A-G](?:#|b)?", root) or quality not in _HARTE_QUALITY_TO_MUSIC21:
+        raise SheetSageError(f"unsupported chord label: {label}")
+    if slash and bass not in _SHEETSAGE_INVERSIONS.get(quality, set()):
         raise SheetSageError(f"unsupported chord label: {label}")
     # music21 uses '-' rather than 'b' for a flat root (e.g. Bb -> B-).
     figure = root.replace("b", "-") + _HARTE_QUALITY_TO_MUSIC21[quality]
+    if slash:
+        bass_pitch = pitch.Pitch(root.replace("b", "-")).transpose(_HARTE_BASS_INTERVALS[bass])
+        figure += "/" + bass_pitch.name
     return harmony.ChordSymbol(figure)
 
 

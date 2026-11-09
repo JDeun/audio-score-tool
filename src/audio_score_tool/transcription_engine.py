@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Event
@@ -7,7 +8,12 @@ from threading import Event
 from .config import Settings, packaged_runtime
 from .managed_tool_resolver import registered_managed_component_root
 from .muscriptor_cache import cached_muscriptor_checkpoint, hf_home
-from .notation_backend import NotationBackendError, backend_status, midi_to_musicxml
+from .notation_backend import (
+    NotationBackendError,
+    backend_status,
+    midi_to_musicxml,
+    musicxml_to_midi,
+)
 from .runner import CommandCancelled, CommandError, command_exists, run_command
 
 
@@ -361,6 +367,61 @@ class MuScriptorEngine(BaseTranscriptionEngine):
         return TranscriptionArtifacts(midi_path=midi_path, musicxml_path=musicxml_path)
 
 
+class SheetSage2Engine(BaseTranscriptionEngine):
+    key = "sheetsage2"
+    display_name = "SheetSage2"
+    commercial_status = "noncommercial_weights"
+    task_family = "lead_sheet_transcription"
+    supports_multi_instrument = False
+    supports_polyphonic = False
+    quality_rank = 2
+
+    def ready(self) -> bool:
+        root = self.settings.sheetsage2_snapshot
+        return bool(not packaged_runtime() and root and
+                    command_exists(self.settings.sheetsage2_cmd) and
+                    all((root / folder / "model.safetensors").is_file() for folder in ("model", "mert")))
+
+    def describe(self):
+        return {**super().describe(), "supported_score_modes": ["lead_sheet"],
+                "quality_note": "보컬 멜로디·코드·박자·키 전용, 개인/비상업 검증 모델"}
+
+    def transcribe(self, audio_path, output_dir, *, device, cancel_event=None):
+        from .sheetsage2_score import (
+            BASE_REVISION,
+            CHECKPOINT_SHA256,
+            MODEL_REVISION,
+            import_native_lead_sheet,
+        )
+
+        if self.settings.usage_mode == "commercial":
+            raise TranscriptionEngineUnavailable("SheetSage2 public weights are noncommercial")
+        if not self.ready():
+            raise TranscriptionEngineUnavailable("Pinned SheetSage2 runtime/checkpoints are unavailable")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        root = self.settings.sheetsage2_snapshot
+        analysis = output_dir / "analysis.json"
+        try:
+            run_command(self.settings.sheetsage2_cmd, [
+                audio_path, analysis, "--model-dir", root / "model",
+                "--base-model-dir", root / "mert", "--device", "cpu",
+            ], cancel_event=cancel_event, timeout_seconds=7200, env={"AST_USAGE_MODE": "personal"})
+            payload = json.loads(analysis.read_text())
+            if (payload.get("model_revision") != MODEL_REVISION
+                    or payload.get("checkpoint_sha256") != CHECKPOINT_SHA256
+                    or payload.get("base_model_revision") != BASE_REVISION):
+                raise ValueError("SheetSage2 output does not identify the pinned model")
+            xml = output_dir / "score.musicxml"
+            report = import_native_lead_sheet(output_dir / "native", xml)
+            midi = musicxml_to_midi(xml, output_dir / "score.mid")
+            (output_dir / "notation-report.json").write_text(json.dumps(report, indent=2))
+        except CommandCancelled as exc:
+            raise TranscriptionEngineCancelled("SheetSage2 cancelled") from exc
+        except (CommandError, OSError, ValueError, NotationBackendError) as exc:
+            raise TranscriptionEngineError(f"SheetSage2 failed: {exc}") from exc
+        return TranscriptionArtifacts(midi_path=midi, musicxml_path=xml)
+
+
 class NativeCommandEngine(BaseTranscriptionEngine):
     key = "native"
     display_name = "AudioScore Native"
@@ -418,6 +479,8 @@ def available_engines(settings: Settings) -> list[dict[str, object]]:
         MT3InferEngine(settings),
         NativeCommandEngine(settings),
     ]
+    if settings.sheetsage2_cmd:
+        engines.append(SheetSage2Engine(settings))
     return [engine.describe() for engine in engines]
 
 
@@ -433,6 +496,10 @@ def resolve_transcription_engine(settings: Settings) -> BaseTranscriptionEngine:
         return MuScriptorEngine(settings)
     if key == "native":
         return NativeCommandEngine(settings)
+    if key == "sheetsage2":
+        if settings.usage_mode == "commercial":
+            raise TranscriptionEngineUnavailable("SheetSage2 public weights are noncommercial")
+        return SheetSage2Engine(settings)
     raise TranscriptionEngineUnavailable(
         f"Unknown transcription engine: {settings.transcription_engine}"
     )

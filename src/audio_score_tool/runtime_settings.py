@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from .config import Settings, packaged_runtime
@@ -54,7 +55,7 @@ def runtime_settings(
     if usage_mode not in {"personal", "commercial"}:
         usage_mode = "personal"
 
-    explicit_engine = saved.get("transcription_engine")
+    explicit_engine = saved.get("transcription_engine") or os.getenv("AST_TRANSCRIPTION_ENGINE")
     if explicit_engine:
         engine = explicit_engine.strip().lower()
         if engine == "yourmt3":
@@ -66,7 +67,7 @@ def runtime_settings(
             "muscriptor" if usage_mode == "personal" else "mt3_infer"
         )
 
-    if usage_mode == "commercial" and engine == "muscriptor":
+    if usage_mode == "commercial" and engine in {"muscriptor", "sheetsage2"}:
         engine = "mt3_infer"
 
     def command_value(key: str, default: str, *legacy_keys: str) -> str:
@@ -91,6 +92,9 @@ def runtime_settings(
         muscriptor_model=(muscriptor_model or saved.get("muscriptor_model") or defaults.muscriptor_model),
         native_engine_cmd=command_value("native_engine_cmd", defaults.native_engine_cmd),
         native_checkpoint=Path(checkpoint).expanduser() if checkpoint else defaults.native_checkpoint,
+        sheetsage2_cmd=command_value("sheetsage2_cmd", defaults.sheetsage2_cmd),
+        sheetsage2_snapshot=(Path(saved["sheetsage2_snapshot"]).expanduser()
+                             if saved.get("sheetsage2_snapshot") else defaults.sheetsage2_snapshot),
         demucs_cmd=command_value("demucs_cmd", defaults.demucs_cmd),
         whisperx_cmd=command_value("whisperx_cmd", defaults.whisperx_cmd),
         yt_dlp_cmd=command_value("yt_dlp_cmd", defaults.yt_dlp_cmd),

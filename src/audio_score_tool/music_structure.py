@@ -370,13 +370,14 @@ def analyze_midi_meter_and_pickup(
     analysis.tempo_bpm = round(bpm, 2)
     analysis.pickup_quarters = round(pickup_quarters, 3)
     analysis.pickup_confidence = round(confidence, 3)
+    origin = analysis.music_start_seconds if analysis.trimmed else 0.0
     if pickup_quarters > 0:
         analysis.first_downbeat_seconds = round(
-            analysis.music_start_seconds + pickup_quarters * beat_seconds,
+            origin + pickup_quarters * beat_seconds,
             3,
         )
     else:
-        analysis.first_downbeat_seconds = analysis.music_start_seconds
+        analysis.first_downbeat_seconds = origin
     return analysis
 
 

@@ -30,6 +30,8 @@ def test_all_open_issues_candidate_roles_and_unapproved_state_are_explicit():
     assert by_id["audio-score-native"]["kind"] == "training_scaffold"
     assert by_id["mt3-pytorch"]["license_gate"] == "no_upstream_license"
     assert "full_instrument_amt" not in by_id["sheetsage2"]["roles"]
+    assert by_id["sheetsage2"]["vocal_evaluation"]["recordings"] == 40
+    assert by_id["sheetsage2"]["vocal_evaluation"]["publishing_quality_approved"] is False
     assert "full_instrument_amt" not in by_id["chordify-manual"]["roles"]
     assert by_id["chordify-manual"]["kind"] == "external_service"
 

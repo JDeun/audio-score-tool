@@ -18,6 +18,8 @@ _ALLOWED = {
     "muscriptor_model",
     "native_engine_cmd",
     "native_checkpoint",
+    "sheetsage2_cmd",
+    "sheetsage2_snapshot",
     "demucs_cmd",
     "whisperx_cmd",
     "yt_dlp_cmd",

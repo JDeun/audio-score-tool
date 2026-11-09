@@ -12,7 +12,7 @@ from .optional_feature_policy import optional_feature_summary
 from .preflight_v2 import preflight
 from .runtime_settings import published_managed_mt3_model, runtime_settings
 from .settings_store import SettingsStore
-from .transcription_engine import MuScriptorEngine, available_engines
+from .transcription_engine import MuScriptorEngine, SheetSage2Engine, available_engines
 
 router = APIRouter(prefix="/api/engines", tags=["engines"])
 _store = SettingsStore()
@@ -27,6 +27,8 @@ class EngineSettingsPayload(BaseModel):
     muscriptor_model: str | None = None
     native_engine_cmd: str | None = None
     native_checkpoint: str | None = None
+    sheetsage2_cmd: str | None = None
+    sheetsage2_snapshot: str | None = None
 
     @field_validator("usage_mode")
     @classmethod
@@ -42,9 +44,9 @@ class EngineSettingsPayload(BaseModel):
         normalized = value.strip().lower()
         if normalized == "yourmt3":
             normalized = "mt3_infer"
-        if normalized not in {"mt3_infer", "muscriptor", "native"}:
+        if normalized not in {"mt3_infer", "muscriptor", "native", "sheetsage2"}:
             raise ValueError(
-                "transcription_engine must be 'mt3_infer', 'muscriptor', or 'native'"
+                "transcription_engine must be 'mt3_infer', 'muscriptor', 'native', or 'sheetsage2'"
             )
         return normalized
 
@@ -122,6 +124,8 @@ def get_engines() -> dict:
         "muscriptor_model": settings.muscriptor_model,
         "native_checkpoint": str(settings.native_checkpoint) if settings.native_checkpoint else None,
         "native_engine_cmd": settings.native_engine_cmd,
+        "sheetsage2_cmd": settings.sheetsage2_cmd,
+        "sheetsage2_snapshot": str(settings.sheetsage2_snapshot) if settings.sheetsage2_snapshot else None,
         "engines": available_engines(settings),
         "release_policy": release_policy_summary(),
         "optional_feature_policy": optional_feature_summary(),
@@ -133,23 +137,30 @@ def get_engines() -> dict:
 @router.put("")
 def update_engine(payload: EngineSettingsPayload) -> dict:
     checkpoint = payload.native_checkpoint.strip() if payload.native_checkpoint else None
-    if payload.usage_mode == "commercial" and payload.transcription_engine == "muscriptor":
+    if payload.usage_mode == "commercial" and payload.transcription_engine in {"muscriptor", "sheetsage2"}:
         raise HTTPException(
             422,
-            "MuScriptor 공개 weights는 CC BY-NC 4.0이므로 상용 모드에서는 사용할 수 없습니다.",
+            f"{payload.transcription_engine} 공개 weights는 CC BY-NC 4.0이므로 상용 모드에서는 사용할 수 없습니다.",
         )
     if packaged_runtime():
-        if payload.transcription_engine == "native":
+        if payload.transcription_engine in {"native", "sheetsage2"}:
             raise HTTPException(
-                409, "배포 앱에서는 미승인 AudioScore Native 모델을 선택할 수 없습니다."
+                409, f"배포 앱에서는 미승인 {payload.transcription_engine} 모델을 선택할 수 없습니다."
             )
         if any((
-            payload.mt3_infer_cmd, payload.muscriptor_cmd, payload.native_engine_cmd
+            payload.mt3_infer_cmd, payload.muscriptor_cmd, payload.native_engine_cmd,
+            payload.sheetsage2_cmd, payload.sheetsage2_snapshot,
         )):
             raise HTTPException(
                 409, "배포 앱에서는 사용자 지정 실행 명령을 사용할 수 없습니다."
             )
     current = runtime_settings(store=_store)
+    if payload.transcription_engine == "sheetsage2":
+        candidate = replace(current, sheetsage2_cmd=payload.sheetsage2_cmd or current.sheetsage2_cmd,
+                            sheetsage2_snapshot=Path(payload.sheetsage2_snapshot).expanduser()
+                            if payload.sheetsage2_snapshot else current.sheetsage2_snapshot)
+        if not SheetSage2Engine(candidate).ready():
+            raise HTTPException(409, "Pinned SheetSage2 runtime/checkpoints are unavailable")
     if payload.transcription_engine == "muscriptor":
         # The Model Manager's /api/models/select endpoint already rejects
         # unready variants. Keep this alternative settings route equally
@@ -202,6 +213,9 @@ def update_engine(payload: EngineSettingsPayload) -> dict:
             "muscriptor_model": payload.muscriptor_model or current.muscriptor_model,
             "native_engine_cmd": payload.native_engine_cmd,
             "native_checkpoint": checkpoint,
+            "sheetsage2_cmd": payload.sheetsage2_cmd or current.sheetsage2_cmd,
+            "sheetsage2_snapshot": payload.sheetsage2_snapshot or (
+                str(current.sheetsage2_snapshot) if current.sheetsage2_snapshot else None),
         }
     )
     return get_engines()
