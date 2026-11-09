@@ -133,7 +133,7 @@ def validate_pairs(
             raise ValueError(f"dataset {dataset} has no upstream registry entry")
         task = _text(upstream, "task")
         if task not in KNOWN_TASKS or task not in {
-            "multi_instrument_amt", "piano_amt", "guitar_amt", "ensemble_amt",
+            "multi_instrument_amt", "piano_amt", "guitar_amt", "ensemble_amt", "vocal_amt",
             "classical_amt", "drum_amt", "bass_amt", "pop_amt",
         }:
             raise ValueError("source dataset is not an audio/MIDI transcription task")

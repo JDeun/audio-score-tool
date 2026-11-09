@@ -3,6 +3,19 @@
   "purpose": "evaluation_only",
   "datasets": [
     {
+      "id": "vocadito_v3",
+      "task": "vocal_amt",
+      "source": "https://zenodo.org/records/5578807",
+      "audio_included": true,
+      "license": "CC-BY-4.0",
+      "status": "private_model_evaluation",
+      "reference_format": "two_independent_annotators_start_hz_duration_csv",
+      "source_release_revision": "5578807-v3",
+      "archive_md5": "dea40fd18f14d899643c4ba221b33a46",
+      "training_overlap": "unknown",
+      "notes": "40 original solo vocal recordings; not the final five acceptance songs or a mixed-pop/held-out quality claim. Evaluated by scripts/run_vocadito_baseline.py."
+    },
+    {
       "id": "casd",
       "task": "chord",
       "source": "https://github.com/chordify/CASD",

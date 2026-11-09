@@ -45,6 +45,11 @@ def test_recommended_real_dataset_registry_preserves_reference_availability():
         .read_text(encoding="utf-8")
     )
     datasets = {item["id"]: item for item in registry["datasets"]}
+    vocal = datasets["vocadito_v3"]
+    assert vocal["task"] == "vocal_amt"
+    assert vocal["license"] == "CC-BY-4.0"
+    assert vocal["training_overlap"] == "unknown"
+    assert vocal["archive_md5"] == "dea40fd18f14d899643c4ba221b33a46"
     coco = datasets["cocochorales"]
     assert coco["audio_included"] is True
     assert coco["license"] == "CC-BY-4.0"
