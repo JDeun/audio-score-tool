@@ -9,6 +9,8 @@ from threading import Thread
 from fastapi import APIRouter, HTTPException
 
 from . import api as base_api
+from .config import packaged_runtime
+from .demucs_runtime import managed_demucs_repository
 from .job_admission import JobCapacityError, reserve_job
 from .job_transcription_settings import (
     restore_transcription_job_settings,
@@ -137,7 +139,10 @@ def create_youtube_job_v2(payload: base_api.YouTubeJobRequest) -> dict:
     if not youtube_tool_status(defaults)["ready"]:
         raise HTTPException(503, "YouTube 가져오기 구성요소가 준비되지 않았습니다.")
 
-    if needs_stem_separation(score_mode) and not command_exists(defaults.demucs_cmd):
+    if needs_stem_separation(score_mode) and (
+        not command_exists(defaults.demucs_cmd)
+        or (packaged_runtime() and managed_demucs_repository(defaults) is None)
+    ):
         raise HTTPException(503, "선택 악기 채보에는 Demucs가 필요합니다. 구성요소 상태에서 설치하세요.")
 
     job_id = uuid.uuid4().hex
@@ -285,7 +290,10 @@ def retry_job_v2(job_id: str) -> dict:
                 503,
                 "이 작업에 저장된 채보 모델이 준비되지 않았습니다: " + ", ".join(readiness["missing"]),
             )
-        if needs_stem_separation(values["score_mode"]) and not command_exists(settings.demucs_cmd):
+        if needs_stem_separation(values["score_mode"]) and (
+            not command_exists(settings.demucs_cmd)
+            or (packaged_runtime() and managed_demucs_repository(settings) is None)
+        ):
             raise HTTPException(503, "재실행할 선택 악기 분리 도구가 준비되지 않았습니다.")
         values.update(selection)
 

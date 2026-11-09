@@ -10,7 +10,8 @@ from typing import Any
 
 from .auto_chords import apply_inferred_chords
 from .choir_postprocess import reconstruct_satb
-from .config import Settings
+from .config import Settings, packaged_runtime
+from .demucs_runtime import demucs_repo_args, managed_demucs_repository
 from .devices import detect_device_plan
 from .lyrics import attach_lyrics_to_musicxml, expand_korean_syllables, load_whisperx_words
 from .models import PipelineResult
@@ -241,13 +242,16 @@ def transcribe(
         lyrics_audio = vocals_path or transcription_audio
         if vocals_path is not None:
             pass  # Reuse the already isolated vocal stem.
-        elif command_exists(settings.demucs_cmd):
+        elif command_exists(settings.demucs_cmd) and (
+            not packaged_runtime() or managed_demucs_repository(settings) is not None
+        ):
             try:
                 run_command(
                     settings.demucs_cmd,
                     [
                         "--two-stems",
                         "vocals",
+                        *demucs_repo_args(settings),
                         "-d",
                         device.demucs_device,
                         "-o",

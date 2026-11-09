@@ -13,7 +13,7 @@ def test_setup_center_exposes_managed_integrity_contract():
     assert body["policy"]["managed_component_integrity"] == "sha256+atomic-state+root-containment"
     assert body["policy"]["managed_component_system_path_fallback"] is False
     components = {item["key"]: item for item in body["components"]}
-    for key in ("transcription_engine", "whisperx", "youtube_runtime", "audiveris", "audio_validation"):
+    for key in ("transcription_engine", "whisperx", "demucs", "youtube_runtime", "audiveris", "audio_validation"):
         item = components[key]
         assert isinstance(item["managed_status"], dict)
         assert isinstance(item["catalog"], dict)
@@ -96,3 +96,17 @@ def test_setup_remove_calls_owned_component_manager(monkeypatch):
     assert response.json()["removed"]["removed"] is True
     assert calls == ["audiveris"]
     assert client.post("/api/setup/remove", json={"component": "desktop_runtime"}).status_code == 409
+
+
+def test_unpublished_demucs_cannot_be_installed_from_setup_center():
+    from audio_score_tool.managed_publication_readiness import check_publication
+    from audio_score_tool.managed_component_catalog import platform_key
+
+    status = TestClient(app).get("/api/setup/center")
+    assert status.status_code == 200
+    separator = next(item for item in status.json()["components"] if item["key"] == "demucs")
+    assert separator["tier"] == "optional"
+    assert separator["auto_install"] is False
+    assert separator["catalog"]["published"] is False
+    assert check_publication("demucs", platform_key()).reason == "artifact-not-published"
+    assert TestClient(app).post("/api/setup/install", json={"component": "demucs"}).status_code == 409

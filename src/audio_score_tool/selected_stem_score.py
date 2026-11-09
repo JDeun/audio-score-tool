@@ -15,7 +15,8 @@ from threading import Event
 import mido
 
 from .auto_chords import infer_chords
-from .config import Settings
+from .config import Settings, packaged_runtime
+from .demucs_runtime import demucs_repo_args, managed_demucs_repository
 from .musicxml_metadata_projection import _score, project_musicxml_annotations
 from .musicxml_parts import extract_part_musicxml
 from .notation_backend import musicxml_to_midi
@@ -147,7 +148,9 @@ def transcribe_selected_stems(
     mode = validate_score_mode(score_mode)
     if mode == "full":
         raise ValueError("Full score must use the existing whole-mix AMT pipeline")
-    if not command_exists(settings.demucs_cmd):
+    if not command_exists(settings.demucs_cmd) or (
+        packaged_runtime() and managed_demucs_repository(settings) is None
+    ):
         raise SelectedScoreError(
             "Selected-part scoring requires Demucs. Install an approved managed "
             "separator in Setup Center or choose the Full Score mode."
@@ -157,7 +160,9 @@ def transcribe_selected_stems(
     stems_root.mkdir(parents=True)
     output_dir.mkdir(parents=True, exist_ok=True)
     model = "htdemucs" if mode == "lead_sheet" else "htdemucs_6s"
-    args: list[str | Path] = ["-n", model]
+    # In a packaged app, only verified app-owned model weights are eligible;
+    # --repo disables Demucs' automatic pretrained weight retrieval.
+    args: list[str | Path] = ["-n", model, *demucs_repo_args(settings)]
     if mode == "lead_sheet":
         args += ["--two-stems", "vocals"]
     args += ["-d", demucs_device, "-o", stems_root, audio_path]

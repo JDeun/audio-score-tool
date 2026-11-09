@@ -26,6 +26,7 @@ _PREFERRED_OWNERS = {
     "mt3-infer": "transcription_engine",
     "audiveris": "audiveris",
     "whisperx": "whisperx",
+    "demucs": "demucs",
 }
 
 
