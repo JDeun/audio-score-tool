@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -9,6 +8,7 @@ from fastapi.testclient import TestClient
 from audio_score_tool import job_lifecycle_api_v2 as lifecycle
 from audio_score_tool import upload_api_v2 as upload
 from audio_score_tool.api import app
+from audio_score_tool.config import Settings
 from audio_score_tool.job_store import JobStore
 from audio_score_tool.presets import resolve_job_models
 
@@ -59,7 +59,7 @@ def test_canonical_job_endpoints_apply_saved_model_for_auto_only(
 ):
     store = JobStore(tmp_path / "jobs.sqlite3")
     jobs = tmp_path / "jobs"
-    default = SimpleNamespace(muscriptor_model="small", whisperx_model="small")
+    default = Settings(muscriptor_model="small", whisperx_model="small")
     monkeypatch.setattr(upload.base_api, "_store", store)
     monkeypatch.setattr(upload, "jobs_dir", lambda: jobs)
     monkeypatch.setattr(lifecycle, "jobs_dir", lambda: jobs)
@@ -111,7 +111,7 @@ def test_canonical_job_explicit_overrides_take_precedence(tmp_path: Path, monkey
     monkeypatch.setattr(
         lifecycle,
         "runtime_settings",
-        lambda: SimpleNamespace(muscriptor_model="large", whisperx_model="small"),
+        lambda: Settings(muscriptor_model="large", whisperx_model="small"),
     )
 
     class FakeThread:

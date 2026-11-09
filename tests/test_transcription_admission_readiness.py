@@ -1,18 +1,18 @@
 from __future__ import annotations
 
 from pathlib import Path
-from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
+from audio_score_tool import api
 from audio_score_tool import job_lifecycle_api_v2 as lifecycle
 from audio_score_tool import upload_api_v2 as upload
-from audio_score_tool.api import app
+from audio_score_tool.config import Settings
 from audio_score_tool.job_store import JobStore
 
 
 def _defaults():
-    return SimpleNamespace(muscriptor_model="small", whisperx_model="small")
+    return Settings(muscriptor_model="small", whisperx_model="small")
 
 
 def test_audio_job_admission_rejects_missing_core_engine_without_queued_job(
@@ -27,7 +27,7 @@ def test_audio_job_admission_rejects_missing_core_engine_without_queued_job(
         lambda *_args, **_kwargs: {"ok": False, "missing": ["transcription_engine:mt3_infer"]},
     )
 
-    response = TestClient(app).post(
+    response = TestClient(api.app).post(
         "/api/jobs", files={"file": ("audio.wav", b"valid-extension", "audio/wav")},
         data={"preset": "auto"},
     )
@@ -50,7 +50,7 @@ def test_youtube_job_admission_rejects_missing_ingestion_runtime(
         lifecycle, "youtube_tool_status", lambda _settings: {"ready": False}
     )
 
-    response = TestClient(app).post(
+    response = TestClient(api.app).post(
         "/api/jobs/youtube",
         json={
             "url": "https://www.youtube.com/watch?v=abcdef12345",
@@ -83,7 +83,7 @@ def test_missing_optional_lyrics_runtime_does_not_block_basic_job(
             pass
 
     monkeypatch.setattr(upload, "Thread", FakeThread)
-    response = TestClient(app).post(
+    response = TestClient(api.app).post(
         "/api/jobs",
         files={"file": ("audio.wav", b"valid-extension", "audio/wav")},
         data={"preset": "auto", "skip_lyrics": "true"},

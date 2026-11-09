@@ -3,16 +3,23 @@ import { expect, test, type Page } from "@playwright/test";
 const HEALTH = {
   status: "ok",
   device_plan: { muscriptor_device: "cpu", demucs_device: "cpu", whisperx_device: "cpu", whisperx_compute_type: "int8" },
-  preflight: { ok: true, missing: [], tools: { transcription_engine: true, whisperx: true } },
+  preflight: {
+    ok: true, missing: [], tools: { transcription_engine: true, whisperx: true },
+    engine: { key: "muscriptor", model: "large", name: "MuScriptor" },
+  },
   presets: { recommended: "quality", presets: [] },
   data_dir: "/tmp/audio-score-tool",
   system: { hf_authenticated: true, jobs_bytes: 0, disk_total_bytes: 1024, disk_used_bytes: 0, disk_free_bytes: 1024 },
 };
 
 async function prepareYoutubePage(page: Page, recorded: Record<string, unknown>[], mode: "personal" | "commercial" = "personal") {
-  await page.route("**/api/health", async (route) => route.fulfill({ json: { ...HEALTH, usage_mode: mode } }));
+  const preflight = {
+    ...HEALTH.preflight,
+    engine: mode === "commercial" ? { key: "mt3_infer", model: "mr_mt3", name: "MT3-Infer" } : HEALTH.preflight.engine,
+  };
+  await page.route("**/api/health", async (route) => route.fulfill({ json: { ...HEALTH, preflight, usage_mode: mode } }));
   await page.route("**/api/setup", async (route) => route.fulfill({
-    json: { preflight: HEALTH.preflight, tool_paths: {}, instructions: { hf_note: "" } },
+    json: { preflight, tool_paths: {}, instructions: { hf_note: "" } },
   }));
   await page.route("**/api/jobs?limit=100", async (route) => route.fulfill({ json: { jobs: [] } }));
   await page.route("**/api/sources/youtube/inspect", async (route) => route.fulfill({

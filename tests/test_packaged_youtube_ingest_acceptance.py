@@ -11,7 +11,6 @@ import struct
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
@@ -293,12 +292,13 @@ def test_youtube_job_api_persists_source_kind_before_any_worker_starts(
     monkeypatch, tmp_path: Path,
 ):
     from audio_score_tool import job_lifecycle_api_v2 as jobs
+    from audio_score_tool.config import Settings
     from audio_score_tool.runtime_services import YouTubeJobRequest
 
     reservations = []
     monkeypatch.setattr(
         jobs, "runtime_settings",
-        lambda: SimpleNamespace(muscriptor_model="large", whisperx_model="small"),
+        lambda: Settings(muscriptor_model="large", whisperx_model="small"),
     )
     monkeypatch.setattr(
         jobs, "resolve_job_models", lambda *_a, **_kw: ("small", "small"),

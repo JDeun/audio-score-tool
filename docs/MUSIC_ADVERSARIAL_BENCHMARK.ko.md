@@ -18,9 +18,11 @@ CI에서 항상 실행됩니다. 외부 모델 다운로드나 저작권 음원�
   - 3/4 정박 시작
   - 3/4 1/8음표 계열의 짧은 pickup
 - **Choir / SATB**
-  - 이미 4개 성부인 악보의 S/A/T/B 음역 정렬
-  - 단일 chordal part의 보수적 SATB 분할
+  - 명시적 `choir` 요청에서 기존 4개 성부의 S/A/T/B 이름 지정
+  - 명시적 `choir` 요청에서 단일 chordal part의 보수적 SATB 분할과 재생 음표 보존 확인
   - monophonic source에서 SATB를 날조하지 않는 fail-open
+
+일반 full 채보의 합창 후처리는 기본 `off`이며 `auto`도 기악 파트나 화음을 자동으로 SATB로 바꾸지 않습니다. 양성 합창 fixture는 명시적 요청의 기능을 검증합니다. 일반 기악 입력의 auto 비변형과 후보 손실·예외 시 원본 보존은 별도 choir/pipeline 회귀 테스트에서 확인합니다. 자세한 정책과 실제 모델 변환 검증의 범위는 [MIDI·MusicXML 보존 문서](MIDI_MUSICXML_FIDELITY.ko.md)를 따릅니다.
 
 실행:
 

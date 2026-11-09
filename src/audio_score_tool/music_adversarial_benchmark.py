@@ -297,7 +297,7 @@ def _choir_cases(root: Path) -> list[AdversarialCaseResult]:
     source = root / "four-parts.musicxml"
     output = root / "four-parts-satb.musicxml"
     _write_four_part_score(source)
-    result = reconstruct_satb(source, output, mode="auto")
+    result = reconstruct_satb(source, output, mode="choir")
     passed = (
         result.applied
         and result.source_parts == 4
@@ -317,7 +317,7 @@ def _choir_cases(root: Path) -> list[AdversarialCaseResult]:
     source = root / "chordal.musicxml"
     output = root / "chordal-satb.musicxml"
     _write_chordal_score(source)
-    result = reconstruct_satb(source, output, mode="auto")
+    result = reconstruct_satb(source, output, mode="choir")
     passed = (
         result.applied
         and result.target_parts == 4

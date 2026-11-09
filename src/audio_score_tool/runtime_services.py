@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import shutil
 import uuid
+from dataclasses import replace
 from pathlib import Path
 from threading import Event, Lock, Thread
 
@@ -15,6 +16,10 @@ from .config import packaged_runtime
 from .desktop_utils import reveal_in_file_manager
 from .devices import detect_device_plan
 from .job_store import JobStore
+from .job_transcription_settings import (
+    restore_transcription_job_settings,
+    transcription_job_selection,
+)
 from .paths import jobs_dir
 from .pipeline import PipelineCancelled
 from .pipeline_v2 import transcribe
@@ -177,6 +182,29 @@ def _acquire_inference_slot(job_id: str, cancel_event: Event) -> bool:
     return False
 
 
+def _transcription_settings_for_job(
+    job_id: str, *, muscriptor_model: str, whisperx_model: str,
+):
+    stored = _store.get(job_id)
+    if stored is None:
+        raise ValueError("Transcription job no longer exists")
+    current = _runtime_settings(
+        muscriptor_model=muscriptor_model, whisperx_model=whisperx_model,
+    )
+    selected = restore_transcription_job_settings(current, stored)
+    if stored.get("transcription_engine") is None:
+        # Legacy requests have no recorded engine. Bind this actual attempt
+        # once, before any download/inference, instead of guessing past runs.
+        _store.update(job_id, **transcription_job_selection(selected))
+    readiness = preflight(selected, require_lyrics=False)
+    if not readiness["ok"]:
+        raise ValueError(
+            "This job's selected transcription model is unavailable: "
+            + ", ".join(readiness["missing"])
+        )
+    return selected
+
+
 def _execute_transcription(
     job_id: str,
     audio: Path,
@@ -207,7 +235,8 @@ def _execute_transcription(
     try:
         stored = _store.get(job_id) or {}
         mode = validate_score_mode(stored.get("score_mode", "full"))
-        settings = _runtime_settings(
+        settings = _transcription_settings_for_job(
+            job_id,
             muscriptor_model=muscriptor_model,
             whisperx_model=whisperx_model,
         )
@@ -331,7 +360,8 @@ def _youtube_worker(
         audio, metadata = download_youtube_audio(
             url,
             job_dir,
-            settings=_runtime_settings(
+            settings=_transcription_settings_for_job(
+                job_id,
                 muscriptor_model=muscriptor_model,
                 whisperx_model=whisperx_model,
             ),
@@ -548,9 +578,16 @@ async def create_job(
             muscriptor_override=muscriptor_model,
             whisperx_override=whisperx_model,
         )
+        selected = replace(
+            defaults, muscriptor_model=resolved_muscriptor, whisperx_model=resolved_whisperx,
+        )
+        selection = transcription_job_selection(selected)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
 
+    readiness = preflight(selected, require_lyrics=False)
+    if not readiness["ok"]:
+        raise HTTPException(503, "Selected transcription model is unavailable")
     suffix = _validate_upload(file.filename, _AUDIO_EXTENSIONS, "audio")
     job_id = uuid.uuid4().hex
     job_dir = jobs_dir() / job_id
@@ -569,8 +606,7 @@ async def create_job(
         language=language,
         skip_lyrics=skip_lyrics,
         preset=preset,
-        muscriptor_model=resolved_muscriptor,
-        whisperx_model=resolved_whisperx,
+        **selection,
     )
     Thread(
         target=_worker,
@@ -607,9 +643,16 @@ def create_youtube_job(payload: YouTubeJobRequest) -> dict:
             muscriptor_override=payload.muscriptor_model,
             whisperx_override=payload.whisperx_model,
         )
+        selected = replace(
+            defaults, muscriptor_model=resolved_muscriptor, whisperx_model=resolved_whisperx,
+        )
+        selection = transcription_job_selection(selected)
     except (YouTubeSourceError, ValueError) as exc:
         raise HTTPException(422, str(exc)) from exc
 
+    readiness = preflight(selected, require_lyrics=False)
+    if not readiness["ok"]:
+        raise HTTPException(503, "Selected transcription model is unavailable")
     job_id = uuid.uuid4().hex
     job_dir = jobs_dir() / job_id
     job_dir.mkdir(parents=True, exist_ok=False)
@@ -623,8 +666,7 @@ def create_youtube_job(payload: YouTubeJobRequest) -> dict:
         language=payload.language,
         skip_lyrics=payload.skip_lyrics,
         preset=payload.preset,
-        muscriptor_model=resolved_muscriptor,
-        whisperx_model=resolved_whisperx,
+        **selection,
     )
     Thread(
         target=_youtube_worker,
@@ -700,6 +742,19 @@ def retry_job(job_id: str) -> dict:
     if not audio_candidates:
         raise HTTPException(404, "Original input audio is missing.")
 
+    if source.get("kind") != "benchmark":
+        try:
+            selected = restore_transcription_job_settings(_runtime_settings(), source)
+            selection = transcription_job_selection(selected)
+            if source.get("native_checkpoint_sha256") not in (
+                None, selection["native_checkpoint_sha256"],
+            ):
+                raise ValueError("The job's Native checkpoint changed while preparing the retry")
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from exc
+        if not preflight(selected, require_lyrics=False)["ok"]:
+            raise HTTPException(503, "This job's selected transcription model is unavailable")
+
     new_id = uuid.uuid4().hex
     target_dir = jobs_dir() / new_id
     target_dir.mkdir(parents=True, exist_ok=False)
@@ -738,8 +793,7 @@ def retry_job(job_id: str) -> dict:
             language=source.get("language"),
             skip_lyrics=source.get("skip_lyrics", False),
             preset=source.get("preset"),
-            muscriptor_model=source.get("muscriptor_model"),
-            whisperx_model=source.get("whisperx_model"),
+            **selection,
         )
         Thread(
             target=_worker,
@@ -748,8 +802,8 @@ def retry_job(job_id: str) -> dict:
                 audio,
                 source.get("language"),
                 source.get("skip_lyrics", False),
-                source.get("muscriptor_model") or "medium",
-                source.get("whisperx_model") or "small",
+                selection["muscriptor_model"],
+                selection["whisperx_model"],
             ),
             daemon=True,
         ).start()
