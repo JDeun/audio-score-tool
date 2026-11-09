@@ -1,0 +1,1137 @@
+{
+  "schema_version": 1,
+  "product_run": {
+    "schema_version": 1,
+    "source_commit": "a6a199fad70c51aac1bb491339d8d80b072fe6dc",
+    "test": "real /api/songs/{id}/validate with independent full-source Demucs CLI and current score",
+    "new_transcription_model_inference": false,
+    "new_demucs_separation": true,
+    "expert_reference": false,
+    "quality_approved": false,
+    "separator_checkpoint_sha256": "8726e21a993978c7ba086d3872e7608d7d5bfca646ca4aca459ffda844faa8b4",
+    "wrapper_sha256": "081b550bc1dc91e90edd678c7b243be881e1404ead5fbe2ca6ac377dd4728b4b",
+    "cases": [
+      {
+        "id": "tinashe-me-so-bad",
+        "status": "passed",
+        "audio_sha256": "f39788b3075e9117661481470289c6e79ce25171f7a256936a2167bdae49fd65",
+        "source_score_revision": 4,
+        "elapsed_seconds": 85.19042995758355,
+        "revision_unchanged": true,
+        "score_unchanged": true,
+        "acoustic_skipped": null,
+        "resynthesis_skipped": "audio-symbol \uac80\uc99d\uc6a9 SoundFont(.sf2/.sf3)\ub97c \uc124\uc815\ud558\uc138\uc694.",
+        "melody": {
+          "predicted_notes": 410,
+          "compared_notes": 66,
+          "consistent_notes": 4,
+          "octave_suspects": 29,
+          "pitch_suspects": 33,
+          "whole_song_accuracy": null
+        },
+        "chords": {
+          "compared_intervals": 159,
+          "spectral_warnings": 22,
+          "wcsr": null
+        },
+        "total_issue_count": 84,
+        "review_required": true
+      },
+      {
+        "id": "twice-fancy",
+        "status": "passed",
+        "audio_sha256": "5e1b5613b3863ea3babd2dc22bc9fa8ba62deb2ae44d48c8885f832ab56f01ec",
+        "source_score_revision": 4,
+        "elapsed_seconds": 108.17241204250604,
+        "revision_unchanged": true,
+        "score_unchanged": true,
+        "acoustic_skipped": null,
+        "resynthesis_skipped": "audio-symbol \uac80\uc99d\uc6a9 SoundFont(.sf2/.sf3)\ub97c \uc124\uc815\ud558\uc138\uc694.",
+        "melody": {
+          "predicted_notes": 573,
+          "compared_notes": 67,
+          "consistent_notes": 1,
+          "octave_suspects": 37,
+          "pitch_suspects": 29,
+          "whole_song_accuracy": null
+        },
+        "chords": {
+          "compared_intervals": 181,
+          "spectral_warnings": 2,
+          "wcsr": null
+        },
+        "total_issue_count": 68,
+        "review_required": true
+      },
+      {
+        "id": "green-day-american-idiot",
+        "status": "passed",
+        "audio_sha256": "aedb875ba145c1f5cd21a0a86713d11dff1de9701512b8f1c7e4a40fa4fdf680",
+        "source_score_revision": 4,
+        "elapsed_seconds": 88.62974208313972,
+        "revision_unchanged": true,
+        "score_unchanged": true,
+        "acoustic_skipped": null,
+        "resynthesis_skipped": "audio-symbol \uac80\uc99d\uc6a9 SoundFont(.sf2/.sf3)\ub97c \uc124\uc815\ud558\uc138\uc694.",
+        "melody": {
+          "predicted_notes": 354,
+          "compared_notes": 31,
+          "consistent_notes": 0,
+          "octave_suspects": 20,
+          "pitch_suspects": 11,
+          "whole_song_accuracy": null
+        },
+        "chords": {
+          "compared_intervals": 277,
+          "spectral_warnings": 1,
+          "wcsr": null
+        },
+        "total_issue_count": 32,
+        "review_required": true
+      },
+      {
+        "id": "ham-boo-young-my-song",
+        "status": "passed",
+        "audio_sha256": "871118a06f5021b94f6e56c9066fca50670582f5e530bcee9290e2db270d8ac7",
+        "source_score_revision": 4,
+        "elapsed_seconds": 128.65769437514246,
+        "revision_unchanged": true,
+        "score_unchanged": true,
+        "acoustic_skipped": null,
+        "resynthesis_skipped": "audio-symbol \uac80\uc99d\uc6a9 SoundFont(.sf2/.sf3)\ub97c \uc124\uc815\ud558\uc138\uc694.",
+        "melody": {
+          "predicted_notes": 531,
+          "compared_notes": 166,
+          "consistent_notes": 0,
+          "octave_suspects": 91,
+          "pitch_suspects": 75,
+          "whole_song_accuracy": null
+        },
+        "chords": {
+          "compared_intervals": 171,
+          "spectral_warnings": 3,
+          "wcsr": null
+        },
+        "total_issue_count": 169,
+        "review_required": true
+      },
+      {
+        "id": "younha-event-horizon",
+        "status": "passed",
+        "audio_sha256": "2d84bd77253c96851db8bde4cd76de0b7bf7101cf07f79ff8dbf2d03f1d23dce",
+        "source_score_revision": 4,
+        "elapsed_seconds": 122.43548008427024,
+        "revision_unchanged": true,
+        "score_unchanged": true,
+        "acoustic_skipped": null,
+        "resynthesis_skipped": "audio-symbol \uac80\uc99d\uc6a9 SoundFont(.sf2/.sf3)\ub97c \uc124\uc815\ud558\uc138\uc694.",
+        "melody": {
+          "predicted_notes": 573,
+          "compared_notes": 229,
+          "consistent_notes": 0,
+          "octave_suspects": 149,
+          "pitch_suspects": 80,
+          "whole_song_accuracy": null
+        },
+        "chords": {
+          "compared_intervals": 149,
+          "spectral_warnings": 4,
+          "wcsr": null
+        },
+        "total_issue_count": 233,
+        "review_required": true
+      }
+    ]
+  },
+  "ffmpeg_binary_sha256": "6d175a4743ca50256e89a8cdd731100f9cee33bd79aeea46894d209410dc6617",
+  "ffmpeg_source": "imageio-ffmpeg==0.6.0 macOS arm64 bundled FFmpeg 7.1, local QA only; not a managed publication approval",
+  "prior_attempt": {
+    "run": "acoustic-api-v1",
+    "attempted_cases": 1,
+    "status": "unmeasured",
+    "reason": "Demucs mono-expanded overlapping tensor, before separation; fixed by shared stereo normalization",
+    "preserved_privately": true
+  },
+  "verifier_calibration": {
+    "schema_version": 1,
+    "source_commit": "f9488bf5acc7b81d85c33ca8a94a8c0f9a735272",
+    "dataset": "vocadito-v3",
+    "archive_sha256": "e0d6b99d3f9c594afe5ae5c4d7bdacebe569e53b809e90b89d1c771c4f9990e3",
+    "purpose": "validator calibration, not new AMT inference or model-quality metric",
+    "reference_conversion": "original human note Hz rounded to nearest MIDI semitone only to simulate a notated score; original Hz retained in primary benchmark; no tuning",
+    "cases": [
+      {
+        "id": "vocadito_1",
+        "audio_sha256": "b509768315efad8120183b48e01d6090f1649d5bcc691241940dc7a100274ab8",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "974fdcddce8db5c7bca52e2752d70f6f60efac105a46a6536a11c6f02d33c7b3",
+            "predicted_notes": 59,
+            "compared_notes": 44,
+            "consistent_notes": 43,
+            "octave_suspects": 0,
+            "pitch_suspects": 1,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "726bc1527d766e85a9cfbb013c5393be7f93814fdd4ab3bb77f0783232484786",
+            "predicted_notes": 64,
+            "compared_notes": 46,
+            "consistent_notes": 45,
+            "octave_suspects": 0,
+            "pitch_suspects": 1,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_2",
+        "audio_sha256": "8dcc99c3b08a9a5800b793e3d65cccfb4464961f15cf8ccde25bd4c8b853d519",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "c9dd07779b2c942361f3fee38a068d581ce18928a20e9ff68e66f96fde8ee114",
+            "predicted_notes": 76,
+            "compared_notes": 43,
+            "consistent_notes": 41,
+            "octave_suspects": 1,
+            "pitch_suspects": 1,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "db98b481f36997e8382285232e1ab07223cb11e0aac43bc71075e2f3b4f96bf6",
+            "predicted_notes": 63,
+            "compared_notes": 49,
+            "consistent_notes": 46,
+            "octave_suspects": 2,
+            "pitch_suspects": 1,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_3",
+        "audio_sha256": "73b6fe13bc3435ae9173ee1bdec247e2943526c70cd9b69ab2b35002fa4cb04d",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "6aa99d9b80ec65d1dda047ba76288c2e4c06b17cd0eb0d0a8a1fd03b3980c071",
+            "predicted_notes": 51,
+            "compared_notes": 32,
+            "consistent_notes": 31,
+            "octave_suspects": 0,
+            "pitch_suspects": 1,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "3987965477be9f046b4a4a4685b9d3131030e61fe1b63e947dc917476104a0f6",
+            "predicted_notes": 46,
+            "compared_notes": 33,
+            "consistent_notes": 30,
+            "octave_suspects": 0,
+            "pitch_suspects": 3,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_4",
+        "audio_sha256": "fc07b202eb609c975d1549be5320db116a49be1bd1fc6904e70e31cd7e44ec23",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "0cd829c1a8742b08258dc9b4eeb92fc1caeae87f5229d1c254adf2596c5a7c3d",
+            "predicted_notes": 69,
+            "compared_notes": 20,
+            "consistent_notes": 18,
+            "octave_suspects": 0,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "c9bc1dc4a6a39554053ce28e99420770c3d34a2acd2eb9f9e8a2163c6b642c84",
+            "predicted_notes": 51,
+            "compared_notes": 20,
+            "consistent_notes": 19,
+            "octave_suspects": 0,
+            "pitch_suspects": 1,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_5",
+        "audio_sha256": "7cecfd126a9437f88db0a297cdab3075bb38faeef10f1a98f22ba22a2a939220",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "d38fbbe4d9440e238e4d24ba2cd7106e73586c636455a500909566f4f4e75142",
+            "predicted_notes": 96,
+            "compared_notes": 33,
+            "consistent_notes": 30,
+            "octave_suspects": 0,
+            "pitch_suspects": 3,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "ce0c21977483e3b078bf956859855779bc0704499de951bedaf2e518083d3018",
+            "predicted_notes": 72,
+            "compared_notes": 37,
+            "consistent_notes": 31,
+            "octave_suspects": 0,
+            "pitch_suspects": 6,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_6",
+        "audio_sha256": "13816752a6366f2d66f21e71a70d55e22b6a44f0d1712d97abff5390bc0c1f3b",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "b0463b3989564152ab5dabdb2c1948823d3d46f711d6c17d4901da584be4d550",
+            "predicted_notes": 73,
+            "compared_notes": 34,
+            "consistent_notes": 32,
+            "octave_suspects": 0,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "978f0e0e56d9b3559b6290b5ef21449363df75862d5b0e0dccf79ffeacfecd2e",
+            "predicted_notes": 50,
+            "compared_notes": 28,
+            "consistent_notes": 26,
+            "octave_suspects": 0,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_7",
+        "audio_sha256": "db9542f0626f4c43ab1e4f26ae9e40834bcfe5f061b07c75a3925d95aaa79676",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "bd10de5b425de91cde98783c929636fdac9ec36d4d0b8dad5d517e2cc52f8a5f",
+            "predicted_notes": 47,
+            "compared_notes": 32,
+            "consistent_notes": 30,
+            "octave_suspects": 0,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "809d896f9166dd8688477c41955eea96381bee967b81a425a4583c10b5fa12b5",
+            "predicted_notes": 42,
+            "compared_notes": 30,
+            "consistent_notes": 28,
+            "octave_suspects": 0,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_8",
+        "audio_sha256": "05ce2b3f1991035d08db269df1c39b198d9ddc22130ce88f9a8d97e46cd7a310",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "57a24cd8a3f64575e600447219406a6040fa95c2df02fd69d5426c3492646efa",
+            "predicted_notes": 40,
+            "compared_notes": 26,
+            "consistent_notes": 25,
+            "octave_suspects": 0,
+            "pitch_suspects": 1,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "200e1923b492e6402643586a0ffa0e09c6804d5f839e8615d739ec400ac9a1d2",
+            "predicted_notes": 37,
+            "compared_notes": 26,
+            "consistent_notes": 25,
+            "octave_suspects": 0,
+            "pitch_suspects": 1,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_9",
+        "audio_sha256": "f980cc7df935c0c9e839b25759de72fadad6763c069be96645be46f8dd3ffd32",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "aa4bdb1c8de042a812be20503d2c271f9696a2de15f88ab27b96bdfab1666a63",
+            "predicted_notes": 62,
+            "compared_notes": 34,
+            "consistent_notes": 32,
+            "octave_suspects": 0,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "99a0d7069b98e29aaa70547bbf04a87c4ee08c49f0ad20898603e71d048aa270",
+            "predicted_notes": 59,
+            "compared_notes": 33,
+            "consistent_notes": 30,
+            "octave_suspects": 0,
+            "pitch_suspects": 3,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_10",
+        "audio_sha256": "0978bde1c130ae26a9cfcd90012f12fdaf9877bbe45cf21c5237ba7ac9b8703b",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "3bbf478d96c05de2897513fce653825f9a4fc06642a7a89cd00ab98679f96f9d",
+            "predicted_notes": 35,
+            "compared_notes": 10,
+            "consistent_notes": 10,
+            "octave_suspects": 0,
+            "pitch_suspects": 0,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "2e8abe09284725a9c95fbc4d83b77ec287fe2cd1fe73381909b1cc64411295af",
+            "predicted_notes": 27,
+            "compared_notes": 10,
+            "consistent_notes": 10,
+            "octave_suspects": 0,
+            "pitch_suspects": 0,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_11",
+        "audio_sha256": "c4d669eca7e25c5037b191805b54b2c990d5e31bc77c9c77188b140100297197",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "2fd689cc3e81a559ae89c7fc53e234b2442cb4fdea17b82b1450e9f1cd7745ee",
+            "predicted_notes": 37,
+            "compared_notes": 19,
+            "consistent_notes": 18,
+            "octave_suspects": 0,
+            "pitch_suspects": 1,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "05c7687bd79ea17444b64237387666e17a34c0e3861e9de6ea38160c4053c15a",
+            "predicted_notes": 30,
+            "compared_notes": 20,
+            "consistent_notes": 19,
+            "octave_suspects": 0,
+            "pitch_suspects": 1,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_12",
+        "audio_sha256": "5a342e32b20b3764a9ab9784abbf7bac6db69583ec529fc9027f96c69df04e00",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "2b5a525560ffda6ce1d039eb2f2b309b496394b42a9879fda53bda612e894f82",
+            "predicted_notes": 27,
+            "compared_notes": 27,
+            "consistent_notes": 26,
+            "octave_suspects": 0,
+            "pitch_suspects": 1,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "cca41b5ed7c55b00f0003ecacbe03f4118bde0642970f92a390f21acf6ed5789",
+            "predicted_notes": 24,
+            "compared_notes": 24,
+            "consistent_notes": 23,
+            "octave_suspects": 0,
+            "pitch_suspects": 1,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_13",
+        "audio_sha256": "5a26861f99c4d02a3efe2355215de2774fb51257cc2d2bf6021827b64e25ec94",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "7dabefde6a83eeb507d74b26dfbe3c3c714514589e11515bb40edbee1bbb2ebc",
+            "predicted_notes": 74,
+            "compared_notes": 20,
+            "consistent_notes": 17,
+            "octave_suspects": 0,
+            "pitch_suspects": 3,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "1adf0b17a23b4a1bf77e842059e361db80f0bb9a5d1190469a7701cdd2f8155d",
+            "predicted_notes": 52,
+            "compared_notes": 19,
+            "consistent_notes": 17,
+            "octave_suspects": 0,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_14",
+        "audio_sha256": "a41e814df6ee5840f0beaea5da2ab3ad6b38be62b169da08962a722bcc06cdd1",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "de1ebd5833738412c0a36aef74ad63b1bbf12a59414c836aaf54288a5483cbb1",
+            "predicted_notes": 34,
+            "compared_notes": 18,
+            "consistent_notes": 17,
+            "octave_suspects": 0,
+            "pitch_suspects": 1,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "e084576f11841bda92d7302a7dfcffab236dad91fafa96fd032a8a13eceb8734",
+            "predicted_notes": 26,
+            "compared_notes": 17,
+            "consistent_notes": 16,
+            "octave_suspects": 0,
+            "pitch_suspects": 1,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_15",
+        "audio_sha256": "0bc39b00e14881b20756f48530a4688e1bb7aa1c24ee09d4351a327e3acce28d",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "aae8be7a70cb5a920e640f17f6eb5d6fb777f4bf08b9428c0ed23a0410b6f455",
+            "predicted_notes": 47,
+            "compared_notes": 19,
+            "consistent_notes": 18,
+            "octave_suspects": 0,
+            "pitch_suspects": 1,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "fde13ab37625c39437584d6f4c2d3f8273b84b7c27171854607c92ef99ae8009",
+            "predicted_notes": 41,
+            "compared_notes": 15,
+            "consistent_notes": 15,
+            "octave_suspects": 0,
+            "pitch_suspects": 0,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_16",
+        "audio_sha256": "595e80b5382812702e64d5b6a8f453d9744391166d47c7020cc1d6e71e310e25",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "2facdef04874e71354a6210fe722ab444a929c412851f5e719f973ed907ca730",
+            "predicted_notes": 47,
+            "compared_notes": 32,
+            "consistent_notes": 30,
+            "octave_suspects": 0,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "5395348e5d559c048d8f4ace1ffe0c5a2f9684fdaffb19f572cb7062ad534a61",
+            "predicted_notes": 36,
+            "compared_notes": 29,
+            "consistent_notes": 28,
+            "octave_suspects": 0,
+            "pitch_suspects": 1,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_17",
+        "audio_sha256": "4b144cdbbcdb318f19c0aa5ac1e2675dbe8d6cb8941286d251959f25e4c96998",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "4acb413062e640f81a3dab73faf1f78e86b33d2cfab23b587144763ce3e6a66c",
+            "predicted_notes": 54,
+            "compared_notes": 30,
+            "consistent_notes": 30,
+            "octave_suspects": 0,
+            "pitch_suspects": 0,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "7efd9b7d52ca77f473e3b4727f6ca099ed0495cceb8cd5a35368357c70c706a9",
+            "predicted_notes": 47,
+            "compared_notes": 30,
+            "consistent_notes": 29,
+            "octave_suspects": 0,
+            "pitch_suspects": 1,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_18",
+        "audio_sha256": "4f2a3712dd912b235990f3505593200172da3f386c80db91dfaeb04fc641c929",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "8f74ec4102da088280be6a783080b3a1cfb9537125e3905d1b3f5297074ea610",
+            "predicted_notes": 45,
+            "compared_notes": 28,
+            "consistent_notes": 27,
+            "octave_suspects": 0,
+            "pitch_suspects": 1,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "caeaa7a9cfb4bbd853f6ff9a7270d5ae5aa4df1c994151f2e10f989e4c8b841f",
+            "predicted_notes": 34,
+            "compared_notes": 25,
+            "consistent_notes": 23,
+            "octave_suspects": 0,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_19",
+        "audio_sha256": "8f6d828d65f723ca602abaf8b28a5e8bdc510d37951556b86ff8b6d07889af28",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "7c4bcd2a79d6274d98cf94679c404c92eec00940daa07668f449fa3a62a88e28",
+            "predicted_notes": 73,
+            "compared_notes": 29,
+            "consistent_notes": 27,
+            "octave_suspects": 0,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "b7005b43df8014e9c897be66f76bd867faad10ffc7671a8e6908df2dd4fa41e2",
+            "predicted_notes": 61,
+            "compared_notes": 29,
+            "consistent_notes": 27,
+            "octave_suspects": 0,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_20",
+        "audio_sha256": "feb3c31e77b7779bdfb302c7819644535804f22a90a8e21f63c393d667ec5181",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "c9e11250dfcc301cbc7ac30c4151d3616c5c82a475ee8dba1ce22e387b1181ee",
+            "predicted_notes": 31,
+            "compared_notes": 12,
+            "consistent_notes": 12,
+            "octave_suspects": 0,
+            "pitch_suspects": 0,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "367e9b247422a10ddf2688d7935f6e216aaeefb85c11de5821a09d56fe33dff7",
+            "predicted_notes": 30,
+            "compared_notes": 11,
+            "consistent_notes": 11,
+            "octave_suspects": 0,
+            "pitch_suspects": 0,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_21",
+        "audio_sha256": "d9d3c20794fd3b42e8f7693b91e8194844a6b80b3932ae4fc06d8e0e277687a7",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "cd69f37df06a757c42dafb4796f0e6695b2af8fbdfde73ba59cd07c42a3f4a06",
+            "predicted_notes": 97,
+            "compared_notes": 20,
+            "consistent_notes": 18,
+            "octave_suspects": 1,
+            "pitch_suspects": 1,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "0322ce2ba882eb86551d48bbc0592cdbd8742a2d04a6ac7eabcff84c0250b6ea",
+            "predicted_notes": 62,
+            "compared_notes": 18,
+            "consistent_notes": 15,
+            "octave_suspects": 1,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_22",
+        "audio_sha256": "6629d0ecd7acddd1ce2877d00bc7ef80dc01fdd20f3225b9c2ed907da12f989e",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "94be440d29605c81ef2b9fdd152adc1ef97f92c758db41a38a98ce6617b82ce8",
+            "predicted_notes": 45,
+            "compared_notes": 21,
+            "consistent_notes": 20,
+            "octave_suspects": 0,
+            "pitch_suspects": 1,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "820322e8e927110fff5326963f6a03cfcbc0d023504d754e4eb56012c22e9fc8",
+            "predicted_notes": 47,
+            "compared_notes": 23,
+            "consistent_notes": 23,
+            "octave_suspects": 0,
+            "pitch_suspects": 0,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_23",
+        "audio_sha256": "3cade4af7d869e3175e3684075782a23f6af936942a8684bfbb4fdbe3a4f10e7",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "6b94984dd167decd7ca5ce06811702738786466784dd0a6955ee59407b82c66c",
+            "predicted_notes": 53,
+            "compared_notes": 18,
+            "consistent_notes": 14,
+            "octave_suspects": 0,
+            "pitch_suspects": 4,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "a35434b1755c7c13be0307240940d7a907a5d91fe43fc9c752762e77c2d27a43",
+            "predicted_notes": 51,
+            "compared_notes": 18,
+            "consistent_notes": 15,
+            "octave_suspects": 0,
+            "pitch_suspects": 3,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_24",
+        "audio_sha256": "22fb2df57dc7b68987cda67b30171c626a7818b9ab7db02185e8ea0a0a6db7ee",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "7894c0aafc0f416fdb17b38a52b389dafda1848556cb6a20a0cb50e8e44927db",
+            "predicted_notes": 39,
+            "compared_notes": 25,
+            "consistent_notes": 22,
+            "octave_suspects": 0,
+            "pitch_suspects": 3,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "712bc9354989cc18a5e2c1fb1ed50dd37de1f6e209c9654ee354a8fc91a02b67",
+            "predicted_notes": 30,
+            "compared_notes": 26,
+            "consistent_notes": 22,
+            "octave_suspects": 0,
+            "pitch_suspects": 4,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_25",
+        "audio_sha256": "cf155e4fd681331d34f316e421803255c449acb0393fa55cd23079ed103b37af",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "060dfefe06e2cb42225bf98fb340620a7bc9bbf53a910581dc9b5266c44c7b49",
+            "predicted_notes": 38,
+            "compared_notes": 24,
+            "consistent_notes": 24,
+            "octave_suspects": 0,
+            "pitch_suspects": 0,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "f2b485a6a1150d1699c747e9c1a9bfc87768d60b65385b5e544310dec456cf72",
+            "predicted_notes": 33,
+            "compared_notes": 23,
+            "consistent_notes": 21,
+            "octave_suspects": 0,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_26",
+        "audio_sha256": "27fcfb7c6150b412be3f22199202dfc2aab46e59e16cddd675b71c8325b3f66d",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "d2b944ced2755339090a56f01f402531dcaaf5048b322a1348a25ff53c57664d",
+            "predicted_notes": 73,
+            "compared_notes": 13,
+            "consistent_notes": 11,
+            "octave_suspects": 0,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "d502c4ce590c897d8fa8efcd8728e6f54e30884b502d32f64484e8299df9e86b",
+            "predicted_notes": 56,
+            "compared_notes": 11,
+            "consistent_notes": 10,
+            "octave_suspects": 0,
+            "pitch_suspects": 1,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_27",
+        "audio_sha256": "6300e1fc5981ea458074a24a1c32a1011a095df4162fbc8911d6b0240d182419",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "ebec697217004efae66358d21d8a764f78a5626f3435da12cd12832464abe51a",
+            "predicted_notes": 34,
+            "compared_notes": 27,
+            "consistent_notes": 25,
+            "octave_suspects": 0,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "a798f329aa52b7aa02ff027f8082908ee64f5dc44afd8de887259b253b846974",
+            "predicted_notes": 28,
+            "compared_notes": 27,
+            "consistent_notes": 25,
+            "octave_suspects": 0,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_28",
+        "audio_sha256": "f50830862faff98314bb7b28de452754ef2d939e187a6d89e5fb1ad56749aeb6",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "a87545d7b1da301e10e749f024c98d3d13dfd7397f19161d65e92494acdc48cf",
+            "predicted_notes": 44,
+            "compared_notes": 21,
+            "consistent_notes": 16,
+            "octave_suspects": 0,
+            "pitch_suspects": 5,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "99e763e1d4c04dbcdeb9739077cc68d2f649cdba6033a494d051b3c06afcd498",
+            "predicted_notes": 43,
+            "compared_notes": 28,
+            "consistent_notes": 23,
+            "octave_suspects": 0,
+            "pitch_suspects": 5,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_29",
+        "audio_sha256": "46a831ed09f60728c6bfb051e27582d2d47021805ea8c4500bf4b2d6396a71cb",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "156aa0cce6087f3ad37fc34d0137bae9acdfbbb9a0768e07a0ac5f5dd414b272",
+            "predicted_notes": 36,
+            "compared_notes": 23,
+            "consistent_notes": 19,
+            "octave_suspects": 0,
+            "pitch_suspects": 4,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "bdb43c9ea7d75e9d62cbb11321a2f0f8ee3a53584ec6fb49a3b418ee101922b7",
+            "predicted_notes": 32,
+            "compared_notes": 25,
+            "consistent_notes": 21,
+            "octave_suspects": 0,
+            "pitch_suspects": 4,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_30",
+        "audio_sha256": "ce2128d9bfcd434a9c1507d1f2fcd504677e0b1e0fb5fe8bbe07406158df144f",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "9c99908e60468d1a65ee0ba384f7b94d9054048719f89ea125fa95bf06da9db2",
+            "predicted_notes": 58,
+            "compared_notes": 6,
+            "consistent_notes": 4,
+            "octave_suspects": 0,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "6fb7188315da7ce5268bea284d8160eb1dadf968d2ff0d8f5bd1e8a64514ee93",
+            "predicted_notes": 40,
+            "compared_notes": 6,
+            "consistent_notes": 5,
+            "octave_suspects": 0,
+            "pitch_suspects": 1,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_31",
+        "audio_sha256": "c3e68dddd4d6a6d34d135042f76ed74cf4b85208c2483a2d4a331d717af99356",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "618cb9eaf1776a308a8e470f52b758231b9fa28a075586b4b7ef00231eee317e",
+            "predicted_notes": 47,
+            "compared_notes": 24,
+            "consistent_notes": 19,
+            "octave_suspects": 0,
+            "pitch_suspects": 5,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "48270b2b4110f3d1cd9761641868a70af16c9a4ef6fbc716441b54f4ab7753fb",
+            "predicted_notes": 38,
+            "compared_notes": 23,
+            "consistent_notes": 18,
+            "octave_suspects": 0,
+            "pitch_suspects": 5,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_32",
+        "audio_sha256": "1776573e0a80e0618258501c1fa877a75c36c3368ab24014aaebb522f92768b7",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "64f87b9f3371ba6be2b426dec6ac3874f43a98c60f5b245fa2b5a86d3d15962e",
+            "predicted_notes": 57,
+            "compared_notes": 46,
+            "consistent_notes": 42,
+            "octave_suspects": 0,
+            "pitch_suspects": 4,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "6cb3cf5866e6b42b9a2669164a39b8af8d979310a9e5097e6400c9c2545035d6",
+            "predicted_notes": 55,
+            "compared_notes": 50,
+            "consistent_notes": 46,
+            "octave_suspects": 0,
+            "pitch_suspects": 4,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_33",
+        "audio_sha256": "896ae8828bfdc7eefc46a4781c328b979f519fea310c04c32cf5859c54ba4c7a",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "5af132105ca175dd7ac109019ed42b19e69bebf9133a399e60ab18ae48561245",
+            "predicted_notes": 80,
+            "compared_notes": 30,
+            "consistent_notes": 28,
+            "octave_suspects": 0,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "5c302aa61fe3c510e6fe1e386ea84488e8e3f465c9012fa350f9e74705cf01be",
+            "predicted_notes": 87,
+            "compared_notes": 34,
+            "consistent_notes": 30,
+            "octave_suspects": 0,
+            "pitch_suspects": 4,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_34",
+        "audio_sha256": "60cefc716230c7783889b1b46f8dcfba48669cf5be6cddb522c04e810c8d38d8",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "c4fe28f788e85beb57accc7e38a2bac5661c71423a9f11b318eaec228e65ede5",
+            "predicted_notes": 89,
+            "compared_notes": 19,
+            "consistent_notes": 17,
+            "octave_suspects": 0,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "c4a129e94006751f051741a0a8febd9f6d236bafcc7bba013ef10468b1549e2e",
+            "predicted_notes": 95,
+            "compared_notes": 23,
+            "consistent_notes": 20,
+            "octave_suspects": 1,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_35",
+        "audio_sha256": "85c1c4268527cc53240e9f4f0d557d92f3bf9856d6d42ca50e80c7cbb02bea72",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "61ba54a7ccd700b1332d5877d13681b3c2ebfe6a90294b21bb6ced84857f21f5",
+            "predicted_notes": 37,
+            "compared_notes": 12,
+            "consistent_notes": 12,
+            "octave_suspects": 0,
+            "pitch_suspects": 0,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "86ab58cb4c0a382144a4b96a2539f3d667ba4ca9137a1ea976d71f4206b52967",
+            "predicted_notes": 26,
+            "compared_notes": 12,
+            "consistent_notes": 12,
+            "octave_suspects": 0,
+            "pitch_suspects": 0,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_36",
+        "audio_sha256": "2e4eacabc71019752feb17da9e1b0228b9b5ba0ae97ec41107f80dac65750dbb",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "024c7122fa0d6b609f06a1f27f0e7eb3772b19f85c076fead9423fe5749dd1df",
+            "predicted_notes": 67,
+            "compared_notes": 18,
+            "consistent_notes": 18,
+            "octave_suspects": 0,
+            "pitch_suspects": 0,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "e757a4374ba6d50bf908b7ee0adeeb117736b1f82f64e4fc0fa21468181111ba",
+            "predicted_notes": 54,
+            "compared_notes": 20,
+            "consistent_notes": 20,
+            "octave_suspects": 0,
+            "pitch_suspects": 0,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_37",
+        "audio_sha256": "53cb202ddabf1cb7591be49da9160f508cb81c6078c50c7e41a13efe109a0622",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "c9d896c5de7a9b7e19a5f480e5c75774c064616722151109360de4ba081fe182",
+            "predicted_notes": 51,
+            "compared_notes": 39,
+            "consistent_notes": 37,
+            "octave_suspects": 0,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "f8379ab7ff11165607af89dc835786a3a0ff49e0145976a2246c9f0bf0ad0dc7",
+            "predicted_notes": 41,
+            "compared_notes": 38,
+            "consistent_notes": 34,
+            "octave_suspects": 0,
+            "pitch_suspects": 4,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_38",
+        "audio_sha256": "2113abf18ddfb0e789021b8e2a2e42743b80d82c51aaca5fe9d228636883a239",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "48f60d13067d464b4938b4b9a4364624bd9f17d02a8b1d7b982e6c9ff2cb24be",
+            "predicted_notes": 78,
+            "compared_notes": 40,
+            "consistent_notes": 38,
+            "octave_suspects": 0,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "e9f2d8d34535f5ff48f8eabca20019d4217b6d25a457cf76c8133b8d783bb9fd",
+            "predicted_notes": 64,
+            "compared_notes": 41,
+            "consistent_notes": 39,
+            "octave_suspects": 0,
+            "pitch_suspects": 2,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_39",
+        "audio_sha256": "23badef22642b2e00b676cf3b998d2f2d2d1ee9949888dcd6f038b0b6621b9db",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "de208e06029e114efb9e16384f54b6e7abf35adc9d5d2cb1675d96f73ab78d28",
+            "predicted_notes": 92,
+            "compared_notes": 48,
+            "consistent_notes": 43,
+            "octave_suspects": 0,
+            "pitch_suspects": 5,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "b6747d8f1d5dd641e7dbd5f47202aab6362747cb7d622813bd32be0821dedb64",
+            "predicted_notes": 66,
+            "compared_notes": 48,
+            "consistent_notes": 42,
+            "octave_suspects": 0,
+            "pitch_suspects": 6,
+            "whole_song_accuracy": null
+          }
+        }
+      },
+      {
+        "id": "vocadito_40",
+        "audio_sha256": "add1fc90659541163158bf025eeb0c09b7f738bdfcc812a835654ca1e8544b04",
+        "annotators": {
+          "A1": {
+            "reference_sha256": "573a10539ebdc2ea8b685722eab2619ff810e40f41f9210e75499c1dbd50fddb",
+            "predicted_notes": 45,
+            "compared_notes": 28,
+            "consistent_notes": 24,
+            "octave_suspects": 0,
+            "pitch_suspects": 4,
+            "whole_song_accuracy": null
+          },
+          "A2": {
+            "reference_sha256": "c50474c9929a229da906c372411467893678e679d90d441eacce8f01250617fc",
+            "predicted_notes": 36,
+            "compared_notes": 27,
+            "consistent_notes": 22,
+            "octave_suspects": 0,
+            "pitch_suspects": 5,
+            "whole_song_accuracy": null
+          }
+        }
+      }
+    ],
+    "summary": {
+      "predicted_notes": 4113,
+      "compared_notes": 2096,
+      "consistent_notes": 1926,
+      "octave_suspects": 6,
+      "pitch_suspects": 164
+    },
+    "policy": {
+      "calibrated_correctness_probability": false,
+      "auto_edit_approved": false,
+      "commercial_quality_approved": false
+    }
+  }
+}
