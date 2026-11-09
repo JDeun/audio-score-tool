@@ -10,7 +10,6 @@ from audio_score_tool import enrichment_api
 from audio_score_tool.publication_store_v2 import PublicationStoreV2
 from audio_score_tool.song_store_v2 import SongStoreV2
 
-
 MUSICXML = """<?xml version="1.0" encoding="UTF-8"?>
 <score-partwise version="4.0">
   <work><work-title>Original</work-title></work>
