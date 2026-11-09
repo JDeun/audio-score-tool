@@ -24,6 +24,12 @@ MR-MT3             ← MIT 경로가 더 단순
 
 데스크톱 **새 악보 Job의 `auto`**는 Model Manager/엔진 설정에 저장된 기본 모델 크기를 사용합니다(최초 기본값은 개인 모드 MuScriptor large). `fast`/`balanced`/`quality`는 명시적 preset으로 모델 크기를 덮어쓰며 `custom`은 명시적으로 선택한 크기를 우선합니다. 공용 `recommended_preset()`의 권장값 Quality는 사용자가 별도 선택할 수 있는 품질 정책이며, 실제 Job의 `auto`를 무조건 Large로 덮어쓰지 않습니다.
 
+### 모델 권장값과 실행 준비·출시 승인 분리 (#55, #36)
+
+`GET /api/engines`의 `recommendation`은 모델별 정책상 **연구/품질 우선 후보**를 제시하는 정보이며 상용 재배포 또는 v1 release approval이 아닙니다. 개인 모드에서 MuScriptor를 추천하더라도 해당 checkpoint/설치/변환기가 준비되지 않으면 `currently_runnable=false`, `release_approved_default=false`로 노출합니다. 초기 권장 Large를 실제로 설치된 모델처럼 표시하지 않습니다.
+
+모델 관리자의 `POST /api/models/select`뿐 아니라 일반 엔진 설정 `PUT /api/engines`에서도 실제 설치된 **해당 variant**에 대한 준비 검증이 통과한 경우에만 MuScriptor 선택을 저장합니다. 배포 앱에서 개발용 Native 경로 또는 사용자 지정 CLI 경로를 설정하는 우회 역시 차단합니다. 이는 코드 수준 안전성으로, real-music Tier 2/편집시간, 승인된 매니페스트, clean-install acceptance는 별도 남아 있습니다.
+
 ---
 
 ## 1. MuScriptor
