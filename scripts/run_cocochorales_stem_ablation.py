@@ -120,7 +120,10 @@ def infer_raw_midi(
         raise ValueError("Inference input changed during the experiment")
     if midi.is_symlink() or not midi.is_file():
         raise ValueError("AMT did not produce a regular MIDI file")
-    notes = midi_notes(midi)
+    try:
+        notes = midi_notes(midi)
+    except EOFError as exc:
+        raise ValueError("AMT produced a truncated MIDI file") from exc
     return notes, {
         "audio_sha256": before, "prediction_midi_sha256": sha256(midi),
         "inference_seconds": round(elapsed, 6), "predicted_note_count": len(notes),

@@ -30,7 +30,6 @@ jobs:
         model: [mr_mt3, yourmt3]
     env:
       MT3_MODEL: ${{ matrix.model }}
-      TORCH_HOME: ${{ runner.temp }}/stem-private-torch
       PYTHONIOENCODING: utf-8
       PYTHONUNBUFFERED: '1'
       OMP_NUM_THREADS: '2'
@@ -99,6 +98,8 @@ jobs:
 
       - name: Measure both arms on all four original recordings
         shell: bash
+        env:
+          TORCH_HOME: ${{ runner.temp }}/stem-private-torch
         run: |
           set -euo pipefail
           failed=0
