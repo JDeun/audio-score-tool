@@ -25,6 +25,7 @@ def _write_unknown_if_unchanged(
     if (
         current is None
         or current.get("revision") != 1
+        or not current.get("title")
         or current.get("title") != store._title_from_filename(job.get("filename"))
         or current.get("artist") not in (None, "")
     ):
