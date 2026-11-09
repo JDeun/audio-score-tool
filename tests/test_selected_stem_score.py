@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import mido
 import pytest
@@ -15,6 +16,9 @@ from music21 import instrument, note, stream
 from audio_score_tool import selected_stem_score as stems
 from audio_score_tool.auto_chords import ChordInference
 from audio_score_tool.config import Settings
+from audio_score_tool.metrics import midi_notes
+from audio_score_tool.mt3_program_midi import midi_from_program_notes
+from audio_score_tool.notation_backend import midi_to_musicxml
 from audio_score_tool.score_requests import requested_parts_for_mode, validate_score_mode
 from audio_score_tool.transcription_engine import TranscriptionArtifacts
 
@@ -114,6 +118,44 @@ def test_lead_sheet_transcribes_vocals_and_backing_to_infer_real_chords(
     assert len(score.parts) == 1
     assert score.parts[0].partName == "Voice"
     assert list(score.recurse().getElementsByClass(harmony.ChordSymbol))
+    # Harmony labels must not synthesize extra backing notes in the MIDI.
+    assert len(midi_notes(artifacts.midi_path)) == 2
+
+
+@pytest.mark.parametrize("mode", ["lead_sheet", "guitar_vocal"])
+def test_selected_modes_preserve_arbitrary_note_timings_and_cross_bar_ties(
+    tmp_path, monkeypatch, mode,
+):
+    def arbitrary_score(output_dir):
+        output_dir.mkdir(parents=True)
+        program = 40 if output_dir.name == "vocal" else 24
+        events = [
+            SimpleNamespace(
+                pitch=pitch, program=program, velocity=90, is_drum=False,
+                start_time=start / 440, end_time=end / 440,
+            )
+            for pitch, start, end in [(60, 53, 1240), (64, 84, 531), (67, 101, 550)]
+        ]
+        midi = output_dir / "score.mid"
+        xml = output_dir / "score.musicxml"
+        midi_from_program_notes(events, ticks_per_quarter=220).save(midi)
+        midi_to_musicxml(midi, xml)
+        return TranscriptionArtifacts(midi, xml)
+
+    monkeypatch.setattr(sys.modules[__name__], "_fake_model_score", arbitrary_score)
+    (artifacts, _, _), _ = _run(tmp_path, monkeypatch, mode)
+    original = midi_notes(tmp_path / "output" / "vocal" / "score.mid")
+    if mode == "guitar_vocal":
+        original += midi_notes(tmp_path / "output" / "guitar" / "score.mid")
+    def key(n):
+        return n.pitch, n.program, n.onset, n.offset
+    actual = sorted(midi_notes(artifacts.midi_path), key=key)
+    expected = sorted(original, key=key)
+    assert len(actual) == len(expected)
+    for left, right in zip(actual, expected):
+        assert (left.pitch, left.program, left.is_drum) == (right.pitch, right.program, right.is_drum)
+        assert left.onset == pytest.approx(right.onset, abs=0.0001)
+        assert left.offset == pytest.approx(right.offset, abs=0.0001)
 
 
 @pytest.mark.parametrize("invalid", ["", "full_mix", "piano_only", "guitar"])

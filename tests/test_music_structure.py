@@ -5,10 +5,12 @@ from pathlib import Path
 import mido
 import numpy as np
 
+from audio_score_tool.config import Settings
 from audio_score_tool.music_structure import (
     MusicStructureAnalysis,
     analyze_midi_meter_and_pickup,
     estimate_music_start,
+    prepare_music_audio,
 )
 
 
@@ -54,3 +56,13 @@ def test_midi_pickup_analysis_emits_meter_and_tempo(tmp_path: Path) -> None:
     assert 115 <= analysis.tempo_bpm <= 125
     assert analysis.first_downbeat_seconds is not None
     assert analysis.first_downbeat_seconds >= 3.0
+
+
+def test_truncated_wav_skips_optional_start_analysis_without_hiding_engine_validation(tmp_path, monkeypatch):
+    source = tmp_path / "truncated.wav"
+    source.write_bytes(b"RIFF")
+    monkeypatch.setattr("audio_score_tool.music_structure._decode_analysis_wav", lambda *a, **k: False)
+    result, analysis = prepare_music_audio(source, tmp_path / "work", settings=Settings())
+    assert result == source
+    assert analysis.trimmed is False
+    assert any("Music-start analysis was skipped" in warning for warning in analysis.warnings)

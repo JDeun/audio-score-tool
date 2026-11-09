@@ -44,6 +44,22 @@
   color: var(--muted, #64748b);
 }
 
+.export-part-scope {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin: 20px 0;
+  padding: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 12px;
+}
+
+.export-part-scope legend { padding: 0 6px; font-size: 13px; font-weight: 700; }
+.export-part-scope label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+.export-part-scope small { width: 100%; }
+.export-part-list { display: grid; width: 100%; gap: 10px; max-height: 180px; overflow: auto; }
+.export-pdf-actions { display: grid; justify-items: start; gap: 8px; margin-top: 14px; }
+
 .export-modal-close {
   border: 0;
   background: transparent;

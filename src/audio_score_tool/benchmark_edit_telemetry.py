@@ -171,6 +171,10 @@ def _is_complete_final_export(body: bytes) -> bool:
         return True
     if not isinstance(payload, dict):
         return False
+    # A selected-part publication is useful output, but it does not demonstrate
+    # that every part of the canonical score was reviewed and published.
+    if payload.get("part_ids") is not None:
+        return False
     formats = payload.get("formats")
     if formats is None:
         return True

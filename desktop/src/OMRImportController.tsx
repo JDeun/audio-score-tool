@@ -1,5 +1,6 @@
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useSelectedSong } from "./SelectedSongContext";
 import "./omr-import.css";
 
 const API = "http://127.0.0.1:8080";
@@ -19,6 +20,7 @@ function extensionOf(file: File | null) {
 }
 
 export default function OMRImportController() {
+  const { openJobSong } = useSelectedSong();
   const [host, setHost] = useState<Element | null>(null);
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -115,8 +117,9 @@ export default function OMRImportController() {
   };
 
   const openLibrary = () => {
-    window.localStorage.setItem("ast-section", "songs");
-    window.location.reload();
+    if (job?.status !== "done") return;
+    openJobSong(job.job_id);
+    reset();
   };
 
   const launcher = host

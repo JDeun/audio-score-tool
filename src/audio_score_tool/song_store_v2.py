@@ -4,7 +4,11 @@ import json
 import re
 import shutil
 import sqlite3
+import uuid
 import xml.etree.ElementTree as ET
+from collections.abc import Iterator
+from contextlib import closing, contextmanager
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from threading import Lock, get_ident
@@ -38,6 +42,17 @@ def _valid_score_xml(text: str) -> str:
 
 class ConcurrentEditError(RuntimeError):
     """Raised when a score changed after a caller checked out its edit buffer."""
+
+
+@dataclass(frozen=True)
+class SongExportSnapshot:
+    song_id: str
+    title: str
+    artist: str | None
+    revision: int
+    current_score_xml: str
+    updated_at: str
+    publication_json: str | None
 
 
 class SongStoreV2:
@@ -380,6 +395,48 @@ class SongStoreV2:
             raise KeyError(song_id)
         return str(row["current_score_xml"]), int(row["revision"])
 
+    @staticmethod
+    def _read_export_snapshot(conn: sqlite3.Connection, song_id: str) -> SongExportSnapshot:
+        # One SELECT binds metadata, canonical notes, revision and publication
+        # settings to the same SQLite snapshot, including background enrichment.
+        row = conn.execute(
+            """
+            SELECT s.song_id, s.title, s.artist, s.revision, s.current_score_xml,
+                   s.updated_at, p.settings_json AS publication_json
+            FROM songs AS s LEFT JOIN publication_settings AS p ON p.song_id=s.song_id
+            WHERE s.song_id=?
+            """,
+            (song_id,),
+        ).fetchone()
+        if not row or not row["current_score_xml"]:
+            raise KeyError(song_id)
+        return SongExportSnapshot(**dict(row))
+
+    def export_snapshot(self, song_id: str) -> SongExportSnapshot:
+        with closing(self._connect()) as conn:
+            return self._read_export_snapshot(conn, song_id)
+
+    @contextmanager
+    def guard_export_snapshot(self, snapshot: SongExportSnapshot) -> Iterator[None]:
+        """Keep the final check and filesystem activation atomic with DB writers.
+
+        Rendering and cross-filesystem copying must happen before this short
+        guard. BEGIN IMMEDIATE coordinates independent Store instances/processes;
+        an instance-local lock or the HTTP mutation lane cannot protect workers.
+        """
+        with closing(self._connect()) as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            try:
+                try:
+                    current = self._read_export_snapshot(conn, snapshot.song_id)
+                except KeyError:
+                    current = None
+                if current != snapshot:
+                    raise ConcurrentEditError("Song changed while its export was being prepared.")
+                yield
+            finally:
+                conn.rollback()
+
     def cache_song_dir(self, song_id: str) -> Path:
         path = self.cache_root / song_id
         path.mkdir(parents=True, exist_ok=True)
@@ -420,6 +477,7 @@ class SongStoreV2:
         text = _valid_score_xml(path.read_text(encoding="utf-8"))
         if expected_revision is None:
             expected_revision = self._revision_from_materialized_path(path)
+        retired_exports = None
         with self._lock, self._connect() as conn:
             if expected_revision is None:
                 cur = conn.execute(
@@ -443,7 +501,9 @@ class SongStoreV2:
                         )
             if cur.rowcount == 0:
                 return None
-        self.clear_exports(song_id)
+            retired_exports = self._detach_exports(song_id)
+        if retired_exports is not None:
+            shutil.rmtree(retired_exports, ignore_errors=True)
         return self.get(song_id)
 
     def commit_identified_metadata(
@@ -475,6 +535,7 @@ class SongStoreV2:
             if next_publication is not None else None
         )
         changed = False
+        retired_exports = None
         with self._lock, self._connect() as conn:
             row = conn.execute(
                 """
@@ -540,8 +601,12 @@ class SongStoreV2:
                     raise ConcurrentEditError(
                         "Song changed while saving identified metadata."
                     )
-        if changed:
-            self.clear_exports(song_id)
+                # Retire stale exports before releasing this writer transaction.
+                # A delayed post-commit clear could otherwise delete a new export
+                # already produced for the newly committed revision.
+                retired_exports = self._detach_exports(song_id)
+        if retired_exports is not None:
+            shutil.rmtree(retired_exports, ignore_errors=True)
         current = self.get(song_id)
         if current is None:
             raise KeyError(song_id)
@@ -594,6 +659,7 @@ class SongStoreV2:
             conn.execute("DELETE FROM song_revisions WHERE song_id=? AND revision=?", (song_id, revision))
 
     def restore_revision(self, song_id: str, revision: int) -> dict[str, Any] | None:
+        retired_exports = None
         with self._lock, self._connect() as conn:
             row = conn.execute(
                 "SELECT musicxml, publication_json, title, artist FROM song_revisions WHERE song_id=? AND revision=?",
@@ -606,7 +672,9 @@ class SongStoreV2:
                 (row["musicxml"], row["title"], row["artist"], revision, _now(), song_id),
             )
             conn.execute("DELETE FROM song_revisions WHERE song_id=? AND revision>=?", (song_id, revision))
-        self.clear_exports(song_id)
+            retired_exports = self._detach_exports(song_id)
+        if retired_exports is not None:
+            shutil.rmtree(retired_exports, ignore_errors=True)
         shutil.rmtree(self.cache_root / song_id, ignore_errors=True)
         try:
             publication = json.loads(row["publication_json"])
@@ -645,7 +713,23 @@ class SongStoreV2:
         return path
 
     def clear_exports(self, song_id: str) -> None:
-        shutil.rmtree(self.export_root / song_id, ignore_errors=True)
+        # Explicit invalidation also coordinates with export activation. Only an
+        # atomic directory rename is inside the writer guard; deletion is outside.
+        with closing(self._connect()) as conn, conn:
+            conn.execute("BEGIN IMMEDIATE")
+            retired = self._detach_exports(song_id)
+        if retired is not None:
+            shutil.rmtree(retired, ignore_errors=True)
+
+    def _detach_exports(self, song_id: str) -> Path | None:
+        """Call while holding a SQLite writer transaction."""
+        source = self.export_root / song_id
+        retired = self.export_root / f".{song_id}.invalidated-{uuid.uuid4().hex}"
+        try:
+            source.replace(retired)
+        except FileNotFoundError:
+            return None
+        return retired
 
     def delete(self, song_id: str) -> bool:
         with self._lock, self._connect() as conn:

@@ -168,7 +168,8 @@ function toggleValue(values: string[], value: string) {
 }
 
 export default function SongWorkspace() {
-  const { setTarget: setSelectedSong, songChange, openMetadataEditor } = useSelectedSong();
+  const { setTarget: setSelectedSong, songChange, openMetadataEditor,
+    jobSongRequest, finishJobSongRequest } = useSelectedSong();
   const [songs, setSongs] = useState<Song[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [song, setSong] = useState<Song | null>(null);
@@ -206,11 +207,26 @@ export default function SongWorkspace() {
   const scoreRef = useRef<HTMLDivElement>(null);
   const activeSongId = useRef<string | null>(null);
   const loadVersion = useRef(0);
+  const listVersion = useRef(0);
+  const selectionResolved = useRef(false);
+  const pendingNavigation = useRef(jobSongRequest);
+  pendingNavigation.current = jobSongRequest;
 
-  const selectSong = (nextId: string | null) => {
+  const selectSong = (nextId: string | null, finishNavigation = true) => {
+    // Clicking the current list item must not clear its loaded score without
+    // changing selectedId (which would leave no selection effect to reload it).
+    if (nextId !== null && nextId === activeSongId.current) return;
     // Invalidate any pending response before React starts rendering the new song.
     activeSongId.current = nextId;
     loadVersion.current += 1;
+    listVersion.current += 1;
+    selectionResolved.current = nextId !== null;
+    if (nextId) window.sessionStorage.setItem("ast-selected-song-id", nextId);
+    else window.sessionStorage.removeItem("ast-selected-song-id");
+    if (finishNavigation && pendingNavigation.current) {
+      finishJobSongRequest(pendingNavigation.current.sequence);
+      pendingNavigation.current = null;
+    }
     setSelectedId(nextId);
     setSong(null);
     setScore(null);
@@ -221,12 +237,26 @@ export default function SongWorkspace() {
   };
 
   const refreshSongs = async () => {
+    const requestVersion = ++listVersion.current;
+    const navigation = pendingNavigation.current;
     const response = await fetch(`${API}/api/songs`);
+    if (requestVersion !== listVersion.current) return;
     if (!response.ok) throw new Error(await response.text());
     const body = await response.json();
+    if (requestVersion !== listVersion.current) return;
     const next: Song[] = body.songs ?? [];
     setSongs(next);
-    if (!activeSongId.current && next.length) selectSong(next[0].song_id);
+    if (navigation) {
+      if (pendingNavigation.current?.sequence !== navigation.sequence) return;
+      const matchingSong = next.find((item) => item.job_id === navigation.jobId);
+      selectSong(matchingSong?.song_id ?? null);
+      // A missing/deleted result must never silently open an unrelated score.
+      selectionResolved.current = true;
+      if (!matchingSong) setMessage("이 작업의 악보를 찾을 수 없습니다. 삭제되었거나 아직 라이브러리에 등록되지 않았습니다.");
+    } else if (!activeSongId.current && !selectionResolved.current && next.length) {
+      const rememberedId = window.sessionStorage.getItem("ast-selected-song-id");
+      selectSong(next.find((item) => item.song_id === rememberedId)?.song_id ?? next[0].song_id);
+    }
   };
 
   const loadSong = async (songId: string) => {
@@ -258,8 +288,16 @@ export default function SongWorkspace() {
   };
 
   useEffect(() => {
-    void refreshSongs().catch((error) => setMessage(String(error)));
-  }, []);
+    if (jobSongRequest) selectSong(null, false);
+    let cancelled = false;
+    void refreshSongs().catch((error) => {
+      if (!cancelled) setMessage(String(error));
+    });
+    return () => {
+      cancelled = true;
+      listVersion.current += 1;
+    };
+  }, [jobSongRequest?.sequence]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -277,6 +315,7 @@ export default function SongWorkspace() {
   useEffect(() => () => {
     activeSongId.current = null;
     loadVersion.current += 1;
+    listVersion.current += 1;
   }, []);
 
   useEffect(() => {

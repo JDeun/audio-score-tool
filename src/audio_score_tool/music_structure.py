@@ -168,7 +168,7 @@ def prepare_music_audio(
     try:
         samples, sample_rate = _read_mono_wav(source_for_read)
         start_seconds, confidence = estimate_music_start(samples, sample_rate)
-    except (OSError, ValueError, wave.Error) as exc:
+    except (EOFError, OSError, ValueError, wave.Error) as exc:
         analysis.warnings.append(f"Music-start analysis was skipped: {exc}")
         return audio_path, analysis
 

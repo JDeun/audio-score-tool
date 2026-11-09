@@ -1,6 +1,7 @@
 """Real API + filesystem flow without invoking AI models."""
 from __future__ import annotations
 
+import xml.etree.ElementTree as ET
 from io import BytesIO
 from pathlib import Path
 
@@ -17,6 +18,7 @@ from audio_score_tool import (
     song_routes,
 )
 from audio_score_tool.api import app
+from audio_score_tool.benchmark_edit_telemetry import read_edit_session, start_edit_session
 from audio_score_tool.job_store import JobStore
 from audio_score_tool.publication_store_v2 import PublicationStoreV2
 from audio_score_tool.song_store_v2 import SongStoreV2
@@ -78,6 +80,7 @@ def product(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(notation_export_api, "_publication_store", publication)
     monkeypatch.setattr(notation_export_api, "cache_dir", lambda: tmp_path / "cache")
     monkeypatch.setattr(export_api_v2, "_song_store", songs)
+    monkeypatch.setattr(export_api_v2, "cache_dir", lambda: tmp_path / "cache")
     monkeypatch.setattr(revision_api_v2, "_song_store", songs)
     monkeypatch.setattr(credits_api, "_song_store", songs)
     monkeypatch.setattr(credits_api, "_publication_store", publication)
@@ -184,3 +187,170 @@ def test_unsupported_notation_upload_does_not_create_a_song(product):
     assert response.status_code == 415
     assert jobs.list() == []
     assert songs.list() == []
+
+
+def _import_ensemble(product):
+    client, _jobs, songs, _root = product
+    header = []
+    bodies = []
+    for index, (name, step, program) in enumerate(
+        [("Voice", "C", 54), ("Guitar", "E", 25), ("Bass", "G", 34)], start=1,
+    ):
+        header.append(
+            f'<score-part id="P{index}"><part-name>{name}</part-name>'
+            f'<score-instrument id="I{index}"><instrument-name>{name}</instrument-name>'
+            f'</score-instrument><midi-instrument id="I{index}">'
+            f'<midi-channel>{index}</midi-channel><midi-program>{program}</midi-program>'
+            '</midi-instrument></score-part>'
+        )
+        tempo = '<direction><sound tempo="90"/></direction>' if index == 1 else ''
+        bodies.append(
+            f'<part id="P{index}"><measure number="1"><attributes><divisions>480</divisions>'
+            '<time><beats>4</beats><beat-type>4</beat-type></time>'
+            '<clef><sign>G</sign><line>2</line></clef></attributes>'
+            f'{tempo}<note><pitch><step>{step}</step><octave>4</octave></pitch>'
+            '<duration>1920</duration><type>whole</type></note></measure></part>'
+        )
+    xml = ('<score-partwise version="4.0"><work><work-title>Owned ensemble</work-title></work>'
+           '<part-list>' + ''.join(header) + '</part-list>' + ''.join(bodies) + '</score-partwise>')
+    response = client.post(
+        '/api/import/notation',
+        files={'file': ('ensemble.musicxml', xml.encode(), 'application/xml')},
+    )
+    assert response.status_code == 202, response.text
+    job_id = response.json()['job_id']
+    assert client.get(f'/api/songs/{job_id}').status_code == 200
+    return job_id, songs.score_xml(job_id)
+
+
+def test_selected_parts_publish_real_bundle_preserving_full_score_and_telemetry(product, monkeypatch):
+    client, _jobs, songs, root = product
+    song_id, original_xml = _import_ensemble(product)
+    all_formats = ['musicxml', 'pdf', 'midi', 'parts']
+    destination = root / 'published'
+    full = client.post(f'/api/songs/{song_id}/export-to', json={
+        'formats': all_formats, 'destination_dir': str(destination), 'expected_revision': 1,
+    })
+    assert full.status_code == 200, full.text
+    full_tree = songs.export_root / song_id
+    full_bytes = {path.relative_to(full_tree): path.read_bytes()
+                  for path in full_tree.rglob('*') if path.is_file()}
+
+    telemetry = root / 'selected.product.json'
+    start_edit_session(telemetry, case_id='owned-ensemble', song_id=song_id)
+    monkeypatch.setenv('AST_TIER2_TELEMETRY_FILE', str(telemetry))
+    selected = client.post(f'/api/songs/{song_id}/export-to', json={
+        'formats': all_formats, 'destination_dir': str(destination),
+        'expected_revision': 1, 'part_ids': ['P3', 'P2'],
+    })
+    assert selected.status_code == 200, selected.text
+    result = selected.json()
+    assert result['export']['scope'] == 'selection'
+    assert result['export']['part_ids'] == ['P2', 'P3']
+    assert result['export']['revision'] == 1
+    published = Path(result['destination'])
+    assert '선택 파트' in published.name
+    assert published != Path(full.json()['destination'])
+    selected_xml = published / 'selected-score.musicxml'
+    assert [part.get('id') for part in ET.parse(selected_xml).getroot().findall('part')] == ['P2', 'P3']
+    assert (published / 'selected-score.pdf').read_bytes().startswith(b'%PDF')
+    midi = MidiFile(published / 'selected-score.mid')
+    assert sorted(message.note for track in midi.tracks for message in track
+                  if message.type == 'note_on' and message.velocity > 0) == [64, 67]
+    assert len(list((published / 'parts').glob('*.pdf'))) == 2
+    assert len(list((published / 'parts').glob('*.musicxml'))) == 2
+    assert not (published / 'score.pdf').exists()
+    assert songs.score_xml(song_id) == original_xml
+    assert songs.get(song_id)['revision'] == 1
+    assert {path: (full_tree / path).read_bytes() for path in full_bytes} == full_bytes
+    assert read_edit_session(telemetry)['successful_export'] is False
+    assert read_edit_session(telemetry)['time_to_publish_seconds'] is None
+
+
+@pytest.mark.parametrize('part_ids', [[], ['P1', 'P1'], ['missing'], [''], ['P1', 'missing']])
+def test_invalid_selected_parts_cannot_publish_or_replace_prior_export(product, part_ids):
+    client, _jobs, songs, root = product
+    song_id, original_xml = _import_ensemble(product)
+    prior = client.post(f'/api/songs/{song_id}/export', json={'formats': ['musicxml']})
+    assert prior.status_code == 200, prior.text
+    prior_path = songs.export_root / song_id / 'score.musicxml'
+    before = prior_path.read_bytes()
+    response = client.post(f'/api/songs/{song_id}/export-to', json={
+        'formats': ['musicxml'], 'destination_dir': str(root / 'published'),
+        'part_ids': part_ids, 'expected_revision': 1,
+    })
+    assert response.status_code == 422, response.text
+    assert prior_path.read_bytes() == before
+    assert songs.score_xml(song_id) == original_xml
+    assert not (songs.export_root / song_id / 'selection').exists()
+
+
+def test_selection_only_does_not_advertise_full_exports_and_stale_revision_is_rejected(product):
+    client, _jobs, songs, root = product
+    song_id, _xml = _import_ensemble(product)
+    request = {'formats': ['musicxml'], 'destination_dir': str(root / 'published'),
+               'part_ids': ['P2'], 'expected_revision': 2}
+    stale = client.post(f'/api/songs/{song_id}/export-to', json=request)
+    assert stale.status_code == 409
+    request['expected_revision'] = 1
+    result = client.post(f'/api/songs/{song_id}/export-to', json=request)
+    assert result.status_code == 200, result.text
+    assert result.json()['song']['exports'] == {'musicxml': False, 'pdf': False, 'midi': False}
+    assert songs.get(song_id)['exports'] == {}
+
+
+def test_failed_selected_pdf_preserves_previous_selection_and_canonical_score(product, monkeypatch):
+    from audio_score_tool.notation_backend import NotationBackendError
+
+    client, _jobs, songs, root = product
+    song_id, original_xml = _import_ensemble(product)
+    first = client.post(f'/api/songs/{song_id}/export-to', json={
+        'formats': ['musicxml'], 'destination_dir': str(root / 'published'), 'part_ids': ['P1'],
+    })
+    assert first.status_code == 200, first.text
+    selection = songs.export_root / song_id / 'selection'
+    before = {path.name: path.read_bytes() for path in selection.iterdir()}
+
+    def fail_pdf(*_args, **_kwargs):
+        raise NotationBackendError('injected renderer failure')
+
+    monkeypatch.setattr(notation_export_api, 'render_pdf', fail_pdf)
+    failed = client.post(f'/api/songs/{song_id}/export-to', json={
+        'formats': ['musicxml', 'pdf'], 'destination_dir': str(root / 'published'),
+        'part_ids': ['P2'], 'expected_revision': 1,
+    })
+    assert failed.status_code == 500
+    assert {path.name: path.read_bytes() for path in selection.iterdir()} == before
+    assert songs.score_xml(song_id) == original_xml
+
+
+def test_print_opens_exact_generated_pdf_and_rejects_changed_or_missing_output(product, monkeypatch):
+    client, _jobs, songs, root = product
+    song_id, _xml = _import_ensemble(product)
+    selected = client.post(f'/api/songs/{song_id}/export-to', json={
+        'formats': ['pdf'], 'destination_dir': str(root / 'published'), 'part_ids': ['P2'],
+    })
+    assert selected.status_code == 200, selected.text
+    receipt = selected.json()['export']
+    opened = []
+    monkeypatch.setattr(export_api_v2, 'open_pdf_document', lambda path: opened.append(path))
+    payload = {'scope': 'selection', 'export_id': receipt['export_id'], 'expected_revision': 1}
+    response = client.post(f'/api/songs/{song_id}/export/open-pdf', json=payload)
+    assert response.status_code == 200
+    original_pdf = songs.export_root / song_id / 'selection' / 'selected-score.pdf'
+    assert len(opened) == 1
+    assert opened[0].is_relative_to(root / 'cache' / 'pdf-viewer')
+    assert opened[0].name == 'selected-score.pdf'
+    assert opened[0].read_bytes() == original_pdf.read_bytes()
+    assert client.post(f'/api/songs/{song_id}/export/open-pdf', json={
+        **payload, 'export_id': 'previous-export',
+    }).status_code == 409
+    assert client.post(f'/api/songs/{song_id}/export/open-pdf', json={
+        **payload, 'expected_revision': 2,
+    }).status_code == 409
+    assert client.post(f'/api/songs/{song_id}/export/open-pdf', json={
+        **payload, 'scope': '../selection',
+    }).status_code == 422
+    (songs.export_root / song_id / 'selection' / 'selected-score.pdf').unlink()
+    assert client.post(f'/api/songs/{song_id}/export/open-pdf', json=payload).status_code == 404
+    assert len(opened) == 1

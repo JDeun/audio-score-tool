@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import DesktopUpdaterControl from "./DesktopUpdaterControl";
 import OperationsWorkspace from "./OperationsWorkspace";
 import SongWorkspace from "./SongWorkspace";
+import { useSelectedSong } from "./SelectedSongContext";
 import "./song-workspace.css";
 import "./advanced-score-editor.css";
 import "./product-ui.css";
@@ -66,6 +67,7 @@ function focusableElements(container: HTMLElement): HTMLElement[] {
 }
 
 export default function ProductRoot() {
+  const { jobSongRequest } = useSelectedSong();
   const [section, setSection] = useState<ProductSection>(() => {
     const saved = window.localStorage.getItem("ast-section");
     return (["new", "songs", "history", "benchmark", "settings"] as ProductSection[]).includes(saved as ProductSection)
@@ -84,6 +86,10 @@ export default function ProductRoot() {
   useEffect(() => {
     window.localStorage.setItem("ast-section", section);
   }, [section]);
+
+  useEffect(() => {
+    if (jobSongRequest) setSection("songs");
+  }, [jobSongRequest?.sequence]);
 
   useEffect(() => {
     const refresh = async () => {
@@ -260,7 +266,7 @@ export default function ProductRoot() {
           {section === "songs" ? (
             <SongWorkspace />
           ) : (
-            <OperationsWorkspace section={section} onOpenSongs={() => setSection("songs")} />
+            <OperationsWorkspace section={section} />
           )}
         </section>
       </main>

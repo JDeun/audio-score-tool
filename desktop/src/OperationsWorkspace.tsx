@@ -1,5 +1,6 @@
 import { ChangeEvent, DragEvent, useEffect, useMemo, useRef, useState } from "react";
 import LegalNotices from "./LegalNotices";
+import { useSelectedSong } from "./SelectedSongContext";
 
 const API = "http://127.0.0.1:8080";
 
@@ -160,11 +161,36 @@ function Toast({ message, kind = "success", onClose }: { message: string; kind?:
   );
 }
 
-export default function OperationsWorkspace({ section, onOpenSongs }: { section: Section; onOpenSongs: () => void }) {
+export default function OperationsWorkspace({ section }: { section: Section }) {
+  const { openJobSong } = useSelectedSong();
   const [health, setHealth] = useState<Health | null>(null);
   const [setup, setSetup] = useState<SetupInfo | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [job, setJob] = useState<Job | null>(null);
+  const [job, setJobState] = useState<Job | null>(null);
+  const currentJob = useRef<Job | null>(null);
+  const trackedJobId = useRef(window.sessionStorage.getItem("ast-current-job-id"));
+  const jobVersion = useRef(0);
+  const mounted = useRef(false);
+  const jobsListVersion = useRef(0);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      jobVersion.current += 1;
+      jobsListVersion.current += 1;
+    };
+  }, []);
+  const setJob = (update: Job | null | ((current: Job | null) => Job | null)) => {
+    if (!mounted.current) return;
+    const next = typeof update === "function" ? update(currentJob.current) : update;
+    if (next === currentJob.current) return;
+    currentJob.current = next;
+    trackedJobId.current = next?.job_id ?? null;
+    jobVersion.current += 1;
+    if (next) window.sessionStorage.setItem("ast-current-job-id", next.job_id);
+    else window.sessionStorage.removeItem("ast-current-job-id");
+    setJobState(next);
+  };
   const [offline, setOffline] = useState(false);
   const [sourceMode, setSourceMode] = useState<SourceMode>("file");
   const [file, setFile] = useState<File | null>(null);
@@ -262,15 +288,44 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
   };
 
   const refreshJobs = async () => {
+    const requestVersion = ++jobsListVersion.current;
+    const selectionVersion = jobVersion.current;
     try {
       const response = await fetch(`${API}/api/jobs?limit=100`);
       if (!response.ok) return;
       const body = await response.json();
-      setJobs(body.jobs ?? []);
+      if (!mounted.current || requestVersion !== jobsListVersion.current) return;
+      const next: Job[] = body.jobs ?? [];
+      setJobs(next);
+      if (!currentJob.current && selectionVersion === jobVersion.current) {
+        const recovered = next.find((item) => item.job_id === trackedJobId.current)
+          ?? next.find((item) => ["queued", "running", "cancelling"].includes(item.status));
+        if (recovered) setJob(recovered);
+      }
     } catch {
       // Keep cached history while the sidecar reconnects.
     }
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    const rememberedId = trackedJobId.current;
+    const version = jobVersion.current;
+    // Keep only the job identity across page changes/reloads and re-read its
+    // current server state. A late restore may not replace a newer job.
+    if (rememberedId) {
+      void fetch(`${API}/api/jobs/${rememberedId}`).then(async (response) => {
+        const fresh = response.ok ? await response.json() as Job : null;
+        if (cancelled || version !== jobVersion.current) return;
+        if (fresh) setJob(fresh);
+        else if (response.status === 404) {
+          trackedJobId.current = null;
+          window.sessionStorage.removeItem("ast-current-job-id");
+        }
+      }).catch(() => { /* Retry through history polling while reconnecting. */ });
+    }
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     void refreshHealth();
@@ -286,19 +341,29 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
 
   useEffect(() => {
     if (!job || !["queued", "running", "cancelling"].includes(job.status)) return;
-    const timer = window.setInterval(async () => {
+    const jobId = job.job_id;
+    let cancelled = false;
+    let inFlight = false;
+    const refresh = async () => {
+      if (inFlight) return;
+      inFlight = true;
       try {
-        const response = await fetch(`${API}/api/jobs/${job.job_id}`);
+        const response = await fetch(`${API}/api/jobs/${jobId}`);
         if (response.ok) {
           const fresh = await response.json();
-          setJob(fresh);
+          if (cancelled) return;
+          setJob((current) => current?.job_id === jobId ? fresh : current);
           void refreshJobs();
         }
       } catch {
         // Preserve state while reconnecting.
+      } finally {
+        inFlight = false;
       }
-    }, 800);
-    return () => window.clearInterval(timer);
+    };
+    void refresh();
+    const timer = window.setInterval(refresh, 800);
+    return () => { cancelled = true; window.clearInterval(timer); };
   }, [job?.job_id, job?.status]);
 
   const active = !!job && ["queued", "running", "cancelling"].includes(job.status);
@@ -315,7 +380,7 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
   const chooseFile = (candidate?: File) => {
     if (!candidate) return;
     setFile(candidate);
-    setJob(null);
+    if (!currentJob.current || !["queued", "running", "cancelling"].includes(currentJob.current.status)) setJob(null);
   };
 
   const dropFile = (event: DragEvent<HTMLDivElement>) => {
@@ -544,7 +609,7 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
       {job.result?.warnings?.map((warning) => <div className="inline-warning" key={warning}>{warning}</div>)}
       <div className="job-card-actions">
         {active && job.status !== "cancelling" && <button className="secondary-button danger-text" onClick={() => void cancelJob(job)}>작업 취소</button>}
-        {job.status === "done" && job.kind !== "benchmark" && <button className="primary-button" onClick={onOpenSongs}>곡 라이브러리에서 편집</button>}
+        {job.status === "done" && job.kind !== "benchmark" && <button className="primary-button" onClick={() => openJobSong(job.job_id)}>곡 라이브러리에서 편집</button>}
         {renderArtifacts(job)}
       </div>
     </section>
@@ -634,7 +699,7 @@ export default function OperationsWorkspace({ section, onOpenSongs }: { section:
       <div className="operations-page">
         <section className="work-card history-panel">
           <div className="section-title-row"><div><span className="card-kicker">로컬 작업 기록</span><h2>최근 작업</h2><p>채보와 성능 비교 작업은 이 컴퓨터에만 저장됩니다.</p></div><button className="secondary-button" onClick={() => void refreshJobs()}>새로고침</button></div>
-          {jobs.length === 0 ? <div className="premium-empty"><div>⌁</div><h3>아직 작업 내역이 없습니다</h3><p>새 악보에서 첫 번째 음원을 채보해 보세요.</p></div> : <div className="premium-job-list">{jobs.map((item) => <article key={item.job_id} className="premium-job-row"><div className="job-type-icon">{item.kind === "benchmark" ? "⌁" : "♫"}</div><div className="job-row-main"><strong>{item.filename ?? (item.kind === "benchmark" ? "성능 비교" : "이름 없는 음원")}</strong><span>{item.kind === "benchmark" ? `성능 비교 · ${item.preset ?? "전체"}` : `${({full:"전체 악보",lead_sheet:"보컬+코드",guitar_vocal:"기타+보컬"} as Record<string,string>)[item.score_mode ?? "full"] ?? "전체 악보"} · ${item.muscriptor_model ?? "자동"} · ${item.language || "언어 자동"}`}</span><small>{item.created_at ? new Date(item.created_at).toLocaleString() : ""}</small></div><StatusPill status={item.status} /><div className="job-row-actions">{item.status === "done" && renderArtifacts(item)}{["queued", "running"].includes(item.status) && <button className="text-action danger" onClick={() => void cancelJob(item)}>작업 취소</button>}{!["queued", "running", "cancelling"].includes(item.status) && <button className="text-action" onClick={() => void retryJob(item)}>다시 실행</button>}{!["queued", "running", "cancelling"].includes(item.status) && <button className="text-action danger" onClick={() => deleteJob(item)}>삭제</button>}</div></article>)}</div>}
+          {jobs.length === 0 ? <div className="premium-empty"><div>⌁</div><h3>아직 작업 내역이 없습니다</h3><p>새 악보에서 첫 번째 음원을 채보해 보세요.</p></div> : <div className="premium-job-list">{jobs.map((item) => <article key={item.job_id} className="premium-job-row"><div className="job-type-icon">{item.kind === "benchmark" ? "⌁" : "♫"}</div><div className="job-row-main"><strong>{item.filename ?? (item.kind === "benchmark" ? "성능 비교" : "이름 없는 음원")}</strong><span>{item.kind === "benchmark" ? `성능 비교 · ${item.preset ?? "전체"}` : `${({full:"전체 악보",lead_sheet:"보컬+코드",guitar_vocal:"기타+보컬"} as Record<string,string>)[item.score_mode ?? "full"] ?? "전체 악보"} · ${item.muscriptor_model ?? "자동"} · ${item.language || "언어 자동"}`}</span><small>{item.created_at ? new Date(item.created_at).toLocaleString() : ""}</small></div><StatusPill status={item.status} /><div className="job-row-actions">{item.status === "done" && item.kind !== "benchmark" && <button className="text-action" onClick={() => openJobSong(item.job_id)}>악보 편집</button>}{item.status === "done" && renderArtifacts(item)}{["queued", "running"].includes(item.status) && <button className="text-action danger" onClick={() => void cancelJob(item)}>작업 취소</button>}{!["queued", "running", "cancelling"].includes(item.status) && <button className="text-action" onClick={() => void retryJob(item)}>다시 실행</button>}{!["queued", "running", "cancelling"].includes(item.status) && <button className="text-action danger" onClick={() => deleteJob(item)}>삭제</button>}</div></article>)}</div>}
         </section>
       </div>
     );

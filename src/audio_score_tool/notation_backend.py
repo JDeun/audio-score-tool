@@ -78,11 +78,9 @@ def midi_to_musicxml(source: Path, target: Path) -> Path:
     if not music21_available():
         raise NotationBackendUnavailable("MIDI→MusicXML 변환에는 music21이 필요합니다.")
     try:
-        from music21 import converter
+        from .midi_score_import import midi_to_score_xml
 
-        score = converter.parse(str(source))
-        target.parent.mkdir(parents=True, exist_ok=True)
-        written = score.write("musicxml", fp=str(target))
+        written = midi_to_score_xml(source, target)
     except Exception as exc:
         raise NotationBackendError(f"music21 MIDI→MusicXML 변환 실패: {exc}") from exc
     result = Path(str(written)) if written else target
@@ -99,9 +97,15 @@ def musicxml_to_midi(source: Path, target: Path) -> Path:
     try:
         from music21 import converter
 
+        from .midi_channels import preserve_program_channels
+        from .midi_ties import prepare_score_for_midi, restore_instrument_bindings
+
         score = converter.parse(str(source))
+        restore_instrument_bindings(score, source)
+        score = prepare_score_for_midi(score)
         target.parent.mkdir(parents=True, exist_ok=True)
         written = score.write("midi", fp=str(target))
+        preserve_program_channels(Path(str(written)) if written else target)
     except Exception as exc:
         raise NotationBackendError(f"music21 MusicXML→MIDI 변환 실패: {exc}") from exc
     result = Path(str(written)) if written else target

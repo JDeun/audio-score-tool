@@ -25,6 +25,7 @@
 ## 모델, 품질, 검증
 
 - [`ENGINE_PERFORMANCE.ko.md`](ENGINE_PERFORMANCE.ko.md) — transcription 엔진 선택과 성능 기준
+- [`MIDI_MUSICXML_FIDELITY.ko.md`](MIDI_MUSICXML_FIDELITY.ko.md) — 예측 음표·타이밍·악기 정보를 악보와 재생 MIDI 사이에서 보존하는 변환 계약
 - [`BENCHMARK.ko.md`](BENCHMARK.ko.md) — Golden Set 및 제품 benchmark 설계
 - [`MUSIC_ADVERSARIAL_BENCHMARK.ko.md`](MUSIC_ADVERSARIAL_BENCHMARK.ko.md) — 비음악 intro, meter/pickup, SATB를 공격적으로 검증하는 deterministic CI 품질 gate와 실제 음원 corpus protocol
 - [`VALIDATION.ko.md`](VALIDATION.ko.md) — 결정론적 validator와 선택적 LLM critic
