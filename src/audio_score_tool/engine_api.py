@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
@@ -11,7 +12,7 @@ from .optional_feature_policy import optional_feature_summary
 from .preflight_v2 import preflight
 from .runtime_settings import published_managed_mt3_model, runtime_settings
 from .settings_store import SettingsStore
-from .transcription_engine import available_engines
+from .transcription_engine import MuScriptorEngine, available_engines
 
 router = APIRouter(prefix="/api/engines", tags=["engines"])
 _store = SettingsStore()
@@ -81,11 +82,20 @@ def _recommendation(settings) -> dict:
             ),
         }
     if settings.usage_mode == "personal":
+        currently_runnable = MuScriptorEngine(settings).ready()
         return {
             "engine": "muscriptor",
-            "model": "large",
-            "release_approved_default": True,
-            "reason": "정확도 우선 개인/비상업 기본값",
+            "model": settings.muscriptor_model,
+            "currently_runnable": currently_runnable,
+            # A model preference is not equivalent to a release-approved
+            # checkpoint, measured real-music quality or redistribution rights.
+            "release_approved_default": False,
+            "reason": (
+                "개인/비상업 품질 우선 연구 후보. 실제 사용 준비가 확인됐습니다."
+                if currently_runnable else
+                "개인/비상업 품질 우선 후보이나 실행 런타임·선택한 모델 "
+                "체크포인트·MusicXML 변환기가 아직 준비되지 않았습니다."
+            ),
         }
     return {
         "engine": "mt3_infer",
@@ -128,6 +138,39 @@ def update_engine(payload: EngineSettingsPayload) -> dict:
             422,
             "MuScriptor 공개 weights는 CC BY-NC 4.0이므로 상용 모드에서는 사용할 수 없습니다.",
         )
+    if packaged_runtime():
+        if payload.transcription_engine == "native":
+            raise HTTPException(
+                409, "배포 앱에서는 미승인 AudioScore Native 모델을 선택할 수 없습니다."
+            )
+        if any((
+            payload.mt3_infer_cmd, payload.muscriptor_cmd, payload.native_engine_cmd
+        )):
+            raise HTTPException(
+                409, "배포 앱에서는 사용자 지정 실행 명령을 사용할 수 없습니다."
+            )
+    current = runtime_settings(store=_store)
+    if payload.transcription_engine == "muscriptor":
+        # The Model Manager's /api/models/select endpoint already rejects
+        # unready variants. Keep this alternative settings route equally
+        # strict; never persist a selected but unusable transcription engine.
+        variant = payload.muscriptor_model or current.muscriptor_model
+        candidate = replace(
+            current,
+            usage_mode=payload.usage_mode,
+            transcription_engine="muscriptor",
+            muscriptor_model=variant,
+            muscriptor_cmd=(
+                current.muscriptor_cmd if packaged_runtime()
+                else payload.muscriptor_cmd or current.muscriptor_cmd
+            ),
+        )
+        if not MuScriptorEngine(candidate).ready():
+            raise HTTPException(
+                409,
+                "선택한 MuScriptor 모델을 실행할 준비가 되지 않았습니다. "
+                "모델 관리자에서 해당 가중치, 실행 런타임, 내장 music21을 확인하세요.",
+            )
     managed = published_managed_mt3_model()
     if (
         packaged_runtime()
@@ -152,9 +195,11 @@ def update_engine(payload: EngineSettingsPayload) -> dict:
             "usage_mode": payload.usage_mode,
             "transcription_engine": payload.transcription_engine,
             "mt3_infer_cmd": payload.mt3_infer_cmd,
-            "mt3_model": managed or payload.mt3_model or "yourmt3",
+            # Updating one engine must not silently reset the other
+            # provider's installed/default model selection.
+            "mt3_model": managed or payload.mt3_model or current.mt3_model,
             "muscriptor_cmd": payload.muscriptor_cmd,
-            "muscriptor_model": payload.muscriptor_model or "large",
+            "muscriptor_model": payload.muscriptor_model or current.muscriptor_model,
             "native_engine_cmd": payload.native_engine_cmd,
             "native_checkpoint": checkpoint,
         }
