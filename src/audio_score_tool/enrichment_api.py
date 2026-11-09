@@ -13,6 +13,7 @@ from .enrichment import (
     choose_high_confidence,
     fetch_lrclib_lyrics,
     fetch_lyrics,
+    lookup_musicbrainz_recording_choice,
     lookup_musicbrainz_work_credits,
     search_musicbrainz,
     search_musicbrainz_by_isrc,
@@ -43,6 +44,19 @@ class EnrichRequest(BaseModel):
     apply_reference_lyrics: bool = True
     auto_lyrics: bool = True
     require_exact_match: bool = False
+
+
+class RecordingSelectionRequest(BaseModel):
+    recording_mbid: str = Field(
+        min_length=36, max_length=36,
+        pattern=r"^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$",
+    )
+    release_mbid: str | None = Field(
+        default=None, min_length=36, max_length=36,
+        pattern=r"^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$",
+    )
+    expected_revision: int = Field(ge=1)
+    musicbrainz_commercial_entitlement: bool = False
 
 
 class IdentifySourceRequest(BaseModel):
@@ -334,6 +348,99 @@ def identify_song_source(song_id: str, payload: IdentifySourceRequest) -> dict:
     }
     _store.set_analysis(song_id, "source_identification", final)
     return final
+
+
+@router.post("/{song_id}/select-recording")
+def select_musicbrainz_recording(song_id: str, payload: RecordingSelectionRequest) -> dict:
+    """Apply a *user-chosen* recording after re-verifying it with MusicBrainz.
+
+    The client only supplies MBIDs and its last Song revision. It cannot set
+    album, dates or songwriter metadata: those values must be fetched by the
+    server and checked against the canonical title/artist and release binding.
+    No lyric or source audio data is downloaded or changed in this action.
+    """
+    song = _store.get(song_id)
+    if song is None:
+        raise HTTPException(404, "Song not found")
+    if song["revision"] != payload.expected_revision:
+        raise HTTPException(409, "악보가 변경되었습니다. 새로고침 후 다시 선택하세요.")
+
+    title = str(song.get("title") or "").strip()
+    artist = str(song.get("artist") or "").strip()
+    if (
+        not title or not artist
+        or title.casefold() == "unknown" or artist.casefold() == "unknown"
+    ):
+        raise HTTPException(422, "곡명과 아티스트를 먼저 확인해 저장하세요.")
+
+    settings = runtime_settings()
+    mb_entitled = (
+        payload.musicbrainz_commercial_entitlement
+        or _env_flag("AST_MUSICBRAINZ_COMMERCIAL_ENTITLED")
+    )
+    if settings.usage_mode == "commercial" and not mb_entitled:
+        raise HTTPException(
+            422, "MusicBrainz 상용 API 사용 자격을 확인한 후 선택하세요.",
+        )
+    try:
+        selected = lookup_musicbrainz_recording_choice(
+            payload.recording_mbid, release_mbid=payload.release_mbid,
+        )
+    except EnrichmentError as exc:
+        # A provider outage differs from a false album/recording link. It
+        # never commits even a partial title or creator to the score.
+        if any(f"HTTP Error {status}" in str(exc) for status in (429, 502, 503, 504)):
+            raise HTTPException(503, "MusicBrainz 조회가 일시적으로 불가능합니다.") from exc
+        raise HTTPException(422, str(exc)) from exc
+
+    if not (
+        _same_song_identity(selected.get("title"), title)
+        and _same_song_identity(selected.get("artist"), artist)
+    ):
+        raise HTTPException(
+            422, "선택한 녹음의 곡명 또는 아티스트가 현재 악보와 일치하지 않습니다.",
+        )
+
+    selected, writers_error = _with_work_credits(selected)
+    applied = _apply_metadata(song_id, song, selected, title, artist)
+    if not applied:
+        fresh = _store.get(song_id)
+        if fresh is None:
+            raise HTTPException(404, "Song not found")
+        if fresh["revision"] != payload.expected_revision:
+            raise HTTPException(409, "조회 중 다른 창에서 악보가 수정되었습니다.")
+        raise HTTPException(422, "선택한 메타데이터를 악보에 반영하지 못했습니다.")
+
+    updated = _store.get(song_id)
+    if updated is None:
+        raise HTTPException(404, "Song not found")
+    # Metadata-only provenance. Never store or return lyric text or HTTP
+    # bodies here; a failed Work relation leaves the writer Unknown.
+    _store.set_analysis(song_id, "selected_musicbrainz_recording", {
+        "recording_mbid": payload.recording_mbid,
+        "release_mbid": payload.release_mbid,
+        "work_mbid": selected.get("work_mbid"),
+        "writer_relations_verified": selected.get("songwriters_verified") is True,
+        "applied_at_revision": updated["revision"],
+        "source": "user_chosen_verified_recording",
+    })
+    return {
+        "applied": True,
+        "changed": updated["revision"] != payload.expected_revision,
+        "song": {
+            "song_id": song_id,
+            "revision": updated["revision"],
+            "title": updated["title"],
+            "artist": updated["artist"],
+        },
+        "publication": _publication.read(song_id),
+        "selection": {
+            "recording_mbid": payload.recording_mbid,
+            "release_mbid": payload.release_mbid,
+            "writer_relations_verified": selected.get("songwriters_verified") is True,
+            "work_credits_error": writers_error,
+        },
+    }
 
 
 @router.post("/{song_id}/enrich")
