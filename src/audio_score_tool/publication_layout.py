@@ -19,6 +19,9 @@ DEFAULT_PUBLICATION_SETTINGS: dict[str, Any] = {
     "subtitle_font_size": 12.0,
     "credit_font_size": 9.5,
     "subtitle": "",
+    "album": "",
+    "performer": "",
+    "release_date": "",
     "composer": "",
     "lyricist": "",
     "arranger": "",
@@ -333,6 +336,19 @@ def _apply_credits(
     right_x = page_width - right
     credit_y = top_y - step * 2.1
     credit_size = float(settings["credit_font_size"])
+    left_rows = (
+        ("performer", "가수·연주", settings.get("performer")),
+        ("album", "앨범", settings.get("album")),
+        ("release_date", "발매", settings.get("release_date")),
+    )
+    for offset, (credit_id, label, value) in enumerate(left_rows):
+        if value_text := str(value or "").strip():
+            _credit(
+                root, ns, credit_id=credit_id, credit_type="credits",
+                text=f"{label}  {value_text}",
+                x=left, y=credit_y - step * 0.72 * offset,
+                font_size=credit_size, justify="left",
+            )
     rows = (
         ("composer", "composer", "작곡", settings.get("composer")),
         ("lyricist", "lyricist", "작사", settings.get("lyricist")),
@@ -390,9 +406,29 @@ def _apply_identification(root: ET.Element, ns: str, settings: dict[str, Any]) -
     if identification is None:
         identification = ET.Element(f"{ns}identification")
         _insert_root_identification(root, identification)
+    _update_creator(identification, ns, "performer", str(settings.get("performer") or ""))
     _update_creator(identification, ns, "composer", str(settings.get("composer") or ""))
     _update_creator(identification, ns, "lyricist", str(settings.get("lyricist") or ""))
     _update_creator(identification, ns, "arranger", str(settings.get("arranger") or ""))
+
+    miscellaneous = identification.find(f"{ns}miscellaneous")
+    for field_name in ("album", "release_date"):
+        value = str(settings.get(field_name) or "").strip()
+        field = None if miscellaneous is None else next(
+            (candidate for candidate in miscellaneous.findall(f"{ns}miscellaneous-field")
+             if candidate.get("name") == field_name),
+            None,
+        )
+        if value:
+            if miscellaneous is None:
+                miscellaneous = ET.SubElement(identification, f"{ns}miscellaneous")
+            if field is None:
+                field = ET.SubElement(
+                    miscellaneous, f"{ns}miscellaneous-field", {"name": field_name}
+                )
+            field.text = value
+        elif field is not None:
+            miscellaneous.remove(field)
 
     rights_value = str(settings.get("rights") or "").strip()
     rights = identification.find(f"{ns}rights")
