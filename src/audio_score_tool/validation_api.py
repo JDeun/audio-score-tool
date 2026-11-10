@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -7,6 +8,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, field_validator
 
 from .audio_symbol_validation import AudioSymbolValidationError, validate_audio_symbol
+from .lead_audio_validation import validate_lead_audio
 from .paths import song_assets_dir
 from .runtime_settings import runtime_settings
 from .score_validation import deterministic_validate, llm_validate
@@ -132,8 +134,11 @@ def _analysis_context(song_id: str) -> dict:
 
 def _source_audio(song_id: str) -> Path | None:
     root = song_assets_dir() / song_id
-    candidates = sorted(root.glob("original-audio.*")) if root.exists() else []
-    return candidates[0] if candidates else None
+    if root.is_symlink() or root.resolve().parent != song_assets_dir().resolve():
+        return None
+    candidates = sorted(p for p in root.glob("original-audio.*")
+                        if p.is_file() and not p.is_symlink() and p.resolve().parent == root.resolve())
+    return candidates[0] if len(candidates) == 1 else None
 
 
 @router.get("/api/validation/settings")
@@ -217,9 +222,28 @@ def validate_song(song_id: str, payload: ValidateRequest | None = None) -> dict:
 
     audio_report = None
     audio_skipped = None
+    acoustic_report = None
+    acoustic_skipped = None
     if use_audio:
         source_audio = _source_audio(song_id)
         runtime = runtime_settings(store=_store)
+        mode = (_songs.analysis(song_id, "score_request") or {}).get("score_mode")
+        structure = _songs.analysis(song_id, "music_structure")
+        if source_audio is None:
+            acoustic_skipped = "보존된 원본 음원이 없습니다."
+        elif mode not in {"lead_sheet", "guitar_vocal"}:
+            acoustic_skipped = "보컬·코드 독립 대조는 보컬 파트가 식별된 악보에 적용합니다."
+        elif not isinstance(structure, dict) or type(structure.get("trimmed")) is not bool:
+            acoustic_skipped = "원음과 악보의 시작 시각 근거가 없어 독립 대조를 건너뜁니다."
+        else:
+            try:
+                origin = float(structure["music_start_seconds"]) if structure["trimmed"] else 0.0
+                if not math.isfinite(origin) or origin < 0:
+                    raise ValueError("Invalid audio origin")
+                acoustic_report = validate_lead_audio(source_audio=source_audio, xml_text=xml_text,
+                                                       settings=runtime, origin_seconds=origin)
+            except (AudioSymbolValidationError, KeyError, TypeError, ValueError) as exc:
+                acoustic_skipped = str(exc)
         if source_audio is None:
             audio_skipped = "보존된 원본 음원이 없습니다. 기존 곡은 다시 채보하면 이후 audio-symbol 검증이 가능합니다."
         elif runtime.validation_soundfont is None:
@@ -243,6 +267,7 @@ def validate_song(song_id: str, payload: ValidateRequest | None = None) -> dict:
         *((llm_report or {}).get("issues", [])),
         *((visual_report or {}).get("issues", [])),
         *((audio_report or {}).get("issues", [])),
+        *((acoustic_report or {}).get("issues", [])),
     ]
     combined_issues = [*deterministic_issues, *advisory_issues]
     review_required = any(
@@ -265,6 +290,8 @@ def validate_song(song_id: str, payload: ValidateRequest | None = None) -> dict:
         "visual_skipped": visual_skipped,
         "audio": audio_report,
         "audio_skipped": audio_skipped,
+        "acoustic": acoustic_report,
+        "acoustic_skipped": acoustic_skipped,
         "issues": combined_issues,
         "policy": {
             "llm_required": False,
@@ -276,6 +303,7 @@ def validate_song(song_id: str, payload: ValidateRequest | None = None) -> dict:
             "auto_edit": False,
             "omr_visual_compare_uses_original_score_evidence": True,
             "audio_compare_uses_original_audio_evidence": True,
+            "vocal_compare_is_octave_sensitive": True,
             "persisted_endpoint_revalidated": True,
         },
     }
@@ -284,6 +312,8 @@ def validate_song(song_id: str, payload: ValidateRequest | None = None) -> dict:
         _songs.set_analysis(song_id, "omr_visual_validation", visual_report)
     if audio_report:
         _songs.set_analysis(song_id, "audio_symbol_validation", audio_report)
+    if acoustic_report:
+        _songs.set_analysis(song_id, "acoustic_validation", acoustic_report)
     return result
 
 

@@ -300,6 +300,10 @@ class SongStoreV2:
             return False
         if self._exists_by_job(str(job.get("job_id") or "")):
             self.set_analysis(str(job["job_id"]), "model_evidence", report)
+            if report.get("status") == "preserved":
+                self._ingest_json_file(str(job["job_id"]), "music_structure", str(
+                    self.asset_root / str(job["job_id"]) / "model-evidence/context/music_structure.json"
+                ))
         return True
 
     def sync_completed_jobs(self, jobs: list[dict[str, Any]]) -> int:

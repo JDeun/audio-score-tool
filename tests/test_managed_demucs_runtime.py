@@ -108,6 +108,7 @@ def test_offline_managed_demucs_registers_both_models_and_selected_score_uses_re
         raise BoundaryReached("Stop at actual separator CLI boundary; no model inference")
 
     monkeypatch.setattr(stems, "run_command", capture)
+    monkeypatch.setattr(stems, "prepare_demucs_audio", lambda source, *_a, **_k: source)
     source = tmp_path / "input.wav"
     source.write_bytes(b"synthetic-source-input")
     for mode, expected in [("lead_sheet", "htdemucs"), ("guitar_vocal", "htdemucs_6s")]:

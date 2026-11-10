@@ -7,11 +7,25 @@ This checks ownership/shape, not model quality or independent redistribution rig
 """
 from __future__ import annotations
 
+import wave
 from pathlib import Path
 
 from .config import Settings, packaged_runtime
 from .managed_tool_resolver import registered_managed_component_root, registered_managed_tool
-from .runner import command_exists
+from .runner import CommandError, command_exists, run_command
+
+
+def prepare_demucs_audio(source: Path, target: Path, *, settings: Settings, cancel_event=None) -> Path:
+    """Materialize stereo channels: Demucs mutates mono-expanded tensors in place."""
+    run_command(settings.ffmpeg_cmd, ["-y", "-i", source, "-ac", "2", "-ar", "44100",
+                                    "-c:a", "pcm_s16le", target], cancel_event=cancel_event)
+    try:
+        with wave.open(str(target), "rb") as audio:
+            if (audio.getnchannels(), audio.getsampwidth(), audio.getframerate()) != (2, 2, 44100) or not audio.getnframes():
+                raise ValueError("Expected nonempty stereo PCM16 at 44100Hz")
+    except (OSError, wave.Error, ValueError) as exc:
+        raise CommandError(f"Invalid normalized Demucs input: {exc}") from exc
+    return target
 
 # Official facebookresearch/demucs v4 model signatures and filenames. A future
 # model update must explicitly revise this contract and the release acceptance.

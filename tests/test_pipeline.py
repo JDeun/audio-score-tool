@@ -74,6 +74,7 @@ def test_full_pipeline_contract_without_model_downloads(tmp_path: Path, monkeypa
     monkeypatch.setattr(pipeline, "resolve_transcription_engine", lambda _settings: FakeEngine())
     monkeypatch.setattr(pipeline, "command_exists", lambda command: command == "demucs")
     monkeypatch.setattr(pipeline, "run_command", fake_run)
+    monkeypatch.setattr(pipeline, "prepare_demucs_audio", lambda source, *_a, **_k: source)
     monkeypatch.setattr(pipeline, "_render_pdf", lambda *_args, **_kwargs: False)
 
     result = pipeline.transcribe(
