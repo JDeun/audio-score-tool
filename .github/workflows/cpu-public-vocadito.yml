@@ -2,6 +2,7 @@ name: CPU Public Vocadito Candidates
 
 on:
   pull_request:
+    branches: [main]
     paths:
       - '.github/workflows/cpu-public-vocadito.yml'
       - 'scripts/run_cpu_vocadito_candidates.py'
@@ -69,7 +70,9 @@ jobs:
             mr_mt3|yourmt3)
               printf 'numpy==1.26.4\ntorch==2.7.1\ntorchaudio==2.7.1\ntorchvision==0.22.1\nmir-eval==0.8.2\nlibrosa==0.10.2.post1\nscipy==1.13.1\n' > "$RUNNER_TEMP/cpu-constraints.txt"
               if [[ "$CANDIDATE" == mr_mt3 ]]; then TF=4.57.6; else TF=4.44.2; fi
-              python -m pip install -c "$RUNNER_TEMP/cpu-constraints.txt" 'mt3-infer[torch]==0.2.0' "transformers==$TF"
+              python -m pip install -c "$RUNNER_TEMP/cpu-constraints.txt" 'mt3-infer[torch]==0.2.0' "transformers==$TF" \
+                'mutagen==1.47.0' 'defusedxml==0.7.1'
+              python -c 'from scripts.run_cocochorales_stem_ablation import infer_raw_midi; assert callable(infer_raw_midi)'
               ;;
             basic_pitch)
               python -m pip install 'onnxruntime==1.20.1' 'pretty-midi==0.2.10'
