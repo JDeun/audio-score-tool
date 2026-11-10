@@ -325,3 +325,30 @@ def test_youtube_mp4_original_survives_with_nested_analysis_wav(case):
     shutil.rmtree(root)
     assert store.preserve_job_evidence(job)
     assert (store.asset_root / job["job_id"] / "original-audio.mp4").read_bytes() == b"original waveform"
+
+
+def test_fixed_v2_requires_pitch_observation_and_preserves_after_job_removal(case):
+    store, jobs, score, job = case
+    job['transcription_engine'] = 'vocal_lead_v1'
+    (score / 'structure').mkdir()
+    shutil.copytree(score / 'native', score / 'structure/native')
+    (score / 'structure/analysis.json').write_text('{}')
+    (score / 'recipe.json').write_text('{"recipe_version":2}')
+    (score / 'interpretation.json').write_text('{}')
+    (score / 'vocal').mkdir()
+    for name in ('score.mid', 'selected.mid', 'score.runtime.json'):
+        (score / 'vocal' / name).write_bytes(b'fixture')
+    assert not store.preserve_job_evidence(job)
+    for bad in ('[]', '{"recipe_version":3}', '{"recipe_version":true}'):
+        (score / 'recipe.json').write_text(bad)
+        assert not store.preserve_job_evidence(job)
+    (score / 'recipe.json').write_text('{"recipe_version":2}')
+    pitch = score / 'vocal/pitch.npz'
+    pitch.write_bytes(b'owned observation')
+    (score / 'vocal/pitch.runtime.json').write_text('[]')
+    assert not store.preserve_job_evidence(job)
+    (score / 'vocal/pitch.runtime.json').write_text(json.dumps({'prediction_sha256': hashlib.sha256(pitch.read_bytes()).hexdigest()}))
+    assert store.sync_completed_jobs([job]) == 1
+    shutil.rmtree(jobs / 'test-song')
+    assert store.preserve_job_evidence(job)
+    assert (store.asset_root / 'test-song/model-evidence/vocal/pitch.npz').read_bytes() == b'owned observation'

@@ -1,0 +1,283 @@
+{
+  "schema_version": 1,
+  "tested_source_commit": "7a07c88b9c4f1267431d2daf372c7b3acbd8b602",
+  "scope": "Product CLI vocadito 40; direct selection and fixed recipe routing; metadata only",
+  "new_amt_inference": false,
+  "amt_prediction_source": "Existing cached YourMT3 and MR-MT3 predictions; newly inferred product CLI F0 is reused for selection",
+  "actual_inference_cases": 40,
+  "inference_failures": 0,
+  "actual_five_song_pipeline": "generation_exports_and_fresh_validation_contract_passed",
+  "cloned_five_job_deletion": "passed",
+  "five_song_product_evidence": "FIXED_TINY_FIVE_PRODUCT_2026-11-11.json",
+  "final_quality_approved": false,
+  "automatic_pitch_edit": false,
+  "weights_sha256": "d4993eea36ed1a0ad9ac549c740dae5265b049ce72004f00c2f59e01c0be8432",
+  "runtime": {
+    "mt3-infer": "0.2.0",
+    "torch": "2.7.1",
+    "torchaudio": "2.7.1",
+    "transformers": "4.44.2",
+    "numpy": "2.4.6",
+    "soundfile": "0.14.0",
+    "torchcrepe": "0.0.24",
+    "resampy": "0.4.3",
+    "librosa": "0.11.0"
+  },
+  "tracked_code": {
+    "src/audio_score_tool/fixed_vocal_infer.py": {
+      "git_blob": "3a293f9e7a1d6d9844b29327f76f6daf9f8c5591",
+      "sha256": "d1a997d40d9d2f65b048c2c8ae9fc437af9f19a5dafde4594d2d8896aea72e2d"
+    },
+    "src/audio_score_tool/vocal_evidence.py": {
+      "git_blob": "dbc139646fee4e20965de82636db92964cd7d01f",
+      "sha256": "466357ac96940d1d73bacebfb7e094a37b0780dd729547f4e1022542d42eaf76"
+    },
+    "src/audio_score_tool/fixed_lead_recipe.py": {
+      "git_blob": "da539a694a5e57309450b359ac0fca9b837404fe",
+      "sha256": "2e960995e077fb5e7bdf62f57926225faabd693eef39fe85a59f1fbb4bc5d96a"
+    },
+    "src/audio_score_tool/selected_stem_score.py": {
+      "git_blob": "7ff009bec66c53ceef8a9c638ce2955aea02a15e",
+      "sha256": "a3dc63999f956249a6552017fba42e011136f2ddfc67dc9fc5f05c970ea9e86d"
+    }
+  },
+  "private_artifact_sha256": {
+    "first.py": "32b80d44efdbff1ac15cc84abf58b060154f68bf2aec012809c8e69452b9ab50",
+    "run40.py": "93f990caa10528936b280358356aa05dbbff5f422b4bdb5dee6a43246f038fbb",
+    "summarize.py": "7c1f3ecad41ee64afc173a5e9039f6c8c11f78d2bf2a2d62330e4f27eb1b2c6b",
+    "recipe_selection_summary.py": "9385f1fb35a15dadc2126668f9363d86ad7ed8c560e226311879a68ae13e50b2",
+    "first.json": "28bca30703db7fb3c9a235dd00644d2181ebeaea40eeef76ecf8b8f0a8086aa2",
+    "report.json": "f28d5e49648d57f18ce6123bbb1965577eecc236e80a16cc9cf351098eaa32d2",
+    "summary.json": "11f300710571d02537bb03e374f02706d98e79c13b3da2cb05d17d26d02252f4",
+    "recipe-selection-summary2.json": "3949654fea73b850e581b5d86221f4babcffe5e13ee37cc4821d60021d00256e",
+    "provenance.json": "ff4f8694ca0b36bf8001a811180ab3d2bb1d51fc7d793c8f242ba6ed7b6850e5"
+  },
+  "receipt_sha256": [
+    "f1bf57bee6865bb05d13cc1a7f53249e8f5ee32d17db5d309411f28f290ef6b5",
+    "f5176d542b0067b922e8b0e4f8c8fa3dd713a463355db69e0c696b9dcf7fb383",
+    "3ec12f199598ddf15b8be7cadda7cd48b9495af4edcc4e2bba73d74e9430cd80",
+    "94e6945c46877f3555229f1c39e6420f55c4a6d9fb2fbc630d95c0716a211f09",
+    "14df9f059762019e2933d08fb34cea301a983d2a66c505e1c0ab1b4e08d157be",
+    "aa9901fa32d4170ee009ff1c14c1cb5e1fd5fa1944f3684a8291294f71c1928d",
+    "8b3a6d24f74a6cfc63c1c6748efa36b3384c34bf8010644ba14ff0dad5756438",
+    "8e4ea85d5b1d48ada3a7e8fa759c0c7ba68d75479e322865cc2fdbe09e0231bf",
+    "4c0c649b38a0464929f5c7bb856ca1916fec99605796c9551ac437640f0a1944",
+    "4671528f1a16791d560dc91037a1f94772a38a0a8fc3368c3ed0f9d64c4e51ee",
+    "1a9fe57a46d95e33071aca2456e15bf76f19b47470d85de2a5a4f7e4064e824e",
+    "d65d4f9cdc1330b6f1beb96e5a289997c73352416766886ab0e674751c447462",
+    "fdf655171bcbe310214a2e18a96320cee9f164c32981b22670147897caf52eb3",
+    "71687c35f2205e886297a4efe218de10b00cb69720b0a1e979bab64557911cbd",
+    "f5492be30040fed81df5148bbf2f63cec5ed13b959e260d34440bda0a6547ccc",
+    "8f5aac66655eafdd7b4e8a49fca7944ccd34c3e77b1d26d84c1f7f3e788f2110",
+    "c5679c38b86be17e8c08785314fe651504252ca3dffaff2a6714c7c6c66a47e8",
+    "38c54c5c801194ea858bc4891dc2af3144c5cf1ae526297f32dee0eb62ffc2de",
+    "c6543810684f78aa933c7486f811bc8191aa18ac1fb184d98c6c20b9502d3b58",
+    "f445a8e61690bedfe56735c0b6f08730d5e163d5c0bd521492278de9d15a28c6",
+    "0ab1f14ff26ac967c8a70ea77558afedd065c22eb67d5397fa5b7af144f3c2e2",
+    "1c6cda67cc055b3834b7a56d257d5caf570db2c5a68cd1d4398ac4151e68d946",
+    "1ed8b3e6d4b0d4a75eb6ceb03f032dc5d89386c0ac32a2f8ab4dd562a690f6de",
+    "0341a32939a3de9b507a38effe6fca717ecbc8a4511ccc32eccd60d3ea2c2259",
+    "1e61230deeb66c4e632ca9b969a690795e6803c2104442bfeb822934abd477a2",
+    "6a38c95be656fbc8e478824af2c87394c1455a28defbd7c702f600ebec3ddade",
+    "ed1f43a4aa2eba5dd67c19777ed48b1cfcc25b201e4895207d3f51218045b4dc",
+    "714b4b2f7aad6169274279fd2bf3892c9863aa0e008285c90a27143ca9625bb3",
+    "576cdbad34fe4541575efc821f7e9bf969416f6cd2aaa0cf27d95d0d6380dde9",
+    "2efff060cb25da1cb8bac0e4005c379c2e5abc81daf19117bb91c34015f672b4",
+    "123910125817e3ddc694bf125c2b58dad63e62d695041e93d3320ce93e507da7",
+    "d751fcbebc88e3757b4c4cc19f8c9a7a90739e7a566f4a7181c5188d4ad2cad5",
+    "8d182a9f09463cac29e7549a6459fe5a548c89043a22bf27338a895b62c6b9dc",
+    "b9259bfc5c62ef95f4563a06f417a45ca793b24bda46bfb0558e73c65e37d1aa",
+    "2685f49b807f2f7785e0807563dfa383c182739a4b07384837fe48ac75a45339",
+    "f2e2df1d56edfeb5219e1f959a19bcd5cd8e662f42a73f0e3b8843486da73a17",
+    "90e7a4b06d00e55d064e16f1c146b51c6e8f9da111c10f0f4d12d521188aa608",
+    "10cff686aaeaec6e1dd5dc15fd98829509e618f3c228f9e8be32939db96b2f4a",
+    "8ffc7e799e320623b793abeacef0831f37a749cd70505e203d9c13a5de33b108",
+    "86ea451963f04d2ea1e8a42acfff9962fe8ec4cdf17c9b4e271f87b684994435"
+  ],
+  "input_hashes_verified": 165,
+  "input_hash_mismatches": 0,
+  "macro_f0": {
+    "Raw Pitch Accuracy": 0.8799561000324942,
+    "Raw Chroma Accuracy": 0.8814967563832546,
+    "Overall Accuracy": 0.8318353368796378,
+    "Voicing Recall": 0.8937528704302607,
+    "Voicing False Alarm": 0.27491606385040884
+  },
+  "note_calibration_totals": {
+    "selected": {
+      "predicted_notes": 1809,
+      "compared_notes": 1199,
+      "consistent_notes": 951,
+      "octave_suspects": 2,
+      "pitch_suspects": 246
+    },
+    "surrogate": {
+      "predicted_notes": 4113,
+      "compared_notes": 2920,
+      "consistent_notes": 2697,
+      "octave_suspects": 5,
+      "pitch_suspects": 218
+    },
+    "plus12": {
+      "predicted_notes": 4113,
+      "compared_notes": 2920,
+      "consistent_notes": 5,
+      "octave_suspects": 2697,
+      "pitch_suspects": 218
+    },
+    "minus12": {
+      "predicted_notes": 4113,
+      "compared_notes": 2920,
+      "consistent_notes": 0,
+      "octave_suspects": 2702,
+      "pitch_suspects": 218
+    }
+  },
+  "direct_selector": {
+    "mr_mt3": {
+      "selected": 0,
+      "abstained": 40,
+      "errors": 0,
+      "same_prior_index": 0,
+      "different_prior_index": 0,
+      "prior_without_selection": 0
+    },
+    "yourmt3": {
+      "selected": 33,
+      "abstained": 7,
+      "errors": 0,
+      "same_prior_index": 33,
+      "different_prior_index": 0,
+      "prior_without_selection": 0
+    }
+  },
+  "recipe_selection": {
+    "mr_mt3": {
+      "success": 0,
+      "abstained": 40,
+      "error": 0,
+      "single_part_bypass": 0,
+      "acoustic_selection": 0,
+      "direct_abstained_single": 0,
+      "direct_abstained_multiple": 40,
+      "prior_comparison": {
+        "same_index": 0,
+        "different_index": 0,
+        "prior_not_selected": 0
+      },
+      "f1_all_40_failures_zero": {
+        "A1": {
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        },
+        "A2": {
+          "onset_f1": 0.0,
+          "onset_offset_f1": 0.0
+        }
+      }
+    },
+    "yourmt3": {
+      "success": 40,
+      "abstained": 0,
+      "error": 0,
+      "single_part_bypass": 39,
+      "acoustic_selection": 1,
+      "direct_abstained_single": 7,
+      "direct_abstained_multiple": 0,
+      "prior_comparison": {
+        "same_index": 40,
+        "different_index": 0,
+        "prior_not_selected": 0
+      },
+      "f1_all_40_failures_zero": {
+        "A1": {
+          "onset_f1": 0.4956574494999999,
+          "onset_offset_f1": 0.27112533425000007
+        },
+        "A2": {
+          "onset_f1": 0.590747369,
+          "onset_offset_f1": 0.34628301025
+        }
+      }
+    }
+  },
+  "first_cache_comparison": {
+    "times_exact": true,
+    "hz_exact": false,
+    "max_abs_hz_difference": 3.40850830078125
+  },
+  "rng_note": "Each product CLI resets random, NumPy and torch to seed 0; earlier note-calibration called prepare directly and did not set NumPy seed, so SciPy dither was not fixed. Official CPU candidate run() separately did seed NumPy. Differences do not establish model superiority.",
+  "observed_voiced_hz_examples": [
+    54.169,
+    881.142
+  ],
+  "hz_validation": "20-cent floor/ceil bin range and ±20-cent triangular dither with small floating tolerance; values are not clamped",
+  "tests": {
+    "focused_qa_agent": {
+      "passed": 52,
+      "skipped": 2,
+      "skip_reason": "FFmpeg unavailable"
+    },
+    "root_focused_reported_passed": 55,
+    "root_integration_including_selection_passed": 61,
+    "root_integration_skipped": 0
+  },
+  "archive_sha256": "e0d6b99d3f9c594afe5ae5c4d7bdacebe569e53b809e90b89d1c771c4f9990e3",
+  "source_wav_sha256": [
+    "b509768315efad8120183b48e01d6090f1649d5bcc691241940dc7a100274ab8",
+    "8dcc99c3b08a9a5800b793e3d65cccfb4464961f15cf8ccde25bd4c8b853d519",
+    "73b6fe13bc3435ae9173ee1bdec247e2943526c70cd9b69ab2b35002fa4cb04d",
+    "fc07b202eb609c975d1549be5320db116a49be1bd1fc6904e70e31cd7e44ec23",
+    "7cecfd126a9437f88db0a297cdab3075bb38faeef10f1a98f22ba22a2a939220",
+    "13816752a6366f2d66f21e71a70d55e22b6a44f0d1712d97abff5390bc0c1f3b",
+    "db9542f0626f4c43ab1e4f26ae9e40834bcfe5f061b07c75a3925d95aaa79676",
+    "05ce2b3f1991035d08db269df1c39b198d9ddc22130ce88f9a8d97e46cd7a310",
+    "f980cc7df935c0c9e839b25759de72fadad6763c069be96645be46f8dd3ffd32",
+    "0978bde1c130ae26a9cfcd90012f12fdaf9877bbe45cf21c5237ba7ac9b8703b",
+    "c4d669eca7e25c5037b191805b54b2c990d5e31bc77c9c77188b140100297197",
+    "5a342e32b20b3764a9ab9784abbf7bac6db69583ec529fc9027f96c69df04e00",
+    "5a26861f99c4d02a3efe2355215de2774fb51257cc2d2bf6021827b64e25ec94",
+    "a41e814df6ee5840f0beaea5da2ab3ad6b38be62b169da08962a722bcc06cdd1",
+    "0bc39b00e14881b20756f48530a4688e1bb7aa1c24ee09d4351a327e3acce28d",
+    "595e80b5382812702e64d5b6a8f453d9744391166d47c7020cc1d6e71e310e25",
+    "4b144cdbbcdb318f19c0aa5ac1e2675dbe8d6cb8941286d251959f25e4c96998",
+    "4f2a3712dd912b235990f3505593200172da3f386c80db91dfaeb04fc641c929",
+    "8f6d828d65f723ca602abaf8b28a5e8bdc510d37951556b86ff8b6d07889af28",
+    "feb3c31e77b7779bdfb302c7819644535804f22a90a8e21f63c393d667ec5181",
+    "d9d3c20794fd3b42e8f7693b91e8194844a6b80b3932ae4fc06d8e0e277687a7",
+    "6629d0ecd7acddd1ce2877d00bc7ef80dc01fdd20f3225b9c2ed907da12f989e",
+    "3cade4af7d869e3175e3684075782a23f6af936942a8684bfbb4fdbe3a4f10e7",
+    "22fb2df57dc7b68987cda67b30171c626a7818b9ab7db02185e8ea0a0a6db7ee",
+    "cf155e4fd681331d34f316e421803255c449acb0393fa55cd23079ed103b37af",
+    "27fcfb7c6150b412be3f22199202dfc2aab46e59e16cddd675b71c8325b3f66d",
+    "6300e1fc5981ea458074a24a1c32a1011a095df4162fbc8911d6b0240d182419",
+    "f50830862faff98314bb7b28de452754ef2d939e187a6d89e5fb1ad56749aeb6",
+    "46a831ed09f60728c6bfb051e27582d2d47021805ea8c4500bf4b2d6396a71cb",
+    "ce2128d9bfcd434a9c1507d1f2fcd504677e0b1e0fb5fe8bbe07406158df144f",
+    "c3e68dddd4d6a6d34d135042f76ed74cf4b85208c2483a2d4a331d717af99356",
+    "1776573e0a80e0618258501c1fa877a75c36c3368ab24014aaebb522f92768b7",
+    "896ae8828bfdc7eefc46a4781c328b979f519fea310c04c32cf5859c54ba4c7a",
+    "60cefc716230c7783889b1b46f8dcfba48669cf5be6cddb522c04e810c8d38d8",
+    "85c1c4268527cc53240e9f4f0d557d92f3bf9856d6d42ca50e80c7cbb02bea72",
+    "2e4eacabc71019752feb17da9e1b0228b9b5ba0ae97ec41107f80dac65750dbb",
+    "53cb202ddabf1cb7591be49da9160f508cb81c6078c50c7e41a13efe109a0622",
+    "2113abf18ddfb0e789021b8e2a2e42743b80d82c51aaca5fe9d228636883a239",
+    "23badef22642b2e00b676cf3b998d2f2d2d1ee9949888dcd6f038b0b6621b9db",
+    "add1fc90659541163158bf025eeb0c09b7f738bdfcc812a835654ca1e8544b04"
+  ],
+  "fresh_five_song_validation": {
+    "status": "completed",
+    "report_sha256": "e0c2a3314e35321c7b421b43cb7db3593c2077cb53bf556ed827abf1576e98e8",
+    "script_sha256": "10733043ba8ea2ccd0bf18d309c9654bc0a6a3717fcdacf6ca9e034922b4c275",
+    "source_file_sha256": {
+      "src/audio_score_tool/validation_api.py": "b0050c76de27876e3524c52ad080928dab5c4be795c95f142e9d58e9de984512",
+      "src/audio_score_tool/lead_audio_validation.py": "5739bac18cf61775ecc652e5f05bf9b13dc7a8df2a9726e985a9109a897f310b",
+      "src/audio_score_tool/vocal_evidence.py": "466357ac96940d1d73bacebfb7e094a37b0780dd729547f4e1022542d42eaf76",
+      "src/audio_score_tool/fixed_vocal_infer.py": "d1a997d40d9d2f65b048c2c8ae9fc437af9f19a5dafde4594d2d8896aea72e2d",
+      "src/audio_score_tool/runner.py": "75bb18d676abfadd79d2e5056685ebccd28121010aac39b1adf7304b95c3084d"
+    },
+    "cases": 5,
+    "details": "FIXED_TINY_FIVE_PRODUCT_2026-11-11.json",
+    "quality_approved": false
+  }
+}

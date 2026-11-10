@@ -21,6 +21,7 @@ from .notation_backend import midi_to_musicxml, musicxml_to_midi
 from .runner import run_command
 from .selected_stem_score import _main_part, _stem
 from .sheetsage2_score import CHECKPOINT_SHA256, MODEL_REVISION, import_native_lead_sheet
+from .vocal_evidence import fixed_tiny_pitch_track
 
 
 def transcribe_fixed_vocal_lead(audio_path, output_dir, *, settings, cancel_event=None):
@@ -33,7 +34,7 @@ def transcribe_fixed_vocal_lead(audio_path, output_dir, *, settings, cancel_even
     with audio_path.open("rb") as handle:
         source_sha = hashlib.file_digest(handle, "sha256").hexdigest()
     output_dir.mkdir(parents=True, exist_ok=True)
-    recipe = {"engine": ENGINE, "source_audio_sha256": source_sha,
+    recipe = {"recipe_version": 2, "engine": ENGINE, "source_audio_sha256": source_sha,
               "melody": {"model": "yourmt3", "model_revision": YOUR_REVISION,
                          "checkpoint_sha256": YOUR_SHA256},
               "structure": {"model": "sheetsage2", "model_revision": MODEL_REVISION,
@@ -44,6 +45,8 @@ def transcribe_fixed_vocal_lead(audio_path, output_dir, *, settings, cancel_even
               "quality_approved": False, "status": "running"}
     receipt = output_dir / "recipe.json"
     receipt.write_text(json.dumps(recipe, indent=2) + "\n")
+    run_command(settings.fixed_vocal_cmd, ["pitch-preflight", audio_path, output_dir / "pitch-preflight.npz",
+                "--snapshot", root], cancel_event=cancel_event, timeout_seconds=120)
     normalized = prepare_demucs_audio(audio_path, output_dir / "demucs-input.wav",
                                       settings=settings, cancel_event=cancel_event)
     model_audio = audio_path if audio_path.suffix.lower() == ".wav" else normalized
@@ -61,6 +64,9 @@ def transcribe_fixed_vocal_lead(audio_path, output_dir, *, settings, cancel_even
     vocal_audio = _stem(stems, "vocals")
     raw = output_dir / "vocal"
     raw.mkdir()
+    pitch_track, pitch_receipt = fixed_tiny_pitch_track(vocal_audio, raw / "pitch.npz", settings=settings,
+                                                       cancel_event=cancel_event)
+    recipe["pitch_verifier"] = pitch_receipt
     raw_midi = raw / "score.mid"
     run_command(settings.fixed_vocal_cmd, ["vocal", vocal_audio, raw_midi,
                 "--snapshot", root], cancel_event=cancel_event,
@@ -69,7 +75,7 @@ def transcribe_fixed_vocal_lead(audio_path, output_dir, *, settings, cancel_even
     midi_to_musicxml(raw_midi, raw / "score.musicxml")
     selected_xml = raw / "selected.musicxml"
     selected = _main_part(raw / "score.musicxml", selected_xml, part_name="Voice",
-                          vocal_audio=vocal_audio, ffmpeg_cmd=settings.ffmpeg_cmd)
+                          vocal_audio=vocal_audio, ffmpeg_cmd=settings.ffmpeg_cmd, pitch_track=pitch_track)
     selected_xml.write_bytes(ET.tostring(selected, encoding="utf-8", xml_declaration=True))
     selected_midi = musicxml_to_midi(selected_xml, raw / "selected.mid")
     run_command(settings.sheetsage2_cmd, [model_audio, output_dir / "interpretation.json",

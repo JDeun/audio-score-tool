@@ -9,12 +9,14 @@ from dataclasses import replace
 
 from fastapi.testclient import TestClient
 
+from audio_score_tool import api
 from audio_score_tool import job_lifecycle_api_v2 as lifecycle
 from audio_score_tool import runtime_services as runtime
 from audio_score_tool import upload_api_v2 as upload
-from audio_score_tool.api import app
 from audio_score_tool.config import Settings
 from audio_score_tool.job_store import JobStore
+
+app = api.app
 
 
 class NoStartThread:

@@ -240,8 +240,12 @@ def validate_song(song_id: str, payload: ValidateRequest | None = None) -> dict:
                 origin = float(structure["music_start_seconds"]) if structure["trimmed"] else 0.0
                 if not math.isfinite(origin) or origin < 0:
                     raise ValueError("Invalid audio origin")
+                evidence = _songs.analysis(song_id, "model_evidence") or {}
+                fixed_tiny = (isinstance(evidence, dict) and isinstance(evidence.get("selection"), dict)
+                              and evidence["selection"].get("transcription_engine") == "vocal_lead_v1")
                 acoustic_report = validate_lead_audio(source_audio=source_audio, xml_text=xml_text,
-                                                       settings=runtime, origin_seconds=origin)
+                                                       settings=runtime, origin_seconds=origin,
+                                                       fixed_tiny=fixed_tiny)
             except (AudioSymbolValidationError, KeyError, TypeError, ValueError) as exc:
                 acoustic_skipped = str(exc)
         if source_audio is None:
