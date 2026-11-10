@@ -38,7 +38,7 @@ MAPPING = {"duration": 1.5, "measures": [
 def snapshot(tmp_path):
     root = tmp_path / "snapshot"
     for name in ["sheetsage2/model/model.safetensors", "sheetsage2/mert/model.safetensors",
-                 Path("checkpoints") / YOUR_CHECKPOINT, Path("demucs") / DEMUCS_WEIGHT]:
+                 Path("checkpoints") / YOUR_CHECKPOINT, Path("demucs") / DEMUCS_WEIGHT, "beat-this/final0.ckpt"]:
         target = root / name
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(b"owned fixture, not model weights")
@@ -121,9 +121,13 @@ def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path,
             (native / "playback.json").write_text(json.dumps(MAPPING))
             shutil.copytree(args[args.index("--context-dir")+1] / "notation", native / "notation")
             args[1].write_text(json.dumps({"unrepresented_note_indices": [],
-                "grid_audio_seconds": [0,.5,1,1.5], "source_note_indices": [0,1,2]}))
+                "grid_audio_seconds": [0,.5,1,1.5], "source_note_indices": [0,1,2],
+                "beat_clock": {"observed_beat_rows": [{"time_seconds": 0, "beat": 1, "numerator": 3, "denominator": 4},
+                                                        {"time_seconds": .5, "beat": 2, "numerator": 3, "denominator": 4}],
+                               "observed_downbeat_rows": [{"time_seconds": 0, "beat": 1, "numerator": 3, "denominator": 4}]}}))
             observed.append("vocal notation")
 
+    monkeypatch.setattr(lead, "fixed_beat_track", lambda *a, **k: {"source_revision": "fixture", "checkpoint_sha256": "fixture"})
     monkeypatch.setattr(lead, "fixed_tiny_pitch_track", lambda *a, **k: (([], []), {"model": "tiny"}))
     monkeypatch.setattr(lead, "run_command", command)
     output = tmp_path / "result"
@@ -136,7 +140,7 @@ def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path,
     assert len(midi_notes(output / "vocal/score.mid")) == 3
     receipt = json.loads((output / "recipe.json").read_text())
     assert receipt["status"] == "completed" and receipt["quality_approved"] is False
-    assert receipt["recipe_version"] == 2 and receipt["pitch_verifier"]["model"] == "tiny"
+    assert receipt["recipe_version"] == 3 and receipt["pitch_verifier"]["model"] == "tiny"
     assert receipt["notation_fidelity"]["matched_interpretation"] is True
     assert receipt["source_audio_sha256"] == hashlib.sha256(audio.read_bytes()).hexdigest()
     assert receipt["model_audio_sha256"] == next(item[1] for item in observed if isinstance(item, tuple) and item[0] == "model audio hash")
@@ -145,6 +149,7 @@ def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path,
     assert report["melody_provider"] == "yourmt3" and "model_revision" not in report
     analysis = json.loads((output / "analysis.json").read_text())
     assert analysis["provider"] == ENGINE and analysis["structure_model_revision"] == MODEL_REVISION
+    assert analysis["clock_provider"] == "beat-this" and analysis["beats"][1]["time_seconds"] == .5
 
 
 def test_changed_checkpoint_is_rejected_before_any_model_runs(tmp_path, monkeypatch):

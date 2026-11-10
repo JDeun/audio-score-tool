@@ -27,14 +27,14 @@ from audio_score_tool.fixed_lead_recipe import (
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("stage", choices=["separate", "vocal", "pitch", "pitch-preflight"])
+    parser.add_argument("stage", choices=["separate", "vocal", "pitch", "pitch-preflight", "beat"])
     parser.add_argument("audio", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--snapshot", type=Path, required=True)
     args = parser.parse_args()
     pitch_stage = args.stage in {"pitch", "pitch-preflight"}
     expected = ({**YOUR_RUNTIME, "torchcrepe": "0.0.24", "resampy": "0.4.3", "librosa": "0.11.0"}
-                if pitch_stage else {**YOUR_RUNTIME, **(SEPARATOR_RUNTIME if args.stage == "separate" else {})})
+                if pitch_stage else {**YOUR_RUNTIME, **(SEPARATOR_RUNTIME if args.stage == "separate" else {}), **({"beat-this": "1.1.0"} if args.stage == "beat" else {})})
     actual = require_runtime(expected)
     checkpoint = args.snapshot / "checkpoints" / YOUR_CHECKPOINT
     if pitch_stage:
@@ -43,6 +43,9 @@ def main() -> int:
         verify_weight(weight, "d4993eea36ed1a0ad9ac549c740dae5265b049ce72004f00c2f59e01c0be8432")
         if args.stage == "pitch-preflight":
             return 0
+    elif args.stage == "beat":
+        weight = args.snapshot / "beat-this/final0.ckpt"
+        verify_weight(weight, "8c328b45f59d8dd3dff219253ff6a8d6482be57d0133a29140e2febbf8eb8331")
     elif args.stage == "separate":
         verify_separator(args.snapshot / "demucs")
     else:
@@ -57,6 +60,41 @@ def main() -> int:
     torch.manual_seed(0)
     threads = 4 if args.stage == "separate" else 2
     torch.set_num_threads(threads)
+    if args.stage == "beat":
+        import beat_this
+        import soundfile as sf
+        from beat_this.inference import Audio2Beats
+
+        def tree_digest():
+            root = Path(beat_this.__file__).parent
+            h = hashlib.sha256()
+            for path in sorted(root.rglob("*.py")):
+                h.update(str(path.relative_to(root)).encode() + b"\0")
+                h.update(path.read_bytes())
+            return h.hexdigest()
+
+        expected_tree = "3f8d310da05e5b26fb455645dfcad5b835570b23a511003e351ce0f33b45fd04"
+        if tree_digest() != expected_tree:
+            raise ValueError("BeatThis source tree mismatch")
+        source_sha = hashlib.sha256(args.audio.read_bytes()).hexdigest()
+        samples, rate = sf.read(args.audio, dtype="float32")
+        model = Audio2Beats(checkpoint_path=str(weight), device="cpu", dbn=False)
+        beats, downbeats = model(samples, rate)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        np.savez_compressed(args.output, beats=np.asarray(beats), downbeats=np.asarray(downbeats))
+        verify_weight(weight, "8c328b45f59d8dd3dff219253ff6a8d6482be57d0133a29140e2febbf8eb8331")
+        if tree_digest() != expected_tree or hashlib.sha256(args.audio.read_bytes()).hexdigest() != source_sha:
+            raise ValueError("BeatThis source or audio changed during inference")
+        args.output.with_suffix(".runtime.json").write_text(json.dumps({
+            "provider": "beat-this", "model": "final0", "source_sha256": source_sha,
+            "prediction_sha256": hashlib.sha256(args.output.read_bytes()).hexdigest(),
+            "checkpoint_sha256": "8c328b45f59d8dd3dff219253ff6a8d6482be57d0133a29140e2febbf8eb8331",
+            "source_revision": "b95c8ab0c58c2d9fcfd40508ae8dffbc05ac4f5c", "source_tree_sha256": expected_tree,
+            "runtime": actual, "python": platform.python_version(),
+            "adapter_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            "device": "cpu", "threads": 2, "seed": 0, "dbn": False,
+        }, indent=2) + "\n")
+        return 0
     if args.stage == "pitch":
         import librosa
 

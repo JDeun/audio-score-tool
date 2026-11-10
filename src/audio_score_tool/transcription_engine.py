@@ -448,7 +448,7 @@ class FixedVocalLeadEngine(SheetSage2Engine):
                     and all((root / path).is_file() for path in (
                         "sheetsage2/model/model.safetensors", "sheetsage2/mert/model.safetensors",
                         Path("checkpoints") / YOUR_CHECKPOINT, Path("demucs") / DEMUCS_WEIGHT,
-                        "demucs/htdemucs.yaml")))
+                        "demucs/htdemucs.yaml", "beat-this/final0.ckpt")))
 
     def describe(self):
         return {**super().describe(),

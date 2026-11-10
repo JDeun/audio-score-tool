@@ -35,6 +35,32 @@ from .transcription_engine import (
 )
 
 
+def _apply_audio_clock(structure, analysis, engine_key):
+    if engine_key == "vocal_lead_v1" and analysis.get("clock_provider") != "beat-this":
+        raise PipelineError("Fixed vocal recipe has no verified BeatThis clock")
+    beats = analysis.get("beats", [])
+    try:
+        numerator, denominator = map(int, analysis["meter"].split("/"))
+        periods = [
+            (b["time_seconds"] - a["time_seconds"]) * a["denominator"] / 4
+            for a, b in zip(beats, beats[1:])
+            if a["numerator"] == b["numerator"] and a["denominator"] == b["denominator"]
+            and b["beat"] == a["beat"] % a["numerator"] + 1
+            and b["time_seconds"] > a["time_seconds"]
+        ]
+        structure.tempo_bpm = round(60 / median(periods), 2)
+    except (KeyError, TypeError, ValueError, ZeroDivisionError) as exc:
+        raise PipelineError("SheetSage2 has no valid audio beat/meter clock") from exc
+    structure.meter_numerator, structure.meter_denominator = numerator, denominator
+    structure.meter_source = "sheetsage2_audio_model"
+    structure.tempo_source = ("beat_this_audio_grid" if engine_key == "vocal_lead_v1"
+                              and analysis.get("clock_provider") == "beat-this"
+                              else "sheetsage2_audio_grid")
+    downbeats = analysis.get("downbeats", [])
+    origin = structure.music_start_seconds if structure.trimmed else 0.0
+    structure.first_downbeat_seconds = origin + downbeats[0]["time_seconds"] if downbeats else None
+
+
 def _remove_eager_render_artifacts(score_dir: Path, initial_pdf: Path | None) -> None:
     if initial_pdf is not None:
         initial_pdf.unlink(missing_ok=True)
@@ -164,25 +190,7 @@ def transcribe(
 
     if engine.key in AUDIO_LEAD_ENGINES:
         analysis = json.loads((score_dir / "analysis.json").read_text())
-        beats = analysis.get("beats", [])
-        try:
-            numerator, denominator = map(int, analysis["meter"].split("/"))
-            periods = [
-                (b["time_seconds"] - a["time_seconds"]) * a["denominator"] / 4
-                for a, b in zip(beats, beats[1:])
-                if a["numerator"] == b["numerator"] and a["denominator"] == b["denominator"]
-                and b["beat"] == a["beat"] % a["numerator"] + 1
-                and b["time_seconds"] > a["time_seconds"]
-            ]
-            structure.tempo_bpm = round(60 / median(periods), 2)
-        except (KeyError, TypeError, ValueError, ZeroDivisionError) as exc:
-            raise PipelineError("SheetSage2 has no valid audio beat/meter clock") from exc
-        structure.meter_numerator, structure.meter_denominator = numerator, denominator
-        structure.meter_source = "sheetsage2_audio_model"
-        structure.tempo_source = "sheetsage2_audio_grid"
-        downbeats = analysis.get("downbeats", [])
-        origin = structure.music_start_seconds if structure.trimmed else 0.0
-        structure.first_downbeat_seconds = origin + downbeats[0]["time_seconds"] if downbeats else None
+        _apply_audio_clock(structure, analysis, engine.key)
         # The model's notation is already metrical; do not apply a second MIDI heuristic.
         structure.pickup_confidence = 0.0
     else:
