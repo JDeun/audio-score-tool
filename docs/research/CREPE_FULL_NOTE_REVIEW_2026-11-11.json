@@ -341,5 +341,39 @@
         "pair_observed_both": 2
       }
     }
+  },
+  "development_selection": {
+    "model": "torchcrepe_tiny",
+    "checkpoint_sha256": "d4993eea36ed1a0ad9ac549c740dae5265b049ce72004f00c2f59e01c0be8432",
+    "weights_source_revision": "19e2ec3d494c0797a5ff2a11408ec5838fba6681",
+    "config": {
+      "device": "cpu",
+      "threads": 2,
+      "seed": 0,
+      "fmin_hz": 55,
+      "fmax_hz": 880,
+      "hop_seconds": 0.01,
+      "decoder": "viterbi",
+      "periodicity_threshold": 0.21,
+      "silence_db": -60,
+      "minimum_frames": 4,
+      "coverage": 0.6,
+      "mad_semitones": 0.35,
+      "interior_margin_seconds": 0.025
+    },
+    "role": "advisory vocal F0 verification development baseline",
+    "full_exposed_as_user_option": false,
+    "product_wiring_complete": false,
+    "automatic_pitch_correction_approved": false,
+    "final_product_quality_approved": false
+  },
+  "source_evidence": {
+    "torchcrepe-note-calibration-v1_report_sha256": "7e79442e18a854484280f34e39dfbd446be064f498b15cd7adb5c71a14edc8e7",
+    "torchcrepe-full-note-calibration-v1_report_sha256": "c67fcd4d8d583dfacba9f1402358f13367076fa37ab7da976c57dba2bdce33f6",
+    "stable-pitch-ablation-v1_report_sha256": "00f3446cd666dda9fd07a867295ae50f78625b8afba95090ded129169925cb4c",
+    "stable-pitch-full-ablation-v1_report_sha256": "58f994b1e5131a6acc337ae32645bafb25ad2d89faab4203852562c4fe647623",
+    "full_script_sha256": "e50dab785ff112db77f2098ada49c776b6e7bb7877ba8b6bb8acacd4f9c2e459",
+    "predictor_runner_sha256": "0265be97c1f891816da30e75fa145a58a1972636a5729fcb1ccc761665c52465",
+    "full_inputs_code_weights_unchanged": true
   }
 }
