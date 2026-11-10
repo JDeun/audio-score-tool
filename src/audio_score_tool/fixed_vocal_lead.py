@@ -100,7 +100,7 @@ def transcribe_fixed_vocal_lead(audio_path, output_dir, *, settings, cancel_even
     analysis = json.loads((structure_dir / "analysis.json").read_text())
     clock = interpretation["beat_clock"]
     analysis["beats"] = clock["observed_beat_rows"]
-    analysis["downbeats"] = clock["observed_downbeat_rows"]
+    analysis["downbeats"] = clock["phase_compatible_downbeat_rows"]
     analysis["clock_provider"] = "beat-this"
     analysis["structure_model_revision"] = analysis.pop("model_revision")
     analysis["structure_checkpoint_sha256"] = analysis.pop("checkpoint_sha256")

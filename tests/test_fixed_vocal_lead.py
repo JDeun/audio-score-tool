@@ -89,6 +89,11 @@ def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path,
     if not container:
         monkeypatch.setattr(lead, "prepare_demucs_audio", lambda source, target, **kw: shutil.copy2(source, target) and target)
 
+    from audio_score_tool.beat_clock import beat_rows
+
+    _, mixed_clock = beat_rows([i * .5 for i in range(17)], [.5, 2., 4., 6., 8.], 8., [[0, 1, 4, 4]])
+    assert mixed_clock['phase_votes'] == [4, 1, 0, 0]
+
     def command(command, args, **kwargs):
         if command == "vocal-fixture" and args[0] == "pitch-preflight":
             observed.append("pitch preflight")
@@ -122,9 +127,7 @@ def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path,
             shutil.copytree(args[args.index("--context-dir")+1] / "notation", native / "notation")
             args[1].write_text(json.dumps({"unrepresented_note_indices": [],
                 "grid_audio_seconds": [0,.5,1,1.5], "source_note_indices": [0,1,2],
-                "beat_clock": {"observed_beat_rows": [{"time_seconds": 0, "beat": 1, "numerator": 3, "denominator": 4},
-                                                        {"time_seconds": .5, "beat": 2, "numerator": 3, "denominator": 4}],
-                               "observed_downbeat_rows": [{"time_seconds": 0, "beat": 1, "numerator": 3, "denominator": 4}]}}))
+                "beat_clock": mixed_clock}))
             observed.append("vocal notation")
 
     monkeypatch.setattr(lead, "fixed_beat_track", lambda *a, **k: {"source_revision": "fixture", "checkpoint_sha256": "fixture"})
@@ -150,6 +153,18 @@ def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path,
     analysis = json.loads((output / "analysis.json").read_text())
     assert analysis["provider"] == ENGINE and analysis["structure_model_revision"] == MODEL_REVISION
     assert analysis["clock_provider"] == "beat-this" and analysis["beats"][1]["time_seconds"] == .5
+    assert analysis['downbeats'] == mixed_clock['phase_compatible_downbeat_rows']
+    assert [row['time_seconds'] for row in mixed_clock['observed_downbeat_rows']] == [.5, 2., 4., 6., 8.]
+    assert mixed_clock['observed_downbeat_rows'][0]['beat'] == 2
+    assert mixed_clock['phase_incompatible_downbeats'] == 1
+    assert all(row['beat'] == 1 for row in analysis['downbeats'])
+    from types import SimpleNamespace
+
+    from audio_score_tool.pipeline_v2 import _apply_audio_clock
+    structure = SimpleNamespace(trimmed=False, music_start_seconds=0)
+    analysis['meter'] = '4/4'
+    _apply_audio_clock(structure, analysis, ENGINE)
+    assert structure.first_downbeat_seconds == 2.0
 
 
 def test_changed_checkpoint_is_rejected_before_any_model_runs(tmp_path, monkeypatch):

@@ -78,7 +78,9 @@ def beat_rows(beats, downbeats, duration, meter_rows):
     observed_rows = [{'time_seconds': float(t), 'beat': (i - phase) % numerator + 1,
                       'numerator': numerator, 'denominator': denominator} for i, t in enumerate(beats)]
     observed_downbeats = [dict(observed_rows[i], time_seconds=float(t)) for i, t in zip(matched, downs)]
+    compatible_downbeats = [row for row in observed_downbeats if row['beat'] == 1]
     return rows, {'observed_beat_rows': observed_rows, 'observed_downbeat_rows': observed_downbeats,
+                  'phase_compatible_downbeat_rows': compatible_downbeats,
                   'observed_beats': original_count, 'observed_downbeats': len(downs),
                   'nominal_tempo_bpm': observed_tempo_bpm(observed_rows),
                   'phase': phase, 'phase_votes': votes, 'unmatched_downbeats': 0,
