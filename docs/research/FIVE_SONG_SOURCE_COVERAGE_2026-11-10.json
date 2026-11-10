@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "source_commit": "9aa4057bdf781f0e7e2254853f2fc0edf94054f9",
+  "source_worktree_dirty": true,
+  "preprocessor_sha256": "d283788e384b411812e1ebe587583c604d6ce3146dc84d214b4c67a1ce12014e",
+  "prior_product_source_commit": "94653bbbac867d341dfc8db91278a936edbaadcd",
+  "test": "real five-source preprocessing coverage, not a new model quality trial",
+  "quality_approved": false,
+  "cases": [
+    {
+      "id": "tinashe-me-so-bad",
+      "source_audio_sha256": "f39788b3075e9117661481470289c6e79ce25171f7a256936a2167bdae49fd65",
+      "source_duration_seconds": 210.51734693877552,
+      "old_applied_crop_seconds": 72.4,
+      "old_trimmed": true,
+      "new_candidate_seconds": 72.4,
+      "new_heuristic_score": 0.841,
+      "new_applied_crop_seconds": 0,
+      "full_source_byte_identity": true,
+      "new_trimmed": false,
+      "prior_export_succeeded": true,
+      "prior_source_coverage_approved": false
+    },
+    {
+      "id": "twice-fancy",
+      "source_audio_sha256": "5e1b5613b3863ea3babd2dc22bc9fa8ba62deb2ae44d48c8885f832ab56f01ec",
+      "source_duration_seconds": 218.63911564625852,
+      "old_applied_crop_seconds": 170.295,
+      "old_trimmed": true,
+      "new_candidate_seconds": 170.295,
+      "new_heuristic_score": 0.844,
+      "new_applied_crop_seconds": 0,
+      "full_source_byte_identity": true,
+      "new_trimmed": false,
+      "prior_export_succeeded": true,
+      "prior_source_coverage_approved": false
+    },
+    {
+      "id": "green-day-american-idiot",
+      "source_audio_sha256": "aedb875ba145c1f5cd21a0a86713d11dff1de9701512b8f1c7e4a40fa4fdf680",
+      "source_duration_seconds": 174.32,
+      "old_applied_crop_seconds": 28.839,
+      "old_trimmed": true,
+      "new_candidate_seconds": 28.839,
+      "new_heuristic_score": 0.88,
+      "new_applied_crop_seconds": 0,
+      "full_source_byte_identity": true,
+      "new_trimmed": false,
+      "prior_export_succeeded": true,
+      "prior_source_coverage_approved": false
+    },
+    {
+      "id": "ham-boo-young-my-song",
+      "source_audio_sha256": "871118a06f5021b94f6e56c9066fca50670582f5e530bcee9290e2db270d8ac7",
+      "source_duration_seconds": 309.7309977324263,
+      "old_applied_crop_seconds": 101.076,
+      "old_trimmed": true,
+      "new_candidate_seconds": 101.076,
+      "new_heuristic_score": 0.844,
+      "new_applied_crop_seconds": 0,
+      "full_source_byte_identity": true,
+      "new_trimmed": false,
+      "prior_export_succeeded": true,
+      "prior_source_coverage_approved": false
+    },
+    {
+      "id": "younha-event-horizon",
+      "source_audio_sha256": "2d84bd77253c96851db8bde4cd76de0b7bf7101cf07f79ff8dbf2d03f1d23dce",
+      "source_duration_seconds": 300.7866666666667,
+      "old_applied_crop_seconds": 73.073,
+      "old_trimmed": true,
+      "new_candidate_seconds": 73.073,
+      "new_heuristic_score": 0.87,
+      "new_applied_crop_seconds": 0,
+      "full_source_byte_identity": true,
+      "new_trimmed": false,
+      "prior_export_succeeded": true,
+      "prior_source_coverage_approved": false
+    }
+  ]
+}
