@@ -1,0 +1,91 @@
+{
+  "scope": "Two visually inspected measures from a published arrangement; manual nonexpert reading, not recording ground truth or whole-song quality approval.",
+  "publisher_url": "https://www.akbobada.com/musicDetail.html?musicID=86642",
+  "publisher_sample_id": "228457",
+  "publisher_preview_sha256": "840e6d86bd571ef4ec4ac93f7123a75d833611235c6f8ac430304ba96e29a0bf",
+  "private_report_sha256": "2cc95462b38dd551a12f4813e29250a33af4036e6ab06fcfdecb78abeacc51f0",
+  "reference_attacks": [
+    9,
+    9
+  ],
+  "comparison_method": "Pitch-order longest common subsequence, separately in two fixed S2 model-clock audio windows, assigning notes by onset; no independent onset or bar alignment reference.",
+  "results": [
+    {
+      "reference_bar": 10,
+      "candidate_bar": 12,
+      "reference_attacks": 9,
+      "raw": {
+        "attacks": 10,
+        "pitch_order_lcs": 8,
+        "unmatched_reference": 1,
+        "unmatched_candidate": 2
+      },
+      "s2_main16": {
+        "attacks": 10,
+        "pitch_order_lcs": 8,
+        "unmatched_reference": 1,
+        "unmatched_candidate": 2
+      },
+      "beatthis16": {
+        "attacks": 10,
+        "pitch_order_lcs": 8,
+        "unmatched_reference": 1,
+        "unmatched_candidate": 2
+      },
+      "pitch_candidate_raw": {
+        "attacks": 10,
+        "pitch_order_lcs": 8,
+        "unmatched_reference": 1,
+        "unmatched_candidate": 2
+      },
+      "pitch_candidate_s2_16": {
+        "attacks": 10,
+        "pitch_order_lcs": 8,
+        "unmatched_reference": 1,
+        "unmatched_candidate": 2
+      }
+    },
+    {
+      "reference_bar": 11,
+      "candidate_bar": 13,
+      "reference_attacks": 9,
+      "raw": {
+        "attacks": 8,
+        "pitch_order_lcs": 8,
+        "unmatched_reference": 1,
+        "unmatched_candidate": 0
+      },
+      "s2_main16": {
+        "attacks": 7,
+        "pitch_order_lcs": 7,
+        "unmatched_reference": 2,
+        "unmatched_candidate": 0
+      },
+      "beatthis16": {
+        "attacks": 8,
+        "pitch_order_lcs": 8,
+        "unmatched_reference": 1,
+        "unmatched_candidate": 0
+      },
+      "pitch_candidate_raw": {
+        "attacks": 8,
+        "pitch_order_lcs": 8,
+        "unmatched_reference": 1,
+        "unmatched_candidate": 0
+      },
+      "pitch_candidate_s2_16": {
+        "attacks": 7,
+        "pitch_order_lcs": 7,
+        "unmatched_reference": 2,
+        "unmatched_candidate": 0
+      }
+    }
+  ],
+  "limitations": [
+    "Pitch-order LCS does not establish onset accuracy or distinguish split, merge, missing and extra attacks.",
+    "The published arrangement and model clock are not independently aligned to the recording.",
+    "The pitch-correction rule can change already correct notes; these two measures do not establish its benefit.",
+    "This is not a five-song benchmark, model-quality approval or production correction approval."
+  ],
+  "followup": "Independently evaluate attack segmentation and quantization against time-aligned evidence."
+}
