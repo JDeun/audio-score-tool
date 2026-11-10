@@ -1,0 +1,1383 @@
+{
+  "schema_version": 1,
+  "private_report_sha256": "2ddc4fcdf6cd3924e2419698ea92fc0c23f9565348515f007705b9c1049c3d65",
+  "reference": "original vocadito A1 and A2 frequencies in Hz",
+  "comparison": "raw selected vocal versus same SheetSage2 grid",
+  "expected_cases": 40,
+  "source_sha256_matches": 40,
+  "completed_cases": 40,
+  "totals": {
+    "raw_notes": 1809,
+    "grid_notes": 1765,
+    "omitted_notes": 44,
+    "omitted_fraction": 0.024322830292979547,
+    "timing_absolute_seconds": {
+      "median": 0.027500000000000746,
+      "p95": 0.06958333333333577,
+      "max": 0.120000000000001
+    },
+    "terminal_beat_clipped_cases": 40
+  },
+  "metrics": {
+    "A1": {
+      "onset_f1": {
+        "raw_macro": 0.4956574495,
+        "grid_macro": 0.4383109535000001,
+        "macro_delta": -0.057346496000000004,
+        "improved_cases": 4,
+        "worsened_cases": 33,
+        "unchanged_cases": 3
+      },
+      "onset_offset_f1": {
+        "raw_macro": 0.27112533425,
+        "grid_macro": 0.21711438075,
+        "macro_delta": -0.0540109535,
+        "improved_cases": 9,
+        "worsened_cases": 30,
+        "unchanged_cases": 1
+      }
+    },
+    "A2": {
+      "onset_f1": {
+        "raw_macro": 0.590747369,
+        "grid_macro": 0.523092195,
+        "macro_delta": -0.067655174,
+        "improved_cases": 3,
+        "worsened_cases": 35,
+        "unchanged_cases": 2
+      },
+      "onset_offset_f1": {
+        "raw_macro": 0.34628301024999997,
+        "grid_macro": 0.28765872275,
+        "macro_delta": -0.0586242875,
+        "improved_cases": 10,
+        "worsened_cases": 30,
+        "unchanged_cases": 0
+      }
+    }
+  },
+  "cases": [
+    {
+      "case": 1,
+      "raw_notes": 61,
+      "grid_notes": 60,
+      "omitted_notes": 1,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 59,
+            "onset_f1": 0.56666667,
+            "onset_offset_f1": 0.35
+          },
+          "grid": {
+            "reference_note_count": 59,
+            "onset_f1": 0.53781513,
+            "onset_offset_f1": 0.33613445
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 64,
+            "onset_f1": 0.688,
+            "onset_offset_f1": 0.528
+          },
+          "grid": {
+            "reference_note_count": 64,
+            "onset_f1": 0.66129032,
+            "onset_offset_f1": 0.5483871
+          }
+        }
+      }
+    },
+    {
+      "case": 2,
+      "raw_notes": 56,
+      "grid_notes": 56,
+      "omitted_notes": 0,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 76,
+            "onset_f1": 0.54545455,
+            "onset_offset_f1": 0.42424242
+          },
+          "grid": {
+            "reference_note_count": 76,
+            "onset_f1": 0.40909091,
+            "onset_offset_f1": 0.3030303
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 63,
+            "onset_f1": 0.65546218,
+            "onset_offset_f1": 0.50420168
+          },
+          "grid": {
+            "reference_note_count": 63,
+            "onset_f1": 0.45378151,
+            "onset_offset_f1": 0.33613445
+          }
+        }
+      }
+    },
+    {
+      "case": 3,
+      "raw_notes": 44,
+      "grid_notes": 42,
+      "omitted_notes": 2,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 51,
+            "onset_f1": 0.63157895,
+            "onset_offset_f1": 0.4
+          },
+          "grid": {
+            "reference_note_count": 51,
+            "onset_f1": 0.58064516,
+            "onset_offset_f1": 0.32258065
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 46,
+            "onset_f1": 0.62222222,
+            "onset_offset_f1": 0.4
+          },
+          "grid": {
+            "reference_note_count": 46,
+            "onset_f1": 0.59090909,
+            "onset_offset_f1": 0.36363636
+          }
+        }
+      }
+    },
+    {
+      "case": 4,
+      "raw_notes": 44,
+      "grid_notes": 43,
+      "omitted_notes": 1,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 69,
+            "onset_f1": 0.38938053,
+            "onset_offset_f1": 0.30088496
+          },
+          "grid": {
+            "reference_note_count": 69,
+            "onset_f1": 0.35714286,
+            "onset_offset_f1": 0.17857143
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 51,
+            "onset_f1": 0.52631579,
+            "onset_offset_f1": 0.37894737
+          },
+          "grid": {
+            "reference_note_count": 51,
+            "onset_f1": 0.5106383,
+            "onset_offset_f1": 0.31914894
+          }
+        }
+      }
+    },
+    {
+      "case": 5,
+      "raw_notes": 75,
+      "grid_notes": 71,
+      "omitted_notes": 4,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 96,
+            "onset_f1": 0.46783626,
+            "onset_offset_f1": 0.32748538
+          },
+          "grid": {
+            "reference_note_count": 96,
+            "onset_f1": 0.45508982,
+            "onset_offset_f1": 0.35928144
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 72,
+            "onset_f1": 0.55782313,
+            "onset_offset_f1": 0.36734694
+          },
+          "grid": {
+            "reference_note_count": 72,
+            "onset_f1": 0.57342657,
+            "onset_offset_f1": 0.36363636
+          }
+        }
+      }
+    },
+    {
+      "case": 6,
+      "raw_notes": 57,
+      "grid_notes": 55,
+      "omitted_notes": 2,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 73,
+            "onset_f1": 0.27692308,
+            "onset_offset_f1": 0.13846154
+          },
+          "grid": {
+            "reference_note_count": 73,
+            "onset_f1": 0.3125,
+            "onset_offset_f1": 0.171875
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 50,
+            "onset_f1": 0.41121495,
+            "onset_offset_f1": 0.20560748
+          },
+          "grid": {
+            "reference_note_count": 50,
+            "onset_f1": 0.38095238,
+            "onset_offset_f1": 0.19047619
+          }
+        }
+      }
+    },
+    {
+      "case": 7,
+      "raw_notes": 40,
+      "grid_notes": 40,
+      "omitted_notes": 0,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 47,
+            "onset_f1": 0.64367816,
+            "onset_offset_f1": 0.36781609
+          },
+          "grid": {
+            "reference_note_count": 47,
+            "onset_f1": 0.55172414,
+            "onset_offset_f1": 0.27586207
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 42,
+            "onset_f1": 0.7804878,
+            "onset_offset_f1": 0.48780488
+          },
+          "grid": {
+            "reference_note_count": 42,
+            "onset_f1": 0.75609756,
+            "onset_offset_f1": 0.3902439
+          }
+        }
+      }
+    },
+    {
+      "case": 8,
+      "raw_notes": 30,
+      "grid_notes": 30,
+      "omitted_notes": 0,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 40,
+            "onset_f1": 0.62857143,
+            "onset_offset_f1": 0.4
+          },
+          "grid": {
+            "reference_note_count": 40,
+            "onset_f1": 0.57142857,
+            "onset_offset_f1": 0.28571429
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 37,
+            "onset_f1": 0.65671642,
+            "onset_offset_f1": 0.3880597
+          },
+          "grid": {
+            "reference_note_count": 37,
+            "onset_f1": 0.59701493,
+            "onset_offset_f1": 0.26865672
+          }
+        }
+      }
+    },
+    {
+      "case": 9,
+      "raw_notes": 56,
+      "grid_notes": 56,
+      "omitted_notes": 0,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 62,
+            "onset_f1": 0.44067797,
+            "onset_offset_f1": 0.16949153
+          },
+          "grid": {
+            "reference_note_count": 62,
+            "onset_f1": 0.42372881,
+            "onset_offset_f1": 0.22033898
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 59,
+            "onset_f1": 0.55652174,
+            "onset_offset_f1": 0.24347826
+          },
+          "grid": {
+            "reference_note_count": 59,
+            "onset_f1": 0.48695652,
+            "onset_offset_f1": 0.22608696
+          }
+        }
+      }
+    },
+    {
+      "case": 10,
+      "raw_notes": 26,
+      "grid_notes": 26,
+      "omitted_notes": 0,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 35,
+            "onset_f1": 0.39344262,
+            "onset_offset_f1": 0.2295082
+          },
+          "grid": {
+            "reference_note_count": 35,
+            "onset_f1": 0.32786885,
+            "onset_offset_f1": 0.16393443
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 27,
+            "onset_f1": 0.52830189,
+            "onset_offset_f1": 0.37735849
+          },
+          "grid": {
+            "reference_note_count": 27,
+            "onset_f1": 0.45283019,
+            "onset_offset_f1": 0.26415094
+          }
+        }
+      }
+    },
+    {
+      "case": 11,
+      "raw_notes": 31,
+      "grid_notes": 31,
+      "omitted_notes": 0,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 37,
+            "onset_f1": 0.55882353,
+            "onset_offset_f1": 0.32352941
+          },
+          "grid": {
+            "reference_note_count": 37,
+            "onset_f1": 0.55882353,
+            "onset_offset_f1": 0.32352941
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 30,
+            "onset_f1": 0.68852459,
+            "onset_offset_f1": 0.45901639
+          },
+          "grid": {
+            "reference_note_count": 30,
+            "onset_f1": 0.68852459,
+            "onset_offset_f1": 0.49180328
+          }
+        }
+      }
+    },
+    {
+      "case": 12,
+      "raw_notes": 25,
+      "grid_notes": 25,
+      "omitted_notes": 0,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 27,
+            "onset_f1": 0.69230769,
+            "onset_offset_f1": 0.42307692
+          },
+          "grid": {
+            "reference_note_count": 27,
+            "onset_f1": 0.5,
+            "onset_offset_f1": 0.30769231
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 24,
+            "onset_f1": 0.65306122,
+            "onset_offset_f1": 0.40816327
+          },
+          "grid": {
+            "reference_note_count": 24,
+            "onset_f1": 0.53061224,
+            "onset_offset_f1": 0.32653061
+          }
+        }
+      }
+    },
+    {
+      "case": 13,
+      "raw_notes": 46,
+      "grid_notes": 43,
+      "omitted_notes": 3,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 74,
+            "onset_f1": 0.4,
+            "onset_offset_f1": 0.13333333
+          },
+          "grid": {
+            "reference_note_count": 74,
+            "onset_f1": 0.30769231,
+            "onset_offset_f1": 0.1025641
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 52,
+            "onset_f1": 0.44897959,
+            "onset_offset_f1": 0.2244898
+          },
+          "grid": {
+            "reference_note_count": 52,
+            "onset_f1": 0.31578947,
+            "onset_offset_f1": 0.16842105
+          }
+        }
+      }
+    },
+    {
+      "case": 14,
+      "raw_notes": 27,
+      "grid_notes": 27,
+      "omitted_notes": 0,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 34,
+            "onset_f1": 0.52459016,
+            "onset_offset_f1": 0.19672131
+          },
+          "grid": {
+            "reference_note_count": 34,
+            "onset_f1": 0.45901639,
+            "onset_offset_f1": 0.2295082
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 26,
+            "onset_f1": 0.56603774,
+            "onset_offset_f1": 0.26415094
+          },
+          "grid": {
+            "reference_note_count": 26,
+            "onset_f1": 0.52830189,
+            "onset_offset_f1": 0.30188679
+          }
+        }
+      }
+    },
+    {
+      "case": 15,
+      "raw_notes": 42,
+      "grid_notes": 41,
+      "omitted_notes": 1,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 47,
+            "onset_f1": 0.60674157,
+            "onset_offset_f1": 0.35955056
+          },
+          "grid": {
+            "reference_note_count": 47,
+            "onset_f1": 0.47727273,
+            "onset_offset_f1": 0.25
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 41,
+            "onset_f1": 0.69879518,
+            "onset_offset_f1": 0.43373494
+          },
+          "grid": {
+            "reference_note_count": 41,
+            "onset_f1": 0.56097561,
+            "onset_offset_f1": 0.31707317
+          }
+        }
+      }
+    },
+    {
+      "case": 16,
+      "raw_notes": 39,
+      "grid_notes": 37,
+      "omitted_notes": 2,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 47,
+            "onset_f1": 0.62790698,
+            "onset_offset_f1": 0.30232558
+          },
+          "grid": {
+            "reference_note_count": 47,
+            "onset_f1": 0.57142857,
+            "onset_offset_f1": 0.30952381
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 36,
+            "onset_f1": 0.74666667,
+            "onset_offset_f1": 0.37333333
+          },
+          "grid": {
+            "reference_note_count": 36,
+            "onset_f1": 0.71232877,
+            "onset_offset_f1": 0.38356164
+          }
+        }
+      }
+    },
+    {
+      "case": 17,
+      "raw_notes": 54,
+      "grid_notes": 54,
+      "omitted_notes": 0,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 54,
+            "onset_f1": 0.5,
+            "onset_offset_f1": 0.18518519
+          },
+          "grid": {
+            "reference_note_count": 54,
+            "onset_f1": 0.46296296,
+            "onset_offset_f1": 0.2037037
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 47,
+            "onset_f1": 0.55445545,
+            "onset_offset_f1": 0.2970297
+          },
+          "grid": {
+            "reference_note_count": 47,
+            "onset_f1": 0.4950495,
+            "onset_offset_f1": 0.21782178
+          }
+        }
+      }
+    },
+    {
+      "case": 18,
+      "raw_notes": 38,
+      "grid_notes": 37,
+      "omitted_notes": 1,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 45,
+            "onset_f1": 0.5060241,
+            "onset_offset_f1": 0.24096386
+          },
+          "grid": {
+            "reference_note_count": 45,
+            "onset_f1": 0.46341463,
+            "onset_offset_f1": 0.2195122
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 34,
+            "onset_f1": 0.55555556,
+            "onset_offset_f1": 0.36111111
+          },
+          "grid": {
+            "reference_note_count": 34,
+            "onset_f1": 0.47887324,
+            "onset_offset_f1": 0.30985915
+          }
+        }
+      }
+    },
+    {
+      "case": 19,
+      "raw_notes": 63,
+      "grid_notes": 63,
+      "omitted_notes": 0,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 73,
+            "onset_f1": 0.57352941,
+            "onset_offset_f1": 0.14705882
+          },
+          "grid": {
+            "reference_note_count": 73,
+            "onset_f1": 0.52941176,
+            "onset_offset_f1": 0.20588235
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 61,
+            "onset_f1": 0.69354839,
+            "onset_offset_f1": 0.19354839
+          },
+          "grid": {
+            "reference_note_count": 61,
+            "onset_f1": 0.64516129,
+            "onset_offset_f1": 0.25806452
+          }
+        }
+      }
+    },
+    {
+      "case": 20,
+      "raw_notes": 28,
+      "grid_notes": 24,
+      "omitted_notes": 4,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 31,
+            "onset_f1": 0.50847458,
+            "onset_offset_f1": 0.23728814
+          },
+          "grid": {
+            "reference_note_count": 31,
+            "onset_f1": 0.50909091,
+            "onset_offset_f1": 0.10909091
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 30,
+            "onset_f1": 0.65517241,
+            "onset_offset_f1": 0.24137931
+          },
+          "grid": {
+            "reference_note_count": 30,
+            "onset_f1": 0.59259259,
+            "onset_offset_f1": 0.18518519
+          }
+        }
+      }
+    },
+    {
+      "case": 21,
+      "raw_notes": 59,
+      "grid_notes": 58,
+      "omitted_notes": 1,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 97,
+            "onset_f1": 0.3974359,
+            "onset_offset_f1": 0.17948718
+          },
+          "grid": {
+            "reference_note_count": 97,
+            "onset_f1": 0.3483871,
+            "onset_offset_f1": 0.10322581
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 62,
+            "onset_f1": 0.51239669,
+            "onset_offset_f1": 0.24793388
+          },
+          "grid": {
+            "reference_note_count": 62,
+            "onset_f1": 0.45,
+            "onset_offset_f1": 0.11666667
+          }
+        }
+      }
+    },
+    {
+      "case": 22,
+      "raw_notes": 42,
+      "grid_notes": 42,
+      "omitted_notes": 0,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 45,
+            "onset_f1": 0.50574713,
+            "onset_offset_f1": 0.27586207
+          },
+          "grid": {
+            "reference_note_count": 45,
+            "onset_f1": 0.3908046,
+            "onset_offset_f1": 0.13793103
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 47,
+            "onset_f1": 0.51685393,
+            "onset_offset_f1": 0.33707865
+          },
+          "grid": {
+            "reference_note_count": 47,
+            "onset_f1": 0.40449438,
+            "onset_offset_f1": 0.24719101
+          }
+        }
+      }
+    },
+    {
+      "case": 23,
+      "raw_notes": 47,
+      "grid_notes": 47,
+      "omitted_notes": 0,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 53,
+            "onset_f1": 0.42,
+            "onset_offset_f1": 0.26
+          },
+          "grid": {
+            "reference_note_count": 53,
+            "onset_f1": 0.4,
+            "onset_offset_f1": 0.18
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 51,
+            "onset_f1": 0.46938776,
+            "onset_offset_f1": 0.28571429
+          },
+          "grid": {
+            "reference_note_count": 51,
+            "onset_f1": 0.40816327,
+            "onset_offset_f1": 0.2244898
+          }
+        }
+      }
+    },
+    {
+      "case": 24,
+      "raw_notes": 34,
+      "grid_notes": 33,
+      "omitted_notes": 1,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 39,
+            "onset_f1": 0.57534247,
+            "onset_offset_f1": 0.2739726
+          },
+          "grid": {
+            "reference_note_count": 39,
+            "onset_f1": 0.47222222,
+            "onset_offset_f1": 0.22222222
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 30,
+            "onset_f1": 0.65625,
+            "onset_offset_f1": 0.34375
+          },
+          "grid": {
+            "reference_note_count": 30,
+            "onset_f1": 0.57142857,
+            "onset_offset_f1": 0.25396825
+          }
+        }
+      }
+    },
+    {
+      "case": 25,
+      "raw_notes": 34,
+      "grid_notes": 33,
+      "omitted_notes": 1,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 38,
+            "onset_f1": 0.47222222,
+            "onset_offset_f1": 0.30555556
+          },
+          "grid": {
+            "reference_note_count": 38,
+            "onset_f1": 0.36619718,
+            "onset_offset_f1": 0.16901408
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 33,
+            "onset_f1": 0.59701493,
+            "onset_offset_f1": 0.35820896
+          },
+          "grid": {
+            "reference_note_count": 33,
+            "onset_f1": 0.45454545,
+            "onset_offset_f1": 0.21212121
+          }
+        }
+      }
+    },
+    {
+      "case": 26,
+      "raw_notes": 47,
+      "grid_notes": 47,
+      "omitted_notes": 0,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 73,
+            "onset_f1": 0.45,
+            "onset_offset_f1": 0.21666667
+          },
+          "grid": {
+            "reference_note_count": 73,
+            "onset_f1": 0.46666667,
+            "onset_offset_f1": 0.26666667
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 56,
+            "onset_f1": 0.46601942,
+            "onset_offset_f1": 0.31067961
+          },
+          "grid": {
+            "reference_note_count": 56,
+            "onset_f1": 0.46601942,
+            "onset_offset_f1": 0.34951456
+          }
+        }
+      }
+    },
+    {
+      "case": 27,
+      "raw_notes": 24,
+      "grid_notes": 24,
+      "omitted_notes": 0,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 34,
+            "onset_f1": 0.62068966,
+            "onset_offset_f1": 0.24137931
+          },
+          "grid": {
+            "reference_note_count": 34,
+            "onset_f1": 0.62068966,
+            "onset_offset_f1": 0.17241379
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 28,
+            "onset_f1": 0.80769231,
+            "onset_offset_f1": 0.38461538
+          },
+          "grid": {
+            "reference_note_count": 28,
+            "onset_f1": 0.69230769,
+            "onset_offset_f1": 0.26923077
+          }
+        }
+      }
+    },
+    {
+      "case": 28,
+      "raw_notes": 45,
+      "grid_notes": 44,
+      "omitted_notes": 1,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 44,
+            "onset_f1": 0.33707865,
+            "onset_offset_f1": 0.15730337
+          },
+          "grid": {
+            "reference_note_count": 44,
+            "onset_f1": 0.29545455,
+            "onset_offset_f1": 0.09090909
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 43,
+            "onset_f1": 0.5,
+            "onset_offset_f1": 0.34090909
+          },
+          "grid": {
+            "reference_note_count": 43,
+            "onset_f1": 0.45977011,
+            "onset_offset_f1": 0.22988506
+          }
+        }
+      }
+    },
+    {
+      "case": 29,
+      "raw_notes": 32,
+      "grid_notes": 32,
+      "omitted_notes": 0,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 36,
+            "onset_f1": 0.58823529,
+            "onset_offset_f1": 0.44117647
+          },
+          "grid": {
+            "reference_note_count": 36,
+            "onset_f1": 0.47058824,
+            "onset_offset_f1": 0.14705882
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 32,
+            "onset_f1": 0.6875,
+            "onset_offset_f1": 0.53125
+          },
+          "grid": {
+            "reference_note_count": 32,
+            "onset_f1": 0.53125,
+            "onset_offset_f1": 0.15625
+          }
+        }
+      }
+    },
+    {
+      "case": 30,
+      "raw_notes": 40,
+      "grid_notes": 36,
+      "omitted_notes": 4,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 58,
+            "onset_f1": 0.3877551,
+            "onset_offset_f1": 0.14285714
+          },
+          "grid": {
+            "reference_note_count": 58,
+            "onset_f1": 0.34042553,
+            "onset_offset_f1": 0.12765957
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 40,
+            "onset_f1": 0.475,
+            "onset_offset_f1": 0.275
+          },
+          "grid": {
+            "reference_note_count": 40,
+            "onset_f1": 0.47368421,
+            "onset_offset_f1": 0.23684211
+          }
+        }
+      }
+    },
+    {
+      "case": 31,
+      "raw_notes": 44,
+      "grid_notes": 44,
+      "omitted_notes": 0,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 47,
+            "onset_f1": 0.41758242,
+            "onset_offset_f1": 0.24175824
+          },
+          "grid": {
+            "reference_note_count": 47,
+            "onset_f1": 0.37362637,
+            "onset_offset_f1": 0.21978022
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 38,
+            "onset_f1": 0.53658537,
+            "onset_offset_f1": 0.26829268
+          },
+          "grid": {
+            "reference_note_count": 38,
+            "onset_f1": 0.48780488,
+            "onset_offset_f1": 0.29268293
+          }
+        }
+      }
+    },
+    {
+      "case": 32,
+      "raw_notes": 50,
+      "grid_notes": 49,
+      "omitted_notes": 1,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 57,
+            "onset_f1": 0.56074766,
+            "onset_offset_f1": 0.31775701
+          },
+          "grid": {
+            "reference_note_count": 57,
+            "onset_f1": 0.50943396,
+            "onset_offset_f1": 0.22641509
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 55,
+            "onset_f1": 0.7047619,
+            "onset_offset_f1": 0.38095238
+          },
+          "grid": {
+            "reference_note_count": 55,
+            "onset_f1": 0.65384615,
+            "onset_offset_f1": 0.32692308
+          }
+        }
+      }
+    },
+    {
+      "case": 33,
+      "raw_notes": 73,
+      "grid_notes": 70,
+      "omitted_notes": 3,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 80,
+            "onset_f1": 0.50980392,
+            "onset_offset_f1": 0.22222222
+          },
+          "grid": {
+            "reference_note_count": 80,
+            "onset_f1": 0.38666667,
+            "onset_offset_f1": 0.14666667
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 87,
+            "onset_f1": 0.525,
+            "onset_offset_f1": 0.15
+          },
+          "grid": {
+            "reference_note_count": 87,
+            "onset_f1": 0.40764331,
+            "onset_offset_f1": 0.15286624
+          }
+        }
+      }
+    },
+    {
+      "case": 34,
+      "raw_notes": 84,
+      "grid_notes": 82,
+      "omitted_notes": 2,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 89,
+            "onset_f1": 0.46242775,
+            "onset_offset_f1": 0.28901734
+          },
+          "grid": {
+            "reference_note_count": 89,
+            "onset_f1": 0.39766082,
+            "onset_offset_f1": 0.22222222
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 95,
+            "onset_f1": 0.61452514,
+            "onset_offset_f1": 0.37988827
+          },
+          "grid": {
+            "reference_note_count": 95,
+            "onset_f1": 0.54237288,
+            "onset_offset_f1": 0.33898305
+          }
+        }
+      }
+    },
+    {
+      "case": 35,
+      "raw_notes": 25,
+      "grid_notes": 24,
+      "omitted_notes": 1,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 37,
+            "onset_f1": 0.29032258,
+            "onset_offset_f1": 0.22580645
+          },
+          "grid": {
+            "reference_note_count": 37,
+            "onset_f1": 0.26229508,
+            "onset_offset_f1": 0.2295082
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 26,
+            "onset_f1": 0.47058824,
+            "onset_offset_f1": 0.31372549
+          },
+          "grid": {
+            "reference_note_count": 26,
+            "onset_f1": 0.52,
+            "onset_offset_f1": 0.44
+          }
+        }
+      }
+    },
+    {
+      "case": 36,
+      "raw_notes": 48,
+      "grid_notes": 47,
+      "omitted_notes": 1,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 67,
+            "onset_f1": 0.46956522,
+            "onset_offset_f1": 0.15652174
+          },
+          "grid": {
+            "reference_note_count": 67,
+            "onset_f1": 0.35087719,
+            "onset_offset_f1": 0.12280702
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 54,
+            "onset_f1": 0.54901961,
+            "onset_offset_f1": 0.19607843
+          },
+          "grid": {
+            "reference_note_count": 54,
+            "onset_f1": 0.37623762,
+            "onset_offset_f1": 0.11881188
+          }
+        }
+      }
+    },
+    {
+      "case": 37,
+      "raw_notes": 37,
+      "grid_notes": 37,
+      "omitted_notes": 0,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 51,
+            "onset_f1": 0.47727273,
+            "onset_offset_f1": 0.43181818
+          },
+          "grid": {
+            "reference_note_count": 51,
+            "onset_f1": 0.47727273,
+            "onset_offset_f1": 0.40909091
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 41,
+            "onset_f1": 0.61538462,
+            "onset_offset_f1": 0.56410256
+          },
+          "grid": {
+            "reference_note_count": 41,
+            "onset_f1": 0.48717949,
+            "onset_offset_f1": 0.43589744
+          }
+        }
+      }
+    },
+    {
+      "case": 38,
+      "raw_notes": 62,
+      "grid_notes": 55,
+      "omitted_notes": 7,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 78,
+            "onset_f1": 0.47142857,
+            "onset_offset_f1": 0.28571429
+          },
+          "grid": {
+            "reference_note_count": 78,
+            "onset_f1": 0.40601504,
+            "onset_offset_f1": 0.16541353
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 64,
+            "onset_f1": 0.57142857,
+            "onset_offset_f1": 0.36507937
+          },
+          "grid": {
+            "reference_note_count": 64,
+            "onset_f1": 0.50420168,
+            "onset_offset_f1": 0.25210084
+          }
+        }
+      }
+    },
+    {
+      "case": 39,
+      "raw_notes": 68,
+      "grid_notes": 68,
+      "omitted_notes": 0,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 92,
+            "onset_f1": 0.4625,
+            "onset_offset_f1": 0.2375
+          },
+          "grid": {
+            "reference_note_count": 92,
+            "onset_f1": 0.3375,
+            "onset_offset_f1": 0.1875
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 66,
+            "onset_f1": 0.52238806,
+            "onset_offset_f1": 0.32835821
+          },
+          "grid": {
+            "reference_note_count": 66,
+            "onset_f1": 0.40298507,
+            "onset_offset_f1": 0.23880597
+          }
+        }
+      }
+    },
+    {
+      "case": 40,
+      "raw_notes": 32,
+      "grid_notes": 32,
+      "omitted_notes": 0,
+      "terminal_beat_clipped": true,
+      "scores": {
+        "A1": {
+          "raw": {
+            "reference_note_count": 45,
+            "onset_f1": 0.46753247,
+            "onset_offset_f1": 0.28571429
+          },
+          "grid": {
+            "reference_note_count": 45,
+            "onset_f1": 0.49350649,
+            "onset_offset_f1": 0.25974026
+          }
+        },
+        "A2": {
+          "raw": {
+            "reference_note_count": 36,
+            "onset_f1": 0.58823529,
+            "onset_offset_f1": 0.35294118
+          },
+          "grid": {
+            "reference_note_count": 36,
+            "onset_f1": 0.61764706,
+            "onset_offset_f1": 0.38235294
+          }
+        }
+      }
+    }
+  ],
+  "quality_approved": false,
+  "final_model_approved": false
+}
