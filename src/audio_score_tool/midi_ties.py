@@ -170,6 +170,8 @@ def prepare_score_for_midi(score):
             for member in members:
                 cloned = copy.deepcopy(member)
                 cloned.quarterLength = element.quarterLength
+                cloned.editorial["source_measure"] = element.measureNumber
+                cloned.editorial["source_harmony"] = isinstance(element, harmony.Harmony)
                 if 0 < cloned.quarterLength and round(cloned.quarterLength * defaults.ticksPerQuarter) == 0:
                     raise ValueError(
                         "A note is shorter than the MIDI export resolution "
@@ -180,7 +182,7 @@ def prepare_score_for_midi(score):
                 if isinstance(element, chord.ChordBase) and cloned.volume.velocity is None:
                     cloned.volume = copy.deepcopy(element.volume)
                 if isinstance(member, note.Note):
-                    pitch_key = ("pitched", member.pitch.nameWithOctave)
+                    pitch_key = ("pitched", member.pitch.ps)
                 else:
                     stored = getattr(member, "storedInstrument", None)
                     pitch_key = ("unpitched", getattr(stored, "percMapPitch", None),

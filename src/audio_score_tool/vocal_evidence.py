@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 
 from .audio_symbol_validation import AudioSymbolValidationError, _decode_to_wav, _read_pcm16
+from .midi_ties import prepare_score_for_midi
 from .score_timing import score_time_clocks
 
 
@@ -62,24 +63,24 @@ def vocal_pitch_track(source: Path, *, ffmpeg_cmd: str) -> tuple[np.ndarray, np.
 
 
 def part_notes(score, part, *, origin_seconds: float = 0.0) -> list[dict]:
-    from music21 import chord, harmony, note
+    from music21 import note
 
-    seconds, _ = score_time_clocks(score)
-    merged = part.stripTies(inPlace=False)
+    performed = prepare_score_for_midi(score)
+    seconds, _ = score_time_clocks(performed)
+    merged = performed.parts[list(score.parts).index(part)]
     result = []
     for item in merged.recurse().notes:
-        if (isinstance(item, harmony.Harmony) or not isinstance(item, (note.Note, chord.Chord))
-                or item.duration.isGrace):
+        if (not isinstance(item, note.Note) or item.duration.isGrace
+                or item.editorial.get("source_harmony", False)):
             continue
         at = float(item.getOffsetInHierarchy(merged))
         end = at + float(item.quarterLength)
         if end <= at:
             continue
-        members = item.notes if isinstance(item, chord.Chord) else [item]
-        for member in members:
-            result.append({"pitch": int(member.pitch.midi), "start_seconds": origin_seconds + seconds(at),
-                           "end_seconds": origin_seconds + seconds(end),
-                           "measure": str(item.measureNumber) if item.measureNumber is not None else None})
+        measure = item.editorial.get("source_measure")
+        result.append({"pitch": int(item.pitch.midi), "start_seconds": origin_seconds + seconds(at),
+                       "end_seconds": origin_seconds + seconds(end),
+                       "measure": str(measure) if measure is not None else None})
     return result
 
 

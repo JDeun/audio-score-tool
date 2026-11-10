@@ -139,6 +139,45 @@ c2 B2 A2 |]
     assert [(n.pitch, n.onset) for n in events] == [(67, 0), (69, .5), (71, 1), (77, 1.5), (72, 2), (71, 2.5), (69, 3)]
 
 
+def test_tied_key_change_preserves_sounding_pitch_and_readable_spelling(tmp_path, capfd):
+    text = '''X:1
+M:4/4
+L:1/4
+Q:1/4=120
+K:Ab
+V: Vocal
+B4- |
+K:A
+^A4 |]
+'''
+    abc = tmp_path / "score.abc"
+    abc.write_text(text)
+    mapping = [dict(start=0,end=2,score_start=0,score_end=1),
+               dict(start=2,end=4,score_start=1,score_end=2)]
+    (tmp_path / "playback.json").write_text(json.dumps({"measures": mapping}))
+    target = tmp_path / "key-tie.musicxml"
+    report = import_native_lead_sheet(tmp_path, target)
+    assert report["enharmonic_tie_respellings"] == 1
+    assert abc.read_text() == text
+    score = converter.parse(target)
+    notes = list(score.recurse().getElementsByClass(note.Note))
+    assert [n.nameWithOctave for n in notes] == ["B-4", "B-4"]
+    assert [k.sharps for k in score.recurse().getElementsByClass(key.KeySignature)] == [-4, 3]
+    from audio_score_tool.metrics import midi_notes
+    from audio_score_tool.notation_backend import _verovio_toolkit, musicxml_to_midi
+    from audio_score_tool.vocal_evidence import part_notes
+
+    played = midi_notes(musicxml_to_midi(target, tmp_path / "key-tie.mid"))
+    assert [(n.pitch, n.onset, n.offset) for n in played] == [(70, 0, 4)]
+    observed = part_notes(score, score.parts[0])
+    assert len(observed) == 1 and observed[0]["measure"] == "1"
+    assert observed[0]["end_seconds"] == 4
+    toolkit = _verovio_toolkit()
+    assert toolkit.loadFile(str(target))
+    toolkit.renderToSVG(1)
+    assert "ties left open" not in capfd.readouterr().err
+
+
 def test_official_lab_preserves_inversion_and_meter_changes():
     payload = normalize_native_result({"labs": {
         "chord": "0\t1\tC:maj/3\n1\t2\tG:sus4(b7)",

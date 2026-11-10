@@ -1,6 +1,7 @@
 """Import the official model's notated Vocal voice, retaining its raw predictions."""
 from __future__ import annotations
 
+import copy
 import json
 import math
 import re
@@ -86,6 +87,20 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
         raise ValueError("SheetSage2 did not produce a vocal melody")
     part = score.parts[0]
     part.partName = "Vocal"
+    performed = list(part.recurse().getElementsByClass(note.Note))
+    respellings = 0
+    for previous, current in zip(performed, performed[1:]):
+        if (previous.tie and previous.tie.type in {"start", "continue"}
+                and current.tie and current.tie.type in {"continue", "stop"}
+                and previous.pitch.ps == current.pitch.ps
+                and previous.pitch.nameWithOctave != current.pitch.nameWithOctave
+                and abs(float(previous.getOffsetInHierarchy(part) + previous.quarterLength
+                              - current.getOffsetInHierarchy(part))) < 1e-8):
+            # Keep one written pitch through a tied key change; raw ABC is unchanged.
+            current.pitch = copy.deepcopy(previous.pitch)
+            if current.pitch.accidental is not None:
+                current.pitch.accidental.displayStatus = True
+            respellings += 1
     measures = list(part.getElementsByClass(stream.Measure))
     playback_data = json.loads(playback.read_text())
     mapping = playback_data.get("measures") if isinstance(playback_data, dict) else None
@@ -161,6 +176,7 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
         raise ValueError("MusicXML serialization changed the model's measure grid")
     return {"model_revision": MODEL_REVISION, "checkpoint_sha256": CHECKPOINT_SHA256,
             "measures": len(measures), "vocal_notes": len(list(part.recurse().getElementsByClass(note.Note))),
+            "enharmonic_tie_respellings": respellings,
             "chord_symbols": len(list(part.recurse().getElementsByClass(harmony.ChordSymbol))),
             "timing": "model_notation_with_per_measure_audio_clock",
             "initial_audio_offset_seconds": initial_offset,
