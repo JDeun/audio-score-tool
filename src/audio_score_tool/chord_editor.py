@@ -68,6 +68,7 @@ _SUFFIX_BY_KIND = {
     "diminished-seventh": "dim7",
     "augmented": "aug",
     "suspended-fourth": "sus4",
+    "suspended-fourth-seventh": "7sus4",
     "suspended-second": "sus2",
     "half-diminished": "m7b5",
     "power": "5",
