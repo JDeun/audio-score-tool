@@ -63,18 +63,20 @@ def test_native_lead_preserves_audio_structure_without_outer_separation(tmp_path
 
         def transcribe(self, audio, output_dir, **kwargs):
             artifacts = super().transcribe(audio, output_dir, **kwargs)
-            (output_dir / "analysis.json").write_text(json.dumps({
+            analysis = {
                 "chords": [{"time_seconds": 0, "label": "C:maj"}],
                 "downbeats": [{"time_seconds": 0}],
                 "meter": "3/4",
                 "beats": [{"time_seconds": at, "beat": beat, "numerator": 3, "denominator": 4}
                           for at, beat in ((0, 1), (.5, 2), (1, 3), (1.5, 1))],
-            }))
+            }
             if engine_key == "vocal_lead_v1":
+                analysis.update(clock_provider="beat-this", nominal_tempo_bpm=120)
                 (output_dir / "stems").mkdir()
                 (output_dir / "stems/vocals.wav").write_bytes(b"vocal waveform")
                 (output_dir / "interpretation.json").write_text(json.dumps({
                     "unrepresented_note_indices": [0,2]}))
+            (output_dir / "analysis.json").write_text(json.dumps(analysis))
             return artifacts
 
     audio = tmp_path / "song.wav"
@@ -90,5 +92,7 @@ def test_native_lead_preserves_audio_structure_without_outer_separation(tmp_path
     assert structure["meter_source"] == "sheetsage2_audio_model"
     assert structure["tempo_bpm"] == 120
     assert structure["meter_numerator"] == 3
+    expected_tempo_source = "beat_this_audio_grid" if engine_key == "vocal_lead_v1" else "sheetsage2_audio_grid"
+    assert structure["tempo_source"] == expected_tempo_source
     if engine_key == "vocal_lead_v1":
         assert any("짧은 음표 2개" in warning for warning in result.warnings)
