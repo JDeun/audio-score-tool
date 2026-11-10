@@ -33,3 +33,10 @@ def test_muscriptor_cannot_be_commercial_default():
 
 def test_yourmt3_alias_uses_mt3_infer_policy():
     assert policy_for_engine("yourmt3").engine_key == "mt3_infer"
+
+
+def test_fixed_vocal_recipe_is_experimental_until_original_song_quality_approval():
+    policy = policy_for_engine("vocal_lead_v1")
+    assert not policy.default_eligible and not policy.commercial_eligible
+    with pytest.raises(EnginePromotionError, match="cannot be promoted"):
+        assert_default_promotion("vocal_lead_v1", usage_mode="personal", tier2_approved=True)

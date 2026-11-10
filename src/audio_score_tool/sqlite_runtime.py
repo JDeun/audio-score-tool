@@ -8,14 +8,22 @@ from .paths import database_path
 _BUSY_TIMEOUT_MS = 10_000
 
 
+class _ClosingConnection(sqlite3.Connection):
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            return super().__exit__(exc_type, exc_value, traceback)
+        finally:
+            self.close()
+
+
 def connect_sqlite(path: Path, *, row_factory: bool = False) -> sqlite3.Connection:
-    """Open an application SQLite connection with consistent runtime pragmas.
+    """Open a connection that commits/rolls back and closes at context exit.
 
     ``journal_mode=WAL`` is persistent at the database-file level and is configured by
     :func:`configure_sqlite`. ``busy_timeout`` and ``synchronous`` are connection-local,
     so every Store connection must apply them explicitly.
     """
-    conn = sqlite3.connect(path, timeout=_BUSY_TIMEOUT_MS / 1000)
+    conn = sqlite3.connect(path, timeout=_BUSY_TIMEOUT_MS / 1000, factory=_ClosingConnection)
     try:
         conn.execute(f"PRAGMA busy_timeout={_BUSY_TIMEOUT_MS}")
         conn.execute("PRAGMA synchronous=NORMAL")

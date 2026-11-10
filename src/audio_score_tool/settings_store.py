@@ -20,6 +20,8 @@ _ALLOWED = {
     "native_checkpoint",
     "sheetsage2_cmd",
     "sheetsage2_snapshot",
+    "fixed_lead_snapshot",
+    "fixed_vocal_cmd",
     "demucs_cmd",
     "whisperx_cmd",
     "yt_dlp_cmd",

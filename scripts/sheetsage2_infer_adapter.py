@@ -118,18 +118,91 @@ def normalize_native_result(result: dict) -> dict:
     return payload
 
 
+def rebuild_vocal_notation(model_dir: Path, context: Path, vocal_midi: Path, output: Path) -> dict:
+    """Use pinned notation code without loading MERT or running another model."""
+    import shutil
+
+    import pretty_midi
+
+    from audio_score_tool.lead_notation import vocal_grid
+    from audio_score_tool.metrics import midi_notes
+    from scripts.fetch_pinned_sheetsage2 import PINS, verify_files
+
+    verify_files(model_dir, PINS["model"]["files"])
+    sys.path.insert(0, str(model_dir.parent))
+    from model.midi_sheetsage2 import build_playback
+    from model.notation_sheetsage2 import build_rebuilt_abc_score_from_data, score_to_abc
+
+    rows = {}
+    for name in ("beats", "chords", "keys", "structures"):
+        path = context / "notation" / f"song_{name}.txt"
+        if (path.is_symlink() or path.parent.is_symlink() or not path.is_file()
+                or path.stat().st_size > 16 * 1024 * 1024):
+            raise ValueError("Missing or unsafe fixed-recipe notation context")
+        rows[name] = [line.split("\t") for line in path.read_text().splitlines() if line.strip()]
+    score = build_rebuilt_abc_score_from_data(pretty_midi.PrettyMIDI(), rows["beats"],
+                                             rows["chords"], rows["keys"], rows["structures"])
+    source = context / "playback.json"
+    if source.is_symlink() or not source.is_file() or source.stat().st_size > 16 * 1024 * 1024:
+        raise ValueError("Missing or unsafe fixed-recipe source clock")
+    duration = json.loads(source.read_text())["duration"]
+    if type(duration) not in (int, float) or not math.isfinite(duration) or duration <= 0:
+        raise ValueError("Invalid fixed-recipe source duration")
+    clipped = score.subbeat_times[-1] > duration
+    if clipped:
+        start, end = score.beats[-2].time, score.beats[-1].time
+        if not start < duration:
+            raise ValueError("Source duration does not cover the final notated beat")
+        tail = score.subbeat_times >= start
+        score.subbeat_times[tail] = start + (score.subbeat_times[tail] - start) * (duration - start) / (end - start)
+    cells, report = vocal_grid(midi_notes(vocal_midi), score.subbeat_times)
+    score.voice_arrs["Vocal"] = cells
+    report["grid_audio_seconds"] = score.subbeat_times.tolist()
+    report["terminal_beat_clipped"] = bool(clipped)
+    melody = pretty_midi.PrettyMIDI(str(vocal_midi))
+    for instrument in melody.instruments:
+        instrument.name = "Vocal"
+    playback, midis = build_playback(melody, rows["chords"], score, duration)
+    text = score_to_abc(score)
+    output.mkdir(parents=True, exist_ok=False)
+    (output / "score.abc").write_text(text)
+    (output / "playback.json").write_text(json.dumps(playback, indent=2) + "\n")
+    shutil.copy2(vocal_midi, output / "melody_vocal.mid")
+    for name, data in midis.items():
+        (output / f"{name}.mid").write_bytes(data)
+    (output / "notation").mkdir()
+    for name in rows:
+        shutil.copy2(context / "notation" / f"song_{name}.txt", output / "notation")
+    report["production_quality_approved"] = False
+    return report
+
+
 def main() -> int:
     if not __package__:
         sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
     parser = argparse.ArgumentParser()
     parser.add_argument("audio", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--model-dir", type=Path)
     parser.add_argument("--base-model-dir", type=Path)
+    parser.add_argument("--vocal-midi", type=Path)
+    parser.add_argument("--context-dir", type=Path)
     args = parser.parse_args()
     if os.environ.get("AST_USAGE_MODE", "research").lower() == "commercial":
         parser.error("SheetSage2 public weights are noncommercial")
+    if os.environ.get("AST_FIXED_LEAD_V1") == "1":
+        from audio_score_tool.fixed_lead_recipe import STRUCTURE_RUNTIME, require_runtime
+
+        require_runtime(STRUCTURE_RUNTIME)
+    if args.vocal_midi or args.context_dir:
+        if not (args.vocal_midi and args.context_dir and args.model_dir):
+            parser.error("Vocal notation requires --vocal-midi, --context-dir and --model-dir")
+        report = rebuild_vocal_notation(args.model_dir, args.context_dir, args.vocal_midi,
+                                       args.output.parent / "native")
+        args.output.write_text(json.dumps(report, indent=2) + "\n")
+        return 0
     if args.model_dir:
         if args.base_model_dir is None:
             parser.error("--model-dir requires --base-model-dir")

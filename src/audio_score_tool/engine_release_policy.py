@@ -21,6 +21,11 @@ class EngineReleasePolicy:
 
 
 _POLICIES = {
+    "vocal_lead_v1": EngineReleasePolicy(
+        engine_key="vocal_lead_v1", maturity="experimental", default_eligible=False,
+        commercial_eligible=False, requires_tier2_approval=True,
+        note="Fixed vocal/structure recipe; source accuracy and editing-cost approval pending.",
+    ),
     "sheetsage2": EngineReleasePolicy(
         engine_key="sheetsage2", maturity="experimental", default_eligible=False,
         commercial_eligible=False, requires_tier2_approval=True,
