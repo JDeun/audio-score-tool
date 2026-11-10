@@ -6,7 +6,7 @@
   "amt_prediction_source": "Existing cached YourMT3 and MR-MT3 predictions; newly inferred product CLI F0 is reused for selection",
   "actual_inference_cases": 40,
   "inference_failures": 0,
-  "actual_five_song_pipeline": "generation_and_exports_passed_fresh_validation_pending",
+  "actual_five_song_pipeline": "generation_exports_and_fresh_validation_contract_passed",
   "cloned_five_job_deletion": "passed",
   "five_song_product_evidence": "FIXED_TINY_FIVE_PRODUCT_2026-11-11.json",
   "final_quality_approved": false,
@@ -211,7 +211,7 @@
     54.169,
     881.142
   ],
-  "hz_validation": "20-cent floor/ceil bin range and \u00b120-cent triangular dither with small floating tolerance; values are not clamped",
+  "hz_validation": "20-cent floor/ceil bin range and ±20-cent triangular dither with small floating tolerance; values are not clamped",
   "tests": {
     "focused_qa_agent": {
       "passed": 52,
@@ -264,5 +264,20 @@
     "2113abf18ddfb0e789021b8e2a2e42743b80d82c51aaca5fe9d228636883a239",
     "23badef22642b2e00b676cf3b998d2f2d2d1ee9949888dcd6f038b0b6621b9db",
     "add1fc90659541163158bf025eeb0c09b7f738bdfcc812a835654ca1e8544b04"
-  ]
+  ],
+  "fresh_five_song_validation": {
+    "status": "completed",
+    "report_sha256": "e0c2a3314e35321c7b421b43cb7db3593c2077cb53bf556ed827abf1576e98e8",
+    "script_sha256": "10733043ba8ea2ccd0bf18d309c9654bc0a6a3717fcdacf6ca9e034922b4c275",
+    "source_file_sha256": {
+      "src/audio_score_tool/validation_api.py": "b0050c76de27876e3524c52ad080928dab5c4be795c95f142e9d58e9de984512",
+      "src/audio_score_tool/lead_audio_validation.py": "5739bac18cf61775ecc652e5f05bf9b13dc7a8df2a9726e985a9109a897f310b",
+      "src/audio_score_tool/vocal_evidence.py": "466357ac96940d1d73bacebfb7e094a37b0780dd729547f4e1022542d42eaf76",
+      "src/audio_score_tool/fixed_vocal_infer.py": "d1a997d40d9d2f65b048c2c8ae9fc437af9f19a5dafde4594d2d8896aea72e2d",
+      "src/audio_score_tool/runner.py": "75bb18d676abfadd79d2e5056685ebccd28121010aac39b1adf7304b95c3084d"
+    },
+    "cases": 5,
+    "details": "FIXED_TINY_FIVE_PRODUCT_2026-11-11.json",
+    "quality_approved": false
+  }
 }

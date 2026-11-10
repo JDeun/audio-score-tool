@@ -18,7 +18,24 @@ The selected MIDI files were byte-identical to the previous five-song run in all
 
 A subsequent clone-only Job deletion check passed for all five, retaining 258 evidence files. Every preserved manifest entry was rechecked against the cloned file and the corresponding original Job file; source audio and exports also matched their recorded hashes. The original QA workspace remained intact.
 
-Fresh validation is **pending**; no result is claimed here. The exported PDF page counts above use this run’s publication settings and are not a comparison with previews made under other settings. Neither the original-song transcription nor commercial quality is approved.
+The exported PDF page counts above use this run’s publication settings and are not a comparison with previews made under other settings. Neither the original-song transcription nor commercial quality is approved.
+
+## Fresh acoustic validation
+
+After clone-only Job deletion, the actual validation API ran a fresh Demucs separation and a fresh Tiny inference once per song. All five returned HTTP 200 and preserved the source audio, canonical score and revision. “Passed” describes execution and preservation, not musical accuracy. SoundFont resynthesis was skipped because no SoundFont was configured.
+
+| Case | API | Demucs / Tiny | Seconds | Compared / predicted | Coverage | Consistent | Octave / pitch warnings | Chord intervals / spectral warnings |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| tinashe-me-so-bad | 200 | 1 / 1 | 156.981 | 377 / 545 | 0.6917 | 330 | 8 / 39 | 159 / 22 |
+| twice-fancy | 200 | 1 / 1 | 162.749 | 546 / 695 | 0.7856 | 505 | 6 / 35 | 181 / 2 |
+| green-day-american-idiot | 200 | 1 / 1 | 131.370 | 183 / 308 | 0.5942 | 173 | 3 / 7 | 277 / 1 |
+| ham-boo-young-my-song | 200 | 1 / 1 | 225.395 | 328 / 551 | 0.5953 | 296 | 0 / 32 | 171 / 3 |
+| younha-event-horizon | 200 | 1 / 1 | 224.548 | 486 / 594 | 0.8182 | 478 | 0 / 8 | 149 / 4 |
+
+These are advisory observations over the compared subset. Pitch and spectral warnings are not confirmed errors; chord warnings are not WCSR. No automatic correction was made, and original-song accuracy and quality approval remain unavailable.
+
+Fresh report SHA-256: `e0c2a3314e35321c7b421b43cb7db3593c2077cb53bf556ed827abf1576e98e8`; validation script SHA-256: `10733043ba8ea2ccd0bf18d309c9654bc0a6a3717fcdacf6ca9e034922b4c275`. The metadata JSON records source hashes and per-case runtime receipts. Source code, weights and script matched their pre-run hashes after completion.
+
 
 ## Receipts and hashes
 
