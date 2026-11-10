@@ -1,0 +1,397 @@
+{
+  "source_reports_sha256": {
+    "torchcrepe-note-calibration-v1": "7e79442e18a854484280f34e39dfbd446be064f498b15cd7adb5c71a14edc8e7",
+    "five-crepe-crosscheck-v1": "135af48c758d2d43f75bbbb82dc8de11d18894cc90b52483fdb0929f641a9d46",
+    "vocal-verifier-calibration-v1": "e1dad338dcae66441feddfd77039630fb22b08ef886097fe1eb9ceee4a52f69e"
+  },
+  "archive_sha256": "e0d6b99d3f9c594afe5ae5c4d7bdacebe569e53b809e90b89d1c771c4f9990e3",
+  "scope": {
+    "calibration_recordings": 40,
+    "annotators_per_recording": 2,
+    "same_archive_audio_and_annotation_sha256_verified": true,
+    "surrogate": "human note Hz rounded to nearest MIDI semitone; separate from original-Hz primary benchmark",
+    "acoustic_verification": "cached Demucs vocal stem, no new separation or AMT inference",
+    "ground_truth_for_five_songs": false,
+    "automatic_pitch_correction": false
+  },
+  "model": {
+    "fmin": 55,
+    "fmax": 880,
+    "frame_hop_seconds": 0.01,
+    "note_segmentation": false,
+    "reference_boundary_used_for_prediction": false,
+    "weights": {
+      "git_blob": "18d881163b9f7ddf8daf0709c75cf204f5570da5",
+      "sha256": "d4993eea36ed1a0ad9ac549c740dae5265b049ce72004f00c2f59e01c0be8432",
+      "bytes": 1962363
+    },
+    "weights_source_revision": "19e2ec3d494c0797a5ff2a11408ec5838fba6681",
+    "decoder": "viterbi",
+    "periodicity_threshold": 0.21,
+    "silence_db": -60,
+    "model_lifecycle": "lazy load on first recording; retained afterwards"
+  },
+  "runtime": {
+    "python": "3.11.15",
+    "torch": "2.7.1",
+    "torchaudio": "2.7.1",
+    "torchcrepe": "0.0.24",
+    "resampy": "0.4.3",
+    "numpy": "2.4.6",
+    "librosa": "0.11.0",
+    "device": "cpu",
+    "threads": 2,
+    "seed": 0
+  },
+  "scripts_sha256": {
+    "calibration": "cc44068ba7958088027ac701d35a1b50a94eed70b295770fe169ee7955e27d46",
+    "five_song": "63075d184f70873b367f5c974d10751eb00b5923f6a2bf83258daadf950bc19d",
+    "predictor": "0265be97c1f891816da30e75fa145a58a1972636a5729fcb1ccc761665c52465",
+    "compare_notes_module": "c0a146d9ee974f6162060d9e1be905b73f23bb8b28f55c774fa183c8f3d6c3b8"
+  },
+  "calibration": {
+    "yin_surrogate": {
+      "predicted_notes": 4113,
+      "compared_notes": 2096,
+      "consistent_notes": 1926,
+      "octave_suspects": 6,
+      "pitch_suspects": 164
+    },
+    "tiny_surrogate": {
+      "predicted_notes": 4113,
+      "compared_notes": 2935,
+      "consistent_notes": 2702,
+      "octave_suspects": 5,
+      "pitch_suspects": 228,
+      "observation_rate": 0.7135910527595429,
+      "abstention_rate": 0.28640894724045707,
+      "octave_warning_rate_compared": 0.0017035775127768314,
+      "pitch_warning_rate_compared": 0.0776831345826235,
+      "any_warning_rate_compared": 0.07938671209540034
+    },
+    "tiny_selected": {
+      "predicted_notes": 1809,
+      "compared_notes": 1197,
+      "consistent_notes": 939,
+      "octave_suspects": 2,
+      "pitch_suspects": 256,
+      "observation_rate": 0.6616915422885572,
+      "abstention_rate": 0.3383084577114428,
+      "octave_warning_rate_compared": 0.001670843776106934,
+      "pitch_warning_rate_compared": 0.21386800334168754,
+      "any_warning_rate_compared": 0.21553884711779447
+    },
+    "tiny_plus_12_injection": {
+      "predicted_notes": 4113,
+      "compared_notes": 2935,
+      "consistent_notes": 5,
+      "octave_suspects": 2702,
+      "pitch_suspects": 228,
+      "observation_rate": 0.7135910527595429,
+      "abstention_rate": 0.28640894724045707,
+      "octave_warning_rate_compared": 0.9206132879045996,
+      "pitch_warning_rate_compared": 0.0776831345826235,
+      "any_warning_rate_compared": 0.9982964224872232
+    }
+  },
+  "five_song_aggregate": {
+    "selected": {
+      "predicted_notes": 2813,
+      "compared_notes": 2152,
+      "consistent_notes": 2001,
+      "octave_suspects": 17,
+      "pitch_suspects": 134,
+      "coverage": 0.7650195520796302,
+      "stable_category_distribution": {
+        "consistent": 2001,
+        "pitch": 134,
+        "octave": 17
+      },
+      "observed_minus_notated_semitones": {
+        "median": 0.001,
+        "p10": -0.2229,
+        "p90": 0.1999000000000001
+      },
+      "plus_12_warning_count": 15,
+      "minus_12_warning_count": 2
+    },
+    "final": {
+      "predicted_notes": 2693,
+      "compared_notes": 1913,
+      "consistent_notes": 1774,
+      "octave_suspects": 16,
+      "pitch_suspects": 123,
+      "coverage": 0.7103601930932046,
+      "stable_category_distribution": {
+        "consistent": 1774,
+        "pitch": 123,
+        "octave": 16
+      },
+      "observed_minus_notated_semitones": {
+        "median": 0.0,
+        "p10": -0.2268,
+        "p90": 0.19379999999999997
+      },
+      "plus_12_warning_count": 14,
+      "minus_12_warning_count": 2
+    }
+  },
+  "five_song_cases": [
+    {
+      "id": "younha-event-horizon",
+      "sha256": {
+        "source": "2d84bd77253c96851db8bde4cd76de0b7bf7101cf07f79ff8dbf2d03f1d23dce",
+        "stem": "9e866cead0f1f90a42b09b76928979eb456952b2bded2d4292c33fda4c7132fa",
+        "selected": "e34cfc781c5a73e4a5d76425a7545e033f1ef6e2731757eb24eacd0dbc4d03b3",
+        "interpretation": "19f3ee3da5d90a20e700a48d6dacae925b58d55e1c2aa214782e14abbabd322b",
+        "final": "562f7a7f1fbf9ea94b78fa6799e5c999817a892e1a5f214a27a48c4289ae4472"
+      },
+      "arms": {
+        "selected": {
+          "predicted_notes": 623,
+          "compared_notes": 545,
+          "consistent_notes": 540,
+          "octave_suspects": 0,
+          "pitch_suspects": 5,
+          "coverage": 0.8747993579454254,
+          "stable_category_distribution": {
+            "consistent": 540,
+            "pitch": 5
+          },
+          "observed_minus_notated_semitones": {
+            "median": 0.003,
+            "p10": -0.1396,
+            "p90": 0.10360000000000001
+          },
+          "plus_12_warning_count": 0,
+          "minus_12_warning_count": 0
+        },
+        "final": {
+          "predicted_notes": 594,
+          "compared_notes": 484,
+          "consistent_notes": 473,
+          "octave_suspects": 0,
+          "pitch_suspects": 11,
+          "coverage": 0.8148148148148148,
+          "stable_category_distribution": {
+            "consistent": 473,
+            "pitch": 11
+          },
+          "observed_minus_notated_semitones": {
+            "median": -0.0005,
+            "p10": -0.149,
+            "p90": 0.10769999999999999
+          },
+          "plus_12_warning_count": 0,
+          "minus_12_warning_count": 0
+        }
+      }
+    },
+    {
+      "id": "tinashe-me-so-bad",
+      "sha256": {
+        "source": "f39788b3075e9117661481470289c6e79ce25171f7a256936a2167bdae49fd65",
+        "stem": "8caf762df670794ef8916afc85d0bb673a1944f25cfb79f50b68062bbba0e4c8",
+        "selected": "7a10754b9ea56d27c4247c3036006e87e0fdd0942779512695f9fc77ca921085",
+        "interpretation": "98c3354499eb1a6cfd2e3e433b400c6a6682b42c8af0173e7171ac87559250a3",
+        "final": "101bbbedfdf2427e147d169f7e5b37cecf88f4a8f3029ee797a08a795feda806"
+      },
+      "arms": {
+        "selected": {
+          "predicted_notes": 564,
+          "compared_notes": 420,
+          "consistent_notes": 366,
+          "octave_suspects": 9,
+          "pitch_suspects": 45,
+          "coverage": 0.7446808510638298,
+          "stable_category_distribution": {
+            "consistent": 366,
+            "octave": 9,
+            "pitch": 45
+          },
+          "observed_minus_notated_semitones": {
+            "median": -0.02,
+            "p10": -0.33649999999999974,
+            "p90": 0.22620000000000004
+          },
+          "plus_12_warning_count": 8,
+          "minus_12_warning_count": 1
+        },
+        "final": {
+          "predicted_notes": 545,
+          "compared_notes": 372,
+          "consistent_notes": 326,
+          "octave_suspects": 8,
+          "pitch_suspects": 38,
+          "coverage": 0.6825688073394496,
+          "stable_category_distribution": {
+            "consistent": 326,
+            "octave": 8,
+            "pitch": 38
+          },
+          "observed_minus_notated_semitones": {
+            "median": -0.028999999999999998,
+            "p10": -0.3343,
+            "p90": 0.1978000000000001
+          },
+          "plus_12_warning_count": 7,
+          "minus_12_warning_count": 1
+        }
+      }
+    },
+    {
+      "id": "twice-fancy",
+      "sha256": {
+        "source": "5e1b5613b3863ea3babd2dc22bc9fa8ba62deb2ae44d48c8885f832ab56f01ec",
+        "stem": "6d3ed5b8af0d6026c2b5f371cc8f85e76e5cef779e74d35f5251cfebdc642ae7",
+        "selected": "23c94429600851d71371a29e1c66834b20a3158feb9cef55bd0909566f9e8e23",
+        "interpretation": "c74074257cf99e2630d23ecd0c8d56d47de38849ffa103536d1478e04b92d2f5",
+        "final": "22e3e992b56b7e27a53bf93591d737bfcdefee22c796df2543a96f75c7fb5f16"
+      },
+      "arms": {
+        "selected": {
+          "predicted_notes": 710,
+          "compared_notes": 551,
+          "consistent_notes": 518,
+          "octave_suspects": 5,
+          "pitch_suspects": 28,
+          "coverage": 0.776056338028169,
+          "stable_category_distribution": {
+            "consistent": 518,
+            "pitch": 28,
+            "octave": 5
+          },
+          "observed_minus_notated_semitones": {
+            "median": 0.013,
+            "p10": -0.168,
+            "p90": 0.165
+          },
+          "plus_12_warning_count": 4,
+          "minus_12_warning_count": 1
+        },
+        "final": {
+          "predicted_notes": 695,
+          "compared_notes": 543,
+          "consistent_notes": 504,
+          "octave_suspects": 5,
+          "pitch_suspects": 34,
+          "coverage": 0.781294964028777,
+          "stable_category_distribution": {
+            "consistent": 504,
+            "pitch": 34,
+            "octave": 5
+          },
+          "observed_minus_notated_semitones": {
+            "median": 0.011,
+            "p10": -0.1808,
+            "p90": 0.17700000000000005
+          },
+          "plus_12_warning_count": 4,
+          "minus_12_warning_count": 1
+        }
+      }
+    },
+    {
+      "id": "green-day-american-idiot",
+      "sha256": {
+        "source": "aedb875ba145c1f5cd21a0a86713d11dff1de9701512b8f1c7e4a40fa4fdf680",
+        "stem": "f5c6cf6c40c708ee9cc49381f4355f5221840cfe0efec552016bebbb20828e62",
+        "selected": "8742eed2010dbeb2eb7828f08fb8edbcd4ad4721c348af4ea9926dfca5d6c64d",
+        "interpretation": "763e24c8f7e6d7a4ad2c04841dbc70a1c72107571f513cdb7f96f97e2bacc764",
+        "final": "c38523502aec4d5fcd1acc8324efc088acbb5c2f3e58c73661e3ce196165c1a7"
+      },
+      "arms": {
+        "selected": {
+          "predicted_notes": 311,
+          "compared_notes": 189,
+          "consistent_notes": 178,
+          "octave_suspects": 3,
+          "pitch_suspects": 8,
+          "coverage": 0.6077170418006431,
+          "stable_category_distribution": {
+            "consistent": 178,
+            "pitch": 8,
+            "octave": 3
+          },
+          "observed_minus_notated_semitones": {
+            "median": 0.045,
+            "p10": -0.2018,
+            "p90": 0.3052
+          },
+          "plus_12_warning_count": 3,
+          "minus_12_warning_count": 0
+        },
+        "final": {
+          "predicted_notes": 308,
+          "compared_notes": 182,
+          "consistent_notes": 172,
+          "octave_suspects": 3,
+          "pitch_suspects": 7,
+          "coverage": 0.5909090909090909,
+          "stable_category_distribution": {
+            "consistent": 172,
+            "pitch": 7,
+            "octave": 3
+          },
+          "observed_minus_notated_semitones": {
+            "median": 0.033,
+            "p10": -0.18839999999999998,
+            "p90": 0.26620000000000005
+          },
+          "plus_12_warning_count": 3,
+          "minus_12_warning_count": 0
+        }
+      }
+    },
+    {
+      "id": "ham-boo-young-my-song",
+      "sha256": {
+        "source": "871118a06f5021b94f6e56c9066fca50670582f5e530bcee9290e2db270d8ac7",
+        "stem": "43e52699023a58922a508875187f3f91b33817ff7e01f292dad795c9d61566c7",
+        "selected": "b377400654fc797627dc9aaee294180c81df7f1f312afb984d1b45cab3cffac5",
+        "interpretation": "ca0937d1ca630020b2cc667d1040b145a9605d12ba0c3a4617f72e498387536f",
+        "final": "4077450e23910160ecdb1cdb20b67331e1f65a3ed57eb037e261ebd3eb5332f1"
+      },
+      "arms": {
+        "selected": {
+          "predicted_notes": 605,
+          "compared_notes": 447,
+          "consistent_notes": 399,
+          "octave_suspects": 0,
+          "pitch_suspects": 48,
+          "coverage": 0.7388429752066116,
+          "stable_category_distribution": {
+            "consistent": 399,
+            "pitch": 48
+          },
+          "observed_minus_notated_semitones": {
+            "median": -0.016,
+            "p10": -0.4006,
+            "p90": 0.26460000000000017
+          },
+          "plus_12_warning_count": 0,
+          "minus_12_warning_count": 0
+        },
+        "final": {
+          "predicted_notes": 551,
+          "compared_notes": 332,
+          "consistent_notes": 299,
+          "octave_suspects": 0,
+          "pitch_suspects": 33,
+          "coverage": 0.6025408348457351,
+          "stable_category_distribution": {
+            "consistent": 299,
+            "pitch": 33
+          },
+          "observed_minus_notated_semitones": {
+            "median": -0.003,
+            "p10": -0.3615,
+            "p90": 0.2647000000000001
+          },
+          "plus_12_warning_count": 0,
+          "minus_12_warning_count": 0
+        }
+      }
+    }
+  ]
+}
