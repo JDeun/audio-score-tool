@@ -727,6 +727,9 @@ def test_timed_chord_rows_keep_native_quality_through_editor(tmp_path, label, pi
     ('Cm(maj7)/Eb', 0, 3, {0,3,7,11}),
     ('C##m(maj7)/G##', 2, 9, {2,5,9,1}),
     ('Cbbm(maj7)/Gbb', 10, 5, {10,1,5,9}),
+    ('C:minmaj7/b3', 0, 3, {0,3,7,11}),
+    ('C:maj6/3', 0, 4, {0,4,7,9}),
+    ('C:min6/b3', 0, 3, {0,3,7,9}),
 ])
 def test_timed_chord_rows_keep_flat_double_and_slash_bass(tmp_path, label, root_pc, bass_pc, pcs):
     from audio_score_tool.chord_editor import set_chord_at_note
