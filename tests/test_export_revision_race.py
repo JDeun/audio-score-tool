@@ -327,3 +327,51 @@ def test_export_guard_does_not_recheckout_or_reparse_canonical_score(state, monk
     assert response.status_code == 200, response.text
     assert response.json()["parts"] == response.json()["song"]["parts"]
     assert [part["part_id"] for part in response.json()["parts"]] == ["P1", "P2"]
+
+
+def test_legacy_suspended_seventh_is_fixed_only_in_export_copy(state, monkeypatch):
+    from music21 import harmony, note, stream
+
+    from audio_score_tool.chord_listing import list_chords
+    from audio_score_tool.metrics import midi_notes
+    from audio_score_tool.notation_backend import _verovio_toolkit, musicxml_to_midi, render_pdf
+
+    client, songs, _worker, _publication, root = state
+    synthetic = stream.Score()
+    part = stream.Part()
+    for _ in range(29):
+        part.append(harmony.ChordSymbol('E7sus4'))
+        part.append(note.Note('C4', quarterLength=1))
+    synthetic.append(part)
+    canonical = root / 'legacy.musicxml'
+    synthetic.write('musicxml', fp=str(canonical))
+    original = canonical.read_text()
+    assert original.count('suspended-fourth-seventh') == 29
+    with songs._connect() as conn:
+        conn.execute('UPDATE songs SET current_score_xml=? WHERE song_id=?', (original, 'song-1'))
+    before = songs.score_xml('song-1')
+    revision = songs.get('song-1')['revision']
+    assert len(list_chords(canonical)) == 29
+    assert all(c['symbol'] == 'E7sus4' for c in list_chords(canonical))
+    old_midi = musicxml_to_midi(canonical, root / 'before.mid')
+    monkeypatch.setattr(notation_export_api, 'render_pdf', render_pdf)
+    response = client.post('/api/songs/song-1/export', json={'formats': ['musicxml', 'pdf', 'midi']})
+    assert response.status_code == 200, response.text
+    exported = songs.export_root / 'song-1' / 'score.musicxml'
+    tree = ET.parse(exported)
+    assert not tree.findall('.//kind[.="suspended-fourth-seventh"]')
+    assert len(tree.findall('.//kind[.="suspended-fourth"]')) == 29
+    assert len(tree.findall('.//degree[degree-value="7"][degree-alter="-1"][degree-type="add"]')) == 29
+    assert songs.score_xml('song-1') == before and songs.get('song-1')['revision'] == revision
+    assert canonical.read_text() == original
+    assert [(n.pitch, n.onset, n.offset) for n in midi_notes(old_midi)] == [
+        (n.pitch, n.onset, n.offset) for n in midi_notes(songs.export_root / 'song-1' / 'score.mid')]
+    assert (songs.export_root / 'song-1' / 'score.pdf').read_bytes().startswith(b'%PDF')
+    toolkit = _verovio_toolkit()
+    assert toolkit.loadFile(str(exported))
+    symbols = []
+    for page in range(1, toolkit.getPageCount() + 1):
+        svg = ET.fromstring(toolkit.renderToSVG(page))
+        symbols.extend(''.join(''.join(e.itertext()).split()).replace('\uea64', '♭')
+                       for e in svg.iter() if 'harm' in e.get('class', '').split())
+    assert symbols == ['Esus4(♭7)'] * 29

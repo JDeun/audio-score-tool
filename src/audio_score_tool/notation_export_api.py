@@ -6,6 +6,7 @@ import re
 import shutil
 import tempfile
 import uuid
+import xml.etree.ElementTree as ET
 from contextlib import ExitStack
 from pathlib import Path
 from typing import Literal
@@ -13,6 +14,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, field_validator
 
+from .musicxml_metadata_projection import normalize_suspended_seventh
 from .musicxml_parts import extract_part_musicxml, extract_parts_musicxml, list_score_parts
 from .notation_backend import (
     backend_status,
@@ -165,6 +167,9 @@ def build_exports_v3(
                 publication if isinstance(publication, dict) else {},
             )
             apply_publication_layout(score, title=snapshot.title, settings=publication)
+            tree = ET.parse(score)
+            normalize_suspended_seventh(tree.getroot())
+            tree.write(score, encoding="utf-8", xml_declaration=True)
             basename = "selected-score" if selection else "score"
             receipt = {
                 "export_id": uuid.uuid4().hex,
