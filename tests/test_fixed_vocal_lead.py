@@ -5,6 +5,7 @@ import hashlib
 import json
 import shutil
 import sys
+import wave
 from dataclasses import replace
 from pathlib import Path
 
@@ -25,6 +26,7 @@ from audio_score_tool.job_transcription_settings import (
     transcription_job_selection,
 )
 from audio_score_tool.metrics import midi_notes
+from audio_score_tool.runner import command_exists, run_command
 from audio_score_tool.score_requests import needs_stem_separation, validate_engine_score_mode
 from audio_score_tool.transcription_engine import FixedVocalLeadEngine, SheetSage2Engine
 
@@ -44,12 +46,19 @@ def snapshot(tmp_path):
     return root
 
 
-def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path, monkeypatch):
+@pytest.mark.parametrize("container", [False, True])
+def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path, monkeypatch, container):
     from audio_score_tool.sheetsage2_score import CHECKPOINT_SHA256, MODEL_REVISION
 
     root = snapshot(tmp_path)
-    audio = tmp_path / "source.wav"
-    audio.write_bytes(b"owned source waveform")
+    audio = tmp_path / ("source.m4a" if container else "source.wav")
+    if container:
+        ffmpeg = Settings().ffmpeg_cmd
+        if not command_exists(ffmpeg):
+            pytest.skip("FFmpeg unavailable")
+        run_command(ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:duration=1", "-c:a", "aac", audio])
+    else:
+        audio.write_bytes(b"owned source waveform")
     settings = Settings(transcription_engine=ENGINE, fixed_lead_snapshot=root,
                         fixed_vocal_cmd="vocal-fixture", demucs_cmd="separator-fixture",
                         sheetsage2_cmd="structure-fixture")
@@ -58,7 +67,12 @@ def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path,
     monkeypatch.setattr(lead, "verify_separator", lambda repo: observed.append((repo.name, "pinned separator")))
 
     def structure(self, source, output, **kwargs):
-        assert source == audio
+        assert source == (tmp_path / "result/demucs-input.wav" if container else audio)
+        if container:
+            with wave.open(str(source), "rb") as decoded:
+                assert (decoded.getnchannels(), decoded.getsampwidth(), decoded.getframerate()) == (2, 2, 44100)
+                assert decoded.getnframes() >= 44100
+        observed.append(("model audio hash", hashlib.sha256(source.read_bytes()).hexdigest()))
         native = output / "native"
         native.mkdir(parents=True)
         (native / "score.abc").write_text(ABC.replace("C D E", "z3"))
@@ -72,10 +86,12 @@ def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path,
 
     monkeypatch.setattr(SheetSage2Engine, "analyze", structure)
     monkeypatch.setattr(SheetSage2Engine, "transcribe", lambda *a, **k: pytest.fail("S2 vocal is not the melody provider"))
-    monkeypatch.setattr(lead, "prepare_demucs_audio", lambda source, target, **kw: shutil.copy2(source, target) and target)
+    if not container:
+        monkeypatch.setattr(lead, "prepare_demucs_audio", lambda source, target, **kw: shutil.copy2(source, target) and target)
 
     def command(command, args, **kwargs):
         if command == "vocal-fixture" and args[0] == "separate":
+            assert args[1] == tmp_path / "result/demucs-input.wav"
             assert args[3:] == ["--snapshot", root]
             stems = args[2] / "htdemucs/source"
             stems.mkdir(parents=True)
@@ -95,6 +111,7 @@ def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path,
             observed.append("vocal inference")
         else:
             assert command == "structure-fixture"
+            assert args[0] == (tmp_path / "result/demucs-input.wav" if container else audio)
             assert args[args.index("--vocal-midi")+1].name == "selected.mid"
             native = args[1].parent / "native"
             native.mkdir()
@@ -118,6 +135,8 @@ def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path,
     assert receipt["status"] == "completed" and receipt["quality_approved"] is False
     assert receipt["notation_fidelity"]["matched_interpretation"] is True
     assert receipt["source_audio_sha256"] == hashlib.sha256(audio.read_bytes()).hexdigest()
+    assert receipt["model_audio_sha256"] == next(item[1] for item in observed if isinstance(item, tuple) and item[0] == "model audio hash")
+    assert receipt["model_audio_normalized"] is container
     report = json.loads((output / "notation-report.json").read_text())
     assert report["melody_provider"] == "yourmt3" and "model_revision" not in report
     analysis = json.loads((output / "analysis.json").read_text())
