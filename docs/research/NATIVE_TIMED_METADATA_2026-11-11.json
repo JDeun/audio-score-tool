@@ -248,5 +248,18 @@
   "subsequent_inversion_fix_scope": "Recognized sixth and minor-major-seventh chord-tone bass inversions; no such labels in the five original source chord files.",
   "subsequent_origin_inheritance_commit": "353e377",
   "source_slash_labels_previously_supported": 112,
-  "unsupported_harte_slash_policy": "Explicit failure; complete slash grammar support is not claimed."
+  "unsupported_harte_slash_policy": "Explicit failure; complete slash grammar support is not claimed.",
+  "bar_start_reminder_recheck": {
+    "source_commit": "51e5fd1",
+    "case_id": "tinashe-me-so-bad",
+    "original_labels": 159,
+    "pre_fix_labels": 120,
+    "restored_matching_bar_labels": 45,
+    "compressed_harmony_and_no_chord_timeline_unchanged": true,
+    "performed_notes": 545,
+    "midi_time_tolerance_seconds": 0.002,
+    "output_musicxml_sha256": "2542a96bd05e0233a19f75e41ef4450403f1e61c948036acacb7c291a5adc42f",
+    "output_midi_sha256": "101bbbedfdf2427e147d169f7e5b37cecf88f4a8f3029ee797a08a795feda806",
+    "report_sha256": "23a82c9ecc2257b852ff234d52338f58cb0d0993355e12196c59bd69a3021edf"
+  }
 }
