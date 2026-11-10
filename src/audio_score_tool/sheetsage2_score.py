@@ -194,8 +194,15 @@ def _restore_timed_metadata(score, part, root: Path, duration: float) -> dict:
         if last_end < duration - 1e-6 and previous is not None:
             changes.append((last_end, None))
         placed = []
-        for at, value in changes:
-            position, observation = placement(at)
+        origin = float(to_seconds(0.))
+        for index, (at, value) in enumerate(changes):
+            if (index == 0 and value is not None and at < origin - 1e-6
+                    and parsed[0][0] == at and parsed[0][1] > origin):
+                position = 0.
+                observation = {"source_seconds": at, "score_quarters": 0.,
+                               "residual_seconds": origin - at, "initial_harmony_inherited": True}
+            else:
+                position, observation = placement(at)
             observation["no_chord"] = value is None
             if position >= end_position - 1e-8:
                 receipt["collapsed_chord_events"].append(observation)

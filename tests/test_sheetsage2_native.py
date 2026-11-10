@@ -753,6 +753,21 @@ def test_timed_chord_before_audio_origin_fails_closed(tmp_path):
     (tmp_path / 'playback.json').write_text(json.dumps({'measures':[dict(start=1,end=3,score_start=0,score_end=1)]}))
     folder = tmp_path / 'notation'
     folder.mkdir()
-    (folder / 'song_chords.txt').write_text('0\t3\tC:maj\n')
+    (folder / 'song_chords.txt').write_text('0\t0.5\tC:maj\n0.5\t3\tG:maj\n')
     with pytest.raises(ValueError, match='outside the score audio clock'):
         import_native_lead_sheet(tmp_path, tmp_path/'score.musicxml')
+
+
+def test_timed_initial_chord_covering_audio_origin_is_inherited(tmp_path):
+    (tmp_path / 'score.abc').write_text('X:1\nM:4/4\nL:1/4\nK:C\nV: Vocal\nC4|]\n')
+    (tmp_path / 'playback.json').write_text(json.dumps({'measures':[dict(start=1,end=3,score_start=0,score_end=1)]}))
+    folder = tmp_path / 'notation'
+    folder.mkdir()
+    (folder / 'song_chords.txt').write_text('0\t2\tC:maj\n2\t3\tG:maj\n')
+    target = tmp_path/'score.musicxml'
+    report = import_native_lead_sheet(tmp_path, target)
+    first = report['timed_metadata']['chords'][0]
+    assert first['initial_harmony_inherited'] and first['source_seconds'] == 0
+    assert first['score_quarters'] == 0 and first['residual_seconds'] == pytest.approx(1)
+    symbols = list(converter.parse(target).recurse().getElementsByClass(harmony.ChordSymbol))
+    assert [c.root().pitchClass for c in symbols] == [0, 7]
