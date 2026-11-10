@@ -2,6 +2,7 @@ name: CPU Public Vocadito Candidates
 
 on:
   pull_request:
+    types: [opened, reopened]
     branches: [main]
     paths:
       - '.github/workflows/cpu-public-vocadito.yml'
