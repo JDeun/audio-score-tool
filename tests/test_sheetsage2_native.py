@@ -493,3 +493,29 @@ def test_suspended_seventh_is_visible_in_verovio_and_pdf(tmp_path):
     output = tmp_path / 'score.pdf'
     render_pdf(target, output)
     assert output.read_bytes().startswith(b'%PDF')
+
+
+@pytest.mark.parametrize('suffix', ['', 'm', 'dim', 'aug', '7', 'maj7', 'm7', 'dim7', 'm7b5',
+                                    'sus4', 'sus2', '6', 'm6', '7sus4', 'm(maj7)'])
+def test_native_chords_survive_listing_and_unchanged_edit(tmp_path, suffix):
+    from audio_score_tool.chord_editor import set_chord_at_note
+    from audio_score_tool.chord_listing import list_chords
+
+    (tmp_path / 'score.abc').write_text(f'X:1\nM:4/4\nL:1/4\nK:C\nV: Vocal\n"C{suffix}"C4|]\n')
+    (tmp_path / 'playback.json').write_text(json.dumps({'measures': [
+        dict(start=0, end=2, score_start=0, score_end=1)]}))
+    target = tmp_path / 'score.musicxml'
+    import_native_lead_sheet(tmp_path, target)
+
+    def signature():
+        symbol = list(converter.parse(target).recurse().getElementsByClass(harmony.ChordSymbol))[0]
+        return symbol.root().pitchClass, symbol.bass().pitchClass, {p.pitchClass for p in symbol.pitches}
+
+    before = signature()
+    chord = list_chords(target)[0]
+    if suffix == 'm7b5':
+        assert chord['symbol'] == 'Cm7b5'
+    if suffix == 'm(maj7)':
+        assert chord['symbol'] == 'Cm(maj7)'
+    set_chord_at_note(target, chord['note_id'], chord['symbol'])
+    assert signature() == before
