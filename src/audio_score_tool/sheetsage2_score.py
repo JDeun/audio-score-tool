@@ -10,6 +10,8 @@ import xml.etree.ElementTree as ET
 from fractions import Fraction
 from pathlib import Path
 
+from .musicxml_metadata_projection import normalize_suspended_seventh
+
 MODEL_REVISION = "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc"
 CHECKPOINT_SHA256 = "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274"
 BASE_REVISION = "d8ba1c745e733b3908ce6ad16ebeb17ac7600a42"
@@ -28,6 +30,8 @@ def _parse_vocal_abc(text):
     handler = NativeABCHandler(abcVersion=(2, 1, 0))
     text = re.sub(r'"[^"\n]*"|\[K:([^]\n]+)\]',
                   lambda match: f"\nK:{match.group(1)}\n" if match.group(1) else match.group(0), text)
+    text = re.sub(r'"([A-G](?:##|bb|#|b)?)m\(maj7\)(/[A-G](?:##|bb|#|b)?)?"',
+                  lambda match: f'"{match.group(1).replace("bb", "--")}mM7{(match.group(2) or "").replace("bb", "--")}"', text)
     handler.process(text)
     return translate.abcToStreamScore(handler)
 
@@ -210,6 +214,7 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
     score.write("musicxml", fp=str(target))
     # music21 omits this flag on tempo marks; serialize MusicXML's print-object.
     tree = ET.parse(target)
+    normalize_suspended_seventh(tree.getroot())
     xml_measures = tree.getroot().findall("./part/measure")
     for xml_measure in xml_measures:
         for direction in xml_measure.findall("direction"):

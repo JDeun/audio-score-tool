@@ -39,6 +39,8 @@ _KIND_BY_SUFFIX = {
     "+": "augmented",
     "sus": "suspended-fourth",
     "sus4": "suspended-fourth",
+    "7sus4": "suspended-fourth",
+    "sus4(b7)": "suspended-fourth",
     "sus2": "suspended-second",
     "m7b5": "half-diminished",
     "ø": "half-diminished",
@@ -142,6 +144,13 @@ def harmony_symbol(harmony: ET.Element, ns: str) -> str:
         if suffix is None:
             suffix = _SUFFIX_BY_KIND.get(kind.text or "", "")
 
+    if (kind is not None and kind.text == "suspended-fourth" and suffix in {"sus4", ""}
+            and any(d.findtext(f"{ns}degree-value") == "7"
+                    and d.findtext(f"{ns}degree-alter") == "-1"
+                    and d.findtext(f"{ns}degree-type") == "add"
+                    for d in harmony.findall(f"{ns}degree"))):
+        suffix = "7sus4"
+
     bass = harmony.find(f"{ns}bass")
     bass_text = ""
     if bass is not None:
@@ -190,6 +199,9 @@ def _build_harmony(ns: str, symbol: str) -> ET.Element:
 
     kind_attributes: dict[str, str] = {}
     suffix = str(parsed["suffix"] or "")
+    sus_seventh = suffix.replace("♭", "b") in {"7sus4", "sus4(b7)"}
+    if sus_seventh:
+        suffix = "sus4"
     if suffix:
         kind_attributes["text"] = suffix
     kind = ET.SubElement(harmony, f"{ns}kind", kind_attributes)
@@ -200,6 +212,11 @@ def _build_harmony(ns: str, symbol: str) -> ET.Element:
         ET.SubElement(bass, f"{ns}bass-step").text = str(parsed["bass_step"])
         if parsed["bass_alter"]:
             ET.SubElement(bass, f"{ns}bass-alter").text = str(parsed["bass_alter"])
+    if sus_seventh:
+        degree = ET.SubElement(harmony, f"{ns}degree")
+        ET.SubElement(degree, f"{ns}degree-value").text = "7"
+        ET.SubElement(degree, f"{ns}degree-alter").text = "-1"
+        ET.SubElement(degree, f"{ns}degree-type").text = "add"
     return harmony
 
 

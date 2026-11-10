@@ -349,3 +349,75 @@ def test_hybrid_metadata_overlay_preserves_all_multi_instrument_parts(tmp_path):
     assert len(result.parts) == 2
     assert performed_note_signature(target) == baseline
     assert merged["added"] == {"chords": 1, "keys": 1, "meter": 1}
+
+
+def test_suspended_seventh_harmony_is_standard_and_roundtrips(tmp_path):
+    import xml.etree.ElementTree as ET
+
+    source = tmp_path / 'source.musicxml'
+    score = stream.Score()
+    part = stream.Part()
+    part.append(note.Note('C4', quarterLength=4))
+    score.append(part)
+    score.write('musicxml', fp=str(source))
+    events = tmp_path / 'events.json'
+    events.write_text(json.dumps({'schema_version': 1, 'chords': [
+        {'time_seconds': 0, 'label': 'F#7sus4/C#'}]}))
+    target = tmp_path / 'hybrid.musicxml'
+    merge_sheetsage_musicxml(source, events, target, bpm=120)
+    tree = ET.parse(target)
+    h = tree.find('.//harmony')
+    assert h.findtext('kind') == 'suspended-fourth' and h.find('kind').get('text') == 'sus4'
+    assert h.findtext('root/root-alter') == '1'
+    assert [(d.findtext('degree-value'), d.findtext('degree-alter'), d.findtext('degree-type'))
+            for d in h.findall('degree')] == [('7', '-1', 'add')]
+    parsed = converter.parse(target)
+    chord = list(parsed.recurse().getElementsByClass(harmony.ChordSymbol))[0]
+    assert {p.pitchClass for p in chord.pitches} == {1, 4, 6, 11}
+    again = tmp_path / 'again.musicxml'
+    parsed.write('musicxml', fp=str(again))
+    assert ET.parse(again).findtext('.//harmony/kind') == 'suspended-fourth'
+    assert ET.parse(again).findtext('.//harmony/degree/degree-alter') == '-1'
+
+
+def test_suspended_seventh_preserves_existing_degrees():
+    import xml.etree.ElementTree as ET
+
+    from audio_score_tool.musicxml_metadata_projection import normalize_suspended_seventh
+
+    root = ET.fromstring('''<score-partwise><part><measure><harmony>
+        <root><root-step>F</root-step><root-alter>1</root-alter></root>
+        <kind>suspended-fourth-seventh</kind><bass><bass-step>C</bass-step><bass-alter>1</bass-alter></bass>
+        <degree><degree-value>9</degree-value><degree-alter>-1</degree-alter><degree-type>add</degree-type></degree>
+        </harmony></measure></part></score-partwise>''')
+    normalize_suspended_seventh(root)
+    harmony_xml = root.find('.//harmony')
+    assert harmony_xml.findtext('bass/bass-alter') == '1'
+    assert [(x.findtext('degree-value'), x.findtext('degree-alter'))
+            for x in harmony_xml.findall('degree')] == [('7', '-1'), ('9', '-1')]
+
+
+def test_suspended_seventh_preserves_custom_text_and_namespace():
+    import xml.etree.ElementTree as ET
+
+    from audio_score_tool.musicxml_metadata_projection import normalize_suspended_seventh
+
+    root = ET.fromstring('''<score-partwise xmlns="urn:musicxml"><harmony>
+        <root><root-step>E</root-step></root><kind text="custom">suspended-fourth-seventh</kind>
+        </harmony></score-partwise>''')
+    normalize_suspended_seventh(root)
+    before = ET.tostring(root)
+    normalize_suspended_seventh(root)
+    assert ET.tostring(root) == before
+    assert root.find('.//{urn:musicxml}kind').get('text') == 'custom'
+    assert root.findtext('.//{urn:musicxml}degree/{urn:musicxml}degree-alter') == '-1'
+
+
+def test_suspended_seventh_chord_listing_and_edit_preserve_degree():
+    from audio_score_tool.chord_editor import _build_harmony, harmony_symbol
+
+    for spelling in ('F#7sus4/C#', 'F#sus4(b7)/C#'):
+        harmony_xml = _build_harmony('', spelling)
+        assert harmony_symbol(harmony_xml, '') == 'F♯7sus4/C♯'
+        assert harmony_xml.findtext('kind') == 'suspended-fourth'
+        assert harmony_xml.findtext('degree/degree-alter') == '-1'
