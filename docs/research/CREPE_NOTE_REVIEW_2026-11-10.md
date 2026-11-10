@@ -1,6 +1,6 @@
 # CREPE note evidence review — 2026-11-10
 
-This is a metadata-only review, not a quality approval or an estimate of whole-song accuracy. Existing product YIN and scores remain unchanged; no automatic pitch correction is authorized by these observations.
+This is a metadata-only review, not a quality approval or an estimate of whole-song accuracy. Existing product YIN and scores remain unchanged; these observations do not validate automatic pitch correction.
 
 ## Calibration scope
 
