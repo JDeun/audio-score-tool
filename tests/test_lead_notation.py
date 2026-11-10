@@ -12,17 +12,17 @@ def event(pitch, start, end):
     return MidiNote(pitch=pitch, onset=start, offset=end, channel=0, program=65, is_drum=False)
 
 
-@pytest.mark.parametrize("fault", [None, "pitch", "time", "missing"])
+@pytest.mark.parametrize("fault", [None, "pitch", "time", "missing", "drum"])
 def test_final_midi_must_preserve_interpreted_attacks_gaps_and_audio_time(tmp_path, fault):
-    def write(path, events):
+    def write(path, events, channel=0):
         midi = mido.MidiFile(ticks_per_beat=10000)
         track = mido.MidiTrack()
         midi.tracks.append(track)
         cursor = 0
         for pitch,start,end in events:
             onset, offset = round(start*20000), round(end*20000)
-            track.append(mido.Message("note_on", note=pitch, velocity=80, time=onset-cursor))
-            track.append(mido.Message("note_off", note=pitch, time=offset-onset))
+            track.append(mido.Message("note_on", note=pitch, velocity=80, channel=channel, time=onset-cursor))
+            track.append(mido.Message("note_off", note=pitch, channel=channel, time=offset-onset))
             cursor = offset
         midi.save(path)
     source = tmp_path / "source.mid"
@@ -38,7 +38,7 @@ def test_final_midi_must_preserve_interpreted_attacks_gaps_and_audio_time(tmp_pa
         performed[1] = (60,.41,.6)
     elif fault == "missing":
         performed.pop()
-    write(rendered, performed)
+    write(rendered, performed, channel=9 if fault == "drum" else 0)
     if fault:
         with pytest.raises(ValueError, match="Notation conversion changed"):
             verify_notated_midi(source, rendered, interpretation)
