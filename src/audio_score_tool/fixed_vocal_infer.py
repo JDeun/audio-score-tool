@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import os
 import platform
@@ -81,33 +82,51 @@ def main() -> int:
         expected_tree = "3f8d310da05e5b26fb455645dfcad5b835570b23a511003e351ce0f33b45fd04"
         if tree_digest() != expected_tree:
             raise ValueError("BeatThis source tree mismatch")
-        def madmom_digest():
+        def madmom_provenance():
             root = Path(madmom.__file__).parent
             h = hashlib.sha256()
-            for path in sorted(p for p in root.rglob("*") if p.is_file() and p.suffix in {".py", ".so"}):
+            for path in sorted(root.rglob("*.py")):
                 h.update(str(path.relative_to(root)).encode() + b"\0")
                 h.update(path.read_bytes())
-            return h.hexdigest()
+            pyx = {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
+                   for p in sorted(root.rglob("*.pyx"))}
+            binary = {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
+                      for p in sorted(root.rglob("*")) if p.is_file() and p.suffix in {".so", ".pyd"}}
+            allowed_pyx = {
+                "audio/comb_filters.pyx": "3d4c7102835b582f262e1c9197c23d4199500758736d8e90abf571c29d4cfcbc",
+                "features/beats_crf.pyx": "52181fb6ff7cf347ee52c7465a0d46828918fab8c4abd594169447e44ce6a6ca",
+                "ml/hmm.pyx": "0c1ff63bd9c23e66169246546ac7ba9ad8acc3fdf9b9bab57b42c00e6326500a",
+            }
+            if any(allowed_pyx.get(k) != v for k, v in pyx.items()) or not binary:
+                raise ValueError("Unexpected madmom source or missing native extensions")
+            return h.hexdigest(), pyx, binary
 
-        expected_madmom = "43edae0d91e5813ccea423d9fe0693f315514e3139616c9d1d37f05e9dc4a995"
-        if (madmom_digest() != expected_madmom or models.DOWNBEATS_BLSTM or models.BEATS_BLSTM
+        expected_madmom = "28255419eddab6a2c801b240df2e8f418e4e8d2704d6caaa1146d41661f8167e"
+        madmom_before = madmom_provenance()
+        if (madmom_before[0] != expected_madmom or models.DOWNBEATS_BLSTM or models.BEATS_BLSTM
                 or list(Path(madmom.__file__).parent.rglob("*.pkl"))):
             raise ValueError("Unexpected madmom code or pretrained weights")
         adapter_sha = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
         source_sha = hashlib.sha256(args.audio.read_bytes()).hexdigest()
         samples, rate = sf.read(args.audio, dtype="float32")
-        model = Audio2Frames(checkpoint_path=str(weight), device="cpu")
+        checkpoint_bytes = weight.read_bytes()
+        if hashlib.sha256(checkpoint_bytes).hexdigest() != "8c328b45f59d8dd3dff219253ff6a8d6482be57d0133a29140e2febbf8eb8331":
+            raise ValueError("BeatThis checkpoint changed before loading")
+        model = Audio2Frames(checkpoint_path=io.BytesIO(checkpoint_bytes), device="cpu")
         beat_logits, downbeat_logits = model(samples, rate)
         if (beat_logits.ndim != 1 or downbeat_logits.shape != beat_logits.shape
                 or not torch.isfinite(beat_logits).all() or not torch.isfinite(downbeat_logits).all()):
             raise ValueError("Invalid BeatThis logits")
+        expected_frames = 1 + int((len(samples) * 22050 / rate) // 441)
+        if abs(len(beat_logits) - expected_frames) > 1:
+            raise ValueError("Beat logits do not cover the whole source")
         beats, downbeats = Postprocessor(type="dbn")(beat_logits, downbeat_logits)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         beat_logits, downbeat_logits = beat_logits.cpu().numpy(), downbeat_logits.cpu().numpy()
         np.savez_compressed(args.output, beats=np.asarray(beats), downbeats=np.asarray(downbeats),
                             beat_logits=beat_logits, downbeat_logits=downbeat_logits)
         verify_weight(weight, "8c328b45f59d8dd3dff219253ff6a8d6482be57d0133a29140e2febbf8eb8331")
-        if (tree_digest() != expected_tree or madmom_digest() != expected_madmom
+        if (tree_digest() != expected_tree or madmom_provenance() != madmom_before
                 or hashlib.sha256(Path(__file__).read_bytes()).hexdigest() != adapter_sha
                 or hashlib.sha256(args.audio.read_bytes()).hexdigest() != source_sha):
             raise ValueError("BeatThis source or audio changed during inference")
@@ -121,7 +140,9 @@ def main() -> int:
             "runtime": actual, "python": platform.python_version(),
             "adapter_sha256": adapter_sha,
             "madmom_source_revision": "27f032e8947204902c675e5e341a3faf5dc86dae",
-            "madmom_tree_sha256": expected_madmom, "madmom_pretrained_weights": False,
+            "madmom_python_sha256": expected_madmom, "madmom_pyx_sha256": madmom_before[1],
+            "madmom_native_sha256": madmom_before[2], "madmom_native_platform": platform.platform(),
+            "madmom_pretrained_weights": False, "source_frames": len(samples), "source_sample_rate": rate,
             "device": "cpu", "threads": 2, "seed": 0, "dbn": True,
             "dbn_parameters": {"fps": 50, "beats_per_bar": [3, 4], "min_bpm": 55.0,
                                "max_bpm": 215.0, "transition_lambda": 100},

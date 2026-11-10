@@ -16,7 +16,9 @@ DEMUCS_SHA256 = "8726e21a993978c7ba086d3872e7608d7d5bfca646ca4aca459ffda844faa8b
 YOUR_RUNTIME = {"mt3-infer": "0.2.0", "torch": "2.7.1", "torchaudio": "2.7.1",
                 "transformers": "4.44.2", "numpy": "2.4.6", "soundfile": "0.14.0"}
 BEAT_RUNTIME = {"beat-this": "1.1.0", "torch": "2.7.1", "numpy": "1.26.4",
-                "soundfile": "0.14.0", "madmom": "0.17.dev0"}
+                "soundfile": "0.14.0", "madmom": "0.17.dev0", "soxr": "1.1.0",
+                "torchaudio": "2.7.1", "scipy": "1.17.1", "einops": "0.8.2",
+                "rotary-embedding-torch": "0.8.6"}
 SEPARATOR_RUNTIME = {"demucs": "4.0.1", "julius": "0.2.8", "openunmix": "1.3.0",
                      "einops": "0.8.2", "omegaconf": "2.4.0"}
 STRUCTURE_RUNTIME = {"torch": "2.8.0", "torchaudio": "2.8.0", "transformers": "4.45.2",

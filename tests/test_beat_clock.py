@@ -46,7 +46,9 @@ def test_beat_receipt_rejects_tampering(tmp_path, monkeypatch):
                    'checkpoint_sha256': '8c328b45f59d8dd3dff219253ff6a8d6482be57d0133a29140e2febbf8eb8331',
                    'source_tree_sha256': '3f8d310da05e5b26fb455645dfcad5b835570b23a511003e351ce0f33b45fd04',
                    'madmom_source_revision': '27f032e8947204902c675e5e341a3faf5dc86dae',
-                   'madmom_tree_sha256': '43edae0d91e5813ccea423d9fe0693f315514e3139616c9d1d37f05e9dc4a995',
+                   'madmom_python_sha256': '28255419eddab6a2c801b240df2e8f418e4e8d2704d6caaa1146d41661f8167e',
+                   'madmom_pyx_sha256': {}, 'madmom_native_sha256': {'ml/hmm.so': 'a' * 64},
+                   'madmom_native_platform': 'test', 'source_frames': 441, 'source_sample_rate': 22050,
                    'madmom_pretrained_weights': False,
                    'dbn_parameters': {'fps': 50, 'beats_per_bar': [3, 4], 'min_bpm': 55.0,
                                       'max_bpm': 215.0, 'transition_lambda': 100},
@@ -78,6 +80,16 @@ def test_beat_receipt_rejects_tampering(tmp_path, monkeypatch):
         path.write_text(json.dumps(receipt))
     monkeypatch.setattr(runner, 'run_command', invalid_logits)
     with pytest.raises(ValueError, match='logits'):
+        fixed_beat_track(source, output, settings=settings)
+
+    def truncated(*args, **kwargs):
+        old_fixture(*args, **kwargs)
+        path = output.with_suffix('.runtime.json')
+        receipt = json.loads(path.read_text())
+        receipt['source_frames'] = 4410
+        path.write_text(json.dumps(receipt))
+    monkeypatch.setattr(runner, 'run_command', truncated)
+    with pytest.raises(ValueError, match='whole source'):
         fixed_beat_track(source, output, settings=settings)
 
 
@@ -151,3 +163,25 @@ def test_visible_tempo_matches_ui_without_changing_hidden_clock(tmp_path):
         musicxml_to_midi(root / 'score.musicxml', root / 'score.mid')
         midis.append(midi_notes(root / 'score.mid'))
     assert midis[0] == midis[1]
+
+
+@pytest.mark.parametrize('present', [False, True])
+def test_offline_missing_or_changed_checkpoint_never_reaches_network(tmp_path, monkeypatch, present):
+    import socket
+    import sys
+    import urllib.request
+
+    from audio_score_tool import fixed_vocal_infer
+
+    checkpoint = tmp_path / 'beat-this/final0.ckpt'
+    if present:
+        checkpoint.parent.mkdir()
+        checkpoint.write_bytes(b'not the pinned checkpoint')
+    monkeypatch.setattr(fixed_vocal_infer, 'require_runtime', lambda expected: expected)
+    monkeypatch.setattr(socket, 'create_connection', lambda *a, **k: pytest.fail('network forbidden'))
+    monkeypatch.setattr(urllib.request, 'urlopen', lambda *a, **k: pytest.fail('network forbidden'))
+    monkeypatch.setattr(sys, 'argv', ['fixed', 'beat', str(tmp_path / 'source.wav'),
+                                     str(tmp_path / 'output.npz'), '--snapshot', str(tmp_path)])
+    with pytest.raises(ValueError, match='checkpoint'):
+        fixed_vocal_infer.main()
+    assert not (tmp_path / 'output.npz').exists()

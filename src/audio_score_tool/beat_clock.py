@@ -114,7 +114,7 @@ def fixed_beat_track(source, output, *, settings, cancel_event=None):
                 'checkpoint_sha256': '8c328b45f59d8dd3dff219253ff6a8d6482be57d0133a29140e2febbf8eb8331',
                 'source_tree_sha256': '3f8d310da05e5b26fb455645dfcad5b835570b23a511003e351ce0f33b45fd04',
                 'madmom_source_revision': '27f032e8947204902c675e5e341a3faf5dc86dae',
-                'madmom_tree_sha256': '43edae0d91e5813ccea423d9fe0693f315514e3139616c9d1d37f05e9dc4a995',
+                'madmom_python_sha256': '28255419eddab6a2c801b240df2e8f418e4e8d2704d6caaa1146d41661f8167e',
                 'madmom_pretrained_weights': False,
                 'dbn_parameters': {'fps': 50, 'beats_per_bar': [3, 4], 'min_bpm': 55.0,
                                    'max_bpm': 215.0, 'transition_lambda': 100}}
@@ -125,6 +125,22 @@ def fixed_beat_track(source, output, *, settings, cancel_event=None):
             or not isinstance(receipt.get('runtime'), dict)
             or any(receipt['runtime'].get(k) != v for k, v in BEAT_RUNTIME.items())):
         raise ValueError('Fixed beat observation provenance mismatch')
+    native = receipt.get('madmom_native_sha256')
+    pyx = receipt.get('madmom_pyx_sha256')
+    allowed_pyx = {
+        'audio/comb_filters.pyx': '3d4c7102835b582f262e1c9197c23d4199500758736d8e90abf571c29d4cfcbc',
+        'features/beats_crf.pyx': '52181fb6ff7cf347ee52c7465a0d46828918fab8c4abd594169447e44ce6a6ca',
+        'ml/hmm.pyx': '0c1ff63bd9c23e66169246546ac7ba9ad8acc3fdf9b9bab57b42c00e6326500a',
+    }
+    if (not isinstance(native, dict) or not native or not isinstance(pyx, dict)
+            or any(allowed_pyx.get(k) != v for k, v in pyx.items())
+            or not isinstance(receipt.get('madmom_native_platform'), str)
+            or not receipt['madmom_native_platform']
+            or any(not isinstance(k, str) or Path(k).is_absolute() or '..' in Path(k).parts
+                   or Path(k).suffix not in {'.so', '.pyd'} or not isinstance(v, str)
+                   or len(v) != 64 or any(ch not in '0123456789abcdef' for ch in v)
+                   for k, v in native.items())):
+        raise ValueError('Invalid madmom source or native build provenance')
     try:
         with zipfile.ZipFile(output) as archive:
             members = archive.infolist()
@@ -145,6 +161,10 @@ def fixed_beat_track(source, output, *, settings, cancel_event=None):
             or beat_logits.dtype.kind not in 'fi' or downbeat_logits.dtype.kind not in 'fi'
             or not np.isfinite(beat_logits).all() or not np.isfinite(downbeat_logits).all()):
         raise ValueError('Invalid beat logits')
+    frames, rate = receipt.get('source_frames'), receipt.get('source_sample_rate')
+    if (type(frames) is not int or type(rate) is not int or frames <= 0 or rate <= 0
+            or abs(len(beat_logits) - (1 + (frames * 22050 // rate) // 441)) > 1):
+        raise ValueError('Beat logits do not cover the whole source')
     if (hashlib.sha256(beat_logits.tobytes()).hexdigest() != receipt.get('beat_logits_sha256')
             or hashlib.sha256(downbeat_logits.tobytes()).hexdigest() != receipt.get('downbeat_logits_sha256')):
         raise ValueError('Beat logits evidence SHA mismatch')

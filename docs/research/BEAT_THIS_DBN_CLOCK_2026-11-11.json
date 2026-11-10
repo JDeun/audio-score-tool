@@ -87,5 +87,25 @@
   ],
   "new_inference_in_adapter_check": false,
   "quality_approved": false,
-  "accuracy_established": false
+  "accuracy_established": false,
+  "single_case_cli_smoke": {
+    "status": "passed",
+    "case": "tinashe-me-so-bad",
+    "report_sha256": "ec2868149db0fd212dda763e4a33605902d13eacd614daf17a781b447d09aa52",
+    "source_frames": 9283815,
+    "sample_rate": 44100,
+    "source_sha256": "f39788b3075e9117661481470289c6e79ce25171f7a256936a2167bdae49fd65",
+    "prediction_sha256": "9e4934ad0ae4845a5b847f0192bae1b89b6330ba03a83859098ed7adc155399a",
+    "source_checkpoint_adapter_unchanged": true,
+    "native_platform": "macOS-26.6.2-arm64-arm-64bit",
+    "native_build_sha256": {
+      "audio/comb_filters.cpython-311-darwin.so": "84f726cd07df363d42dd25fb5801e8d254b016f9c30d61b20d75266c54a2cd7a",
+      "features/beats_crf.cpython-311-darwin.so": "951ab6c0ee9441e1eed7436e47d9738c83f26dc5a06333a92e3a31805a1c8b23",
+      "ml/hmm.cpython-311-darwin.so": "f9599156bbfb0b6bb553f21a2ce77d1722890aee29a781ae4b9e36963941ce92",
+      "ml/nn/layers.cpython-311-darwin.so": "d4ca0137b6370e1a87d05f5b3585107e4188bbc72ea2985c49f623b5bd151e07"
+    },
+    "madmom_python_sha256": "28255419eddab6a2c801b240df2e8f418e4e8d2704d6caaa1146d41661f8167e",
+    "madmom_pyx_sha256": {},
+    "scope": "single BeatThis CLI inference; no full transcription job"
+  }
 }
