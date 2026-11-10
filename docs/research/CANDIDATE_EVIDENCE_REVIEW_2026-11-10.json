@@ -1,0 +1,502 @@
+{
+  "schema_version": 1,
+  "purpose": "Independent metadata reaggregation and source-byte checks; no new inference or prediction rescore",
+  "source_archive_sha256": "e0d6b99d3f9c594afe5ae5c4d7bdacebe569e53b809e90b89d1c771c4f9990e3",
+  "model_defaults_changed": false,
+  "original_prediction_rescore": false,
+  "vocadito": {
+    "basic_pitch": {
+      "report_sha256": "076bc93d741c774f1b560ec1e711a087a80f25e63fe2117c92fac0c3b53e2daa",
+      "source_revision": "ca6ee7183c8d3fde789e3d84789a9c2d207f129e",
+      "evaluator_sha256": "0265be97c1f891816da30e75fa145a58a1972636a5729fcb1ccc761665c52465",
+      "note_scorer_sha256": "2ee6f18518e0f4887b9f0c163fff6cfcb964a05d21da1eddd6fcf8e031259194",
+      "complete": true,
+      "completed_cases": 40,
+      "source_hash_verified_cases": 40,
+      "status": "complete",
+      "error_type": null,
+      "task": "note_amt",
+      "reported_macro": {
+        "onset_f1": 0.49102129,
+        "onset_offset_f1": 0.31583077
+      },
+      "recomputed_macro": {
+        "onset_f1": 0.49102129,
+        "onset_offset_f1": 0.31583077
+      },
+      "raw_prediction_rescored": false,
+      "identity": {
+        "weights": {
+          "git_blob": "c30e5f9438e798604b7177aa26be1fe64482f767",
+          "sha256": "2c3c1d144bfa61ad236e92e169c13535c880469a12a047d4e73451f2c059a0ec",
+          "bytes": 230444
+        },
+        "weights_source_revision": "fa5997af0a8210982619003269994a1be25eddf3",
+        "backend": "onnx-cpu",
+        "intra_threads": 2,
+        "inter_threads": 1,
+        "thresholds": {
+          "onset": 0.5,
+          "frame": 0.3,
+          "minimum_note_ms": 127.7
+        },
+        "pitch_bends_scored": false,
+        "instrument_identity_predicted": false,
+        "model_lifecycle": "resident model; preparation time reported separately"
+      }
+    },
+    "mr_mt3": {
+      "report_sha256": "b3000f7c4d22a28336bbbc5023fcec0fd2f6dbcf9cd5fc7efa376d4aecc6940b",
+      "source_revision": "ca6ee7183c8d3fde789e3d84789a9c2d207f129e",
+      "evaluator_sha256": "0265be97c1f891816da30e75fa145a58a1972636a5729fcb1ccc761665c52465",
+      "note_scorer_sha256": "2ee6f18518e0f4887b9f0c163fff6cfcb964a05d21da1eddd6fcf8e031259194",
+      "complete": false,
+      "completed_cases": 0,
+      "source_hash_verified_cases": 0,
+      "status": "preparation_failed",
+      "error_type": "ModuleNotFoundError",
+      "task": "note_amt",
+      "reported_macro": null,
+      "recomputed_macro": null,
+      "raw_prediction_rescored": false,
+      "identity": null
+    },
+    "pyin": {
+      "report_sha256": "410393128f3fd87d258bb7852386fcbfc8b2c3d56db384f415615fe4f9539152",
+      "source_revision": "ca6ee7183c8d3fde789e3d84789a9c2d207f129e",
+      "evaluator_sha256": "0265be97c1f891816da30e75fa145a58a1972636a5729fcb1ccc761665c52465",
+      "note_scorer_sha256": "2ee6f18518e0f4887b9f0c163fff6cfcb964a05d21da1eddd6fcf8e031259194",
+      "complete": true,
+      "completed_cases": 40,
+      "source_hash_verified_cases": 40,
+      "status": "complete",
+      "error_type": null,
+      "task": "f0_tracking",
+      "reported_macro": {
+        "Raw Pitch Accuracy": 0.80528736,
+        "Raw Chroma Accuracy": 0.80661442,
+        "Overall Accuracy": 0.72524536,
+        "Voicing Recall": 0.98032028,
+        "Voicing False Alarm": 0.43519268,
+        "octave_errors_per_reference_voiced_frame": 0.00132706,
+        "predicted_voiced_fraction": 0.79318244
+      },
+      "recomputed_macro": {
+        "Raw Pitch Accuracy": 0.80528736,
+        "Raw Chroma Accuracy": 0.80661442,
+        "Overall Accuracy": 0.72524536,
+        "Voicing Recall": 0.98032028,
+        "Voicing False Alarm": 0.43519268,
+        "octave_errors_per_reference_voiced_frame": 0.00132706,
+        "predicted_voiced_fraction": 0.79318244
+      },
+      "raw_prediction_rescored": false,
+      "identity": {
+        "fmin": 55,
+        "fmax": 880,
+        "frame_hop_seconds": 0.01,
+        "note_segmentation": false,
+        "reference_boundary_used_for_prediction": false
+      },
+      "reference_voiced_frames": 92966,
+      "reference_voiced_outside_55_880_hz": 0
+    },
+    "torchcrepe_full": {
+      "report_sha256": "f8dc32a73330af8b67634622a5f21d1728adf264e93d7b97183e1cc986a5ecf2",
+      "source_revision": "ca6ee7183c8d3fde789e3d84789a9c2d207f129e",
+      "evaluator_sha256": "0265be97c1f891816da30e75fa145a58a1972636a5729fcb1ccc761665c52465",
+      "note_scorer_sha256": "2ee6f18518e0f4887b9f0c163fff6cfcb964a05d21da1eddd6fcf8e031259194",
+      "complete": false,
+      "completed_cases": 37,
+      "source_hash_verified_cases": 37,
+      "status": "incomplete",
+      "error_type": null,
+      "task": "f0_tracking",
+      "reported_macro": null,
+      "recomputed_macro": null,
+      "raw_prediction_rescored": false,
+      "identity": {
+        "fmin": 55,
+        "fmax": 880,
+        "frame_hop_seconds": 0.01,
+        "note_segmentation": false,
+        "reference_boundary_used_for_prediction": false,
+        "weights": {
+          "git_blob": "ddd8a2eb75a1eadb073e5f5bb5bee45d4d8d1323",
+          "sha256": "133225604dedd2e4005f8bbd1bd0a2ec073ba8b7a6cd31ff6d5edbbfa3539986",
+          "bytes": 88991291
+        },
+        "weights_source_revision": "19e2ec3d494c0797a5ff2a11408ec5838fba6681",
+        "decoder": "viterbi",
+        "periodicity_threshold": 0.21,
+        "silence_db": -60,
+        "model_lifecycle": "lazy load on first recording; retained afterwards"
+      }
+    },
+    "torchcrepe_tiny": {
+      "report_sha256": "0c087ac695401d131d6c73b91c1935e3e9ee660286db65b1a9541493cb329216",
+      "source_revision": "ca6ee7183c8d3fde789e3d84789a9c2d207f129e",
+      "evaluator_sha256": "0265be97c1f891816da30e75fa145a58a1972636a5729fcb1ccc761665c52465",
+      "note_scorer_sha256": "2ee6f18518e0f4887b9f0c163fff6cfcb964a05d21da1eddd6fcf8e031259194",
+      "complete": true,
+      "completed_cases": 40,
+      "source_hash_verified_cases": 40,
+      "status": "complete",
+      "error_type": null,
+      "task": "f0_tracking",
+      "reported_macro": {
+        "Raw Pitch Accuracy": 0.87981949,
+        "Raw Chroma Accuracy": 0.88136855,
+        "Overall Accuracy": 0.83174799,
+        "Voicing Recall": 0.89375287,
+        "Voicing False Alarm": 0.27491606,
+        "octave_errors_per_reference_voiced_frame": 0.00154907,
+        "predicted_voiced_fraction": 0.68180252
+      },
+      "recomputed_macro": {
+        "Raw Pitch Accuracy": 0.87981949,
+        "Raw Chroma Accuracy": 0.88136855,
+        "Overall Accuracy": 0.83174799,
+        "Voicing Recall": 0.89375287,
+        "Voicing False Alarm": 0.27491606,
+        "octave_errors_per_reference_voiced_frame": 0.00154907,
+        "predicted_voiced_fraction": 0.68180252
+      },
+      "raw_prediction_rescored": false,
+      "identity": {
+        "fmin": 55,
+        "fmax": 880,
+        "frame_hop_seconds": 0.01,
+        "note_segmentation": false,
+        "reference_boundary_used_for_prediction": false,
+        "weights": {
+          "git_blob": "18d881163b9f7ddf8daf0709c75cf204f5570da5",
+          "sha256": "d4993eea36ed1a0ad9ac549c740dae5265b049ce72004f00c2f59e01c0be8432",
+          "bytes": 1962363
+        },
+        "weights_source_revision": "19e2ec3d494c0797a5ff2a11408ec5838fba6681",
+        "decoder": "viterbi",
+        "periodicity_threshold": 0.21,
+        "silence_db": -60,
+        "model_lifecycle": "lazy load on first recording; retained afterwards"
+      },
+      "reference_voiced_frames": 92966,
+      "reference_voiced_outside_55_880_hz": 0
+    },
+    "yin": {
+      "report_sha256": "ce227be740ac9eff6ebce6acec38d0245bebcf4f3371205d9efc1106981e9369",
+      "source_revision": "ca6ee7183c8d3fde789e3d84789a9c2d207f129e",
+      "evaluator_sha256": "0265be97c1f891816da30e75fa145a58a1972636a5729fcb1ccc761665c52465",
+      "note_scorer_sha256": "2ee6f18518e0f4887b9f0c163fff6cfcb964a05d21da1eddd6fcf8e031259194",
+      "complete": true,
+      "completed_cases": 40,
+      "source_hash_verified_cases": 40,
+      "status": "complete",
+      "error_type": null,
+      "task": "f0_tracking",
+      "reported_macro": {
+        "Raw Pitch Accuracy": 0.62843586,
+        "Raw Chroma Accuracy": 0.63134947,
+        "Overall Accuracy": 0.68691592,
+        "Voicing Recall": 0.68570873,
+        "Voicing False Alarm": 0.19229621,
+        "octave_errors_per_reference_voiced_frame": 0.00291361,
+        "predicted_voiced_fraction": 0.51660105
+      },
+      "recomputed_macro": {
+        "Raw Pitch Accuracy": 0.62843586,
+        "Raw Chroma Accuracy": 0.63134947,
+        "Overall Accuracy": 0.68691592,
+        "Voicing Recall": 0.68570873,
+        "Voicing False Alarm": 0.19229621,
+        "octave_errors_per_reference_voiced_frame": 0.00291361,
+        "predicted_voiced_fraction": 0.51660105
+      },
+      "raw_prediction_rescored": false,
+      "identity": {
+        "fmin": 55,
+        "fmax": 880,
+        "frame_hop_seconds": 0.023219954648526078,
+        "note_segmentation": false,
+        "reference_boundary_used_for_prediction": false,
+        "implementation": "existing vocal_pitch_track unchanged"
+      },
+      "reference_voiced_frames": 92966,
+      "reference_voiced_outside_55_880_hz": 0
+    },
+    "yourmt3": {
+      "report_sha256": "1a079e3f800a62ef501c7257fed7dd7617639039ba40edf48f38e7bc83195787",
+      "source_revision": "ca6ee7183c8d3fde789e3d84789a9c2d207f129e",
+      "evaluator_sha256": "0265be97c1f891816da30e75fa145a58a1972636a5729fcb1ccc761665c52465",
+      "note_scorer_sha256": "2ee6f18518e0f4887b9f0c163fff6cfcb964a05d21da1eddd6fcf8e031259194",
+      "complete": false,
+      "completed_cases": 0,
+      "source_hash_verified_cases": 0,
+      "status": "preparation_failed",
+      "error_type": "ModuleNotFoundError",
+      "task": "note_amt",
+      "reported_macro": null,
+      "recomputed_macro": null,
+      "raw_prediction_rescored": false,
+      "identity": null
+    }
+  },
+  "specialists": {
+    "beat_this": {
+      "report_sha256": "68a4373733f7cd6bae5979e7c6d07556b308031e703f576f83f0b6462a1ff154",
+      "source_code_revision": "b30950cd1a6bdf7544a40b15db38b8a7663220db",
+      "evaluator_sha256": "15605eafaea14341b1f2efb46dc34c192dc0235afc61029b8a58b02a5e9a7757",
+      "completed_cases": 6,
+      "planned_ids_match": true,
+      "reported_macro": {
+        "beat_f1": 0.6961033333940178,
+        "downbeat_f1": 0.6196289520592927
+      },
+      "recomputed_macro": {
+        "beat_f1": 0.6961033333940178,
+        "downbeat_f1": 0.6196289520592927
+      },
+      "actual_source_bytes_rechecked": false,
+      "raw_prediction_rescored": false,
+      "evaluation_scope": "seen-training-dataset diagnostic, NOT held-out generalization",
+      "training_overlap": "GuitarSet included in final0 training",
+      "model_sources": [
+        {
+          "url": "https://cloud.cp.jku.at/public.php/dav/files/7ik4RrBKTS273gp/final0.ckpt",
+          "bytes": 81058141,
+          "sha256": "8c328b45f59d8dd3dff219253ff6a8d6482be57d0133a29140e2febbf8eb8331",
+          "expected_digest": "8c328b45f59d8dd3dff219253ff6a8d6482be57d0133a29140e2febbf8eb8331",
+          "digest_algorithm": "sha256"
+        }
+      ],
+      "blocked_candidates": {
+        "roformer": "exact checkpoint rights/provenance not cleared; no inference",
+        "open_fret": "no verified pretrained weights; no inference"
+      }
+    },
+    "piano": {
+      "report_sha256": "7c89164d24c04e3864c9a5249435233969ac74212b8384fca207934838edba3e",
+      "source_code_revision": "b30950cd1a6bdf7544a40b15db38b8a7663220db",
+      "evaluator_sha256": "15605eafaea14341b1f2efb46dc34c192dc0235afc61029b8a58b02a5e9a7757",
+      "completed_cases": 3,
+      "planned_ids_match": true,
+      "reported_macro": {
+        "piano_crnn": {
+          "raw": {
+            "onset": 0.9666666666666667,
+            "onset_offset": 0.9152777777777777
+          },
+          "bilstm": {
+            "onset": 0.9666666666666667,
+            "onset_offset": 0.9152777777777777
+          }
+        },
+        "basic_pitch": {
+          "raw": {
+            "onset": 0.8383090160867939,
+            "onset_offset": 0.04938271604938271
+          },
+          "bilstm": {
+            "onset": 0.8383090160867939,
+            "onset_offset": 0.04938271604938271
+          }
+        }
+      },
+      "recomputed_macro": {
+        "piano_crnn": {
+          "raw": {
+            "onset": 0.9666666666666667,
+            "onset_offset": 0.9152777777777777
+          },
+          "bilstm": {
+            "onset": 0.9666666666666667,
+            "onset_offset": 0.9152777777777777
+          }
+        },
+        "basic_pitch": {
+          "raw": {
+            "onset": 0.8383090160867939,
+            "onset_offset": 0.04938271604938271
+          },
+          "bilstm": {
+            "onset": 0.8383090160867939,
+            "onset_offset": 0.04938271604938271
+          }
+        }
+      },
+      "actual_source_bytes_rechecked": false,
+      "raw_prediction_rescored": false,
+      "evaluation_scope": "synthetic-piano-amt-and-midi-postprocessing",
+      "training_overlap": null,
+      "model_sources": {
+        "piano": {
+          "url": "https://zenodo.org/records/4034264/files/CRNN_note_F1%3D0.9677_pedal_F1%3D0.9186.pth?download=1",
+          "bytes": 171966578,
+          "sha256": "c3fa9730725bf4a762f1c14bc80cd5986eacda01b026f5a4a2525cd607876141",
+          "expected_digest": "22b961b77c1878239fec963362097045",
+          "digest_algorithm": "md5"
+        },
+        "piano_source_revision": "0226e74cbc805660e34bbd6a8fed2083890ebb88",
+        "piano_record_sha256": "9965a1afe853c06fbcd3b23998a9f703e274949e2d6ef1172d2b29b6343ab300",
+        "basic_pitch_sha256": "2c3c1d144bfa61ad236e92e169c13535c880469a12a047d4e73451f2c059a0ec",
+        "bilstm": {
+          "code": {
+            "url": "https://raw.githubusercontent.com/calebyhan/rescored/4c7dd9dfebc96560073cfd06b114d6ca35938ba2/backend/refinement/bilstm_refiner.py",
+            "bytes": 14755,
+            "sha256": "9046acc151f1aa04a3c5bee49543eeee66c63937e9575a556304622c850dd777",
+            "expected_digest": null,
+            "digest_algorithm": "sha256",
+            "source_revision": "4c7dd9dfebc96560073cfd06b114d6ca35938ba2",
+            "git_blob_verified": "3f545b1e2e9cfaa97a34c02ac7253ff72b75e85f"
+          },
+          "weights": {
+            "url": "https://raw.githubusercontent.com/calebyhan/rescored/4c7dd9dfebc96560073cfd06b114d6ca35938ba2/backend/refinement/checkpoints/bilstm_best.pt",
+            "bytes": 9762437,
+            "sha256": "ad2b6354795569bd77936a9927777e7fdf718d3d9a1a840ce049e55ea8a4585b",
+            "expected_digest": null,
+            "digest_algorithm": "sha256",
+            "source_revision": "4c7dd9dfebc96560073cfd06b114d6ca35938ba2",
+            "git_blob_verified": "91b7365d9461c3181542addce8a776a7143e4296"
+          }
+        }
+      },
+      "blocked_candidates": {
+        "roformer": "exact checkpoint rights/provenance not cleared; no inference",
+        "open_fret": "no verified pretrained weights; no inference"
+      }
+    },
+    "stringnet": {
+      "report_sha256": "31303de710ad811b707f6cea2467c537d7218f1e6e186cb62a947f30fc043209",
+      "source_code_revision": "b30950cd1a6bdf7544a40b15db38b8a7663220db",
+      "evaluator_sha256": "15605eafaea14341b1f2efb46dc34c192dc0235afc61029b8a58b02a5e9a7757",
+      "completed_cases": 6,
+      "planned_ids_match": true,
+      "reported_macro": {
+        "string_accuracy": 0.7281853676570926,
+        "lowest_fret_accuracy": 0.16553956694921118
+      },
+      "recomputed_macro": {
+        "string_accuracy": 0.7281853676570926,
+        "lowest_fret_accuracy": 0.16553956694921118
+      },
+      "actual_source_bytes_rechecked": false,
+      "raw_prediction_rescored": false,
+      "evaluation_scope": "conditional-string-classification",
+      "training_overlap": "author claims training players 00-02; selected 03-05; not independently audited",
+      "model_sources": [
+        {
+          "url": "https://raw.githubusercontent.com/kishormorol/song2sheet/6aee2a2139b28af871f4c9a878b7e18650c38226/song2sheet/__init__.py",
+          "bytes": 64,
+          "sha256": "aae46fd182bf2daa12adb947a66e6596476ec81c2479ae43a6da58e038d3aa90",
+          "expected_digest": null,
+          "digest_algorithm": "sha256",
+          "source_revision": "6aee2a2139b28af871f4c9a878b7e18650c38226",
+          "git_blob_verified": "f79ae9ce3fe46283cd06a57bba34dc090ead4dda"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/kishormorol/song2sheet/6aee2a2139b28af871f4c9a878b7e18650c38226/song2sheet/fret.py",
+          "bytes": 6328,
+          "sha256": "f363ad577696d8bff64f5c8eb806a647d3a0f19c6dc78c7a3e536abd535bd1ed",
+          "expected_digest": null,
+          "digest_algorithm": "sha256",
+          "source_revision": "6aee2a2139b28af871f4c9a878b7e18650c38226",
+          "git_blob_verified": "31d4e22a035b373983c932a150f3ec00fbd10fa6"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/kishormorol/song2sheet/6aee2a2139b28af871f4c9a878b7e18650c38226/song2sheet/stringnet.py",
+          "bytes": 3916,
+          "sha256": "1398faa52815883eaeb4fa1377a179a48e0bbe86aa3e9b995fcb243cfa6c403f",
+          "expected_digest": null,
+          "digest_algorithm": "sha256",
+          "source_revision": "6aee2a2139b28af871f4c9a878b7e18650c38226",
+          "git_blob_verified": "c43a06bf39ddcfcd753224ef2275388ceb4669cc"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/kishormorol/song2sheet/6aee2a2139b28af871f4c9a878b7e18650c38226/song2sheet/weights/stringnet.pt",
+          "bytes": 1497761,
+          "sha256": "6c516876596922aad0d9c978769d7f4f3673c7ab1337525f5ab49a9c425c9a41",
+          "expected_digest": null,
+          "digest_algorithm": "sha256",
+          "source_revision": "6aee2a2139b28af871f4c9a878b7e18650c38226",
+          "git_blob_verified": "26a7ee8dce9b13c523a390f754a9f50d34067e00"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/kishormorol/song2sheet/6aee2a2139b28af871f4c9a878b7e18650c38226/LICENSE",
+          "bytes": 1073,
+          "sha256": "118a8c0a7e41ced8295ffc313bfa750947e589fb5591c1187bea8252a78b94af",
+          "expected_digest": null,
+          "digest_algorithm": "sha256",
+          "source_revision": "6aee2a2139b28af871f4c9a878b7e18650c38226",
+          "git_blob_verified": "153f8c8d5c35dd1885980419094765e8140e251c"
+        }
+      ],
+      "blocked_candidates": {
+        "roformer": "exact checkpoint rights/provenance not cleared; no inference",
+        "open_fret": "no verified pretrained weights; no inference"
+      }
+    }
+  },
+  "limitations": [
+    "Original prediction MIDI/F0/NPZ and GuitarSet audio/JAMS bytes are not in these public artifacts; their scores cannot be independently recalculated here.",
+    "Training overlap remains unknown for vocadito candidates; GuitarSet is in Beat This final0 training.",
+    "Runtime/device/lifecycle differences prohibit a single global model or speed ranking."
+  ],
+  "guitarset_cross_report_hashes_match": true,
+  "verification": {
+    "vocadito_archive_sha256": true,
+    "vocadito_source_and_both_note_and_f0_members": true,
+    "metadata_macros_reaggregated": true,
+    "full_candidate_without_40_rows_has_no_macro": true,
+    "guitarset_sources_independently_rechecked": false,
+    "raw_predictions_rescored": false,
+    "evaluators_match_exact_reported_source_revision": true,
+    "note_scorer_matches_local_main": true
+  },
+  "external_source_pins": {
+    "kishormorol/song2sheet": {
+      "commit": "6aee2a2139b28af871f4c9a878b7e18650c38226",
+      "files": [
+        {
+          "path": "LICENSE",
+          "git_blob": "153f8c8d5c35dd1885980419094765e8140e251c",
+          "bytes": 1073
+        },
+        {
+          "path": "README.md",
+          "git_blob": "6dfc51b55caa413ad42b1cd9d12dc479d3b27574",
+          "bytes": 3503
+        },
+        {
+          "path": "song2sheet/score.py",
+          "git_blob": "997ade5b0f4f8fa3d17e6f193c62f338976e2abd",
+          "bytes": 6573
+        }
+      ]
+    },
+    "elkayem/swingscribe": {
+      "commit": "0a2d2ebb933d5ee190487a314a962d7355de394a",
+      "files": [
+        {
+          "path": "LICENSE",
+          "git_blob": "c2e47695629ce91746de2da60867af8dc23f4eb8",
+          "bytes": 1055
+        },
+        {
+          "path": "docs/m5-quantize.md",
+          "git_blob": "77673d2f16ad1a0888b9352325291f13069d9fe8",
+          "bytes": 8519
+        },
+        {
+          "path": "src/swingscribe/stages/quantize.py",
+          "git_blob": "da6154fb7b909f307cd8e6bbb12ebd5ab5cbab2d",
+          "bytes": 80151
+        },
+        {
+          "path": "tests/test_quantize.py",
+          "git_blob": "5260800bf617fbdf69729fa1c691f56b397a0e72",
+          "bytes": 69537
+        }
+      ]
+    }
+  }
+}
