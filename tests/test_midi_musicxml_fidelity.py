@@ -159,6 +159,32 @@ def test_percussion_instrument_ids_preserve_each_drum_in_one_part(tmp_path):
     }
 
 
+@pytest.mark.parametrize("program", [0, 1, 40, 127])
+def test_percussion_never_captures_pitched_notes_with_the_same_program(tmp_path, program):
+    _roundtrip(tmp_path, [
+        _note(60, 0, 1, program), _note(64, 0.5, 1.5, program),
+        _note(36, 0, 0.25, program, True), _note(42, 1, 1.25, program, True),
+    ])
+
+
+def test_unassigned_pitched_instrument_is_not_allocated_to_a_drum_channel(tmp_path):
+    source = tmp_path / "no-program.musicxml"
+    source.write_text('''<score-partwise version="4.0"><part-list>
+      <score-part id="P1"><part-name>Unknown</part-name></score-part>
+      <score-part id="P2"><part-name>Drums</part-name>
+        <score-instrument id="I2"><instrument-name>Drums</instrument-name></score-instrument>
+        <midi-instrument id="I2"><midi-channel>10</midi-channel><midi-program>1</midi-program>
+          <midi-unpitched>37</midi-unpitched></midi-instrument></score-part></part-list>
+      <part id="P1"><measure number="1"><attributes><divisions>1</divisions></attributes>
+        <note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
+      </measure></part><part id="P2"><measure number="1"><attributes><divisions>1</divisions></attributes>
+        <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched>
+          <duration>1</duration><instrument id="I2"/><type>quarter</type></note>
+      </measure></part></score-partwise>''')
+    result = musicxml_to_midi(source, tmp_path / "no-program.mid")
+    assert {(n.pitch, n.is_drum) for n in midi_notes(result)} == {(60, False), (36, True)}
+
+
 @pytest.mark.parametrize("first", range(0, 128, 16))
 def test_gm_program_variants_and_recycled_channels_survive_xml_playback(tmp_path, first):
     _roundtrip(tmp_path, [

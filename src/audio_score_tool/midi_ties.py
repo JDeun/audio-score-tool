@@ -48,8 +48,21 @@ def restore_instrument_bindings(score, source: Path) -> None:
     for part in score.parts:
         original_instrument = part.getInstrument(returnDefault=False)
         part_id = getattr(original_instrument, "partId", None)
+        if ((bindings or 9 in channels.values()) and part_id not in bindings
+                and channels.get(part_id) != 9):
+            # None is now the drum allocator key; an unspecified pitched
+            # instrument keeps MIDI's normal program-0 playback default.
+            if original_instrument is None:
+                original_instrument = instrument.Instrument()
+                part.insert(0, original_instrument)
+            if original_instrument.midiProgram is None:
+                original_instrument.midiProgram = programs.get(part_id, 0)
         if original_instrument is not None and part_id in programs:
-            original_instrument.midiProgram = programs[part_id]
+            # music21 keys channel allocation by program alone; drums must not
+            # capture a pitched instrument with the same numeric GM program.
+            original_instrument.midiProgram = (
+                None if part_id in bindings or channels.get(part_id) == 9 else programs[part_id]
+            )
             # GM 113/115/etc. can be pitched MIDI instruments. Their music21
             # class default of percussion channel 10 must not override XML.
             original_instrument.midiChannel = channels.get(part_id)
