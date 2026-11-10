@@ -1,0 +1,260 @@
+{
+  "schema_version": 1,
+  "private_report_sha256": "6fe4c94394861e3258d62066cc9af503dc75f11c3491c868dbcfc81b86eb6442",
+  "private_retention_report_sha256": "8c1d92a2342af4c84c7d64b028c67e8c7d1d7f4b8428e2a7b36c76011a7120a6",
+  "execution_commit": "918e6dec1cd25140304f763d835b528fa8d73a2c",
+  "retention_commit": "2bed2f94a9e210e315a9c47a743a85d49184e89a",
+  "recipe": {
+    "melody": {
+      "model": "yourmt3",
+      "model_revision": "5e66c1ea173a8186e0d20432b841d3180cc015b5",
+      "checkpoint_sha256": "ae38e415c79efd5592dcb9b658cdb99ddb11d4c4e1eaa364cab04a052473fc25"
+    },
+    "structure": {
+      "model": "sheetsage2",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274"
+    },
+    "separation": {
+      "model": "htdemucs",
+      "checkpoint_sha256": "8726e21a993978c7ba086d3872e7608d7d5bfca646ca4aca459ffda844faa8b4",
+      "shifts": 0,
+      "device": "cpu",
+      "encoding": "float32",
+      "clip_mode": "rescale"
+    }
+  },
+  "engine": "vocal_lead_v1",
+  "wav_upload_only": true,
+  "new_youtube_download": false,
+  "lyrics_enabled": false,
+  "auto_enrich_enabled": false,
+  "soundfont_resynthesis_executed": false,
+  "expert_references_available": false,
+  "quality_approved": false,
+  "final_model_approved": false,
+  "visual_review": "One page per PDF, not all pages; notes, chords, key, meter and title visible; large bottom whitespace, complex ties/rests and low-note ledger lines observed.",
+  "retention": {
+    "delete_api_cases_passed": 5,
+    "raw_evidence_files_verified": 248,
+    "source_sha256_xml_revision_preserved": true,
+    "cleanup_api_exercised": false
+  },
+  "cases": [
+    {
+      "case_id": "tinashe-me-so-bad",
+      "source_sha256": "f39788b3075e9117661481470289c6e79ce25171f7a256936a2167bdae49fd65",
+      "output_sha256": {
+        ".pdf": "eaf307d8d5b099c781c401efe36a66b05e9d0e5c529f22694a6280a95e86620c",
+        ".mid": "101bbbedfdf2427e147d169f7e5b37cecf88f4a8f3029ee797a08a795feda806",
+        ".musicxml": "0a86551bc70564e939ce97921170b4f9286465ba445dbf281e4c53cd02ab9a39"
+      },
+      "pdf_pages": 5,
+      "revision": 1,
+      "interpretation_counts": {
+        "algorithm": "dominant_overlap_on_audio_sixteenth_grid_v1",
+        "raw_note_count": 564,
+        "represented_note_count": 545,
+        "notated_attacks": 545,
+        "pitch_adjustments": 0,
+        "raw_events_mutated": false,
+        "quality_approved": false,
+        "terminal_beat_clipped": true,
+        "production_quality_approved": false
+      },
+      "omitted_source_notes": 19,
+      "overlap_review_cells": 3,
+      "export_fidelity": {
+        "performed_notes": 545,
+        "max_time_difference_seconds": 8.928571560318233e-06,
+        "tolerance_seconds": 0.002,
+        "pitch_adjustments": 0,
+        "matched_interpretation": true,
+        "original_song_accuracy": null
+      },
+      "yin_advisory": {
+        "predicted_notes": 545,
+        "compared_notes": 82,
+        "consistent_notes": 76,
+        "octave_suspects": 5,
+        "pitch_suspects": 1
+      },
+      "chord_advisory": {
+        "compared_intervals": 159,
+        "spectral_warnings": 22
+      }
+    },
+    {
+      "case_id": "twice-fancy",
+      "source_sha256": "5e1b5613b3863ea3babd2dc22bc9fa8ba62deb2ae44d48c8885f832ab56f01ec",
+      "output_sha256": {
+        ".pdf": "c50520c4da3b307375c12a1549be169027546fa1677e28d734be29a73c0cc1df",
+        ".mid": "22e3e992b56b7e27a53bf93591d737bfcdefee22c796df2543a96f75c7fb5f16",
+        ".musicxml": "ea472a6a940cfb08d704b7c0ba0471b92e93c913363b11d97d653a7f8ec6ddd0"
+      },
+      "pdf_pages": 7,
+      "revision": 1,
+      "interpretation_counts": {
+        "algorithm": "dominant_overlap_on_audio_sixteenth_grid_v1",
+        "raw_note_count": 710,
+        "represented_note_count": 695,
+        "notated_attacks": 695,
+        "pitch_adjustments": 0,
+        "raw_events_mutated": false,
+        "quality_approved": false,
+        "terminal_beat_clipped": true,
+        "production_quality_approved": false
+      },
+      "omitted_source_notes": 15,
+      "overlap_review_cells": 0,
+      "export_fidelity": {
+        "performed_notes": 695,
+        "max_time_difference_seconds": 2.083333345126448e-05,
+        "tolerance_seconds": 0.002,
+        "pitch_adjustments": 0,
+        "matched_interpretation": true,
+        "original_song_accuracy": null
+      },
+      "yin_advisory": {
+        "predicted_notes": 695,
+        "compared_notes": 107,
+        "consistent_notes": 102,
+        "octave_suspects": 4,
+        "pitch_suspects": 1
+      },
+      "chord_advisory": {
+        "compared_intervals": 181,
+        "spectral_warnings": 2
+      }
+    },
+    {
+      "case_id": "green-day-american-idiot",
+      "source_sha256": "aedb875ba145c1f5cd21a0a86713d11dff1de9701512b8f1c7e4a40fa4fdf680",
+      "output_sha256": {
+        ".pdf": "421ecee2d279dc64a158367c7d0da1c17b5f6fc4cf9bf96ccc527d75828505bf",
+        ".mid": "c38523502aec4d5fcd1acc8324efc088acbb5c2f3e58c73661e3ce196165c1a7",
+        ".musicxml": "fa789fa6996836982c9017c61d46f4aca6a9269c10b67bb39faf4a1ab405c92b"
+      },
+      "pdf_pages": 9,
+      "revision": 1,
+      "interpretation_counts": {
+        "algorithm": "dominant_overlap_on_audio_sixteenth_grid_v1",
+        "raw_note_count": 311,
+        "represented_note_count": 308,
+        "notated_attacks": 308,
+        "pitch_adjustments": 0,
+        "raw_events_mutated": false,
+        "quality_approved": false,
+        "terminal_beat_clipped": true,
+        "production_quality_approved": false
+      },
+      "omitted_source_notes": 3,
+      "overlap_review_cells": 8,
+      "export_fidelity": {
+        "performed_notes": 308,
+        "max_time_difference_seconds": 3.000000447173079e-06,
+        "tolerance_seconds": 0.002,
+        "pitch_adjustments": 0,
+        "matched_interpretation": true,
+        "original_song_accuracy": null
+      },
+      "yin_advisory": {
+        "predicted_notes": 308,
+        "compared_notes": 40,
+        "consistent_notes": 39,
+        "octave_suspects": 1,
+        "pitch_suspects": 0
+      },
+      "chord_advisory": {
+        "compared_intervals": 277,
+        "spectral_warnings": 1
+      }
+    },
+    {
+      "case_id": "ham-boo-young-my-song",
+      "source_sha256": "871118a06f5021b94f6e56c9066fca50670582f5e530bcee9290e2db270d8ac7",
+      "output_sha256": {
+        ".pdf": "05585b52538c799012e5065c2537d851d91d37b69adbda46e5831cae2bd9d744",
+        ".mid": "4077450e23910160ecdb1cdb20b67331e1f65a3ed57eb037e261ebd3eb5332f1",
+        ".musicxml": "8ac874f2a71e76d896f055dd8829301de8113adf8a6ff57ffe5a66b31d513fad"
+      },
+      "pdf_pages": 5,
+      "revision": 1,
+      "interpretation_counts": {
+        "algorithm": "dominant_overlap_on_audio_sixteenth_grid_v1",
+        "raw_note_count": 605,
+        "represented_note_count": 551,
+        "notated_attacks": 551,
+        "pitch_adjustments": 0,
+        "raw_events_mutated": false,
+        "quality_approved": false,
+        "terminal_beat_clipped": true,
+        "production_quality_approved": false
+      },
+      "omitted_source_notes": 54,
+      "overlap_review_cells": 0,
+      "export_fidelity": {
+        "performed_notes": 551,
+        "max_time_difference_seconds": 1.0000016459343897e-06,
+        "tolerance_seconds": 0.002,
+        "pitch_adjustments": 0,
+        "matched_interpretation": true,
+        "original_song_accuracy": null
+      },
+      "yin_advisory": {
+        "predicted_notes": 551,
+        "compared_notes": 203,
+        "consistent_notes": 187,
+        "octave_suspects": 2,
+        "pitch_suspects": 14
+      },
+      "chord_advisory": {
+        "compared_intervals": 171,
+        "spectral_warnings": 3
+      }
+    },
+    {
+      "case_id": "younha-event-horizon",
+      "source_sha256": "2d84bd77253c96851db8bde4cd76de0b7bf7101cf07f79ff8dbf2d03f1d23dce",
+      "output_sha256": {
+        ".pdf": "fca158db2b76e4282d06e6f01e25757ee071eb7638f372c597dd1ca0a87ad9d9",
+        ".mid": "562f7a7f1fbf9ea94b78fa6799e5c999817a892e1a5f214a27a48c4289ae4472",
+        ".musicxml": "a25bfd7780f7ac9584bdb97938f3b920b0d3c53961e4aea54e1563c7e09ee6e4"
+      },
+      "pdf_pages": 7,
+      "revision": 1,
+      "interpretation_counts": {
+        "algorithm": "dominant_overlap_on_audio_sixteenth_grid_v1",
+        "raw_note_count": 623,
+        "represented_note_count": 594,
+        "notated_attacks": 594,
+        "pitch_adjustments": 0,
+        "raw_events_mutated": false,
+        "quality_approved": false,
+        "terminal_beat_clipped": true,
+        "production_quality_approved": false
+      },
+      "omitted_source_notes": 29,
+      "overlap_review_cells": 1,
+      "export_fidelity": {
+        "performed_notes": 594,
+        "max_time_difference_seconds": 3.333334063881921e-06,
+        "tolerance_seconds": 0.002,
+        "pitch_adjustments": 0,
+        "matched_interpretation": true,
+        "original_song_accuracy": null
+      },
+      "yin_advisory": {
+        "predicted_notes": 594,
+        "compared_notes": 261,
+        "consistent_notes": 258,
+        "octave_suspects": 0,
+        "pitch_suspects": 3
+      },
+      "chord_advisory": {
+        "compared_intervals": 149,
+        "spectral_warnings": 4
+      }
+    }
+  ]
+}

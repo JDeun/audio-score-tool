@@ -56,9 +56,10 @@ def test_transcription_defers_pdf_and_part_exports(tmp_path: Path, monkeypatch):
     assert list(result.score_dir.rglob("*.pdf")) == []
 
 
-def test_sheetsage2_lead_sheet_preserves_native_analysis_without_demucs(tmp_path, monkeypatch):
+@pytest.mark.parametrize("engine_key", ["sheetsage2", "vocal_lead_v1"])
+def test_native_lead_preserves_audio_structure_without_outer_separation(tmp_path, monkeypatch, engine_key):
     class LeadEngine(FakeEngine):
-        key = "sheetsage2"
+        key = engine_key
 
         def transcribe(self, audio, output_dir, **kwargs):
             artifacts = super().transcribe(audio, output_dir, **kwargs)
@@ -69,6 +70,11 @@ def test_sheetsage2_lead_sheet_preserves_native_analysis_without_demucs(tmp_path
                 "beats": [{"time_seconds": at, "beat": beat, "numerator": 3, "denominator": 4}
                           for at, beat in ((0, 1), (.5, 2), (1, 3), (1.5, 1))],
             }))
+            if engine_key == "vocal_lead_v1":
+                (output_dir / "stems").mkdir()
+                (output_dir / "stems/vocals.wav").write_bytes(b"vocal waveform")
+                (output_dir / "interpretation.json").write_text(json.dumps({
+                    "unrepresented_note_indices": [0,2]}))
             return artifacts
 
     audio = tmp_path / "song.wav"
@@ -84,3 +90,5 @@ def test_sheetsage2_lead_sheet_preserves_native_analysis_without_demucs(tmp_path
     assert structure["meter_source"] == "sheetsage2_audio_model"
     assert structure["tempo_bpm"] == 120
     assert structure["meter_numerator"] == 3
+    if engine_key == "vocal_lead_v1":
+        assert any("짧은 음표 2개" in warning for warning in result.warnings)

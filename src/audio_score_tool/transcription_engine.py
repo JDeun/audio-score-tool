@@ -386,12 +386,11 @@ class SheetSage2Engine(BaseTranscriptionEngine):
         return {**super().describe(), "supported_score_modes": ["lead_sheet"],
                 "quality_note": "보컬 멜로디·코드·박자·키 전용, 개인/비상업 검증 모델"}
 
-    def transcribe(self, audio_path, output_dir, *, device, cancel_event=None):
+    def analyze(self, audio_path, output_dir, *, cancel_event=None):
         from .sheetsage2_score import (
             BASE_REVISION,
             CHECKPOINT_SHA256,
             MODEL_REVISION,
-            import_native_lead_sheet,
         )
 
         if self.settings.usage_mode == "commercial":
@@ -405,21 +404,71 @@ class SheetSage2Engine(BaseTranscriptionEngine):
             run_command(self.settings.sheetsage2_cmd, [
                 audio_path, analysis, "--model-dir", root / "model",
                 "--base-model-dir", root / "mert", "--device", "cpu",
-            ], cancel_event=cancel_event, timeout_seconds=7200, env={"AST_USAGE_MODE": "personal"})
+            ], cancel_event=cancel_event, timeout_seconds=7200, env={
+                "AST_USAGE_MODE": "personal",
+                "AST_FIXED_LEAD_V1": "1" if self.settings.transcription_engine == "vocal_lead_v1" else "0",
+            })
             payload = json.loads(analysis.read_text())
             if (payload.get("model_revision") != MODEL_REVISION
                     or payload.get("checkpoint_sha256") != CHECKPOINT_SHA256
                     or payload.get("base_model_revision") != BASE_REVISION):
                 raise ValueError("SheetSage2 output does not identify the pinned model")
+        except CommandCancelled as exc:
+            raise TranscriptionEngineCancelled("SheetSage2 cancelled") from exc
+        except (CommandError, OSError, ValueError) as exc:
+            raise TranscriptionEngineError(f"SheetSage2 analysis failed: {exc}") from exc
+        return payload
+
+    def transcribe(self, audio_path, output_dir, *, device, cancel_event=None):
+        from .sheetsage2_score import import_native_lead_sheet
+
+        self.analyze(audio_path, output_dir, cancel_event=cancel_event)
+        try:
             xml = output_dir / "score.musicxml"
             report = import_native_lead_sheet(output_dir / "native", xml)
             midi = musicxml_to_midi(xml, output_dir / "score.mid")
             (output_dir / "notation-report.json").write_text(json.dumps(report, indent=2))
-        except CommandCancelled as exc:
-            raise TranscriptionEngineCancelled("SheetSage2 cancelled") from exc
-        except (CommandError, OSError, ValueError, NotationBackendError) as exc:
+        except (OSError, ValueError, NotationBackendError) as exc:
             raise TranscriptionEngineError(f"SheetSage2 failed: {exc}") from exc
         return TranscriptionArtifacts(midi_path=midi, musicxml_path=xml)
+
+
+class FixedVocalLeadEngine(SheetSage2Engine):
+    key = "vocal_lead_v1"
+    display_name = "Fixed Vocal Lead v1"
+
+    def ready(self):
+        from .fixed_lead_recipe import DEMUCS_WEIGHT, YOUR_CHECKPOINT
+
+        root = self.settings.fixed_lead_snapshot
+        return bool(not packaged_runtime() and root
+                    and all(command_exists(command) for command in (
+                        self.settings.sheetsage2_cmd, self.settings.fixed_vocal_cmd,
+                        self.settings.ffmpeg_cmd))
+                    and all((root / path).is_file() for path in (
+                        "sheetsage2/model/model.safetensors", "sheetsage2/mert/model.safetensors",
+                        Path("checkpoints") / YOUR_CHECKPOINT, Path("demucs") / DEMUCS_WEIGHT,
+                        "demucs/htdemucs.yaml")))
+
+    def describe(self):
+        return {**super().describe(),
+                "quality_note": "고정 보컬·코드 악보 검증 중 · 전주 오인·짧은 음 누락 가능 · 개인/비상업 전용"}
+
+    def transcribe(self, audio_path, output_dir, *, device, cancel_event=None):
+        from .fixed_vocal_lead import transcribe_fixed_vocal_lead
+        from .selected_stem_score import SelectedScoreError
+
+        if self.settings.usage_mode == "commercial":
+            raise TranscriptionEngineUnavailable("Fixed vocal recipe uses noncommercial SheetSage2 weights")
+        if not self.ready():
+            raise TranscriptionEngineUnavailable("Fixed vocal recipe runtime/checkpoints are unavailable")
+        try:
+            return transcribe_fixed_vocal_lead(audio_path, output_dir, settings=self.settings,
+                                               cancel_event=cancel_event)
+        except CommandCancelled as exc:
+            raise TranscriptionEngineCancelled("Fixed vocal recipe cancelled") from exc
+        except (CommandError, OSError, ValueError, NotationBackendError, SelectedScoreError) as exc:
+            raise TranscriptionEngineError(f"Fixed vocal recipe failed: {exc}") from exc
 
 
 class NativeCommandEngine(BaseTranscriptionEngine):
@@ -481,6 +530,8 @@ def available_engines(settings: Settings) -> list[dict[str, object]]:
     ]
     if settings.sheetsage2_cmd:
         engines.append(SheetSage2Engine(settings))
+    if settings.fixed_vocal_cmd:
+        engines.append(FixedVocalLeadEngine(settings))
     return [engine.describe() for engine in engines]
 
 
@@ -500,6 +551,10 @@ def resolve_transcription_engine(settings: Settings) -> BaseTranscriptionEngine:
         if settings.usage_mode == "commercial":
             raise TranscriptionEngineUnavailable("SheetSage2 public weights are noncommercial")
         return SheetSage2Engine(settings)
+    if key == "vocal_lead_v1":
+        if settings.usage_mode == "commercial":
+            raise TranscriptionEngineUnavailable("Fixed vocal recipe uses noncommercial SheetSage2 weights")
+        return FixedVocalLeadEngine(settings)
     raise TranscriptionEngineUnavailable(
         f"Unknown transcription engine: {settings.transcription_engine}"
     )

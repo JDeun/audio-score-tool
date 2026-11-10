@@ -64,3 +64,34 @@ def test_corrupt_sqlite_is_never_deleted_or_reinitialized(tmp_path: Path):
     with pytest.raises(sqlite3.DatabaseError):
         configure_sqlite(database)
     assert database.read_bytes() == original
+
+
+def test_context_commits_or_rolls_back_and_closes(tmp_path: Path):
+    database = tmp_path / "context.sqlite3"
+    with connect_sqlite(database) as conn:
+        conn.execute("CREATE TABLE demo(value INTEGER)")
+        conn.execute("INSERT INTO demo VALUES (1)")
+    with pytest.raises(sqlite3.ProgrammingError, match="closed"):
+        conn.execute("SELECT 1")
+    with pytest.raises(ValueError), connect_sqlite(database) as conn:
+        conn.execute("INSERT INTO demo VALUES (2)")
+        raise ValueError("rollback")
+    with pytest.raises(sqlite3.ProgrammingError, match="closed"):
+        conn.execute("SELECT 1")
+    with connect_sqlite(database) as conn:
+        assert conn.execute("SELECT value FROM demo").fetchall() == [(1,)]
+
+
+def test_context_closes_when_commit_fails(tmp_path: Path):
+    database = tmp_path / "commit-failure.sqlite3"
+    with connect_sqlite(database) as conn:
+        conn.execute("PRAGMA foreign_keys=ON")
+        conn.execute("CREATE TABLE parent(id INTEGER PRIMARY KEY)")
+        conn.execute("CREATE TABLE child(id INTEGER REFERENCES parent(id) DEFERRABLE INITIALLY DEFERRED)")
+    with pytest.raises(sqlite3.IntegrityError), connect_sqlite(database) as conn:
+        conn.execute("PRAGMA foreign_keys=ON")
+        conn.execute("INSERT INTO child VALUES (1)")
+    with pytest.raises(sqlite3.ProgrammingError, match="closed"):
+        conn.execute("SELECT 1")
+    with connect_sqlite(database) as conn:
+        assert conn.execute("SELECT COUNT(*) FROM child").fetchone()[0] == 0

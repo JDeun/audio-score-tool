@@ -12,7 +12,12 @@ from .optional_feature_policy import optional_feature_summary
 from .preflight_v2 import preflight
 from .runtime_settings import published_managed_mt3_model, runtime_settings
 from .settings_store import SettingsStore
-from .transcription_engine import MuScriptorEngine, SheetSage2Engine, available_engines
+from .transcription_engine import (
+    FixedVocalLeadEngine,
+    MuScriptorEngine,
+    SheetSage2Engine,
+    available_engines,
+)
 
 router = APIRouter(prefix="/api/engines", tags=["engines"])
 _store = SettingsStore()
@@ -29,6 +34,8 @@ class EngineSettingsPayload(BaseModel):
     native_checkpoint: str | None = None
     sheetsage2_cmd: str | None = None
     sheetsage2_snapshot: str | None = None
+    fixed_lead_snapshot: str | None = None
+    fixed_vocal_cmd: str | None = None
 
     @field_validator("usage_mode")
     @classmethod
@@ -44,9 +51,9 @@ class EngineSettingsPayload(BaseModel):
         normalized = value.strip().lower()
         if normalized == "yourmt3":
             normalized = "mt3_infer"
-        if normalized not in {"mt3_infer", "muscriptor", "native", "sheetsage2"}:
+        if normalized not in {"mt3_infer", "muscriptor", "native", "sheetsage2", "vocal_lead_v1"}:
             raise ValueError(
-                "transcription_engine must be 'mt3_infer', 'muscriptor', 'native', or 'sheetsage2'"
+                "transcription_engine must be mt3_infer, muscriptor, native, sheetsage2 or vocal_lead_v1"
             )
         return normalized
 
@@ -126,6 +133,8 @@ def get_engines() -> dict:
         "native_engine_cmd": settings.native_engine_cmd,
         "sheetsage2_cmd": settings.sheetsage2_cmd,
         "sheetsage2_snapshot": str(settings.sheetsage2_snapshot) if settings.sheetsage2_snapshot else None,
+        "fixed_lead_snapshot": str(settings.fixed_lead_snapshot) if settings.fixed_lead_snapshot else None,
+        "fixed_vocal_cmd": settings.fixed_vocal_cmd,
         "engines": available_engines(settings),
         "release_policy": release_policy_summary(),
         "optional_feature_policy": optional_feature_summary(),
@@ -137,24 +146,33 @@ def get_engines() -> dict:
 @router.put("")
 def update_engine(payload: EngineSettingsPayload) -> dict:
     checkpoint = payload.native_checkpoint.strip() if payload.native_checkpoint else None
-    if payload.usage_mode == "commercial" and payload.transcription_engine in {"muscriptor", "sheetsage2"}:
+    if payload.usage_mode == "commercial" and payload.transcription_engine in {"muscriptor", "sheetsage2", "vocal_lead_v1"}:
         raise HTTPException(
             422,
             f"{payload.transcription_engine} 공개 weights는 CC BY-NC 4.0이므로 상용 모드에서는 사용할 수 없습니다.",
         )
     if packaged_runtime():
-        if payload.transcription_engine in {"native", "sheetsage2"}:
+        if payload.transcription_engine in {"native", "sheetsage2", "vocal_lead_v1"}:
             raise HTTPException(
                 409, f"배포 앱에서는 미승인 {payload.transcription_engine} 모델을 선택할 수 없습니다."
             )
         if any((
             payload.mt3_infer_cmd, payload.muscriptor_cmd, payload.native_engine_cmd,
             payload.sheetsage2_cmd, payload.sheetsage2_snapshot,
+            payload.fixed_lead_snapshot, payload.fixed_vocal_cmd,
         )):
             raise HTTPException(
                 409, "배포 앱에서는 사용자 지정 실행 명령을 사용할 수 없습니다."
             )
     current = runtime_settings(store=_store)
+    if payload.transcription_engine == "vocal_lead_v1":
+        candidate = replace(current,
+                            fixed_vocal_cmd=payload.fixed_vocal_cmd or current.fixed_vocal_cmd,
+                            sheetsage2_cmd=payload.sheetsage2_cmd or current.sheetsage2_cmd,
+                            fixed_lead_snapshot=Path(payload.fixed_lead_snapshot).expanduser()
+                            if payload.fixed_lead_snapshot else current.fixed_lead_snapshot)
+        if not FixedVocalLeadEngine(candidate).ready():
+            raise HTTPException(409, "Fixed vocal recipe runtime/checkpoints are unavailable")
     if payload.transcription_engine == "sheetsage2":
         candidate = replace(current, sheetsage2_cmd=payload.sheetsage2_cmd or current.sheetsage2_cmd,
                             sheetsage2_snapshot=Path(payload.sheetsage2_snapshot).expanduser()
@@ -216,6 +234,9 @@ def update_engine(payload: EngineSettingsPayload) -> dict:
             "sheetsage2_cmd": payload.sheetsage2_cmd or current.sheetsage2_cmd,
             "sheetsage2_snapshot": payload.sheetsage2_snapshot or (
                 str(current.sheetsage2_snapshot) if current.sheetsage2_snapshot else None),
+            "fixed_vocal_cmd": payload.fixed_vocal_cmd or current.fixed_vocal_cmd,
+            "fixed_lead_snapshot": payload.fixed_lead_snapshot or (
+                str(current.fixed_lead_snapshot) if current.fixed_lead_snapshot else None),
         }
     )
     return get_engines()

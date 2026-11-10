@@ -26,7 +26,7 @@ from .pickup_normalization import normalize_pickup_measure
 from .pipeline import PipelineCancelled, PipelineError, _find_one, _find_whisper_json
 from .reference_lyrics import align_reference_lyrics
 from .runner import CommandCancelled, CommandError, command_exists, run_command
-from .score_requests import validate_engine_score_mode, validate_score_mode
+from .score_requests import AUDIO_LEAD_ENGINES, validate_engine_score_mode, validate_score_mode
 from .selected_stem_score import SelectedScoreError, transcribe_selected_stems
 from .transcription_engine import (
     TranscriptionEngineCancelled,
@@ -128,15 +128,21 @@ def transcribe(
         )
 
     selected_vocals_path: Path | None = None
-    emit("transcription" if score_mode == "full" or engine.key == "sheetsage2" else "stem_separation", 8)
+    emit("transcription" if score_mode == "full" or engine.key in AUDIO_LEAD_ENGINES else "stem_separation", 8)
     try:
-        if score_mode == "full" or engine.key == "sheetsage2":
+        if score_mode == "full" or engine.key in AUDIO_LEAD_ENGINES:
             artifacts = engine.transcribe(
                 transcription_audio,
                 score_dir,
                 device=device.muscriptor_device,
                 cancel_event=cancel_event,
             )
+            if engine.key == "vocal_lead_v1":
+                selected_vocals_path = _find_one(score_dir / "stems", "vocals.wav")
+                interpretation = json.loads((score_dir / "interpretation.json").read_text())
+                omitted = len(interpretation["unrepresented_note_indices"])
+                if omitted:
+                    warnings.append(f"보컬 악보 격자에 배치하지 못한 짧은 음표 {omitted}개가 있습니다. 원본 예측을 보존했으며 검수가 필요합니다.")
         else:
             artifacts, selected_vocals_path, selected_warnings = transcribe_selected_stems(
                 transcription_audio, score_dir, stems_dir,
@@ -156,7 +162,7 @@ def transcribe(
     _remove_eager_render_artifacts(score_dir, artifacts.initial_pdf_path)
     emit("music_structure", 48)
 
-    if engine.key == "sheetsage2":
+    if engine.key in AUDIO_LEAD_ENGINES:
         analysis = json.loads((score_dir / "analysis.json").read_text())
         beats = analysis.get("beats", [])
         try:
@@ -225,7 +231,7 @@ def transcribe(
     emit("chord_analysis", 55)
     chord_report = work_dir / "chords.json"
     try:
-        if engine.key == "sheetsage2":
+        if engine.key in AUDIO_LEAD_ENGINES:
             inferred_chords = analysis.get("chords", [])
             chord_report.write_text(json.dumps({"source": "sheetsage2", "chords": inferred_chords}))
         else:

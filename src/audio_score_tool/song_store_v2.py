@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import shutil
@@ -233,7 +234,7 @@ class SongStoreV2:
         shutil.copy2(path, target)
         return str(target)
 
-    def _preserve_original_audio(self, song_id: str) -> Path | None:
+    def _preserve_original_audio(self, song_id: str, *, expected_sha256: str | None = None) -> Path | None:
         """Copy an owned Job input into Song assets for later local identification.
 
         A completed Job may be deleted by storage cleanup. The source audio
@@ -242,8 +243,26 @@ class SongStoreV2:
         directories or use a caller-provided path.
         """
         safe_suffixes = {
-            ".wav", ".mp3", ".flac", ".m4a", ".aac", ".ogg", ".opus", ".webm",
+            ".wav", ".mp3", ".flac", ".m4a", ".mp4", ".aac", ".ogg", ".opus", ".webm",
         }
+        def matches(path: Path) -> bool:
+            with path.open("rb") as handle:
+                return hashlib.file_digest(handle, "sha256").hexdigest() == expected_sha256
+
+        assets_root = self.asset_root.resolve()
+        target_dir = self.asset_root / song_id
+        if target_dir.is_symlink() or target_dir.resolve().parent != assets_root:
+            return None
+        saved = sorted(path for path in target_dir.glob("original-audio.*")
+                       if path.is_file() and not path.is_symlink() and path.suffix.lower() in safe_suffixes)
+        if expected_sha256 is not None and saved:
+            if len(saved) != 1:
+                return None
+            try:
+                if matches(saved[0]):
+                    return saved[0]
+            except OSError:
+                return None
         jobs_root = jobs_dir().resolve()
         source_dir = jobs_root / song_id
         if source_dir.is_symlink():
@@ -260,22 +279,22 @@ class SongStoreV2:
         if len(candidates) != 1:
             return None
         original = candidates[0]
-        assets_root = self.asset_root.resolve()
-        target_dir = self.asset_root / song_id
-        if target_dir.is_symlink():
-            return None
         target_dir.mkdir(parents=True, exist_ok=True)
-        if target_dir.resolve().parent != assets_root:
-            return None
         target = target_dir / f"original-audio{original.suffix.lower()}"
-        if target.exists():
+        if expected_sha256 is None and target.exists():
             return target if target.is_file() and not target.is_symlink() else None
+        if target.is_symlink() or (saved and saved != [target]):
+            return None
         temp = target.with_suffix(target.suffix + ".copying")
         try:
+            if expected_sha256 is not None and not matches(original):
+                return None
             with original.open("rb") as source, temp.open("xb") as destination:
                 shutil.copyfileobj(source, destination)
+            if expected_sha256 is not None and not matches(temp):
+                raise ValueError("Source audio changed during preservation")
             temp.replace(target)
-        except OSError:
+        except (OSError, ValueError):
             temp.unlink(missing_ok=True)
             return None
         return target
@@ -296,6 +315,14 @@ class SongStoreV2:
         """A model Job is disposable only after its observations are durably owned."""
         try:
             report = preserve_model_evidence(job, jobs_root=jobs_dir(), asset_root=self.asset_root)
+            expected_audio = report.get("source_audio_sha256")
+            if report.get("status") == "preserved" and (
+                expected_audio is not None or job.get("transcription_engine") == "vocal_lead_v1"
+            ):
+                if expected_audio is None or self._preserve_original_audio(
+                    str(job["job_id"]), expected_sha256=expected_audio,
+                ) is None:
+                    return False
         except (OSError, ValueError, KeyError, TypeError):
             return False
         if self._exists_by_job(str(job.get("job_id") or "")):

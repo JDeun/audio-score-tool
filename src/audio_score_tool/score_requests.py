@@ -11,6 +11,7 @@ SCORE_PARTS: dict[str, tuple[str, ...]] = {
     "lead_sheet": ("vocal", "chords"),
     "guitar_vocal": ("vocal", "guitar"),
 }
+AUDIO_LEAD_ENGINES = frozenset({"sheetsage2", "vocal_lead_v1"})
 
 
 def validate_score_mode(value: str | None) -> str:
@@ -25,11 +26,11 @@ def requested_parts_for_mode(value: str) -> list[str]:
 
 def validate_engine_score_mode(value: str, engine: str) -> str:
     mode = validate_score_mode(value)
-    if engine == "sheetsage2" and mode != "lead_sheet":
-        raise ValueError("SheetSage2 supports lead_sheet only")
+    if engine in AUDIO_LEAD_ENGINES and mode != "lead_sheet":
+        raise ValueError(f"{engine} supports lead_sheet only")
     return mode
 
 
 def needs_stem_separation(value: str, *, engine: str | None = None) -> bool:
     mode = validate_engine_score_mode(value, engine or "")
-    return mode != "full" and engine != "sheetsage2"
+    return mode != "full" and engine not in AUDIO_LEAD_ENGINES
