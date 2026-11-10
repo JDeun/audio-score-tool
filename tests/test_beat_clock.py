@@ -135,6 +135,7 @@ def test_short_clock_uses_single_intervals():
 @pytest.mark.parametrize('tempo', [None, 0, -1, float('nan'), float('inf'), True, '120'])
 def test_fixed_clock_rejects_invalid_nominal_tempo(tempo):
     from types import SimpleNamespace
+
     from audio_score_tool.pipeline import PipelineError
     from audio_score_tool.pipeline_v2 import _apply_audio_clock
 
