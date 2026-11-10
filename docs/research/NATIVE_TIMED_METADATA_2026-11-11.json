@@ -1,0 +1,249 @@
+{
+  "tested_source_commit": "b6f5497a1fb4cc829fc44e7981c6c929f7530cae",
+  "previous_timeline_source": "c58f9f4 plus uncommitted implementation",
+  "prior_decoder_source_commit": "92cae693f31ec27b1c6512ac016a933217debde6",
+  "proof_sha256": {
+    "ten_case_report": "39eb073db6c05c69606de3c19e254da4ef9ecaa38cebea108d770964ba829dfc",
+    "bounds_report": "5a9d74e69d2818a597a463f73112ac931f4900629f57d2781f8f22ecde6c2203",
+    "timeline_report": "62f08fe03f34277e0322ae88ad8991573cc75fbb082aa679a6a5e028ad7ffe22",
+    "ten_case_script": "6478f334300352573b27084721970c927c6f20862c48033805af64ebc24c8bf7",
+    "bounds_script": "91c2600db0efa473cc52c46d4d48042cc5d0feec0e819bbc5beb48937cd50f13"
+  },
+  "source_blobs_sha256": {
+    "src/audio_score_tool/sheetsage2_score.py": "1bb114d572652419183dc7542cfb166e1302f6827319cc632142791c7224c2a2",
+    "src/audio_score_tool/sheetsage_hybrid.py": "1fe10bd369bf971c274b7a29e6a0da8ed17cf9c59525552d4a9289709ba34f4c",
+    "src/audio_score_tool/chord_editor.py": "dce2e2ea79c678aafb0719f463286ae54e8c896068fd520d0e63174a91c85d51",
+    "src/audio_score_tool/notation_backend.py": "738680812ea3c51f1075f24bc0a6f339967019f39f798074a65f094344db08a2"
+  },
+  "events_in_clock_bounds": 1596,
+  "all_ten_canonical_and_midi_guard_passed": true,
+  "midi_tolerance_seconds": 0.002,
+  "cases": [
+    {
+      "case_id": "tinashe-me-so-bad",
+      "clock": "baseline",
+      "source_sha256": {
+        "native_score": "aba54831a2987470174b42bf8a509963f8b8d1def45d09871d55b8e4cc74d367",
+        "playback": "58909ef37338c2909d83ed20f1e389e8e4a98c2b9c95d72b1f29e49cf9d49679",
+        "interpretation": "98c3354499eb1a6cfd2e3e433b400c6a6682b42c8af0173e7171ac87559250a3",
+        "selected_midi": "7a10754b9ea56d27c4247c3036006e87e0fdd0942779512695f9fc77ca921085",
+        "song_beats.txt": "a05b054aa885df53208d73877f3b4be605050673848c64ba44c73cdc607c8672",
+        "song_chords.txt": "1e5913a47336463fabb5f91ad085456a33c41684a3990732a18f8d121bc18bae",
+        "song_keys.txt": "bb8f8f5a7203f769f0557b370e09f99903d8724843c29525902252ae6cf1ece7",
+        "song_structures.txt": "e89e218a37cda5a6e78e067bfcf201b5fc79a0d2b77349331af802b0f39bcdeb"
+      },
+      "output_musicxml_sha256": "184bedae37cf98808341ef541597fa0dcb982c87195e2ee2af293fde77ecf87c",
+      "output_midi_sha256": "101bbbedfdf2427e147d169f7e5b37cecf88f4a8f3029ee797a08a795feda806",
+      "noninitial_events": 120,
+      "max_abs_residual_seconds": 5.684341886080802e-14,
+      "performed_notes": 545,
+      "midi_max_time_difference_seconds": 8.928571560318233e-06,
+      "internal_chord_duration_weighted_agreement": 1.0,
+      "source_no_chord_runs": 7
+    },
+    {
+      "case_id": "tinashe-me-so-bad",
+      "clock": "dbn",
+      "source_sha256": {
+        "native_score": "17d989204bc827a1e347ac5b44e3697bfe8c88a48b8cc6b4c688571ba6d9a6a2",
+        "playback": "b5b0b5c8dc14fc2985146a34db5aae780b7a7bfde800b7b3e02eaf6c2d095096",
+        "interpretation": "8865740519d8c3f1558ef00c37fa39d3ad3201773f8d88bdb3b4fb89a5257cdb",
+        "selected_midi": "7a10754b9ea56d27c4247c3036006e87e0fdd0942779512695f9fc77ca921085",
+        "song_beats.txt": "de98126bfdaadc82566f63d07a7b8d2a4cb72879fc1089f7072daa1d3bb55a19",
+        "song_chords.txt": "1e5913a47336463fabb5f91ad085456a33c41684a3990732a18f8d121bc18bae",
+        "song_keys.txt": "bb8f8f5a7203f769f0557b370e09f99903d8724843c29525902252ae6cf1ece7",
+        "song_structures.txt": "e89e218a37cda5a6e78e067bfcf201b5fc79a0d2b77349331af802b0f39bcdeb"
+      },
+      "output_musicxml_sha256": "a1e1ca6e5b6591695de3912f3336d542e3e78d3535bb7e121071497d15638b30",
+      "output_midi_sha256": "f91f3548784307c400ef2534409adada30417bdc76f71cb7434b88784dfef8e2",
+      "noninitial_events": 120,
+      "max_abs_residual_seconds": 0.07000000000090267,
+      "performed_notes": 550,
+      "midi_max_time_difference_seconds": 1.8758328224066645e-12,
+      "internal_chord_duration_weighted_agreement": 0.9806429279293319,
+      "source_no_chord_runs": 7
+    },
+    {
+      "case_id": "twice-fancy",
+      "clock": "baseline",
+      "source_sha256": {
+        "native_score": "f7bfeb76869ceac9ae360a097150dd2281401264ff0afb54c6189f6e137e5726",
+        "playback": "913b3135900de67197f8910294616e27d804a4c4456aa87098814b03edd86525",
+        "interpretation": "c74074257cf99e2630d23ecd0c8d56d47de38849ffa103536d1478e04b92d2f5",
+        "selected_midi": "23c94429600851d71371a29e1c66834b20a3158feb9cef55bd0909566f9e8e23",
+        "song_beats.txt": "7910eb724ab94e233b89eae6e926845f19b41337f8406f6e6ca21e754b520c9c",
+        "song_chords.txt": "a1943d8c1b05e7f94d64462ed8cc647cdbd5bca36f345d960a8b3e69a589470c",
+        "song_keys.txt": "8f5c900051c76ccb0b5f277f317cee1cad5451f94f9c9139318e4d597a1480d7",
+        "song_structures.txt": "92cb9975af4efb9e0651daa53b53a36da6cdfafdbf3488e75e29a95cd71cc0cf"
+      },
+      "output_musicxml_sha256": "b65dfcf29b90352edd5e8b7078c8bb8225f7e5014a783c087c963a63bcf10a21",
+      "output_midi_sha256": "22e3e992b56b7e27a53bf93591d737bfcdefee22c796df2543a96f75c7fb5f16",
+      "noninitial_events": 163,
+      "max_abs_residual_seconds": 0.0,
+      "performed_notes": 695,
+      "midi_max_time_difference_seconds": 2.083333345126448e-05,
+      "internal_chord_duration_weighted_agreement": 1.0,
+      "source_no_chord_runs": 1
+    },
+    {
+      "case_id": "twice-fancy",
+      "clock": "dbn",
+      "source_sha256": {
+        "native_score": "2f6c77227fb56451f6539a189727f254deb2f5aa154490ac9f1aa4726891bab7",
+        "playback": "28e24a20b440b5142c3faa17624725ac7f4b20bba0c7ebab7dd06026b247f191",
+        "interpretation": "e341895c90ba40ec09c38d4a0d505c8f59697d528b031d70a284336ac99f1357",
+        "selected_midi": "23c94429600851d71371a29e1c66834b20a3158feb9cef55bd0909566f9e8e23",
+        "song_beats.txt": "e0aac1dd0dcd835f272cdf94c4337ec27c2bcc3e25d0caaba928d68da619fefe",
+        "song_chords.txt": "a1943d8c1b05e7f94d64462ed8cc647cdbd5bca36f345d960a8b3e69a589470c",
+        "song_keys.txt": "8f5c900051c76ccb0b5f277f317cee1cad5451f94f9c9139318e4d597a1480d7",
+        "song_structures.txt": "92cb9975af4efb9e0651daa53b53a36da6cdfafdbf3488e75e29a95cd71cc0cf"
+      },
+      "output_musicxml_sha256": "268a55d492349c5cec5137c87d5d30c30b2b4ab99f41acfb08cbe1b4e2bfdec4",
+      "output_midi_sha256": "f3a507104c2de3e189393d217ae5702fe90195fe722b95e66e54d45790a3aea3",
+      "noninitial_events": 163,
+      "max_abs_residual_seconds": 0.059996999999953005,
+      "performed_notes": 693,
+      "midi_max_time_difference_seconds": 3.0000000101892965e-06,
+      "internal_chord_duration_weighted_agreement": 0.9794862653241934,
+      "source_no_chord_runs": 1
+    },
+    {
+      "case_id": "green-day-american-idiot",
+      "clock": "baseline",
+      "source_sha256": {
+        "native_score": "76f48ef6a76136034d4f573bd805c25819e9f63c74e2a752664f390da613bae2",
+        "playback": "206b5a3befea5df37f72abbb015f4db9e3646679162b31a4e03409edca8957af",
+        "interpretation": "763e24c8f7e6d7a4ad2c04841dbc70a1c72107571f513cdb7f96f97e2bacc764",
+        "selected_midi": "8742eed2010dbeb2eb7828f08fb8edbcd4ad4721c348af4ea9926dfca5d6c64d",
+        "song_beats.txt": "0d2c6414e5cd647682372f865b41997419ef1c6ea2a0b0dc6aa23ffc7797dc4f",
+        "song_chords.txt": "e303f5c981ea493c9f68a08227536fc9107996433fd9435746e52813a7e35eff",
+        "song_keys.txt": "647f3328331b151a3e1aa55697fa267ed9b6e063bd4798f36dc26f4774cac518",
+        "song_structures.txt": "723ac4f6863a4a758917dbecf987913900dede7b2a0d2624b241cd3e59105d9e"
+      },
+      "output_musicxml_sha256": "9cc9f0503d339bb2404ed3ca919dcfb501045a11122a6d35fca08df097c0e9d6",
+      "output_midi_sha256": "c38523502aec4d5fcd1acc8324efc088acbb5c2f3e58c73661e3ce196165c1a7",
+      "noninitial_events": 207,
+      "max_abs_residual_seconds": 3.000000845077011e-06,
+      "performed_notes": 308,
+      "midi_max_time_difference_seconds": 3.000000447173079e-06,
+      "internal_chord_duration_weighted_agreement": 0.9999964375860879,
+      "source_no_chord_runs": 13
+    },
+    {
+      "case_id": "green-day-american-idiot",
+      "clock": "dbn",
+      "source_sha256": {
+        "native_score": "306d8cfd1ad1b8a81644ab5b80dc3de8f2d43d20c1b765842417c419c27976a0",
+        "playback": "b83fd27832cd87363ed94ddf4d359ea287cf6d84146966174075993e265c15c2",
+        "interpretation": "536f774466f479b202b64cc97b63777917a13779590a0550497786dad5a422a2",
+        "selected_midi": "8742eed2010dbeb2eb7828f08fb8edbcd4ad4721c348af4ea9926dfca5d6c64d",
+        "song_beats.txt": "b53e7462434fac944ba23e00c0bfaf779845147fb8c5bab9644f77f7332e5b58",
+        "song_chords.txt": "e303f5c981ea493c9f68a08227536fc9107996433fd9435746e52813a7e35eff",
+        "song_keys.txt": "647f3328331b151a3e1aa55697fa267ed9b6e063bd4798f36dc26f4774cac518",
+        "song_structures.txt": "723ac4f6863a4a758917dbecf987913900dede7b2a0d2624b241cd3e59105d9e"
+      },
+      "output_musicxml_sha256": "83e02b8f3cf56438c18c3ed3ffbb960d907ddf98bff416af8591321f76873aaf",
+      "output_midi_sha256": "b98e883e2377633dbe9fb4583367210318dae820fde957f012be5590edbac594",
+      "noninitial_events": 207,
+      "max_abs_residual_seconds": 0.04000300000001289,
+      "performed_notes": 308,
+      "midi_max_time_difference_seconds": 3.0000000101892965e-06,
+      "internal_chord_duration_weighted_agreement": 0.9766514628269838,
+      "source_no_chord_runs": 13
+    },
+    {
+      "case_id": "ham-boo-young-my-song",
+      "clock": "baseline",
+      "source_sha256": {
+        "native_score": "aac67c73ebce0e2826f0eb6155890fcf2b091f67cefa7bebd0baf4549bd4cce6",
+        "playback": "fc37f80be9e7e3ab0d82b37d21ef7b419f8c914d67560bcb23ea6bd71b4fef52",
+        "interpretation": "ca0937d1ca630020b2cc667d1040b145a9605d12ba0c3a4617f72e498387536f",
+        "selected_midi": "b377400654fc797627dc9aaee294180c81df7f1f312afb984d1b45cab3cffac5",
+        "song_beats.txt": "87ac529b190059830eb4ae2d551cf70998f2d458256f03173791e912f4aacc4d",
+        "song_chords.txt": "bb5a32061b7c7665f1f7792e7ed74fd52b955985f141a4836bcc475aed18dbaa",
+        "song_keys.txt": "892ec5d672adf82d44cf7148e7c69588bbf28e7ac28560afa17215240bedf981",
+        "song_structures.txt": "43906d1d5fb09e4fef6a976215985b7fcee14dc363317a8db3ce9910901731b3"
+      },
+      "output_musicxml_sha256": "0e047bcbfb749f6486f345124916cc59ba07ed573500bca7a8f1ed9b2b706531",
+      "output_midi_sha256": "4077450e23910160ecdb1cdb20b67331e1f65a3ed57eb037e261ebd3eb5332f1",
+      "noninitial_events": 167,
+      "max_abs_residual_seconds": 1.0000000010279564e-06,
+      "performed_notes": 551,
+      "midi_max_time_difference_seconds": 1.0000016459343897e-06,
+      "internal_chord_duration_weighted_agreement": 0.9999994640510649,
+      "source_no_chord_runs": 1
+    },
+    {
+      "case_id": "ham-boo-young-my-song",
+      "clock": "dbn",
+      "source_sha256": {
+        "native_score": "f061d8746a7330649281a51c49eaedf7bb0a4bcd46972ab0c734cff5eb178971",
+        "playback": "a85fa78ad2895ff20cc996f78da01e796c6dc341aa64dd9d7f847c7d1d420ffb",
+        "interpretation": "c3c9f4184154a4486d7e724999dd0b07fbc72564181da14083976d67d05af8ef",
+        "selected_midi": "b377400654fc797627dc9aaee294180c81df7f1f312afb984d1b45cab3cffac5",
+        "song_beats.txt": "9ef45936a51dd497314255e31efb261ea8a2996bf8a68f3aff2def85cfffe805",
+        "song_chords.txt": "bb5a32061b7c7665f1f7792e7ed74fd52b955985f141a4836bcc475aed18dbaa",
+        "song_keys.txt": "892ec5d672adf82d44cf7148e7c69588bbf28e7ac28560afa17215240bedf981",
+        "song_structures.txt": "43906d1d5fb09e4fef6a976215985b7fcee14dc363317a8db3ce9910901731b3"
+      },
+      "output_musicxml_sha256": "2338baca9164ae8234485ffb2fe58daa91f46914f662cd430a39d7ac536ff703",
+      "output_midi_sha256": "5b4302bc7b5334459b73c707d266fc8a1afc3e92cd438fd4befeeee227570d97",
+      "noninitial_events": 167,
+      "max_abs_residual_seconds": 0.1199980000000096,
+      "performed_notes": 558,
+      "midi_max_time_difference_seconds": 2.0000023823740776e-06,
+      "internal_chord_duration_weighted_agreement": 0.9673877525982216,
+      "source_no_chord_runs": 1
+    },
+    {
+      "case_id": "younha-event-horizon",
+      "clock": "baseline",
+      "source_sha256": {
+        "native_score": "20beeb902b3e6032a915283988c2a9cdc2fda53bb79fc8e05abbdc2c62c7ecd8",
+        "playback": "273c567564a433df053d69510354cc8c88d5346d0b78976b3eb4d3d86d591fec",
+        "interpretation": "19f3ee3da5d90a20e700a48d6dacae925b58d55e1c2aa214782e14abbabd322b",
+        "selected_midi": "e34cfc781c5a73e4a5d76425a7545e033f1ef6e2731757eb24eacd0dbc4d03b3",
+        "song_beats.txt": "9705705c4283cb8ade079a34d808d7ff44d88f9ed810fd7d55715e53906ce2e7",
+        "song_chords.txt": "2bbff54a5d01d31a4e75919490bc6535818b42afb570ebb288883af581042d2e",
+        "song_keys.txt": "5a9dba2c1ba5194d37eb0ead2650971eb900e256b71dc9301f2d14341c97b169",
+        "song_structures.txt": "faa06eefd6e4ac695fcc3b8c1e0126503120b3a6233d0a0f883d7218f310669d"
+      },
+      "output_musicxml_sha256": "32c8b0a15b2388a2f696295590d9b97d7036de9544047020497aea8a66924abc",
+      "output_midi_sha256": "562f7a7f1fbf9ea94b78fa6799e5c999817a892e1a5f214a27a48c4289ae4472",
+      "noninitial_events": 141,
+      "max_abs_residual_seconds": 3.000000049269147e-06,
+      "performed_notes": 594,
+      "midi_max_time_difference_seconds": 3.333334063881921e-06,
+      "internal_chord_duration_weighted_agreement": 0.9999985936876803,
+      "source_no_chord_runs": 1
+    },
+    {
+      "case_id": "younha-event-horizon",
+      "clock": "dbn",
+      "source_sha256": {
+        "native_score": "4dd678ea89eb1b84d80150283707a685a376bd82b37f1b5617f3d86f897ddf62",
+        "playback": "54de5de75a147a075be80763dbdff4382edca39b364ee60cf6e542188d3a627b",
+        "interpretation": "5cb115a9262e776d0a42ab0a4ebe7de0b757e031a93f2379c01ca0e1efdfd3c2",
+        "selected_midi": "e34cfc781c5a73e4a5d76425a7545e033f1ef6e2731757eb24eacd0dbc4d03b3",
+        "song_beats.txt": "0997df93b6437f07c35d52c7a3869b16ebba5f2712344ed97e73d20f9297ce3d",
+        "song_chords.txt": "2bbff54a5d01d31a4e75919490bc6535818b42afb570ebb288883af581042d2e",
+        "song_keys.txt": "5a9dba2c1ba5194d37eb0ead2650971eb900e256b71dc9301f2d14341c97b169",
+        "song_structures.txt": "faa06eefd6e4ac695fcc3b8c1e0126503120b3a6233d0a0f883d7218f310669d"
+      },
+      "output_musicxml_sha256": "f27e75a34e708bdaf8f4a5424e049eed595726433da1e037bcabe7f0bb4e788d",
+      "output_midi_sha256": "ac865edb7f3078b5f299f8be06ca9d477c200c1bd5040b5061330e2746d57a2c",
+      "noninitial_events": 141,
+      "max_abs_residual_seconds": 0.07500299999986737,
+      "performed_notes": 614,
+      "midi_max_time_difference_seconds": 3.0000019251019694e-06,
+      "internal_chord_duration_weighted_agreement": 0.9836981127266402,
+      "source_no_chord_runs": 1
+    }
+  ],
+  "original_song_accuracy_verified": false,
+  "commercial_quality_approved": false,
+  "new_model_inference": false,
+  "pdf_rerender_in_v4": false,
+  "subsequent_inversion_fix_commit": "0d714a5835e1251357dfa75d0bdbc0210e452837",
+  "subsequent_inversion_fix_scope": "Recognized sixth and minor-major-seventh chord-tone bass inversions; no such labels in the five original source chord files."
+}
