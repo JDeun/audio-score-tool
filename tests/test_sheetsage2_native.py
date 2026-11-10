@@ -423,3 +423,63 @@ def test_inline_key_conversion_keeps_quoted_annotations_and_multiple_keys(monkey
     events = list(score.recurse().getElementsByClass(note.Note))
     assert [n.pitch.ps for n in events] == [71, 70]
     assert '"[K:F]"' in seen[0]
+
+
+@pytest.mark.parametrize(('suffix', 'pitch_classes'), [
+    ('', {0, 4, 7}), ('m', {0, 3, 7}), ('dim', {0, 3, 6}), ('aug', {0, 4, 8}),
+    ('7', {0, 4, 7, 10}), ('maj7', {0, 4, 7, 11}), ('m7', {0, 3, 7, 10}),
+    ('dim7', {0, 3, 6, 9}), ('m7b5', {0, 3, 6, 10}), ('sus4', {0, 5, 7}),
+    ('sus2', {0, 2, 7}), ('6', {0, 4, 7, 9}), ('m6', {0, 3, 7, 9}),
+    ('7sus4', {0, 5, 7, 10}), ('m(maj7)', {0, 3, 7, 11}),
+])
+def test_native_chord_qualities_survive_standard_xml(tmp_path, suffix, pitch_classes):
+    text = f'X:1\nM:4/4\nL:1/4\nK:C\nV: Vocal\n"C{suffix}"C4|]\n'
+    abc = tmp_path / 'score.abc'
+    abc.write_text(text)
+    (tmp_path / 'playback.json').write_text(json.dumps({'measures': [
+        dict(start=0, end=2, score_start=0, score_end=1)]}))
+    target = tmp_path / 'score.musicxml'
+    import_native_lead_sheet(tmp_path, target)
+    symbols = list(converter.parse(target).recurse().getElementsByClass(harmony.ChordSymbol))
+    assert len(symbols) == 1
+    assert {p.pitchClass for p in symbols[0].pitches} == pitch_classes
+    assert not ET.parse(target).findall('.//kind[.="suspended-fourth-seventh"]')
+    assert abc.read_text() == text
+
+
+@pytest.mark.parametrize(("symbol", "root", "bass"), [("Cm(maj7)/Eb", 0, 3),
+    ("C##m(maj7)/G##", 2, 9), ("Cbbm(maj7)/Gbb", 10, 5)])
+def test_minor_major_alias_with_slash_bass_and_quoted_annotation(symbol, root, bass, monkeypatch):
+    from music21 import abcFormat
+
+    from audio_score_tool.sheetsage2_score import _parse_vocal_abc
+
+    seen = []
+    original = abcFormat.ABCHandler.process
+    def capture(self, text):
+        seen.append(text)
+        return original(self, text)
+    monkeypatch.setattr(abcFormat.ABCHandler, 'process', capture)
+    text = f'X:1\nM:4/4\nL:1/4\nK:C\n"{symbol}"C2"not Cm(maj7)"D2|\n'
+    score = _parse_vocal_abc(text)
+    assert '"not Cm(maj7)"' in seen[0]
+    symbol = list(score.recurse().getElementsByClass(harmony.ChordSymbol))[0]
+    assert symbol.chordKind == 'minor-major-seventh'
+    assert symbol.root().pitchClass == root and symbol.bass().pitchClass == bass
+
+
+def test_suspended_seventh_is_visible_in_verovio_and_pdf(tmp_path):
+    from audio_score_tool.notation_backend import _verovio_toolkit, render_pdf
+
+    (tmp_path / 'score.abc').write_text('X:1\nM:4/4\nL:1/4\nK:C\nV: Vocal\n"E7sus4"C4|]\n')
+    (tmp_path / 'playback.json').write_text(json.dumps({'measures': [
+        dict(start=0, end=2, score_start=0, score_end=1)]}))
+    target = tmp_path / 'score.musicxml'
+    import_native_lead_sheet(tmp_path, target)
+    toolkit = _verovio_toolkit()
+    assert toolkit.loadFile(str(target))
+    svg = ET.fromstring(toolkit.renderToSVG(1))
+    assert 'sus4' in ''.join(svg.itertext()) and '7' in ''.join(svg.itertext())
+    output = tmp_path / 'score.pdf'
+    render_pdf(target, output)
+    assert output.read_bytes().startswith(b'%PDF')

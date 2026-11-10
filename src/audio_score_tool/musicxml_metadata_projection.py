@@ -32,6 +32,27 @@ def _text(node: ET.Element, name: str, fallback: str = "") -> str:
     return found.text if found is not None and found.text is not None else fallback
 
 
+def normalize_suspended_seventh(root: ET.Element) -> None:
+    """Replace music21's nonstandard chord kind with MusicXML 4 harmony degrees."""
+    for harmony in root.iter():
+        if _name(harmony) != "harmony":
+            continue
+        kind = _child(harmony, "kind")
+        if kind is None or kind.text != "suspended-fourth-seventh":
+            continue
+        kind.text = "suspended-fourth"
+        kind.set("text", kind.get("text") or "sus4")
+        namespace = kind.tag[:-len("kind")]
+        degree = ET.Element(namespace + "degree")
+        ET.SubElement(degree, namespace + "degree-value").text = "7"
+        ET.SubElement(degree, namespace + "degree-alter").text = "-1"
+        ET.SubElement(degree, namespace + "degree-type").text = "add"
+        children = list(harmony)
+        position = next((i for i, child in enumerate(children)
+                         if _name(child) in {"degree", "frame", "offset", "footnote", "level", "staff"}), len(children))
+        harmony.insert(position, degree)
+
+
 def _score(path: Path) -> ET.Element:
     if path.is_symlink() or not path.is_file() or path.stat().st_size > 64 * 1024 * 1024:
         raise AnnotationProjectionError("MusicXML is absent, oversized or symlinked")
@@ -90,6 +111,7 @@ def project_musicxml_annotations(
     """Project staged harmony/key/time, preserving source performance XML."""
     original = _score(source)
     added = _score(augmented)
+    normalize_suspended_seventh(added)
     source_parts = [part for part in original if _name(part) == "part"]
     added_parts = [part for part in added if _name(part) == "part"]
     # Annotation overlay intentionally contains only the first source Part.
