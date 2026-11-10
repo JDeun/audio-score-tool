@@ -217,3 +217,110 @@ def test_actual_cleanup_refuses_corrupt_evidence(case, monkeypatch, cleanup):
         assert caught.value.status_code == 409
     assert records.get(job["job_id"]) is not None
     assert (jobs / job["job_id"]).is_dir()
+
+
+@pytest.mark.parametrize("cleanup", [False, True])
+@pytest.mark.parametrize("damage", ["missing", "corrupt", "no_source"])
+def test_cleanup_requires_verified_original_audio(case, monkeypatch, cleanup, damage):
+    from fastapi import HTTPException
+    from audio_score_tool import api, job_lifecycle_api_v2, storage_api_v2
+    from audio_score_tool.job_store import JobStore
+
+    store, jobs, _, job = case
+    records = JobStore(store.path)
+    records.create(job["job_id"], filename=job["filename"], kind="transcription",
+                   transcription_engine="sheetsage2", score_mode="lead_sheet")
+    records.update(job["job_id"], status="done", result=job["result"])
+    assert store.sync_completed_jobs([job]) == 1
+    saved = store.asset_root / job["job_id"] / "original-audio.wav"
+    if damage == "missing":
+        saved.unlink()
+    else:
+        saved.write_bytes(b"x" * len(b"original waveform"))
+    if damage == "no_source":
+        (jobs / job["job_id"] / "input.wav").unlink()
+    monkeypatch.setattr(api, "_store", records)
+    for module in (job_lifecycle_api_v2, storage_api_v2):
+        monkeypatch.setattr(module, "_songs", store)
+        monkeypatch.setattr(module, "jobs_dir", lambda: jobs)
+    if cleanup:
+        monkeypatch.setattr(storage_api_v2, "storage_status", lambda: {})
+        result = storage_api_v2.cleanup_storage_v2(keep=0)
+        assert result["deleted_jobs"] == (0 if damage == "no_source" else 1)
+    elif damage == "no_source":
+        with pytest.raises(HTTPException) as caught:
+            job_lifecycle_api_v2.delete_job_v2(job["job_id"])
+        assert caught.value.status_code == 409
+    else:
+        assert job_lifecycle_api_v2.delete_job_v2(job["job_id"])["deleted"]
+    if damage == "no_source":
+        assert records.get(job["job_id"]) is not None
+        assert saved.read_bytes() == b"x" * len(b"original waveform")
+    else:
+        assert not (jobs / job["job_id"]).exists()
+        assert saved.read_bytes() == b"original waveform"
+        assert store.preserve_job_evidence(job)
+        saved.write_bytes(b"x" * len(b"original waveform"))
+        assert not store.preserve_job_evidence(job)
+
+
+@pytest.mark.parametrize("obstacle", ["source_symlink", "destination_symlink", "partial_copy"])
+def test_original_audio_recovery_rejects_unsafe_or_partial_copy(case, tmp_path, monkeypatch, obstacle):
+    store, jobs, _, job = case
+    assert store.sync_completed_jobs([job]) == 1
+    saved = store.asset_root / job["job_id"] / "original-audio.wav"
+    saved.unlink()
+    outside = tmp_path / "outside.wav"
+    outside.write_bytes(b"original waveform")
+    if obstacle == "source_symlink":
+        source = jobs / job["job_id"] / "input.wav"
+        source.unlink()
+        source.symlink_to(outside)
+    elif obstacle == "destination_symlink":
+        saved.symlink_to(outside)
+    else:
+        def partial(source, destination):
+            destination.write(b"partial")
+            raise OSError("interrupted")
+        monkeypatch.setattr(song_store_v2.shutil, "copyfileobj", partial)
+    assert not store.preserve_job_evidence(job)
+    assert outside.read_bytes() == b"original waveform"
+    assert not (saved.parent / "original-audio.wav.copying").exists()
+    assert saved.is_symlink() if obstacle == "destination_symlink" else not saved.exists()
+
+
+def test_corrupt_job_and_song_audio_cannot_be_discarded(case):
+    store, jobs, _, job = case
+    assert store.sync_completed_jobs([job]) == 1
+    saved = store.asset_root / job["job_id"] / "original-audio.wav"
+    saved.write_bytes(b"bad saved audio")
+    (jobs / job["job_id"] / "input.wav").write_bytes(b"bad job audio")
+    assert not store.preserve_job_evidence(job)
+    assert saved.read_bytes() == b"bad saved audio"
+
+
+def test_audio_recovery_does_not_follow_external_job_path(case, tmp_path):
+    store, jobs, _, job = case
+    assert store.sync_completed_jobs([job]) == 1
+    saved = store.asset_root / job["job_id"] / "original-audio.wav"
+    saved.unlink()
+    outside = tmp_path / "foreign"
+    shutil.move(jobs / job["job_id"], outside)
+    (jobs / job["job_id"]).symlink_to(outside, target_is_directory=True)
+    assert not store.preserve_job_evidence(job)
+    assert not saved.exists()
+
+
+def test_youtube_mp4_original_survives_with_nested_analysis_wav(case):
+    store, jobs, score, job = case
+    root = jobs / job["job_id"]
+    (root / "input.wav").rename(root / "input.mp4")
+    analysis = score.parent / "structure" / "analysis.wav"
+    analysis.parent.mkdir(parents=True)
+    analysis.write_bytes(b"decoded analysis")
+    job["source_kind"] = "youtube"
+    assert store.sync_completed_jobs([job]) == 1
+    assert store.analysis(job["job_id"], "model_evidence")["source_audio_sha256"] == hashlib.sha256(b"original waveform").hexdigest()
+    shutil.rmtree(root)
+    assert store.preserve_job_evidence(job)
+    assert (store.asset_root / job["job_id"] / "original-audio.mp4").read_bytes() == b"original waveform"

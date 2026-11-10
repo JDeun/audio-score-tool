@@ -105,8 +105,8 @@ def verify_notated_midi(source, rendered, interpretation: dict) -> dict:
     maximum = 0.0
     for wanted, played in zip(expected, actual, strict=True):
         difference = max(abs(wanted[1] - played.onset), abs(wanted[2] - played.offset))
-        if wanted[0] != played.pitch or difference > .002:
-            raise ValueError("Notation conversion changed an interpreted vocal pitch or audio time")
+        if played.is_drum or wanted[0] != played.pitch or difference > .002:
+            raise ValueError("Notation conversion changed an interpreted vocal pitch, role or audio time")
         maximum = max(maximum, float(difference))
     return {"performed_notes": len(actual), "max_time_difference_seconds": maximum,
             "tolerance_seconds": .002, "pitch_adjustments": 0,
