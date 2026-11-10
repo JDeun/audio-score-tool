@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import replace
 
 import pytest
-from music21 import converter, harmony, key, meter, note, tempo
+from music21 import clef, converter, harmony, key, meter, note, tempo
 
 from audio_score_tool.config import Settings
 from audio_score_tool.score_requests import needs_stem_separation, validate_engine_score_mode
@@ -176,6 +176,18 @@ K:A
     assert toolkit.loadFile(str(target))
     toolkit.renderToSVG(1)
     assert "ties left open" not in capfd.readouterr().err
+
+
+@pytest.mark.parametrize("declared,expected", [("treble", "G"), ("bass", "F")])
+def test_vocal_clef_declaration_survives_voice_extraction(tmp_path, declared, expected):
+    _native(tmp_path)
+    text = ABC.replace("clef=treble", f"clef={declared}").replace('"G"G2 A2 B2 |', 'G,,2 A,,2 B,,2 |')
+    (tmp_path / "score.abc").write_text(text)
+    target = tmp_path / "clef.musicxml"
+    import_native_lead_sheet(tmp_path, target)
+    score = converter.parse(target)
+    assert next(iter(score.recurse().getElementsByClass(clef.Clef))).sign == expected
+    assert [n.pitch.midi for n in score.recurse().getElementsByClass(note.Note)][:3] == [43, 45, 47]
 
 
 def test_official_lab_preserves_inversion_and_meter_changes():

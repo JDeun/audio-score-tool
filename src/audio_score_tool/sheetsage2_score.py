@@ -68,7 +68,7 @@ def vocal_abc(text: str) -> str:
 
 
 def import_native_lead_sheet(root: Path, target: Path) -> dict:
-    from music21 import converter, harmony, note, stream, tempo
+    from music21 import clef, converter, harmony, note, stream, tempo
     from music21.exceptions21 import Music21Exception
 
     abc = root / "score.abc"
@@ -77,7 +77,8 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
            for p in (abc, playback)):
         raise ValueError("Official notated score/playback is absent or unsafe")
     try:
-        text = vocal_abc(abc.read_text())
+        raw_abc = abc.read_text()
+        text = vocal_abc(raw_abc)
         score = _parse_vocal_abc(text)
         if not list(score.recurse().getElementsByClass(stream.Measure)):
             score.makeMeasures(inPlace=True)
@@ -87,6 +88,16 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
         raise ValueError("SheetSage2 did not produce a vocal melody")
     part = score.parts[0]
     part.partName = "Vocal"
+    declared = re.findall(r"(?m)^V:\s*Vocal\b[^\n]*\bclef=(\S+)", raw_abc)
+    if declared:
+        choices = {"treble": clef.TrebleClef, "bass": clef.BassClef,
+                   "alto": clef.AltoClef, "tenor": clef.TenorClef}
+        if len(set(declared)) != 1 or declared[0] not in choices:
+            raise ValueError("Unsupported or changing native Vocal clef")
+        for original in list(part.recurse().getElementsByClass(clef.Clef)):
+            original.activeSite.remove(original)
+        # Applying the display clef after ABC parsing avoids its bass octave shift.
+        part.getElementsByClass(stream.Measure).first().insert(0, choices[declared[0]]())
     performed = list(part.recurse().getElementsByClass(note.Note))
     respellings = 0
     for previous, current in zip(performed, performed[1:]):
