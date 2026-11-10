@@ -2,6 +2,8 @@
   "schema_version": 1,
   "tested_source_commit": "7a07c88b9c4f1267431d2daf372c7b3acbd8b602",
   "scope": "Product CLI vocadito 40; direct selection and fixed recipe routing; metadata only",
+  "new_amt_inference": false,
+  "amt_prediction_source": "Existing cached YourMT3 and MR-MT3 predictions; newly inferred product CLI F0 is reused for selection",
   "actual_inference_cases": 40,
   "inference_failures": 0,
   "actual_five_song_pipeline": "pending",
