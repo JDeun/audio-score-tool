@@ -44,12 +44,16 @@ def transcribe_fixed_vocal_lead(audio_path, output_dir, *, settings, cancel_even
               "quality_approved": False, "status": "running"}
     receipt = output_dir / "recipe.json"
     receipt.write_text(json.dumps(recipe, indent=2) + "\n")
+    normalized = prepare_demucs_audio(audio_path, output_dir / "demucs-input.wav",
+                                      settings=settings, cancel_event=cancel_event)
+    model_audio = audio_path if audio_path.suffix.lower() == ".wav" else normalized
+    with model_audio.open("rb") as handle:
+        recipe["model_audio_sha256"] = hashlib.file_digest(handle, "sha256").hexdigest()
+    recipe["model_audio_normalized"] = model_audio != audio_path
     structure_dir = output_dir / "structure"
     # Whole-mix structure is a separate, immutable observation from vocal inference.
     SheetSage2Engine(replace(settings, sheetsage2_snapshot=root / "sheetsage2")).analyze(
-        audio_path, structure_dir, cancel_event=cancel_event)
-    normalized = prepare_demucs_audio(audio_path, output_dir / "demucs-input.wav",
-                                      settings=settings, cancel_event=cancel_event)
+        model_audio, structure_dir, cancel_event=cancel_event)
     stems = output_dir / "stems"
     run_command(settings.fixed_vocal_cmd, ["separate", normalized, stems, "--snapshot", root],
                 cancel_event=cancel_event, timeout_seconds=1800)
@@ -68,7 +72,7 @@ def transcribe_fixed_vocal_lead(audio_path, output_dir, *, settings, cancel_even
                           vocal_audio=vocal_audio, ffmpeg_cmd=settings.ffmpeg_cmd)
     selected_xml.write_bytes(ET.tostring(selected, encoding="utf-8", xml_declaration=True))
     selected_midi = musicxml_to_midi(selected_xml, raw / "selected.mid")
-    run_command(settings.sheetsage2_cmd, [audio_path, output_dir / "interpretation.json",
+    run_command(settings.sheetsage2_cmd, [model_audio, output_dir / "interpretation.json",
                 "--model-dir", root / "sheetsage2/model", "--vocal-midi", selected_midi,
                 "--context-dir", structure_dir / "native"], cancel_event=cancel_event,
                 timeout_seconds=1800, env={"AST_USAGE_MODE": "personal", "AST_FIXED_LEAD_V1": "1"})
