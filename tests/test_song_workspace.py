@@ -294,3 +294,10 @@ def test_no_chord_export_renders_without_adding_midi_notes(tmp_path: Path):
     output = tmp_path / 'score.pdf'
     render_pdf(score, output)
     assert output.read_bytes().startswith(b'%PDF')
+    utf16 = tmp_path / 'utf16.musicxml'
+    utf16.write_bytes(ET.tostring(ET.parse(score).getroot(), encoding='utf-16', xml_declaration=True))
+    original = utf16.read_bytes()
+    assert toolkit.loadData(_no_chord_render_copy(utf16))
+    assert 'N.C.' in ''.join(ET.fromstring(toolkit.renderToSVG(1)).itertext())
+    render_pdf(utf16, tmp_path / 'utf16.pdf')
+    assert utf16.read_bytes() == original

@@ -30,8 +30,10 @@ def _parse_vocal_abc(text):
     handler = NativeABCHandler(abcVersion=(2, 1, 0))
     text = re.sub(r'"[^"\n]*"|\[K:([^]\n]+)\]',
                   lambda match: f"\nK:{match.group(1)}\n" if match.group(1) else match.group(0), text)
-    text = re.sub(r'"([A-G](?:##|bb|#|b)?)m\(maj7\)(/[A-G](?:##|bb|#|b)?)?"',
-                  lambda match: f'"{match.group(1).replace("bb", "--")}mM7{(match.group(2) or "").replace("bb", "--")}"', text)
+    from .sheetsage_hybrid import _normalize_native_chord_figure
+
+    text = re.sub(r'"([A-G](?:##|bb|#|b)?m\(maj7\)(?:/[A-G](?:##|bb|#|b)?)?)"',
+                  lambda match: f'"{_normalize_native_chord_figure(match.group(1))}"', text)
     handler.process(text)
     return translate.abcToStreamScore(handler)
 
@@ -116,6 +118,8 @@ def _restore_timed_metadata(score, part, root: Path, duration: float) -> dict:
     end_position = starts[-1] + float(measures[-1].duration.quarterLength)
 
     def placement(at):
+        if at < float(to_seconds(0.)) - 1e-6 or at > float(to_seconds(end_position)) + 1e-6:
+            raise ValueError("Timed metadata event is outside the score audio clock")
         position = max(0., float(to_quarters(at)))
         index = max(0, bisect.bisect_right(starts, position + 1e-8) - 1)
         measure = measures[index]
@@ -157,11 +161,13 @@ def _restore_timed_metadata(score, part, root: Path, duration: float) -> dict:
         for index, (start, _end, value) in enumerate(parsed):
             identity = (value.tonic.name, value.mode)
             if identity != previous:
-                position, observation = placement(start)
                 if index == 0:
                     position = 0.
-                    observation.update(score_quarters=0., residual_seconds=float(to_seconds(0.)) - start)
-                    observation["initial_inherited"] = True
+                    observation = {"source_seconds": start, "score_quarters": 0.,
+                                   "residual_seconds": float(to_seconds(0.)) - start,
+                                   "initial_inherited": True}
+                else:
+                    position, observation = placement(start)
                 if position <= last_position or (index != 0 and position >= end_position - 1e-8):
                     raise ValueError("Key changes collapse onto one native grid cell")
                 insert(position, value, split=index != 0)

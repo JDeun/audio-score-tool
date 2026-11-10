@@ -147,10 +147,20 @@ _SHEETSAGE_INVERSIONS = {
 }
 
 
+def _normalize_native_chord_figure(label: str) -> str:
+    match = re.fullmatch(r"([A-G](?:##|bb|#|b)?)([^/]*)(?:/([A-G](?:##|bb|#|b)?))?", label)
+    if not match:
+        return label
+    root, quality, bass = match.groups()
+    if quality == "m(maj7)":
+        quality = "mM7"
+    return root.replace("b", "-") + quality + ("/" + bass.replace("b", "-") if bass else "")
+
+
 def _parse_chord_symbol(label: str) -> harmony.ChordSymbol:
     """Convert recognized Harte triad/seventh labels into music21 notation."""
     if ":" not in label:
-        return harmony.ChordSymbol(label)
+        return harmony.ChordSymbol(_normalize_native_chord_figure(label))
     root, suffix = label.split(":", 1)
     quality, slash, bass = suffix.partition("/")
     if not re.fullmatch(r"[A-G](?:#|b)?", root) or quality not in _HARTE_QUALITY_TO_MUSIC21:

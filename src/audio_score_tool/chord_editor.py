@@ -10,7 +10,7 @@ class ChordEditError(RuntimeError):
 
 
 _CHORD_RE = re.compile(
-    r"^\s*([A-Ga-g])([#b♯♭]?)([^/]*?)(?:/([A-Ga-g])([#b♯♭]?))?\s*$"
+    r"^\s*([A-Ga-g])(##|bb|𝄪|𝄫|[#b♯♭]?)([^/]*?)(?:/([A-Ga-g])(##|bb|𝄪|𝄫|[#b♯♭]?))?\s*$"
 )
 
 _KIND_BY_SUFFIX = {
@@ -96,6 +96,10 @@ def _parse_note_id(note_id: str) -> tuple[int, int, int]:
 
 def _accidental_to_alter(value: str) -> int:
     normalized = value.replace("♯", "#").replace("♭", "b")
+    if normalized in {"##", "𝄪"}:
+        return 2
+    if normalized in {"bb", "𝄫"}:
+        return -2
     if normalized == "#":
         return 1
     if normalized == "b":
