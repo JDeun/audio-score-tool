@@ -108,12 +108,20 @@ def test_missing_separator_is_reported_as_unmeasured_not_success():
                                   settings=Settings(demucs_cmd="definitely-missing-demucs"))
 
 
-def test_saved_fixed_engine_selects_tiny_independent_of_current_settings(workspace, monkeypatch):
-    workspace.set_analysis('test', 'model_evidence', {'selection': {'transcription_engine': 'vocal_lead_v1'}})
+@pytest.mark.parametrize("saved,current,expected", [
+    ("vocal_lead_v1", "sheetsage2", True), ("sheetsage2", "vocal_lead_v1", False),
+])
+def test_saved_engine_routes_pitch_after_job_removal(workspace, monkeypatch, tmp_path, saved, current, expected):
+    workspace.set_analysis('test', 'model_evidence', {'selection': {'transcription_engine': saved}})
+    job = tmp_path / 'jobs/test'
+    job.mkdir(parents=True)
+    import shutil
+    shutil.rmtree(job)
+    monkeypatch.setattr(api, 'runtime_settings', lambda **_k: Settings(transcription_engine=current))
     seen = []
     monkeypatch.setattr(api, 'validate_lead_audio', lambda **kwargs: seen.append(kwargs) or {'issues': []})
     api.validate_song('test', api.ValidateRequest(use_audio=True))
-    assert seen[0]['fixed_tiny'] is True
+    assert not job.exists() and seen[0]['fixed_tiny'] is expected
 
 
 def test_fixed_tiny_track_is_used_without_yin_reestimation(tmp_path, monkeypatch):

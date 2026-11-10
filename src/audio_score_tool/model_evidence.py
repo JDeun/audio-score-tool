@@ -122,13 +122,14 @@ def preserve_model_evidence(job: dict, *, jobs_root: Path, asset_root: Path) -> 
         raise ValueError("Incomplete fixed vocal recipe source observations")
     if job.get("transcription_engine") == "vocal_lead_v1":
         recipe_path = score_dir / "recipe.json"
-        if json.loads(recipe_path.read_text()).get("recipe_version", 1) == 2 and not {
-            score_dir / "vocal/pitch.npz", score_dir / "vocal/pitch.runtime.json"
-        }.issubset(files):
-            raise ValueError("Incomplete fixed vocal pitch evidence")
-        if json.loads(recipe_path.read_text()).get("recipe_version", 1) == 2:
+        recipe = json.loads(recipe_path.read_text())
+        if not isinstance(recipe, dict) or type(recipe.get("recipe_version", 1)) is not int or recipe.get("recipe_version", 1) not in (1, 2):
+            raise ValueError("Invalid fixed vocal recipe version")
+        if recipe.get("recipe_version", 1) == 2:
+            if not {score_dir / "vocal/pitch.npz", score_dir / "vocal/pitch.runtime.json"}.issubset(files):
+                raise ValueError("Incomplete fixed vocal pitch evidence")
             pitch_receipt = json.loads((score_dir / "vocal/pitch.runtime.json").read_text())
-            if pitch_receipt.get("prediction_sha256") != _digest(score_dir / "vocal/pitch.npz"):
+            if not isinstance(pitch_receipt, dict) or pitch_receipt.get("prediction_sha256") != _digest(score_dir / "vocal/pitch.npz"):
                 raise ValueError("Fixed vocal pitch evidence SHA mismatch")
     inputs = [p for p in job_root.glob("input.*") if p.is_file() and _owned(p, job_root)]
     manifest = {

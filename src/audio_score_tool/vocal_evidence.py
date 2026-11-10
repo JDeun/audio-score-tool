@@ -161,6 +161,7 @@ def fixed_tiny_pitch_track(source: Path, output: Path, *, settings, cancel_event
     import json
     import zipfile
 
+    from .fixed_lead_recipe import YOUR_RUNTIME
     from .runner import run_command
 
     run_command(settings.fixed_vocal_cmd, ['pitch', source, output, '--snapshot', settings.fixed_lead_snapshot],
@@ -179,8 +180,11 @@ def fixed_tiny_pitch_track(source: Path, output: Path, *, settings, cancel_event
             or any(receipt.get(k) != v for k, v in {'device': 'cpu', 'threads': 2, 'seed': 0,
                 'sample_rate': 16000, 'hop': 160, 'fmin': 55, 'fmax': 880, 'decoder': 'viterbi',
                 'batch_size': 128, 'pad': True, 'periodicity_threshold': .21, 'silence_db': -60}.items())
+            or receipt.get('weights_source_revision') != '19e2ec3d494c0797a5ff2a11408ec5838fba6681'
+            or not isinstance(receipt.get('python'), str) or not receipt['python'].startswith('3.11.')
+            or receipt.get('adapter_sha256') != digest(Path(__file__).with_name('fixed_vocal_infer.py'))
             or any(receipt.get('runtime', {}).get(k) != v for k, v in {
-                'torchcrepe': '0.0.24', 'resampy': '0.4.3', 'librosa': '0.11.0'}.items())):
+                **YOUR_RUNTIME, 'torchcrepe': '0.0.24', 'resampy': '0.4.3', 'librosa': '0.11.0'}.items())):
         raise ValueError('Fixed pitch observation provenance mismatch')
     try:
         with zipfile.ZipFile(output) as archive:
@@ -191,11 +195,18 @@ def fixed_tiny_pitch_track(source: Path, output: Path, *, settings, cancel_event
             times, hz = np.asarray(data['times']), np.asarray(data['hz'])
     except (OSError, EOFError, zipfile.BadZipFile) as exc:
         raise ValueError('Invalid fixed pitch archive') from exc
+    # torchcrepe uses 20-cent bins based at 1997.3794084376191 cents and ±20-cent dither.
+    base, step = 1997.3794084376191, 20
+    low_bin = math.floor((1200 * math.log2(55 / 10) - base) / step)
+    high_bin = math.ceil((1200 * math.log2(880 / 10) - base) / step) - 1
+    low_hz = 10 * 2 ** ((base + step * (low_bin - 1)) / 1200)
+    high_hz = 10 * 2 ** ((base + step * (high_bin + 1)) / 1200)
     if (times.ndim != 1 or hz.ndim != 1 or times.shape != hz.shape or not len(times)
             or times.dtype.kind not in 'fi' or hz.dtype.kind not in 'fi'
             or not np.isfinite(times).all() or not np.isfinite(hz).all()
-            or times[0] < 0 or np.any(np.diff(times) <= 0) or np.any(hz < 0)
-            or np.any((hz > 0) & ((hz < 55) | (hz > 880)))):
+            or not np.allclose(times, np.arange(len(times)) * .01, rtol=0, atol=1e-7)
+            or np.any(hz < 0)
+            or np.any((hz > 0) & ((hz < low_hz - 1e-4) | (hz > high_hz + 1e-4)))):
         raise ValueError('Invalid fixed pitch track')
     pitches = np.full(hz.shape, np.nan, dtype=float)
     voiced = hz > 0
