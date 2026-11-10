@@ -67,7 +67,7 @@ def runtime_settings(
             "muscriptor" if usage_mode == "personal" else "mt3_infer"
         )
 
-    if usage_mode == "commercial" and engine in {"muscriptor", "sheetsage2"}:
+    if usage_mode == "commercial" and engine in {"muscriptor", "sheetsage2", "vocal_lead_v1"}:
         engine = "mt3_infer"
 
     def command_value(key: str, default: str, *legacy_keys: str) -> str:
@@ -95,6 +95,9 @@ def runtime_settings(
         sheetsage2_cmd=command_value("sheetsage2_cmd", defaults.sheetsage2_cmd),
         sheetsage2_snapshot=(Path(saved["sheetsage2_snapshot"]).expanduser()
                              if saved.get("sheetsage2_snapshot") else defaults.sheetsage2_snapshot),
+        fixed_lead_snapshot=(Path(saved["fixed_lead_snapshot"]).expanduser()
+                             if saved.get("fixed_lead_snapshot") else defaults.fixed_lead_snapshot),
+        fixed_vocal_cmd=command_value("fixed_vocal_cmd", defaults.fixed_vocal_cmd),
         demucs_cmd=command_value("demucs_cmd", defaults.demucs_cmd),
         whisperx_cmd=command_value("whisperx_cmd", defaults.whisperx_cmd),
         yt_dlp_cmd=command_value("yt_dlp_cmd", defaults.yt_dlp_cmd),

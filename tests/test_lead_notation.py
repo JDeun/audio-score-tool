@@ -1,14 +1,52 @@
 from dataclasses import replace
 
+import mido
 import numpy as np
 import pytest
 
-from audio_score_tool.lead_notation import vocal_grid
+from audio_score_tool.lead_notation import verify_notated_midi, vocal_grid
 from audio_score_tool.metrics import MidiNote
 
 
 def event(pitch, start, end):
     return MidiNote(pitch=pitch, onset=start, offset=end, channel=0, program=65, is_drum=False)
+
+
+@pytest.mark.parametrize("fault", [None, "pitch", "time", "missing"])
+def test_final_midi_must_preserve_interpreted_attacks_gaps_and_audio_time(tmp_path, fault):
+    def write(path, events):
+        midi = mido.MidiFile(ticks_per_beat=10000)
+        track = mido.MidiTrack()
+        midi.tracks.append(track)
+        cursor = 0
+        for pitch,start,end in events:
+            onset, offset = round(start*20000), round(end*20000)
+            track.append(mido.Message("note_on", note=pitch, velocity=80, time=onset-cursor))
+            track.append(mido.Message("note_off", note=pitch, time=offset-onset))
+            cursor = offset
+        midi.save(path)
+    source = tmp_path / "source.mid"
+    rendered = tmp_path / "rendered.mid"
+    write(source, [(60,.11,.31),(60,.41,.59)])
+    unchanged = source.read_bytes()
+    interpretation = {"grid_audio_seconds":[.1,.2,.3,.4,.5,.6],
+                      "source_note_indices":[0,0,-1,1,1]}
+    performed = [(60,.1,.3),(60,.4,.6)]
+    if fault == "pitch":
+        performed[1] = (61,.4,.6)
+    elif fault == "time":
+        performed[1] = (60,.41,.6)
+    elif fault == "missing":
+        performed.pop()
+    write(rendered, performed)
+    if fault:
+        with pytest.raises(ValueError, match="Notation conversion changed"):
+            verify_notated_midi(source, rendered, interpretation)
+    else:
+        report = verify_notated_midi(source, rendered, interpretation)
+        assert report["performed_notes"] == 2 and report["matched_interpretation"]
+        assert report["original_song_accuracy"] is None
+    assert source.read_bytes() == unchanged
 
 
 def test_grid_interpretation_preserves_pitch_and_raw_performance():

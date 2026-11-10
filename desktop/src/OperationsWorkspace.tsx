@@ -7,7 +7,7 @@ const API = "http://127.0.0.1:8080";
 type Section = "new" | "history" | "benchmark" | "settings";
 type SourceMode = "file" | "youtube";
 type ScoreMode = "full" | "lead_sheet" | "guitar_vocal";
-type TranscriptionEngine = "mt3_infer" | "muscriptor" | "native" | "sheetsage2";
+type TranscriptionEngine = "mt3_infer" | "muscriptor" | "native" | "sheetsage2" | "vocal_lead_v1";
 
 type ModelIdentity = {
   transcription_engine?: TranscriptionEngine | null;
@@ -159,6 +159,7 @@ function modelLabel(identity: ModelIdentity): string {
   }
   if (identity.transcription_engine === "native") return "AudioScore Native";
   if (identity.transcription_engine === "sheetsage2") return "SheetSage2";
+  if (identity.transcription_engine === "vocal_lead_v1") return "고정 보컬 악보 v1";
   return "모델 정보 없음";
 }
 
@@ -260,10 +261,10 @@ export default function OperationsWorkspace({ section }: { section: Section }) {
   const personalYoutube = health?.usage_mode === "personal";
   const selectedEngine = health?.preflight.engine;
   const usingMuscriptor = selectedEngine?.key === "muscriptor";
-  const usingSheetSage2 = selectedEngine?.key === "sheetsage2";
+  const usingAudioLead = ["sheetsage2", "vocal_lead_v1"].includes(selectedEngine?.key ?? "");
   useEffect(() => {
-    if (usingSheetSage2) setScoreMode("lead_sheet");
-  }, [usingSheetSage2]);
+    if (usingAudioLead) setScoreMode("lead_sheet");
+  }, [usingAudioLead]);
   const presetSizes: Record<string, string> = { fast: "small", balanced: "medium", quality: "large" };
   const requestedModelLabel = health ? modelLabel({
     transcription_engine: selectedEngine?.key,
@@ -720,14 +721,14 @@ export default function OperationsWorkspace({ section }: { section: Section }) {
                     name="score-mode"
                     checked={scoreMode === value}
                     onChange={() => setScoreMode(value)}
-                    disabled={active || (usingSheetSage2 && value !== "lead_sheet")}
+                    disabled={active || (usingAudioLead && value !== "lead_sheet")}
                   />
-                  <span><strong>{label}</strong><small>{usingSheetSage2 && value === "lead_sheet" ? "음원에서 보컬 멜로디·코드·박자·키를 함께 분석합니다." : description}</small></span>
+                  <span><strong>{label}</strong><small>{usingAudioLead && value === "lead_sheet" ? "음원에서 보컬 멜로디·코드·박자·키를 함께 분석합니다." : description}</small></span>
                 </label>
               ))}
             </div>
-            {usingSheetSage2 && <p className="source-usage-note">SheetSage2는 보컬 멜로디+코드 전용입니다. 생성 결과의 정확도는 검토가 필요합니다.</p>}
-            {scoreMode !== "full" && !usingSheetSage2 && (
+            {usingAudioLead && <p className="source-usage-note">선택한 모델은 보컬 멜로디+코드 전용입니다. 전주 악기의 보컬 오인과 짧은 음표 누락을 포함해 생성 악보를 검토하세요.</p>}
+            {scoreMode !== "full" && !usingAudioLead && (
               <p className="source-usage-note">
                 선택 악기 채보는 Demucs가 필요하며 결과는 검토·수정 가능한 초안입니다.
                 기타 TAB 및 상용 악보 수준의 자동 복원은 아직 지원하지 않습니다.
@@ -743,7 +744,7 @@ export default function OperationsWorkspace({ section }: { section: Section }) {
             <small>곡 제목이 ‘아티스트 - 제목’ 형식이면 외부 API에 이름만 조회합니다. 음원 파일은 업로드하지 않습니다. 가사 API 불가 시 사용 가능한 WhisperX 인식 결과를 사용합니다.</small>
           </div>
           {preset === "custom" && <div className="custom-model-row">{usingMuscriptor && <label><span>MuScriptor</span><select value={muscriptorModel} onChange={(event) => setMuscriptorModel(event.target.value)}><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></label>}<label><span>WhisperX</span><select value={whisperxModel} disabled={!lyrics} onChange={(event) => setWhisperxModel(event.target.value)}><option value="small">Small</option><option value="medium">Medium</option><option value="large-v3">Large v3</option></select></label></div>}
-          <div className="primary-action-row">{!health?.preflight.ok && <span className="setup-needed">일부 실행 환경을 확인해야 합니다. 설정 메뉴에서 상태를 확인하세요.</span>}<button className="primary-button large" disabled={busy || active || offline || !health?.preflight.ok || (sourceMode === "youtube" && health?.youtube?.ready === false) || (sourceMode === "file" ? !file : !youtubeMetadata || (!personalYoutube && !youtubeAuthorized)) || (scoreMode !== "full" && !usingSheetSage2 && health?.preflight.tools.demucs !== true)} onClick={() => void startTranscription()}>{active ? "작업 진행 중" : "자동 채보 시작"}</button></div>
+          <div className="primary-action-row">{!health?.preflight.ok && <span className="setup-needed">일부 실행 환경을 확인해야 합니다. 설정 메뉴에서 상태를 확인하세요.</span>}<button className="primary-button large" disabled={busy || active || offline || !health?.preflight.ok || (sourceMode === "youtube" && health?.youtube?.ready === false) || (sourceMode === "file" ? !file : !youtubeMetadata || (!personalYoutube && !youtubeAuthorized)) || (scoreMode !== "full" && !usingAudioLead && health?.preflight.tools.demucs !== true)} onClick={() => void startTranscription()}>{active ? "작업 진행 중" : "자동 채보 시작"}</button></div>
         </section>
         {currentJobCard}
         <section className="workflow-strip" aria-label="자동 채보 과정"><div><b>1</b><span>음원 분석</span></div><i /><div><b>2</b><span>파트별 채보</span></div><i /><div><b>3</b><span>코드·가사</span></div><i /><div><b>4</b><span>악보 편집</span></div><i /><div><b>5</b><span>PDF 내보내기</span></div></section>

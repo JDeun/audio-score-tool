@@ -9,7 +9,8 @@ from pathlib import Path
 
 MAX_FILE_BYTES = 16 * 1024 * 1024
 MAX_TOTAL_BYTES = 128 * 1024 * 1024
-SCORE_FILES = {"score.mid", "score.musicxml", "analysis.json", "notation-report.json"}
+SCORE_FILES = {"score.mid", "score.musicxml", "analysis.json", "notation-report.json",
+               "recipe.json", "interpretation.json"}
 NATIVE_FILES = {
     "score.abc", "playback.json", "result.json", "events.json", "events.tsv",
     "tokens.json", "tokens.txt", "transcription.mid", "melody.mid", "chords.mid",
@@ -82,9 +83,14 @@ def preserve_model_evidence(job: dict, *, jobs_root: Path, asset_root: Path) -> 
         raise ValueError("Model output directory is missing or outside its Job")
     candidates = [score_dir / name for name in sorted(SCORE_FILES)]
     candidates += [score_dir / "native" / name for name in sorted(NATIVE_FILES)]
+    if job.get("transcription_engine") == "vocal_lead_v1":
+        candidates += [score_dir / "structure" / name for name in sorted(SCORE_FILES)]
+        candidates += [score_dir / "structure/native" / name for name in sorted(NATIVE_FILES)]
     candidates += [score_dir.parent / name for name in ("music_structure.json", "chords.json")]
     for role in ("vocal", "guitar", "accompaniment"):
-        candidates += [score_dir / role / name for name in ("score.mid", "score.musicxml", "part-selection.json")]
+        candidates += [score_dir / role / name for name in (
+            "score.mid", "score.musicxml", "part-selection.json", "selected.mid",
+            "selected.musicxml", "score.runtime.json")]
     files = []
     total = 0
     for path in candidates:
@@ -106,6 +112,14 @@ def preserve_model_evidence(job: dict, *, jobs_root: Path, asset_root: Path) -> 
         score_dir / "native" / "playback.json", score_dir / "analysis.json",
     }.issubset(files):
         raise ValueError("Incomplete SheetSage2 source observations")
+    if job.get("transcription_engine") == "vocal_lead_v1" and not {
+        score_dir / "recipe.json", score_dir / "interpretation.json",
+        score_dir / "vocal/score.mid", score_dir / "vocal/score.runtime.json",
+        score_dir / "vocal/selected.mid", score_dir / "native/score.abc",
+        score_dir / "native/playback.json", score_dir / "structure/analysis.json",
+        score_dir / "structure/native/score.abc", score_dir / "structure/native/melody_vocal.mid",
+    }.issubset(files):
+        raise ValueError("Incomplete fixed vocal recipe source observations")
     inputs = [p for p in job_root.glob("input.*") if p.is_file() and _owned(p, job_root)]
     manifest = {
         "schema_version": 1, "status": "preserved", "job_id": song_id,

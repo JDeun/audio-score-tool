@@ -58,6 +58,35 @@ def test_raw_predictions_survive_job_removal_and_score_edits(case):
         assert hashlib.sha256((folder / item["path"]).read_bytes()).hexdigest() == item["sha256"]
 
 
+def test_fixed_recipe_keeps_both_raw_providers_after_job_disposal(case):
+    store, jobs, score, job = case
+    job["transcription_engine"] = "vocal_lead_v1"
+    (score / "structure").mkdir()
+    shutil.copytree(score / "native", score / "structure/native")
+    (score / "structure/analysis.json").write_text('{"model":"sheetsage2"}')
+    (score / "recipe.json").write_text('{"engine":"vocal_lead_v1"}')
+    (score / "interpretation.json").write_text('{"unrepresented_note_indices":[1]}')
+    (score / "vocal").mkdir()
+    (score / "vocal/score.mid").write_bytes(b"YourMT3 original, distinct from S2")
+    (score / "vocal/selected.mid").write_bytes(b"selected original voice")
+    (score / "vocal/score.runtime.json").write_text('{"seed":0}')
+    assert store.sync_completed_jobs([job]) == 1
+    folder = store.asset_root / "test-song/model-evidence"
+    shutil.rmtree(jobs / "test-song")
+    assert store.preserve_job_evidence(job)
+    assert (folder / "vocal/score.mid").read_bytes() == b"YourMT3 original, distinct from S2"
+    assert (folder / "structure/native/melody_vocal.mid").read_bytes() == b"raw vocal MIDI"
+    assert (folder / "interpretation.json").is_file()
+    assert not (folder / "structure/native/model.safetensors").exists()
+
+
+def test_fixed_recipe_missing_original_provider_blocks_disposal(case):
+    store, _jobs, _score, job = case
+    job["transcription_engine"] = "vocal_lead_v1"
+    assert not store.preserve_job_evidence(job)
+    assert store.sync_completed_jobs([job]) == 0
+
+
 @pytest.mark.parametrize("target", ["source", "parent", "destination"])
 def test_symlink_escape_never_copies_foreign_files(case, tmp_path, target):
     store, jobs, score, job = case

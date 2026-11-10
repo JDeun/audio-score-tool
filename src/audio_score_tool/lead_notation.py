@@ -10,7 +10,7 @@ from collections.abc import Sequence
 
 import numpy as np
 
-from .metrics import MidiNote
+from .metrics import MidiNote, midi_notes
 
 
 def vocal_grid(notes: Sequence[MidiNote], grid_seconds: Sequence[float]) -> tuple[np.ndarray, dict]:
@@ -77,3 +77,37 @@ def vocal_grid(notes: Sequence[MidiNote], grid_seconds: Sequence[float]) -> tupl
         "overlap_review_cells": np.flatnonzero(competing > 1).tolist(),
         "pitch_adjustments": 0, "raw_events_mutated": False, "quality_approved": False,
     }
+
+
+def verify_notated_midi(source, rendered, interpretation: dict) -> dict:
+    """Refuse a completed draft when conversion changes its interpreted notes."""
+    notes = midi_notes(source)
+    times = np.asarray(interpretation["grid_audio_seconds"], dtype=np.float64)
+    indices = interpretation["source_note_indices"]
+    if (times.ndim != 1 or len(times) != len(indices) + 1 or not np.all(np.isfinite(times))
+            or times[0] < 0 or not np.all(np.diff(times) > 0)
+            or any(type(i) is not int or not -1 <= i < len(notes) for i in indices)):
+        raise ValueError("Invalid vocal interpretation event map")
+    expected = []
+    previous = -1
+    for position, index in enumerate(indices):
+        if index < 0:
+            previous = -1
+            continue
+        if index != previous:
+            expected.append([notes[index].pitch, times[position], times[position + 1]])
+        else:
+            expected[-1][2] = times[position + 1]
+        previous = index
+    actual = midi_notes(rendered)
+    if not expected or len(actual) != len(expected):
+        raise ValueError("Notation conversion changed the interpreted vocal attack count")
+    maximum = 0.0
+    for wanted, played in zip(expected, actual, strict=True):
+        difference = max(abs(wanted[1] - played.onset), abs(wanted[2] - played.offset))
+        if wanted[0] != played.pitch or difference > .002:
+            raise ValueError("Notation conversion changed an interpreted vocal pitch or audio time")
+        maximum = max(maximum, float(difference))
+    return {"performed_notes": len(actual), "max_time_difference_seconds": maximum,
+            "tolerance_seconds": .002, "pitch_adjustments": 0,
+            "matched_interpretation": True, "original_song_accuracy": None}

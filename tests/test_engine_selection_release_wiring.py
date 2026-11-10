@@ -104,3 +104,34 @@ def test_commercial_muscriptor_is_rejected_before_readiness_check(
     })
     assert response.status_code == 422
     assert store.read()["usage_mode"] == "personal"
+
+
+def test_fixed_recipe_selection_preserves_runtime_binding_and_has_no_model_variant(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    store = _isolate_settings(tmp_path, monkeypatch)
+    monkeypatch.setattr(engine_api.FixedVocalLeadEngine, "ready", lambda self: (
+        self.settings.fixed_lead_snapshot == Path("/fixture/fixed-snapshot")
+        and self.settings.fixed_vocal_cmd == "fixture-vocal-runtime"))
+    response = TestClient(app).put("/api/engines", json={
+        "transcription_engine": "vocal_lead_v1", "fixed_lead_snapshot": "/fixture/fixed-snapshot",
+        "fixed_vocal_cmd": "fixture-vocal-runtime"})
+    assert response.status_code == 200, response.text
+    assert response.json()["selected"] == "vocal_lead_v1"
+    assert store.read()["fixed_lead_snapshot"] == "/fixture/fixed-snapshot"
+    assert store.read()["mt3_model"] == "mr_mt3"
+    selected = next(x for x in response.json()["engines"] if x["key"] == "vocal_lead_v1")
+    assert selected["supported_score_modes"] == ["lead_sheet"]
+    assert selected["supports_multi_instrument"] is False
+
+
+def test_fixed_recipe_is_blocked_when_unready_commercial_or_packaged(tmp_path, monkeypatch):
+    store = _isolate_settings(tmp_path, monkeypatch)
+    monkeypatch.setattr(engine_api.FixedVocalLeadEngine, "ready", lambda _: False)
+    client = TestClient(app)
+    assert client.put("/api/engines", json={"transcription_engine":"vocal_lead_v1"}).status_code == 409
+    assert client.put("/api/engines", json={
+        "transcription_engine":"vocal_lead_v1", "usage_mode":"commercial"}).status_code == 422
+    monkeypatch.setattr(engine_api, "packaged_runtime", lambda: True)
+    assert client.put("/api/engines", json={"transcription_engine":"vocal_lead_v1"}).status_code == 409
+    assert store.read()["transcription_engine"] == "mt3_infer"
