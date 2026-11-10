@@ -30,7 +30,6 @@
   "config": {
     "device": "cpu",
     "threads": 2,
-    "seed": 0,
     "fmin_hz": 55,
     "fmax_hz": 880,
     "hop_seconds": 0.01,
@@ -40,7 +39,11 @@
     "minimum_frames": 4,
     "coverage": 0.6,
     "mad_semitones": 0.35,
-    "interior_margin_seconds": 0.025
+    "interior_margin_seconds": 0.025,
+    "torch_seed": 0,
+    "numpy_seed": null,
+    "python_random_seed": null,
+    "scope": "legacy note-level calibration runs; NumPy decoder dither was not seeded"
   },
   "calibration_40": {
     "tiny": {
@@ -119,7 +122,8 @@
         "any_warning_rate_compared": 0.9989785495403473
       }
     },
-    "octave_injection": "Both +12 and -12 semitones; independently computed from cached F0"
+    "octave_injection": "Both +12 and -12 semitones; independently computed from cached F0",
+    "reproducibility_limit": "Torch seed 0 only; NumPy triangular decoder dither was not seeded. Frozen outputs are observed results, not exact deterministic replay or statistically significant model differences."
   },
   "fixed_rule_ablation_40": {
     "rule": "absolute difference >= 0.75 semitones; nearest MIDI semitone distance <= 0.35; valid MIDI range",
@@ -300,7 +304,13 @@
       "peak_rss_bytes": 5195513856,
       "script_sha256": "da0f7055719af427d1dd9ee26aa6675915d58a089e9905201594df26d9155f78"
     },
-    "cost_is_not_a_40_song_benchmark": true
+    "cost_is_not_a_40_song_benchmark": true,
+    "seeding": {
+      "torch": 0,
+      "numpy": 0,
+      "python_random": 0,
+      "lifecycle": "each fresh process"
+    }
   },
   "cache_only_additional_checks": {
     "tiny": {
@@ -359,7 +369,11 @@
       "minimum_frames": 4,
       "coverage": 0.6,
       "mad_semitones": 0.35,
-      "interior_margin_seconds": 0.025
+      "interior_margin_seconds": 0.025,
+      "torch_seed": 0,
+      "numpy_seed": 0,
+      "python_random_seed": 0,
+      "seed_lifecycle": "fresh product process per recording"
     },
     "role": "advisory vocal F0 verification development baseline",
     "full_exposed_as_user_option": false,

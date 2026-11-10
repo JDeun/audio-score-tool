@@ -41,7 +41,9 @@
     "librosa": "0.11.0",
     "device": "cpu",
     "threads": 2,
-    "seed": 0
+    "torch_seed": 0,
+    "numpy_seed": null,
+    "python_random_seed": null
   },
   "scripts_sha256": {
     "calibration": "cc44068ba7958088027ac701d35a1b50a94eed70b295770fe169ee7955e27d46",
@@ -393,5 +395,6 @@
         }
       }
     }
-  ]
+  ],
+  "reproducibility_correction": "Calibration and five-song scripts call prepare() directly and did not seed NumPy dither. Original hashes and observed results retained; no exact global-seed deterministic replay claim. See CREPE_FULL_NOTE_REVIEW_2026-11-11.md."
 }
