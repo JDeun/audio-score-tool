@@ -26,6 +26,8 @@ def _parse_vocal_abc(text):
 
     # The official writer carries accidentals by letter across octaves to the barline.
     handler = NativeABCHandler(abcVersion=(2, 1, 0))
+    text = re.sub(r'"[^"\n]*"|\[K:([^]\n]+)\]',
+                  lambda match: f"\nK:{match.group(1)}\n" if match.group(1) else match.group(0), text)
     handler.process(text)
     return translate.abcToStreamScore(handler)
 

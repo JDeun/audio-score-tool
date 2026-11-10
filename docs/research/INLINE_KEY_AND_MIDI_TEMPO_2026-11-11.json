@@ -1,0 +1,189 @@
+{
+  "schema_version": 1,
+  "execution_commit": "109f339e610541812fd1a248edbb094d1f200413",
+  "base_commit": "919654d",
+  "private_report_sha256": "3e09cf301f16db36b4282a911216a69b2acbc17a24028e4d00df192c700051ba",
+  "cached_hybrid_report_sha256": "14569e117b28d7ea0195aaf1ab2af895d7a930072142a2df0a587e46a8fc3aeb",
+  "prior_control_report_sha256": "57e33cd47fcb0ecf493156f511ab83659c7686409ec24070830a5dcc61dc8a80",
+  "source_sha256": {
+    "sheetsage2_score.py": "7a3a02eccf6b20d93918ccdd95068b808be25d1176925fcac0b8edae9faa4286",
+    "notation_backend.py": "e8443622a66bbfd7cef3392f6934f5dc25798e7cd743633ac6ba614c6b02bd34"
+  },
+  "verification_script_sha256": "b6624d5244c114e40726c5ce3d57d9a8556a3e4020c152c34dce211cac50b6c4",
+  "source_hashes_verified_before_after_and_git_blob": true,
+  "script_hash_verified_before_after": true,
+  "context": "Beat This hybrid native ABC and dense interpretation; distinct from original SheetSage2 recipe context",
+  "normalization_present": false,
+  "new_inference": false,
+  "pdf_rendered": false,
+  "quality_approved": false,
+  "final_model_approved": false,
+  "total_attacks": 2813,
+  "cases": [
+    {
+      "id": "green-day-american-idiot",
+      "source_context_sha256": {
+        "source": "aedb875ba145c1f5cd21a0a86713d11dff1de9701512b8f1c7e4a40fa4fdf680",
+        "selected": "8742eed2010dbeb2eb7828f08fb8edbcd4ad4721c348af4ea9926dfca5d6c64d",
+        "beats": "0d2c6414e5cd647682372f865b41997419ef1c6ea2a0b0dc6aa23ffc7797dc4f",
+        "chords": "e303f5c981ea493c9f68a08227536fc9107996433fd9435746e52813a7e35eff",
+        "keys": "647f3328331b151a3e1aa55697fa267ed9b6e063bd4798f36dc26f4774cac518",
+        "structures": "723ac4f6863a4a758917dbecf987913900dede7b2a0d2624b241cd3e59105d9e"
+      },
+      "cached_input_sha256": {
+        "score.abc": "fbac56b799a221635e73b7d98da9fd1fa74e45136585139f65ae2f11045409f3",
+        "playback.json": "880e9f1cca6f153543d37784d5d95c93c7ab8ec3a04007f1b8286f19b54f060f",
+        "interpretation.json": "19af341fdbec5779ebbd28d5c996e450e72b29b23f44bd4912f2af660f1e777f",
+        "notation/song_beats.txt": "80ee2c8c87b3607d5fc7edf4a44000e2a8d7b65a60ad8ae8c99facb0cebd0f29",
+        "notation/song_chords.txt": "e303f5c981ea493c9f68a08227536fc9107996433fd9435746e52813a7e35eff",
+        "notation/song_keys.txt": "647f3328331b151a3e1aa55697fa267ed9b6e063bd4798f36dc26f4774cac518",
+        "notation/song_structures.txt": "723ac4f6863a4a758917dbecf987913900dede7b2a0d2624b241cd3e59105d9e",
+        "selected_midi": "8742eed2010dbeb2eb7828f08fb8edbcd4ad4721c348af4ea9926dfca5d6c64d"
+      },
+      "canonical_xml_sha256": "77c74b6fe5015fc9768409f1d4d2cb211814829c2a12b9864f2455ab8d948aab",
+      "midi_sha256": "1edcafa768d1bc284dd2392e662c62d5a84be0ea2cae35aa2de26077f82e9709",
+      "fidelity": {
+        "performed_notes": 311,
+        "max_time_difference_seconds": 7.046031711865908e-05,
+        "tolerance_seconds": 0.002,
+        "pitch_adjustments": 0,
+        "matched_interpretation": true,
+        "original_song_accuracy": null
+      },
+      "import_measures": 139
+    },
+    {
+      "id": "ham-boo-young-my-song",
+      "source_context_sha256": {
+        "source": "871118a06f5021b94f6e56c9066fca50670582f5e530bcee9290e2db270d8ac7",
+        "selected": "b377400654fc797627dc9aaee294180c81df7f1f312afb984d1b45cab3cffac5",
+        "beats": "87ac529b190059830eb4ae2d551cf70998f2d458256f03173791e912f4aacc4d",
+        "chords": "bb5a32061b7c7665f1f7792e7ed74fd52b955985f141a4836bcc475aed18dbaa",
+        "keys": "892ec5d672adf82d44cf7148e7c69588bbf28e7ac28560afa17215240bedf981",
+        "structures": "43906d1d5fb09e4fef6a976215985b7fcee14dc363317a8db3ce9910901731b3"
+      },
+      "cached_input_sha256": {
+        "score.abc": "810a95e481f15cf56d3cb89d843d8a863a47443fdd99a2b486e9279ac7b9150e",
+        "playback.json": "be5a07ee1c780dad5f794367c5aa60d983c21320c3a4987d70fc4a33d973f9de",
+        "interpretation.json": "89cfe529d05dc5a12469151d81a71fd0c7c7c4a0fc2f21609d8e469ad68eaa7d",
+        "notation/song_beats.txt": "d0a965650bcb2559b5dac4fc0185740c2fe6a3a7de6f2375189e4ed4ad46423c",
+        "notation/song_chords.txt": "bb5a32061b7c7665f1f7792e7ed74fd52b955985f141a4836bcc475aed18dbaa",
+        "notation/song_keys.txt": "892ec5d672adf82d44cf7148e7c69588bbf28e7ac28560afa17215240bedf981",
+        "notation/song_structures.txt": "43906d1d5fb09e4fef6a976215985b7fcee14dc363317a8db3ce9910901731b3",
+        "selected_midi": "b377400654fc797627dc9aaee294180c81df7f1f312afb984d1b45cab3cffac5"
+      },
+      "canonical_xml_sha256": "3902e606b12fdd79f822ec46adfa96f610651fc76b34775ab991da7c190f52b9",
+      "midi_sha256": "56bad1ea3c6add701b96ea9647707940e2e9190a21aed69ec917966fee1b112a",
+      "fidelity": {
+        "performed_notes": 605,
+        "max_time_difference_seconds": 9.622222131611124e-05,
+        "tolerance_seconds": 0.002,
+        "pitch_adjustments": 0,
+        "matched_interpretation": true,
+        "original_song_accuracy": null
+      },
+      "import_measures": 86
+    },
+    {
+      "id": "tinashe-me-so-bad",
+      "source_context_sha256": {
+        "source": "f39788b3075e9117661481470289c6e79ce25171f7a256936a2167bdae49fd65",
+        "selected": "7a10754b9ea56d27c4247c3036006e87e0fdd0942779512695f9fc77ca921085",
+        "beats": "a05b054aa885df53208d73877f3b4be605050673848c64ba44c73cdc607c8672",
+        "chords": "1e5913a47336463fabb5f91ad085456a33c41684a3990732a18f8d121bc18bae",
+        "keys": "bb8f8f5a7203f769f0557b370e09f99903d8724843c29525902252ae6cf1ece7",
+        "structures": "e89e218a37cda5a6e78e067bfcf201b5fc79a0d2b77349331af802b0f39bcdeb"
+      },
+      "cached_input_sha256": {
+        "score.abc": "b14bebda328a43da6bd2ce4ded120185e1ad42b6e7014e85ab6cff1c2ca5047d",
+        "playback.json": "ebdc53b68ee3f0e679677ac1afc12ef74f7b23e8282b65bfff0af373094f04d5",
+        "interpretation.json": "a31ce499c9c888f79b57c9d9be665a08b98e18d27602babc72676548e022beed",
+        "notation/song_beats.txt": "7d716fa6f3f08b930f0e1b1846b6f6ae05f49be5b24c2084775c8dab13a24c40",
+        "notation/song_chords.txt": "1e5913a47336463fabb5f91ad085456a33c41684a3990732a18f8d121bc18bae",
+        "notation/song_keys.txt": "bb8f8f5a7203f769f0557b370e09f99903d8724843c29525902252ae6cf1ece7",
+        "notation/song_structures.txt": "e89e218a37cda5a6e78e067bfcf201b5fc79a0d2b77349331af802b0f39bcdeb",
+        "selected_midi": "7a10754b9ea56d27c4247c3036006e87e0fdd0942779512695f9fc77ca921085"
+      },
+      "canonical_xml_sha256": "3bea996d0abe4d6fdd7d8cd9a7c28437b7d7052f9919e60ccbe69890dcea02b0",
+      "midi_sha256": "a6b422091f5d5358342ed6ae8d65bb05c2e915b45295b3992a317b62a3d49651",
+      "fidelity": {
+        "performed_notes": 564,
+        "max_time_difference_seconds": 4.463492074080477e-05,
+        "tolerance_seconds": 0.002,
+        "pitch_adjustments": 0,
+        "matched_interpretation": true,
+        "original_song_accuracy": null
+      },
+      "import_measures": 88
+    },
+    {
+      "id": "twice-fancy",
+      "source_context_sha256": {
+        "source": "5e1b5613b3863ea3babd2dc22bc9fa8ba62deb2ae44d48c8885f832ab56f01ec",
+        "selected": "23c94429600851d71371a29e1c66834b20a3158feb9cef55bd0909566f9e8e23",
+        "beats": "7910eb724ab94e233b89eae6e926845f19b41337f8406f6e6ca21e754b520c9c",
+        "chords": "a1943d8c1b05e7f94d64462ed8cc647cdbd5bca36f345d960a8b3e69a589470c",
+        "keys": "8f5c900051c76ccb0b5f277f317cee1cad5451f94f9c9139318e4d597a1480d7",
+        "structures": "92cb9975af4efb9e0651daa53b53a36da6cdfafdbf3488e75e29a95cd71cc0cf"
+      },
+      "cached_input_sha256": {
+        "score.abc": "0a5517d6149504ed6792a90ebf1102aaaf6b36ff363908c06cdfa57960e15872",
+        "playback.json": "98348b185c11e1aa29302e39ac6b1f963a9616b038bffd5d988ac66a58bb00e8",
+        "interpretation.json": "2d41ab85ba73d695bdfe6a11a9e6a8fad54f45baf43b8627f754f3c534915c97",
+        "notation/song_beats.txt": "a6fa1009717675508f9ffc7e25fa515718af9e8bd59ab108d27c1dd5c2534543",
+        "notation/song_chords.txt": "a1943d8c1b05e7f94d64462ed8cc647cdbd5bca36f345d960a8b3e69a589470c",
+        "notation/song_keys.txt": "8f5c900051c76ccb0b5f277f317cee1cad5451f94f9c9139318e4d597a1480d7",
+        "notation/song_structures.txt": "92cb9975af4efb9e0651daa53b53a36da6cdfafdbf3488e75e29a95cd71cc0cf",
+        "selected_midi": "23c94429600851d71371a29e1c66834b20a3158feb9cef55bd0909566f9e8e23"
+      },
+      "canonical_xml_sha256": "57df84035d1a81b260988603214fd5ca8784e1b509c7b0848dbbb82f694163c2",
+      "midi_sha256": "bc1637c2f71b4e59cf9a1e35d9bbf7d72d4686ff6ea6e02768d07f40fca84e8b",
+      "fidelity": {
+        "performed_notes": 710,
+        "max_time_difference_seconds": 4.268253891837048e-05,
+        "tolerance_seconds": 0.002,
+        "pitch_adjustments": 0,
+        "matched_interpretation": true,
+        "original_song_accuracy": null
+      },
+      "import_measures": 122
+    },
+    {
+      "id": "younha-event-horizon",
+      "source_context_sha256": {
+        "source": "2d84bd77253c96851db8bde4cd76de0b7bf7101cf07f79ff8dbf2d03f1d23dce",
+        "selected": "e34cfc781c5a73e4a5d76425a7545e033f1ef6e2731757eb24eacd0dbc4d03b3",
+        "beats": "9705705c4283cb8ade079a34d808d7ff44d88f9ed810fd7d55715e53906ce2e7",
+        "chords": "2bbff54a5d01d31a4e75919490bc6535818b42afb570ebb288883af581042d2e",
+        "keys": "5a9dba2c1ba5194d37eb0ead2650971eb900e256b71dc9301f2d14341c97b169",
+        "structures": "faa06eefd6e4ac695fcc3b8c1e0126503120b3a6233d0a0f883d7218f310669d"
+      },
+      "cached_input_sha256": {
+        "score.abc": "a0c7e458106ff7169dd202cda4420f7c44b4c4cb0c2b3e1da91d01920ea59a07",
+        "playback.json": "78f3a1a898510a13ceaa051e08ba0b997a8456dda89810171586b081617d8598",
+        "interpretation.json": "bf4f2b7ba0f233a0afc1d9fbf48ee82d2f9174c1eadcd6549c2ddaf9b98b72fa",
+        "notation/song_beats.txt": "db725182d1f30cd05678d325d8756806346c0342cee8514b4a109d5f10c914af",
+        "notation/song_chords.txt": "2bbff54a5d01d31a4e75919490bc6535818b42afb570ebb288883af581042d2e",
+        "notation/song_keys.txt": "5a9dba2c1ba5194d37eb0ead2650971eb900e256b71dc9301f2d14341c97b169",
+        "notation/song_structures.txt": "faa06eefd6e4ac695fcc3b8c1e0126503120b3a6233d0a0f883d7218f310669d",
+        "selected_midi": "e34cfc781c5a73e4a5d76425a7545e033f1ef6e2731757eb24eacd0dbc4d03b3"
+      },
+      "canonical_xml_sha256": "bdb2539cb085690e80b076b6ce8e767471937d4687eb397fa4ec8acb288ab562",
+      "midi_sha256": "592f3cf15a4aac3a33cf5dbafd0776979ba39425d2cddda48478f8ea4a4fbd23",
+      "fidelity": {
+        "performed_notes": 623,
+        "max_time_difference_seconds": 2.4777776843620813e-05,
+        "tolerance_seconds": 0.002,
+        "pitch_adjustments": 0,
+        "matched_interpretation": true,
+        "original_song_accuracy": null
+      },
+      "import_measures": 124
+    }
+  ],
+  "model_context": {
+    "beat": "Beat This (cached hybrid)",
+    "structure": "SheetSage2 (cached context)",
+    "vocal": "YourMT3+ (cached selected MIDI)"
+  }
+}

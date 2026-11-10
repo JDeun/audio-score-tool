@@ -379,3 +379,47 @@ def test_engine_runs_pinned_native_import_and_refuses_other_model(tmp_path, monk
         assert artifacts.musicxml_path.is_file() and artifacts.midi_path.is_file()
         assert calls[0][1][-2:] == ["--device", "cpu"]
         assert calls[0][2]["env"]["AST_USAGE_MODE"] == "personal"
+
+
+def test_inline_key_change_preserves_tied_enharmonic_and_barline_accidentals(tmp_path):
+    from music21 import note
+
+    from audio_score_tool.sheetsage2_score import _parse_vocal_abc
+
+    cases = [
+        ('K:Bb', '_B6-[K:A]^A24-^A6z60|', [70, 70, 70], ['start', 'continue', 'stop']),
+        ('K:Ab', '[K:A]=B48-B48-|B4B4z88|', [71, 71, 71, 71], ['start', 'continue', 'stop', None]),
+    ]
+    for header_key, body, pitches, ties in cases:
+        source = f'X:1\nM:4/4\nL:1/96\n{header_key}\n{body}\n'
+        score = _parse_vocal_abc(source)
+        events = list(score.recurse().getElementsByClass(note.Note))
+        assert [n.pitch.ps for n in events] == pitches
+        assert [n.tie.type if n.tie else None for n in events] == ties
+        assert source.endswith(body + '\n')
+        from audio_score_tool.metrics import midi_notes
+        from audio_score_tool.notation_backend import musicxml_to_midi
+
+        xml = tmp_path / 'score.musicxml'
+        score.write('musicxml', fp=str(xml))
+        rendered = midi_notes(musicxml_to_midi(xml, tmp_path / 'score.mid'))
+        assert rendered[0].pitch == pitches[0]
+        assert rendered[0].onset == pytest.approx(0, abs=.002)
+        assert rendered[0].offset == pytest.approx(.75 if len(events) == 3 else 25 / 12, abs=.002)
+
+
+def test_inline_key_conversion_keeps_quoted_annotations_and_multiple_keys(monkeypatch):
+    from music21 import abcFormat, note
+
+    from audio_score_tool.sheetsage2_score import _parse_vocal_abc
+
+    seen = []
+    original = abcFormat.ABCHandler.process
+    def capture(self, text):
+        seen.append(text)
+        return original(self, text)
+    monkeypatch.setattr(abcFormat.ABCHandler, 'process', capture)
+    score = _parse_vocal_abc('X:1\nM:4/4\nL:1/4\nK:Ab\n"[K:F]"[K:A]B4|[K:Ab]B4|\n')
+    events = list(score.recurse().getElementsByClass(note.Note))
+    assert [n.pitch.ps for n in events] == [71, 70]
+    assert '"[K:F]"' in seen[0]

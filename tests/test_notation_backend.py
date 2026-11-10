@@ -164,6 +164,10 @@ def test_music21_export_skips_same_file_with_relative_target(tmp_path: Path, mon
     class FakeScore:
         metadata = None
 
+        def recurse(self):
+            from music21 import stream
+            return stream.Score().recurse()
+
         def write(self, fmt: str, fp: str) -> str:
             written = Path(fp).resolve()
             written.write_text(fmt, encoding="utf-8")
@@ -245,3 +249,62 @@ def test_verovio_nested_viewbox_offset_translation_is_not_discarded():
     root = ET.fromstring(_normalize_verovio_svg_for_fpdf2(original))
     converted = list(root)[0]
     assert converted.get("transform") == "matrix(0.1 0 0 0.1 -8 -17)"
+
+
+@pytest.mark.parametrize('microseconds', [1, 0xFFFFFF])
+def test_midi_tempo_valid_24_bit_boundaries(tmp_path, microseconds):
+    import mido
+    from music21 import note, stream, tempo
+
+    from audio_score_tool.notation_backend import musicxml_to_midi
+
+    score = stream.Score()
+    part = stream.Part()
+    part.append(tempo.MetronomeMark(number=60_000_000 / microseconds))
+    part.append(note.Note('C4', quarterLength=1))
+    score.insert(0, part)
+    source = tmp_path / 'source.musicxml'
+    score.write('musicxml', fp=str(source))
+    midi = musicxml_to_midi(source, tmp_path / 'result.mid')
+    assert [m.tempo for m in mido.MidiFile(midi) if m.type == 'set_tempo'] == [microseconds]
+
+
+@pytest.mark.parametrize("bpm", [60 / 18.6, 120_000_001])
+def test_midi_tempo_rejects_overflow_without_overwriting_target(tmp_path, bpm):
+    from music21 import note, stream, tempo
+
+    from audio_score_tool.notation_backend import musicxml_to_midi
+
+    score = stream.Score()
+    part = stream.Part()
+    mark = tempo.MetronomeMark(number=bpm)
+    mark.style.hideObjectOnPrint = True
+    part.append(mark)
+    part.append(note.Note('C4', quarterLength=1))
+    score.insert(0, part)
+    source = tmp_path / 'source.musicxml'
+    score.write('musicxml', fp=str(source))
+    original = source.read_bytes()
+    target = tmp_path / 'result.mid'
+    target.write_bytes(b'previous output')
+    with pytest.raises(NotationBackendError, match='24-bit'):
+        musicxml_to_midi(source, target)
+    assert target.read_bytes() == b'previous output' and source.read_bytes() == original
+
+
+def test_midi_tempo_multiple_normal_events(tmp_path):
+    import mido
+    from music21 import note, stream, tempo
+
+    from audio_score_tool.notation_backend import musicxml_to_midi
+
+    score = stream.Score()
+    part = stream.Part()
+    for bpm in (120, 90):
+        part.append(tempo.MetronomeMark(number=bpm))
+        part.append(note.Note('C4', quarterLength=1))
+    score.insert(0, part)
+    source = tmp_path / 'source.musicxml'
+    score.write('musicxml', fp=str(source))
+    midi = musicxml_to_midi(source, tmp_path / 'result.mid')
+    assert [m.tempo for m in mido.MidiFile(midi) if m.type == 'set_tempo'] == [500000, 666667]

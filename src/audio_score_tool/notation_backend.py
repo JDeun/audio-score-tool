@@ -98,7 +98,7 @@ def musicxml_to_midi(source: Path, target: Path) -> Path:
     if not music21_available():
         raise NotationBackendUnavailable("MusicXML→MIDI 변환에는 music21이 필요합니다.")
     try:
-        from music21 import converter
+        from music21 import converter, tempo
 
         from .midi_channels import preserve_program_channels
         from .midi_ties import prepare_score_for_midi, restore_instrument_bindings
@@ -107,6 +107,12 @@ def musicxml_to_midi(source: Path, target: Path) -> Path:
         score = converter.parse(str(source))
         restore_instrument_bindings(score, source)
         score = prepare_score_for_midi(score)
+        for mark in score.recurse().getElementsByClass(tempo.MetronomeMark):
+            if mark.number is None and mark.numberSounding is None:
+                continue
+            bpm = mark.getSoundingMetronomeMark().getQuarterBPM()
+            if not math.isfinite(bpm) or bpm <= 0 or not 1 <= round(60_000_000 / bpm) <= 0xFFFFFF:
+                raise ValueError("MIDI tempo is outside the 24-bit microseconds-per-quarter range")
         target.parent.mkdir(parents=True, exist_ok=True)
         written = score.write("midi", fp=str(target))
         preserve_program_channels(Path(str(written)) if written else target)
