@@ -1,0 +1,345 @@
+{
+  "schema_version": 1,
+  "scope": "Research note-level calibration and one-case CPU cost; no product approval",
+  "quality_approved": false,
+  "automatic_pitch_correction_approved": false,
+  "original_recording_five_song_ground_truth": false,
+  "dataset": "vocadito v3, 40 songs, A1/A2 original Hz annotations for scoring only",
+  "input_archive_sha256": "e0d6b99d3f9c594afe5ae5c4d7bdacebe569e53b809e90b89d1c771c4f9990e3",
+  "models": {
+    "tiny": {
+      "git_blob": "18d881163b9f7ddf8daf0709c75cf204f5570da5",
+      "sha256": "d4993eea36ed1a0ad9ac549c740dae5265b049ce72004f00c2f59e01c0be8432",
+      "bytes": 1962363
+    },
+    "full": {
+      "git_blob": "ddd8a2eb75a1eadb073e5f5bb5bee45d4d8d1323",
+      "sha256": "133225604dedd2e4005f8bbd1bd0a2ec073ba8b7a6cd31ff6d5edbbfa3539986",
+      "bytes": 88991291
+    }
+  },
+  "weights_source_revision": "19e2ec3d494c0797a5ff2a11408ec5838fba6681",
+  "runtime": {
+    "torch": "2.7.1",
+    "torchaudio": "2.7.1",
+    "numpy": "2.4.6",
+    "torchcrepe": "0.0.24",
+    "resampy": "0.4.3",
+    "librosa": "0.11.0"
+  },
+  "config": {
+    "device": "cpu",
+    "threads": 2,
+    "seed": 0,
+    "fmin_hz": 55,
+    "fmax_hz": 880,
+    "hop_seconds": 0.01,
+    "decoder": "viterbi",
+    "periodicity_threshold": 0.21,
+    "silence_db": -60,
+    "minimum_frames": 4,
+    "coverage": 0.6,
+    "mad_semitones": 0.35,
+    "interior_margin_seconds": 0.025
+  },
+  "calibration_40": {
+    "tiny": {
+      "selected": {
+        "predicted_notes": 1809,
+        "compared_notes": 1197,
+        "consistent_notes": 939,
+        "octave_suspects": 2,
+        "pitch_suspects": 256,
+        "observation_rate": 0.6616915422885572,
+        "abstention_rate": 0.3383084577114428,
+        "octave_warning_rate_compared": 0.001670843776106934,
+        "pitch_warning_rate_compared": 0.21386800334168754,
+        "any_warning_rate_compared": 0.21553884711779447
+      },
+      "surrogate": {
+        "predicted_notes": 4113,
+        "compared_notes": 2935,
+        "consistent_notes": 2702,
+        "octave_suspects": 5,
+        "pitch_suspects": 228,
+        "observation_rate": 0.7135910527595429,
+        "abstention_rate": 0.28640894724045707,
+        "octave_warning_rate_compared": 0.0017035775127768314,
+        "pitch_warning_rate_compared": 0.0776831345826235,
+        "any_warning_rate_compared": 0.07938671209540034
+      },
+      "octave_plus_12": {
+        "predicted_notes": 4113,
+        "compared_notes": 2935,
+        "consistent_notes": 5,
+        "octave_suspects": 2702,
+        "pitch_suspects": 228,
+        "observation_rate": 0.7135910527595429,
+        "abstention_rate": 0.28640894724045707,
+        "octave_warning_rate_compared": 0.9206132879045996,
+        "pitch_warning_rate_compared": 0.0776831345826235,
+        "any_warning_rate_compared": 0.9982964224872232
+      }
+    },
+    "full": {
+      "selected": {
+        "predicted_notes": 1809,
+        "compared_notes": 1202,
+        "consistent_notes": 973,
+        "octave_suspects": 2,
+        "pitch_suspects": 227,
+        "observation_rate": 0.6644555002763958,
+        "abstention_rate": 0.33554449972360423,
+        "octave_warning_rate_compared": 0.0016638935108153079,
+        "pitch_warning_rate_compared": 0.18885191347753744,
+        "any_warning_rate_compared": 0.19051580698835274
+      },
+      "surrogate": {
+        "predicted_notes": 4113,
+        "compared_notes": 2937,
+        "consistent_notes": 2711,
+        "octave_suspects": 3,
+        "pitch_suspects": 223,
+        "observation_rate": 0.7140773158278628,
+        "abstention_rate": 0.2859226841721371,
+        "octave_warning_rate_compared": 0.0010214504596527069,
+        "pitch_warning_rate_compared": 0.0759278175008512,
+        "any_warning_rate_compared": 0.07694926796050391
+      },
+      "octave_plus_12": {
+        "predicted_notes": 4113,
+        "compared_notes": 2937,
+        "consistent_notes": 3,
+        "octave_suspects": 2711,
+        "pitch_suspects": 223,
+        "observation_rate": 0.7140773158278628,
+        "abstention_rate": 0.2859226841721371,
+        "octave_warning_rate_compared": 0.9230507320394961,
+        "pitch_warning_rate_compared": 0.0759278175008512,
+        "any_warning_rate_compared": 0.9989785495403473
+      }
+    },
+    "octave_injection": "Both +12 and -12 semitones; independently computed from cached F0"
+  },
+  "fixed_rule_ablation_40": {
+    "rule": "absolute difference >= 0.75 semitones; nearest MIDI semitone distance <= 0.35; valid MIDI range",
+    "tiny": {
+      "totals": {
+        "predicted_notes": 1809,
+        "observed_notes": 1197,
+        "changed_notes": 79,
+        "pitch_delta_counts": {
+          "12": 2,
+          "1": 16,
+          "-1": 53,
+          "-7": 2,
+          "-2": 4,
+          "-4": 1,
+          "-3": 1
+        }
+      },
+      "annotators": {
+        "A1": {
+          "surrogate_notes": 2237,
+          "surrogate_observed": 1523,
+          "surrogate_changed": 10,
+          "changed_labels": {
+            "correct_to_wrong": 5,
+            "wrong_to_correct": 53,
+            "correct_to_correct": 0,
+            "wrong_to_wrong": 1,
+            "coverage_insufficient": 20,
+            "ambiguous": 0
+          },
+          "onset_f1": {
+            "raw": 0.4956574495,
+            "derived": 0.5216880685,
+            "delta": 0.026030619000000005,
+            "improved": 22,
+            "worsened": 0,
+            "unchanged": 18
+          },
+          "onset_offset_f1": {
+            "raw": 0.27112533425,
+            "derived": 0.2838896385,
+            "delta": 0.012764304250000002,
+            "improved": 17,
+            "worsened": 0,
+            "unchanged": 23
+          }
+        },
+        "A2": {
+          "surrogate_notes": 1876,
+          "surrogate_observed": 1412,
+          "surrogate_changed": 16,
+          "changed_labels": {
+            "correct_to_wrong": 5,
+            "wrong_to_correct": 52,
+            "correct_to_correct": 0,
+            "wrong_to_wrong": 3,
+            "coverage_insufficient": 19,
+            "ambiguous": 0
+          },
+          "onset_f1": {
+            "raw": 0.590747369,
+            "derived": 0.6215350964999999,
+            "delta": 0.0307877275,
+            "improved": 24,
+            "worsened": 1,
+            "unchanged": 15
+          },
+          "onset_offset_f1": {
+            "raw": 0.34628301024999997,
+            "derived": 0.36207055050000003,
+            "delta": 0.015787540250000003,
+            "improved": 17,
+            "worsened": 1,
+            "unchanged": 22
+          }
+        }
+      }
+    },
+    "full": {
+      "totals": {
+        "predicted_notes": 1809,
+        "observed_notes": 1202,
+        "changed_notes": 82,
+        "pitch_delta_counts": {
+          "1": 17,
+          "12": 2,
+          "-1": 57,
+          "-7": 2,
+          "-4": 1,
+          "-3": 1,
+          "-2": 2
+        }
+      },
+      "annotators": {
+        "A1": {
+          "surrogate_notes": 2237,
+          "surrogate_observed": 1524,
+          "surrogate_changed": 15,
+          "changed_labels": {
+            "correct_to_wrong": 3,
+            "wrong_to_correct": 55,
+            "correct_to_correct": 0,
+            "wrong_to_wrong": 1,
+            "coverage_insufficient": 23,
+            "ambiguous": 0
+          },
+          "onset_f1": {
+            "raw": 0.4956574495,
+            "derived": 0.5214293315,
+            "delta": 0.025771882000000003,
+            "improved": 23,
+            "worsened": 1,
+            "unchanged": 16
+          },
+          "onset_offset_f1": {
+            "raw": 0.27112533425,
+            "derived": 0.28450675,
+            "delta": 0.01338141575,
+            "improved": 16,
+            "worsened": 0,
+            "unchanged": 24
+          }
+        },
+        "A2": {
+          "surrogate_notes": 1876,
+          "surrogate_observed": 1413,
+          "surrogate_changed": 16,
+          "changed_labels": {
+            "correct_to_wrong": 3,
+            "wrong_to_correct": 55,
+            "correct_to_correct": 0,
+            "wrong_to_wrong": 4,
+            "coverage_insufficient": 20,
+            "ambiguous": 0
+          },
+          "onset_f1": {
+            "raw": 0.590747369,
+            "derived": 0.622685041,
+            "delta": 0.03193767199999999,
+            "improved": 26,
+            "worsened": 0,
+            "unchanged": 14
+          },
+          "onset_offset_f1": {
+            "raw": 0.34628301024999997,
+            "derived": 0.36195618549999997,
+            "delta": 0.015673175249999997,
+            "improved": 17,
+            "worsened": 0,
+            "unchanged": 23
+          }
+        }
+      }
+    },
+    "label_rule": "unique maximum reference overlap covering at least 60% of prediction; ambiguous and insufficient coverage excluded; individual annotators counted separately"
+  },
+  "single_case_cost": {
+    "source": "vocadito_1 original WAV",
+    "source_sha256": "b509768315efad8120183b48e01d6090f1649d5bcc691241940dc7a100274ab8",
+    "duration_seconds": 33.21224489795918,
+    "measurement": "independent process wall time includes imports, model load, input and code hashing, decode, inference and private prediction write; full RSS from getrusage RUSAGE_SELF on macOS; each model once",
+    "order": [
+      "tiny",
+      "full"
+    ],
+    "cache_limit": "sequential runs; OS filesystem/model cache state not controlled",
+    "tiny": {
+      "wall_seconds": 14.16,
+      "rtf": 0.4263487771906108,
+      "peak_rss_bytes": null,
+      "peak_rss_unavailable_reason": "time -l sysctl access denied by sandbox",
+      "script_sha256": "1f32d8bef7db730a073e3f3f8eb75de6523eaf71402f1192e3cce58a621e55e7"
+    },
+    "full": {
+      "wall_seconds": 117.86,
+      "rtf": 3.5486911638195897,
+      "peak_rss_bytes": 5195513856,
+      "script_sha256": "da0f7055719af427d1dd9ee26aa6675915d58a089e9905201594df26d9155f78"
+    },
+    "cost_is_not_a_40_song_benchmark": true
+  },
+  "cache_only_additional_checks": {
+    "tiny": {
+      "negative_12": {
+        "predicted_notes": 4113,
+        "compared_notes": 2935,
+        "consistent_notes": 0,
+        "octave_suspects": 2707,
+        "pitch_suspects": 228
+      },
+      "octave_jump_stratum": {
+        "pair_count": 5,
+        "endpoint_unique_count": 10,
+        "endpoint_observed": 6,
+        "endpoint_abstained": 4,
+        "endpoint_false_octave_warning": 0,
+        "endpoint_false_pitch_warning": 1,
+        "pair_changed_interval": 1,
+        "pair_observed_both": 2
+      }
+    },
+    "full": {
+      "negative_12": {
+        "predicted_notes": 4113,
+        "compared_notes": 2937,
+        "consistent_notes": 0,
+        "octave_suspects": 2714,
+        "pitch_suspects": 223
+      },
+      "octave_jump_stratum": {
+        "pair_count": 5,
+        "endpoint_unique_count": 10,
+        "endpoint_observed": 5,
+        "endpoint_abstained": 5,
+        "endpoint_false_octave_warning": 0,
+        "endpoint_false_pitch_warning": 1,
+        "pair_changed_interval": 0,
+        "pair_observed_both": 2
+      }
+    }
+  }
+}
