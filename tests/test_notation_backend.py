@@ -308,3 +308,45 @@ def test_midi_tempo_multiple_normal_events(tmp_path):
     score.write('musicxml', fp=str(source))
     midi = musicxml_to_midi(source, tmp_path / 'result.mid')
     assert [m.tempo for m in mido.MidiFile(midi) if m.type == 'set_tempo'] == [500000, 666667]
+
+
+def test_no_chord_render_copy_preserves_offset_staff_and_original(tmp_path):
+    import xml.etree.ElementTree as ET
+
+    from audio_score_tool.notation_backend import _no_chord_render_copy
+
+    source = tmp_path / 'source.musicxml'
+    source.write_text('<score-partwise><part><measure><harmony placement="below">'
+                      '<root><root-step text="">C</root-step></root><kind text="N.C.">none</kind>'
+                      '<offset>7</offset><staff>2</staff></harmony></measure></part></score-partwise>')
+    before = source.read_bytes()
+    converted = ET.fromstring(_no_chord_render_copy(source))
+    assert converted.find('.//harmony') is None
+    direction = converted.find('.//direction')
+    assert direction.get('placement') == 'below'
+    assert direction.findtext('./direction-type/words') == 'N.C.'
+    assert direction.findtext('offset') == '7' and direction.findtext('staff') == '2'
+    assert source.read_bytes() == before
+
+
+def test_no_chord_render_copy_supports_utf16_and_custom_visibility(tmp_path):
+    import xml.etree.ElementTree as ET
+
+    from audio_score_tool.notation_backend import _no_chord_render_copy
+
+    source = tmp_path / 'source.musicxml'
+    text = '''<?xml version="1.0" encoding="UTF-16"?><score-partwise><part><measure>
+      <harmony font-weight="bold" color="#123456"><root><root-step text="">C</root-step></root><kind text="Break">none</kind><offset>3</offset><staff>2</staff></harmony>
+      <harmony print-object="no"><root><root-step text="">C</root-step></root><kind text="Hidden">none</kind></harmony>
+      <harmony><root><root-step text="">C</root-step></root><kind text="">none</kind></harmony>
+      </measure></part></score-partwise>'''
+    source.write_bytes(text.encode('utf-16'))
+    before = source.read_bytes()
+    copy = ET.fromstring(_no_chord_render_copy(source))
+    words = copy.findall('.//direction/direction-type/words')
+    assert len(words) == 1 and words[0].text == 'Break'
+    assert words[0].get('font-weight') == 'bold' and words[0].get('color') == '#123456'
+    assert copy.findtext('.//direction/offset') == '3' and copy.findtext('.//direction/staff') == '2'
+    assert not copy.findall('.//harmony') and source.read_bytes() == before
+    compressed = tmp_path / 'legacy.mxl'
+    assert _no_chord_render_copy(compressed) is None

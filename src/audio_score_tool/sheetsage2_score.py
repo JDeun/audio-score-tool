@@ -30,8 +30,10 @@ def _parse_vocal_abc(text):
     handler = NativeABCHandler(abcVersion=(2, 1, 0))
     text = re.sub(r'"[^"\n]*"|\[K:([^]\n]+)\]',
                   lambda match: f"\nK:{match.group(1)}\n" if match.group(1) else match.group(0), text)
-    text = re.sub(r'"([A-G](?:##|bb|#|b)?)m\(maj7\)(/[A-G](?:##|bb|#|b)?)?"',
-                  lambda match: f'"{match.group(1).replace("bb", "--")}mM7{(match.group(2) or "").replace("bb", "--")}"', text)
+    from .sheetsage_hybrid import _normalize_native_chord_figure
+
+    text = re.sub(r'"([A-G](?:##|bb|#|b)?m\(maj7\)(?:/[A-G](?:##|bb|#|b)?)?)"',
+                  lambda match: f'"{_normalize_native_chord_figure(match.group(1))}"', text)
     handler.process(text)
     return translate.abcToStreamScore(handler)
 
@@ -73,6 +75,172 @@ def vocal_abc(text: str) -> str:
         metadata = line.startswith("%") or bool(re.match(r"^[A-Za-z]:", line))
         expanded.append(line if metadata else re.sub(r'"[^"\n]*"|Z(\d*)', expand_rest, line))
     return "\n".join(expanded) + "\n"
+
+
+def _restore_timed_metadata(score, part, root: Path, duration: float) -> dict:
+    from music21 import harmony, key, meter, note, stream
+
+    from .score_timing import score_time_clocks
+    from .sheetsage_hybrid import _parse_chord_symbol, _parse_key_label
+
+    def read_rows(name):
+        path = root / "notation" / f"song_{name}.txt"
+        if path.parent.is_symlink():
+            raise ValueError("Unsafe native timed metadata")
+        if not path.exists() and not path.is_symlink():
+            return None
+        if path.is_symlink() or not path.is_file() or path.stat().st_size > 16 * 1024 * 1024:
+            raise ValueError("Unsafe native timed metadata")
+        rows = []
+        for line in path.read_text().splitlines():
+            columns = line.split("\t")
+            if len(columns) != 3:
+                raise ValueError("Invalid native timed metadata columns")
+            try:
+                start, end = float(columns[0]), float(columns[1])
+            except ValueError as exc:
+                raise ValueError("Invalid native timed metadata time") from exc
+            if (not math.isfinite(start) or not math.isfinite(end) or start < 0 or end <= start
+                    or end > duration + 1e-3 or (rows and start < rows[-1][1] - 1e-6)):
+                raise ValueError("Invalid native timed metadata interval")
+            rows.append((start, end, columns[2].strip()))
+        if not rows:
+            raise ValueError("Empty native timed metadata")
+        return rows
+
+    chord_rows, key_rows = read_rows("chords"), read_rows("keys")
+    receipt = {"grid": "native_sixteenth", "keys": [], "chords": [], "collapsed_chord_events": []}
+    if chord_rows is None and key_rows is None:
+        return receipt
+    to_seconds, to_quarters = score_time_clocks(score)
+    measures = list(part.getElementsByClass(stream.Measure))
+    starts = [float(m.getOffsetBySite(part)) for m in measures]
+    end_position = starts[-1] + float(measures[-1].duration.quarterLength)
+
+    def placement(at):
+        if at < float(to_seconds(0.)) - 1e-6 or at > float(to_seconds(end_position)) + 1e-6:
+            raise ValueError("Timed metadata event is outside the score audio clock")
+        position = max(0., float(to_quarters(at)))
+        index = max(0, bisect.bisect_right(starts, position + 1e-8) - 1)
+        measure = measures[index]
+        signature = measure.timeSignature or measure.getContextByClass(meter.TimeSignature)
+        if (signature is None or signature.denominator <= 0
+                or signature.denominator & (signature.denominator - 1)):
+            raise ValueError("Timed metadata requires a binary meter")
+        step = 1 / signature.denominator
+        position = min(end_position, starts[index] + round((position - starts[index]) / step) * step)
+        return position, {"source_seconds": at, "score_quarters": position,
+                          "residual_seconds": float(to_seconds(position)) - at}
+
+    def insert(position, element, *, split=False):
+        index = max(0, bisect.bisect_right(starts, position + 1e-8) - 1)
+        measure = measures[index]
+        offset = position - starts[index]
+        if split:
+            for event in list(measure.recurse().notesAndRests):
+                if not isinstance(event, (note.Note, note.Rest)) or event.duration.isGrace:
+                    continue
+                begin = float(event.getOffsetInHierarchy(measure))
+                if begin + 1e-8 < offset < begin + float(event.quarterLength) - 1e-8:
+                    site = event.activeSite
+                    at_site = event.getOffsetBySite(site)
+                    first, second = event.splitAtQuarterLength(offset - begin)
+                    site.remove(event)
+                    site.insert(at_site, first)
+                    site.insert(at_site + first.quarterLength, second)
+        measure.insert(offset, element)
+
+    if key_rows is not None:
+        parsed = [(start, end, _parse_key_label(label)) for start, end, label in key_rows]
+        if any(b[0] > a[1] + 1e-6 for a, b in zip(parsed, parsed[1:])):
+            raise ValueError("Gap in native key intervals")
+        for old in list(part.recurse().getElementsByClass(key.KeySignature)):
+            old.activeSite.remove(old)
+        previous = None
+        last_position = -1.
+        for index, (start, _end, value) in enumerate(parsed):
+            identity = (value.tonic.name, value.mode)
+            if identity != previous:
+                if index == 0:
+                    position = 0.
+                    observation = {"source_seconds": start, "score_quarters": 0.,
+                                   "residual_seconds": float(to_seconds(0.)) - start,
+                                   "initial_inherited": True}
+                else:
+                    position, observation = placement(start)
+                if position <= last_position or (index != 0 and position >= end_position - 1e-8):
+                    raise ValueError("Key changes collapse onto one native grid cell")
+                insert(position, value, split=index != 0)
+                receipt["keys"].append(observation)
+                last_position = position
+                previous = identity
+    if chord_rows is not None:
+        parsed = [(start, end, None if label in {"N", "N.C.", "NC"} else _parse_chord_symbol(label))
+                  for start, end, label in chord_rows]
+        bar_labels = [(starts[index], copy.deepcopy(symbol))
+                      for index, measure in enumerate(measures)
+                      for symbol in measure.recurse().getElementsByClass(harmony.ChordSymbol)
+                      if not isinstance(symbol, harmony.NoChord)
+                      and abs(float(symbol.getOffsetInHierarchy(measure))) < 1e-8]
+        for old in list(part.recurse().getElementsByClass(harmony.Harmony)):
+            old.activeSite.remove(old)
+        previous = None
+        last_end = 0.
+        changes = []
+        for start, end, value in parsed:
+            if start > last_end + 1e-6 and previous is not None:
+                changes.append((last_end, None))
+                previous = None
+            identity = None if value is None else value.figure
+            if identity != previous:
+                changes.append((start, value))
+                previous = identity
+            last_end = end
+        if last_end < duration - 1e-6 and previous is not None:
+            changes.append((last_end, None))
+        placed = []
+        origin = float(to_seconds(0.))
+        for index, (at, value) in enumerate(changes):
+            if (index == 0 and value is not None and at < origin - 1e-6
+                    and parsed[0][0] == at and parsed[0][1] > origin):
+                position = 0.
+                observation = {"source_seconds": at, "score_quarters": 0.,
+                               "residual_seconds": origin - at, "initial_harmony_inherited": True}
+            else:
+                position, observation = placement(at)
+            observation["no_chord"] = value is None
+            if position >= end_position - 1e-8:
+                receipt["collapsed_chord_events"].append(observation)
+                continue
+            if placed and abs(position - placed[-1][0]) < 1e-8:
+                receipt["collapsed_chord_events"].append(placed.pop()[2])
+            placed.append((position, value, observation))
+        for position, value, observation in placed:
+            insert(position, value if value is not None else harmony.NoChord())
+            receipt["chords"].append(observation)
+        def signature(symbol):
+            return (symbol.root().pitchClass, symbol.bass().pitchClass,
+                    tuple(sorted(p.pitchClass for p in symbol.pitches)))
+
+        restored = 0
+        restored_positions = set()
+        for position, symbol in bar_labels:
+            if position in restored_positions:
+                continue
+            earlier = [(at, value) for at, value, _ in placed if at <= position + 1e-8]
+            if not earlier or abs(earlier[-1][0] - position) < 1e-8:
+                continue
+            current = earlier[-1][1]
+            if current is not None and signature(current) == signature(symbol):
+                insert(position, symbol)
+                restored_positions.add(position)
+                restored += 1
+        receipt["restored_bar_chord_labels"] = restored
+        receipt["initial_no_chord_implicit"] = parsed[0][2] is None or parsed[0][0] > 0
+        if receipt["initial_no_chord_implicit"] and placed and placed[0][0] == 0:
+            receipt["collapsed_chord_events"].append({"source_seconds": 0., "score_quarters": 0.,
+                                                       "no_chord": True, "initial_implicit": True})
+    return receipt
 
 
 def import_native_lead_sheet(root: Path, target: Path) -> dict:
@@ -210,6 +378,7 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
         if score.metadata is None:
             score.metadata = metadata.Metadata()
         score.metadata.addCustom(AUDIO_ORIGIN_FIELD, str(initial_offset))
+    timed_metadata = _restore_timed_metadata(score, part, root, float(mapping[-1]["end"]))
     target.parent.mkdir(parents=True, exist_ok=True)
     score.write("musicxml", fp=str(target))
     # music21 omits this flag on tempo marks; serialize MusicXML's print-object.
@@ -243,6 +412,7 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
     return {"model_revision": MODEL_REVISION, "checkpoint_sha256": CHECKPOINT_SHA256,
             "measures": len(measures), "vocal_notes": len(list(part.recurse().getElementsByClass(note.Note))),
             "enharmonic_tie_respellings": respellings,
+            "timed_metadata": timed_metadata,
             "chord_symbols": len(list(part.recurse().getElementsByClass(harmony.ChordSymbol))),
             "timing": ("model_notation_with_per_beat_audio_clock" if beat_times is not None
                        else "model_notation_with_per_measure_audio_clock"),

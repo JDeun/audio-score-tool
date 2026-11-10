@@ -138,19 +138,31 @@ _HARTE_QUALITY_TO_MUSIC21 = {
 }
 
 _HARTE_BASS_INTERVALS = {
-    "2": "M2", "3": "M3", "b3": "m3", "5": "P5", "7": "M7", "b7": "m7",
+    "2": "M2", "3": "M3", "b3": "m3", "5": "P5", "6": "M6", "7": "M7", "b7": "m7",
 }
 _SHEETSAGE_INVERSIONS = {
     "maj": {"2", "3", "5"}, "min": {"2", "b3", "5"},
     "maj7": {"3", "5", "7"}, "min7": {"b3", "5", "b7"},
     "7": {"3", "5", "b7"},
+    "6": {"3", "5", "6"}, "maj6": {"3", "5", "6"},
+    "min6": {"b3", "5", "6"}, "minmaj7": {"b3", "5", "7"},
 }
+
+
+def _normalize_native_chord_figure(label: str) -> str:
+    match = re.fullmatch(r"([A-G](?:##|bb|#|b)?)([^/]*)(?:/([A-G](?:##|bb|#|b)?))?", label)
+    if not match:
+        return label
+    root, quality, bass = match.groups()
+    if quality == "m(maj7)":
+        quality = "mM7"
+    return root.replace("b", "-") + quality + ("/" + bass.replace("b", "-") if bass else "")
 
 
 def _parse_chord_symbol(label: str) -> harmony.ChordSymbol:
     """Convert recognized Harte triad/seventh labels into music21 notation."""
     if ":" not in label:
-        return harmony.ChordSymbol(label)
+        return harmony.ChordSymbol(_normalize_native_chord_figure(label))
     root, suffix = label.split(":", 1)
     quality, slash, bass = suffix.partition("/")
     if not re.fullmatch(r"[A-G](?:#|b)?", root) or quality not in _HARTE_QUALITY_TO_MUSIC21:

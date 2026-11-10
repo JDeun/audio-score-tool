@@ -251,3 +251,53 @@ def test_legacy_suspended_seventh_listing_and_edit(tmp_path: Path):
     tree = ET.parse(score)
     assert tree.findtext('.//harmony/kind') == 'suspended-fourth'
     assert tree.findtext('.//harmony/degree/degree-alter') == '-1'
+
+
+@pytest.mark.parametrize('symbol', ['N', 'NC', 'N.C.'])
+def test_no_chord_listing_and_edit_has_no_dummy_note(tmp_path: Path, symbol):
+    from music21 import converter, harmony, note
+
+    score = write_score(tmp_path / 'no-chord.musicxml')
+    set_chord_at_note(score, 'p0-m0-n0', symbol)
+    assert list_chords(score)[0]['symbol'] == 'N.C.'
+    tree = ET.parse(score)
+    assert tree.findtext('.//harmony/kind') == 'none'
+    parsed = converter.parse(score)
+    assert isinstance(list(parsed.recurse().getElementsByClass(harmony.Harmony))[0], harmony.NoChord)
+    assert len(list(parsed.recurse().getElementsByClass(note.Note))) == 2
+    before = score.read_bytes()
+    set_chord_at_note(score, 'p0-m0-n0', 'N.C.')
+    assert score.read_bytes() == before
+
+
+def test_no_chord_export_renders_without_adding_midi_notes(tmp_path: Path):
+    from audio_score_tool.metrics import midi_notes
+    from audio_score_tool.notation_backend import (
+        _no_chord_render_copy,
+        _verovio_toolkit,
+        musicxml_to_midi,
+        render_pdf,
+    )
+
+    score = write_score(tmp_path / 'no-chord.musicxml')
+    before = midi_notes(musicxml_to_midi(score, tmp_path / 'before.mid'))
+    set_chord_at_note(score, 'p0-m0-n0', 'N.C.')
+    after = midi_notes(musicxml_to_midi(score, tmp_path / 'after.mid'))
+    assert [(n.pitch,n.onset,n.offset) for n in after] == [(n.pitch,n.onset,n.offset) for n in before]
+    toolkit = _verovio_toolkit()
+    canonical = score.read_bytes()
+    assert toolkit.loadData(_no_chord_render_copy(score))
+    svg = ET.fromstring(toolkit.renderToSVG(1))
+    assert 'N.C.' in ''.join(svg.itertext())
+    assert not [e for e in svg.iter() if "harm" in e.get("class", "").split()]
+    assert score.read_bytes() == canonical
+    output = tmp_path / 'score.pdf'
+    render_pdf(score, output)
+    assert output.read_bytes().startswith(b'%PDF')
+    utf16 = tmp_path / 'utf16.musicxml'
+    utf16.write_bytes(ET.tostring(ET.parse(score).getroot(), encoding='utf-16', xml_declaration=True))
+    original = utf16.read_bytes()
+    assert toolkit.loadData(_no_chord_render_copy(utf16))
+    assert 'N.C.' in ''.join(ET.fromstring(toolkit.renderToSVG(1)).itertext())
+    render_pdf(utf16, tmp_path / 'utf16.pdf')
+    assert utf16.read_bytes() == original
