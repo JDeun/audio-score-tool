@@ -12,6 +12,15 @@
   "human_editing_evaluated": false,
   "pdf_quality_evaluated": false,
   "commercial_readiness_evaluated": false,
+  "vocal_lead_development_decision": {
+    "engine": "yourmt3",
+    "checkpoint_variant": "YPTF.MoE+Multi (noPS)",
+    "decision": "retain_the_existing_fixed_checkpoint",
+    "basis": "Higher pitch-and-onset F1 than Basic Pitch and MR-MT3; existing five-song inference provenance",
+    "tradeoff": "Basic Pitch has slightly higher onset-and-offset F1",
+    "new_vocal_engine_options_added": false,
+    "final_score_quality_approved": false
+  },
   "quality_approved": false,
   "speed_ranking_approved": false,
   "summary": {

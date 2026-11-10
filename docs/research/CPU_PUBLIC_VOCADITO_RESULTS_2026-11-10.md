@@ -14,7 +14,7 @@
 | Basic Pitch | 0.49102129 | 0.31583077 |
 | MR-MT3 | 0.18263075 | 0.07705163 |
 
-YourMT3+는 onset, Basic Pitch는 onset+offset에서 높았다. 지표가 엇갈리므로 자동으로 단일 승자를 선정하지 않는다.
+보컬 리드 경로의 개발 기준은 이미 5곡에 사용한 **YourMT3+ YPTF.MoE+Multi (noPS)** 체크포인트로 고정한다. Basic Pitch보다 onset F1이 5.24%p 높아 올바른 pitch와 공격음을 복원하는 데 우선 근거가 있다. Basic Pitch의 onset+offset F1이 0.65%p 높은 점은 보존하며, 음가나 실제 수정 비용까지 YourMT3+가 우수하다고 주장하지 않는다. MR-MT3와 Basic Pitch를 이 경로의 추가 선택지로 배선하지 않는다. 이는 개발 조합을 좁히는 판단이며, 최종 악보 품질·전체 조합·배포 승인은 별도다.
 
 ## F0 추적
 
