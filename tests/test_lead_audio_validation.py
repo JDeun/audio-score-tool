@@ -152,3 +152,26 @@ def test_missing_fixed_tiny_is_error_without_yin_fallback(tmp_path, monkeypatch)
     with pytest.raises(AudioSymbolValidationError, match='Tiny runtime unavailable'):
         lead.validate_lead_audio(source_audio=tmp_path / 'source.wav', xml_text='',
                                  settings=Settings(), fixed_tiny=True)
+
+
+def test_no_chord_ends_previous_harmony_interval(tmp_path, monkeypatch):
+    score = stream.Score()
+    part = stream.Part()
+    part.partName = 'Voice'
+    part.insert(0, tempo.MetronomeMark(number=120))
+    part.insert(0, harmony.ChordSymbol('A'))
+    part.insert(2, harmony.NoChord())
+    part.insert(0, note.Note('A4', quarterLength=4))
+    score.insert(0, part)
+    xml = Path(score.write('musicxml')).read_text()
+    monkeypatch.setattr(lead, 'vocal_pitch_track', lambda *_a, **_k: (np.arange(100)*.02, np.full(100, 69.)))
+    monkeypatch.setattr(lead, '_decode_to_wav', lambda source, target, cmd: target)
+    monkeypatch.setattr(lead, '_read_pcm16', lambda _path: (np.ones(22050*3), 22050))
+    chroma = np.zeros((12, 60))
+    chroma[[9, 1, 4], :20] = 1 / np.sqrt(3)
+    chroma[[0, 3, 7], 20:] = 1 / np.sqrt(3)
+    monkeypatch.setattr(lead, '_chroma', lambda *_a: chroma)
+    report = lead.compare_lead_stems(vocal_audio=tmp_path/'v.wav', backing_audio=tmp_path/'b.wav',
+                                     xml_text=xml, ffmpeg_cmd='ffmpeg')
+    assert report['chords']['compared_intervals'] == 1
+    assert report['chords']['spectral_warnings'] == 0

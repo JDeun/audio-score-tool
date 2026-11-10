@@ -519,3 +519,255 @@ def test_native_chords_survive_listing_and_unchanged_edit(tmp_path, suffix):
         assert chord['symbol'] == 'Cm(maj7)'
     set_chord_at_note(target, chord['note_id'], chord['symbol'])
     assert signature() == before
+
+
+def test_timed_native_key_and_no_chord_preserve_held_note(tmp_path):
+    from audio_score_tool.metrics import midi_notes
+    from audio_score_tool.notation_backend import musicxml_to_midi
+    from audio_score_tool.score_timing import score_time_clocks
+
+    text = 'X:1\nM:4/4\nL:1/4\nK:C\nV: Vocal\n"C"C4|]\n'
+    (tmp_path / 'score.abc').write_text(text)
+    (tmp_path / 'playback.json').write_text(json.dumps({'duration': 2, 'measures': [
+        dict(start=0, end=2, score_start=0, score_end=1)]}))
+    folder = tmp_path / 'notation'
+    folder.mkdir()
+    (folder / 'song_keys.txt').write_text('0\t0.75\tC:major\n0.75\t2\tG:major\n')
+    (folder / 'song_chords.txt').write_text('0\t0.5\tC:maj\n0.5\t1.2\tN\n1.2\t2\tC:maj\n')
+    target = tmp_path / 'score.musicxml'
+    report = import_native_lead_sheet(tmp_path, target)
+    score = converter.parse(target)
+    seconds, _ = score_time_clocks(score)
+    part = score.parts[0]
+    keys = list(part.recurse().getElementsByClass(key.KeySignature))
+    assert len(keys) == 2 and seconds(float(keys[1].getOffsetInHierarchy(part))) == pytest.approx(.75, abs=.002)
+    chords = list(part.recurse().getElementsByClass(harmony.Harmony))
+    assert len(chords) == 3 and isinstance(chords[1], harmony.NoChord)
+    assert [seconds(float(c.getOffsetInHierarchy(part))) for c in chords] == pytest.approx([0,.5,1.25], abs=.002)
+    assert report["timed_metadata"]["chords"][-1]["residual_seconds"] == pytest.approx(.05)
+    played = midi_notes(musicxml_to_midi(target, tmp_path / 'score.mid'))
+    assert [(n.pitch,n.onset,n.offset) for n in played] == [(60,0,2)]
+    assert (tmp_path / 'score.abc').read_text() == text
+
+
+@pytest.mark.parametrize('body', ['^F4-|^F4|]', '^F4-|^F2z2|]'])
+def test_midnote_key_grid_split_preserves_ties_pitch_and_origin(tmp_path, body):
+    from audio_score_tool.metrics import midi_notes
+    from audio_score_tool.notation_backend import musicxml_to_midi
+    from audio_score_tool.score_timing import score_time_clocks
+
+    text = f'X:1\nM:4/4\nL:1/4\nK:C\nV: Vocal\n{body}\n'
+    (tmp_path / 'score.abc').write_text(text)
+    (tmp_path / 'playback.json').write_text(json.dumps({'duration': 4.037, 'measures': [
+        dict(start=.037, end=2.037, score_start=0, score_end=1),
+        dict(start=2.037, end=4.037, score_start=1, score_end=2)]}))
+    folder = tmp_path / 'notation'
+    folder.mkdir()
+    (folder / 'song_keys.txt').write_text('0.037\t0.817\tC:major\n0.817\t4.037\tG:major\n')
+    target = tmp_path / 'score.musicxml'
+    report = import_native_lead_sheet(tmp_path, target)
+    result = converter.parse(target)
+    seconds, _ = score_time_clocks(result)
+    keys = list(result.parts[0].recurse().getElementsByClass(key.KeySignature))
+    assert seconds(float(keys[1].getOffsetInHierarchy(result.parts[0]))) == pytest.approx(.787, abs=.002)
+    assert report['timed_metadata']['keys'][1]['residual_seconds'] == pytest.approx(-.03)
+    played = midi_notes(musicxml_to_midi(target, tmp_path / 'score.mid'))
+    assert len(played) == 1 and played[0].pitch == 66
+    assert played[0].onset == pytest.approx(.037, abs=.002)
+    assert played[0].offset == pytest.approx(3.037 if 'z2' in body else 4.037, abs=.002)
+
+
+def test_timed_no_chord_zero_cell_is_reported(tmp_path):
+    (tmp_path / 'score.abc').write_text('X:1\nM:4/4\nL:1/4\nK:C\nV: Vocal\nC4|]\n')
+    (tmp_path / 'playback.json').write_text(json.dumps({'measures': [
+        dict(start=0, end=2, score_start=0, score_end=1)]}))
+    folder = tmp_path / 'notation'
+    folder.mkdir()
+    (folder / 'song_chords.txt').write_text('0\t.5\tC:maj\n.5\t.52\tN\n.52\t2\tC:maj\n')
+    report = import_native_lead_sheet(tmp_path, tmp_path / 'score.musicxml')
+    assert any(event['no_chord'] for event in report['timed_metadata']['collapsed_chord_events'])
+
+
+@pytest.mark.parametrize('bad', ['0\t1\tC:maj\n.5\t2\tN\n', '0\tnan\tN\n', 'bad row\n'])
+def test_malformed_timed_metadata_fails_closed(tmp_path, bad):
+    (tmp_path / 'score.abc').write_text('X:1\nM:4/4\nL:1/4\nK:C\nV: Vocal\nC4|]\n')
+    (tmp_path / 'playback.json').write_text(json.dumps({'measures': [
+        dict(start=0, end=2, score_start=0, score_end=1)]}))
+    folder = tmp_path / 'notation'
+    folder.mkdir()
+    (folder / 'song_chords.txt').write_text(bad)
+    with pytest.raises(ValueError, match='metadata'):
+        import_native_lead_sheet(tmp_path, tmp_path / 'score.musicxml')
+    assert not (tmp_path / 'score.musicxml').exists()
+
+
+def test_key_inside_rest_uses_per_beat_clock(tmp_path):
+    from audio_score_tool.metrics import midi_notes
+    from audio_score_tool.notation_backend import musicxml_to_midi
+    from audio_score_tool.score_timing import score_time_clocks
+
+    text = 'X:1\nM:4/4\nL:1/4\nK:C\nV: Vocal\nC2 z2|]\nw: lyric\n'
+    (tmp_path / 'score.abc').write_text(text)
+    (tmp_path / 'playback.json').write_text(json.dumps({'measures': [
+        dict(start=.037,end=2.037,score_start=0,score_end=1)]}))
+    folder = tmp_path / 'notation'
+    folder.mkdir()
+    (folder / 'song_beats.txt').write_text('.037 1 4 4\n.437 2 4 4\n1.037 3 4 4\n1.337 4 4 4\n2.037 1 4 4\n')
+    (folder / 'song_keys.txt').write_text('.037\t1.49\tC:major\n1.49\t2.037\tG:major\n')
+    target = tmp_path / 'score.musicxml'
+    info = import_native_lead_sheet(tmp_path, target)
+    score = converter.parse(target)
+    seconds, _ = score_time_clocks(score)
+    keys = list(score.parts[0].recurse().getElementsByClass(key.KeySignature))
+    assert seconds(float(keys[1].getOffsetInHierarchy(score.parts[0]))) == pytest.approx(1.512, abs=.002)
+    assert info['timed_metadata']['keys'][1]['residual_seconds'] == pytest.approx(.022)
+    events = midi_notes(musicxml_to_midi(target, tmp_path / 'score.mid'))
+    assert len(events) == 1 and events[0].pitch == 60
+    assert events[0].onset == pytest.approx(.037, abs=.002) and events[0].offset == pytest.approx(1.037, abs=.002)
+
+
+def test_symlinked_native_metadata_parent_is_rejected(tmp_path):
+    (tmp_path / 'score.abc').write_text('X:1\nM:4/4\nL:1/4\nK:C\nV: Vocal\nC4|]\n')
+    (tmp_path / 'playback.json').write_text(json.dumps({'measures': [
+        dict(start=0, end=2, score_start=0, score_end=1)]}))
+    outside = tmp_path / 'outside'
+    outside.mkdir()
+    (outside / 'song_chords.txt').write_text('0\t2\tC:maj\n')
+    (tmp_path / 'notation').symlink_to(outside, target_is_directory=True)
+    with pytest.raises(ValueError, match='Unsafe native timed metadata'):
+        import_native_lead_sheet(tmp_path, tmp_path / 'score.musicxml')
+
+
+def test_key_split_keeps_lyric_on_original_attack(tmp_path):
+    from music21 import stream
+
+    from audio_score_tool.sheetsage2_score import _restore_timed_metadata
+
+    score = stream.Score()
+    part = stream.Part()
+    measure = stream.Measure()
+    measure.insert(0, meter.TimeSignature('4/4'))
+    vocal = note.Note('C4', quarterLength=4)
+    vocal.lyric = 'lyric'
+    measure.insert(0, vocal)
+    part.insert(0, measure)
+    score.insert(0, part)
+    folder = tmp_path / 'notation'
+    folder.mkdir()
+    (folder / 'song_keys.txt').write_text('0\t.75\tC:major\n.75\t2\tG:major\n')
+    _restore_timed_metadata(score, part, tmp_path, 2.)
+    notes = list(part.recurse().getElementsByClass(note.Note))
+    assert [n.lyric for n in notes] == ['lyric', None]
+    assert [n.tie.type for n in notes] == ['start', 'stop']
+
+
+def test_key_change_during_natural_note_keeps_sounding_pitch(tmp_path):
+    from audio_score_tool.metrics import midi_notes
+    from audio_score_tool.notation_backend import musicxml_to_midi
+
+    (tmp_path / 'score.abc').write_text('X:1\nM:4/4\nL:1/4\nK:C\nV: Vocal\nF4|]\n')
+    (tmp_path / 'playback.json').write_text(json.dumps({'measures': [
+        dict(start=0,end=2,score_start=0,score_end=1)]}))
+    folder = tmp_path / 'notation'
+    folder.mkdir()
+    (folder / 'song_keys.txt').write_text('0\t.75\tC:major\n.75\t2\tG:major\n')
+    target = tmp_path / 'score.musicxml'
+    import_native_lead_sheet(tmp_path, target)
+    played = midi_notes(musicxml_to_midi(target, tmp_path / 'score.mid'))
+    assert len(played) == 1 and (played[0].pitch, played[0].onset, played[0].offset) == (65, 0, 2)
+
+
+def test_tiny_final_no_chord_is_recorded_without_an_extra_measure(tmp_path):
+    (tmp_path / 'score.abc').write_text('X:1\nM:4/4\nL:1/4\nK:C\nV: Vocal\nC4|]\n')
+    (tmp_path / 'playback.json').write_text(json.dumps({'measures': [
+        dict(start=0, end=2, score_start=0, score_end=1)]}))
+    folder = tmp_path / 'notation'
+    folder.mkdir()
+    (folder / 'song_chords.txt').write_text('0\t1.99\tC:maj\n1.99\t2\tN\n')
+    target = tmp_path / 'score.musicxml'
+    report = import_native_lead_sheet(tmp_path, target)
+    assert any(c['no_chord'] for c in report['timed_metadata']['collapsed_chord_events'])
+    assert len(ET.parse(target).findall('./part/measure')) == 1
+
+
+@pytest.mark.parametrize(('label', 'pitch_classes'), [
+    ('C', {0,4,7}), ('Cm', {0,3,7}), ('Cdim', {0,3,6}), ('Caug', {0,4,8}),
+    ('C7', {0,4,7,10}), ('Cmaj7', {0,4,7,11}), ('Cm7', {0,3,7,10}),
+    ('Cdim7', {0,3,6,9}), ('Cm7b5', {0,3,6,10}), ('Csus4', {0,5,7}),
+    ('Csus2', {0,2,7}), ('C6', {0,4,7,9}), ('Cm6', {0,3,7,9}),
+    ('C7sus4', {0,5,7,10}), ('Cm(maj7)', {0,3,7,11}), ('C:minmaj7', {0,3,7,11}),
+])
+def test_timed_chord_rows_keep_native_quality_through_editor(tmp_path, label, pitch_classes):
+    from audio_score_tool.chord_editor import set_chord_at_note
+    from audio_score_tool.chord_listing import list_chords
+    from audio_score_tool.metrics import midi_notes
+    from audio_score_tool.notation_backend import musicxml_to_midi
+
+    (tmp_path / 'score.abc').write_text('X:1\nM:4/4\nL:1/4\nK:C\nV: Vocal\nC4|]\n')
+    (tmp_path / 'playback.json').write_text(json.dumps({'measures': [dict(start=0,end=2,score_start=0,score_end=1)]}))
+    folder = tmp_path / 'notation'
+    folder.mkdir()
+    (folder / 'song_chords.txt').write_text(f'0\t2\t{label}\n')
+    target = tmp_path / 'score.musicxml'
+    import_native_lead_sheet(tmp_path, target)
+    def signature():
+        chord = list(converter.parse(target).recurse().getElementsByClass(harmony.ChordSymbol))[0]
+        return chord.root().pitchClass, chord.bass().pitchClass, {p.pitchClass for p in chord.pitches}
+    assert signature() == (0, 0, pitch_classes)
+    assert not ET.parse(target).findall('.//kind[.="suspended-fourth-seventh"]')
+    listing = list_chords(target)[0]
+    set_chord_at_note(target, listing['note_id'], listing['symbol'])
+    assert signature() == (0, 0, pitch_classes)
+    performed = midi_notes(musicxml_to_midi(target, tmp_path / 'score.mid'))
+    assert len(performed) == 1 and (performed[0].pitch, performed[0].onset, performed[0].offset) == (60,0,2)
+
+
+@pytest.mark.parametrize(('label', 'root_pc', 'bass_pc', 'pcs'), [
+    ('Bbm7b5/Db', 10, 1, {10,1,4,8}),
+    ('Cm(maj7)/Eb', 0, 3, {0,3,7,11}),
+    ('C##m(maj7)/G##', 2, 9, {2,5,9,1}),
+    ('Cbbm(maj7)/Gbb', 10, 5, {10,1,5,9}),
+    ('C:minmaj7/b3', 0, 3, {0,3,7,11}),
+    ('C:maj6/3', 0, 4, {0,4,7,9}),
+    ('C:min6/b3', 0, 3, {0,3,7,9}),
+])
+def test_timed_chord_rows_keep_flat_double_and_slash_bass(tmp_path, label, root_pc, bass_pc, pcs):
+    from audio_score_tool.chord_editor import set_chord_at_note
+    from audio_score_tool.chord_listing import list_chords
+
+    (tmp_path / 'score.abc').write_text('X:1\nM:4/4\nL:1/4\nK:C\nV: Vocal\nC4|]\n')
+    (tmp_path / 'playback.json').write_text(json.dumps({'measures':[dict(start=0,end=2,score_start=0,score_end=1)]}))
+    folder = tmp_path / 'notation'
+    folder.mkdir()
+    (folder / 'song_chords.txt').write_text(f'0\t2\t{label}\n')
+    target = tmp_path / 'score.musicxml'
+    import_native_lead_sheet(tmp_path, target)
+    listing = list_chords(target)[0]
+    set_chord_at_note(target, listing['note_id'], listing['symbol'])
+    chord = list(converter.parse(target).recurse().getElementsByClass(harmony.ChordSymbol))[0]
+    assert (chord.root().pitchClass,chord.bass().pitchClass,{p.pitchClass for p in chord.pitches}) == (root_pc,bass_pc,pcs)
+
+
+def test_timed_chord_before_audio_origin_fails_closed(tmp_path):
+    (tmp_path / 'score.abc').write_text('X:1\nM:4/4\nL:1/4\nK:C\nV: Vocal\nC4|]\n')
+    (tmp_path / 'playback.json').write_text(json.dumps({'measures':[dict(start=1,end=3,score_start=0,score_end=1)]}))
+    folder = tmp_path / 'notation'
+    folder.mkdir()
+    (folder / 'song_chords.txt').write_text('0\t0.5\tC:maj\n0.5\t3\tG:maj\n')
+    with pytest.raises(ValueError, match='outside the score audio clock'):
+        import_native_lead_sheet(tmp_path, tmp_path/'score.musicxml')
+
+
+def test_timed_initial_chord_covering_audio_origin_is_inherited(tmp_path):
+    (tmp_path / 'score.abc').write_text('X:1\nM:4/4\nL:1/4\nK:C\nV: Vocal\nC4|]\n')
+    (tmp_path / 'playback.json').write_text(json.dumps({'measures':[dict(start=1,end=3,score_start=0,score_end=1)]}))
+    folder = tmp_path / 'notation'
+    folder.mkdir()
+    (folder / 'song_chords.txt').write_text('0\t2\tC:maj\n2\t3\tG:maj\n')
+    target = tmp_path/'score.musicxml'
+    report = import_native_lead_sheet(tmp_path, target)
+    first = report['timed_metadata']['chords'][0]
+    assert first['initial_harmony_inherited'] and first['source_seconds'] == 0
+    assert first['score_quarters'] == 0 and first['residual_seconds'] == pytest.approx(1)
+    symbols = list(converter.parse(target).recurse().getElementsByClass(harmony.ChordSymbol))
+    assert [c.root().pitchClass for c in symbols] == [0, 7]

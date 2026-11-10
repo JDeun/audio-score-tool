@@ -1,0 +1,376 @@
+{
+  "reports_sha256": {
+    "stems": "9ce42c50231fb2264ea5b7f5d9686df769156e4764c8ab109ca743ff0d18b582",
+    "native": "508511db04a3a4cda0fd63f6cf6f8f3f54c2469e886dd61d27be527eada8bf8a",
+    "producer": "949c15b6821bc62d16dbd5405da1f5862ac878742cf2ab36ad70478ebb80a8e8",
+    "publisher_window": "2cc95462b38dd551a12f4813e29250a33af4036e6ab06fcfdecb78abeacc51f0"
+  },
+  "basic_pitch_model": {
+    "weights": {
+      "git_blob": "c30e5f9438e798604b7177aa26be1fe64482f767",
+      "sha256": "2c3c1d144bfa61ad236e92e169c13535c880469a12a047d4e73451f2c059a0ec",
+      "bytes": 230444
+    },
+    "weights_source_revision": "fa5997af0a8210982619003269994a1be25eddf3",
+    "backend": "onnx-cpu",
+    "intra_threads": 2,
+    "inter_threads": 1,
+    "thresholds": {
+      "onset": 0.5,
+      "frame": 0.3,
+      "minimum_note_ms": 127.7
+    },
+    "pitch_bends_scored": false,
+    "instrument_identity_predicted": false,
+    "model_lifecycle": "resident model; preparation time reported separately"
+  },
+  "runtime_versions": {
+    "basic-pitch": "0.4.0",
+    "onnxruntime": "1.20.1",
+    "pretty-midi": "0.2.10",
+    "numpy": "1.26.4",
+    "scipy": "1.13.1",
+    "librosa": "0.10.2.post1",
+    "resampy": "0.4.2",
+    "soundfile": "0.13.1",
+    "numba": "0.60.0",
+    "llvmlite": "0.43.0"
+  },
+  "runtime_module_sha256": {
+    "basic_pitch": "808fdb533896d7682441a15008a002884333e5a0344637d61f3424764229be4a",
+    "onnxruntime": "9818189892d5eef8f20acb0a998171e86032b28b07d038ec28c6747219f5245b",
+    "pretty_midi": "83e8d2a7e6583fe18584448ec30407c3740285cb837f569e07dce8c3cb92496d",
+    "numpy": "22cd1535fa14d74ef6f457cca149ffdc80875f460be313b8f895273f78bc402e",
+    "librosa": "41b3db0be1282e97115b576997203d75c68da82633e989b95408bc0edfb3c0c8",
+    "scipy": "f09d8a342acb52bb982073fbeb2594d9363ff55433d3dd710066142db7c0bee9"
+  },
+  "protocol": {
+    "onset_threshold": 0.5,
+    "frame_threshold": 0.3,
+    "minimum_note_ms": 127.7,
+    "pitch_bends": false,
+    "melodia_trick": true,
+    "seed": 0,
+    "cpu_intra_threads": 2,
+    "cpu_inter_threads": 1,
+    "per_case_process": true
+  },
+  "predictor_runner_sha256": "0265be97c1f891816da30e75fa145a58a1972636a5729fcb1ccc761665c52465",
+  "predictor_runner_git_blob": "bd590751305c83c9fd97c6bbce5ddc4aaddd9cba",
+  "helper_sha256": {
+    "run_basic_pitch_five_vocal_v1.py": "9006ad5413e5abd20e4342afdf07c6e377d3cbf06f0871b5f8f1dc0b30fd83cf",
+    "run_basic_pitch_five_native_v1.py": "5c619e276a856c5ceab54ae4e8127fe892b47d5726d5da3214c483b630e301d3",
+    "basic_pitch_native_render_v1.py": "65f726c5da0b20d7ccaed25b11b14e5c86223f23118f6f814e81b0ba773a1550"
+  },
+  "native_source_commit": "7a07c88b9c4f1267431d2daf372c7b3acbd8b602",
+  "native_importer_sha256": "deee15b6956e96ce5b7f2e990ed55d4d1fb6dc437cade90ddc94046720169157",
+  "native_importer_git_blob": "d8acccc635a9a73a12b709d9295652aa01b1a11c",
+  "native_adapter_sha256": "9d4192cee87dffeacc971fd405b43fe39b7b6775eca7a627b3a886bd62083b7f",
+  "native_adapter_git_blob": "3beb3e5f6298fa52c8492a1a9ed7b014b8ac052d",
+  "producer_original_scores_match_prior_evidence": true,
+  "source_and_inputs_unchanged": true,
+  "totals": {
+    "raw_notes": 3303,
+    "represented_notes": 2859,
+    "omitted_notes": 444,
+    "overlap_review_cells": 676
+  },
+  "f0_totals": {
+    "raw_f0": {
+      "predicted_notes": 3303,
+      "compared_notes": 2650,
+      "consistent_notes": 2296,
+      "octave_suspects": 177,
+      "pitch_suspects": 177
+    },
+    "final_f0": {
+      "predicted_notes": 2859,
+      "compared_notes": 2164,
+      "consistent_notes": 1949,
+      "octave_suspects": 83,
+      "pitch_suspects": 132
+    }
+  },
+  "cases": [
+    {
+      "id": "tinashe-me-so-bad",
+      "raw_notes": 609,
+      "represented_notes": 520,
+      "omitted_notes": 89,
+      "overlap_review_cells": 165,
+      "your_same_grid_reference": {
+        "selected_notes": 564,
+        "represented_notes": 545,
+        "omitted_notes": 19,
+        "overlap_review_cells": 3
+      },
+      "stem_sha256": "b53738cad53e5d673c32cb718b6e1c37a5ef42340dc65311f7c048810530548c",
+      "source_audio_sha256": "f39788b3075e9117661481470289c6e79ce25171f7a256936a2167bdae49fd65",
+      "bp_prediction_midi_sha256": "4d712c8a5e17661e07f2f1803696309160d6736c18e7babfa89adf8ab9e95515",
+      "bp_raw_output_sha256": "0c5369363ebadbc13b24e5b50d00f97f6be061c9049f9d88b91eb4f719140ec7",
+      "cached_tiny_f0_sha256": "985832444fdff11d3dc4ec032ce4eeefe15031f682abdedd210d69d18964dc50",
+      "your_selected_sha256": "7a10754b9ea56d27c4247c3036006e87e0fdd0942779512695f9fc77ca921085",
+      "canonical_and_published_midi_guard": true,
+      "published_fidelity_max_seconds": 8.928571531896523e-06,
+      "raw_f0": {
+        "predicted_notes": 609,
+        "compared_notes": 535,
+        "consistent_notes": 433,
+        "octave_suspects": 50,
+        "pitch_suspects": 52
+      },
+      "final_f0": {
+        "predicted_notes": 520,
+        "compared_notes": 429,
+        "consistent_notes": 373,
+        "octave_suspects": 25,
+        "pitch_suspects": 31
+      },
+      "output_sha256": {
+        "score.musicxml": "54f20c6806d89f1493f9cc9ea8d2940cd26ff1df1f69aeda517a7420b3426e12",
+        "score.mid": "b1ac192c64551f0c1123efe9d25a26be2b35cb7c82907b26d614156fb03f4109",
+        "published.musicxml": "1bbdd95e097f2034dd1a1cca79fab033321391f03b2a4ba97da005088bf91e79",
+        "published.mid": "b1ac192c64551f0c1123efe9d25a26be2b35cb7c82907b26d614156fb03f4109",
+        "published.pdf": "f2ceb8bda0de3cd9ea240ca4976ca162953d849d6cb7419a0818144a742dd621"
+      }
+    },
+    {
+      "id": "twice-fancy",
+      "raw_notes": 698,
+      "represented_notes": 636,
+      "omitted_notes": 62,
+      "overlap_review_cells": 195,
+      "your_same_grid_reference": {
+        "selected_notes": 710,
+        "represented_notes": 695,
+        "omitted_notes": 15,
+        "overlap_review_cells": 0
+      },
+      "stem_sha256": "645eb299d5e6807ca6bcf9b9a71b2d19bf5e88574f52e7a59cb8531fe19c658a",
+      "source_audio_sha256": "5e1b5613b3863ea3babd2dc22bc9fa8ba62deb2ae44d48c8885f832ab56f01ec",
+      "bp_prediction_midi_sha256": "c31d4e1302edf002c48b795853055f3f06ec89973cf2ee681fe4d8e483e5c3c9",
+      "bp_raw_output_sha256": "db39f5b594569dcc30aa54fe628aa44e6377ec5fa3f726d2e6815492bc7f021c",
+      "cached_tiny_f0_sha256": "16557e49095eeebabc71628066e2b9c80526f7279be5ac1b7eade57fa844879e",
+      "your_selected_sha256": "23c94429600851d71371a29e1c66834b20a3158feb9cef55bd0909566f9e8e23",
+      "canonical_and_published_midi_guard": true,
+      "published_fidelity_max_seconds": 2.0833333437053625e-05,
+      "raw_f0": {
+        "predicted_notes": 698,
+        "compared_notes": 632,
+        "consistent_notes": 522,
+        "octave_suspects": 61,
+        "pitch_suspects": 49
+      },
+      "final_f0": {
+        "predicted_notes": 636,
+        "compared_notes": 571,
+        "consistent_notes": 506,
+        "octave_suspects": 30,
+        "pitch_suspects": 35
+      },
+      "output_sha256": {
+        "score.musicxml": "d27fc442e390a3acb422d044a5991a442497a5095d418fda1ad0bf4a199f77fe",
+        "score.mid": "31f0c1d514537fadaaff8182ff34b585da25392601ca75e36c4797ee6c3af86c",
+        "published.musicxml": "510a25fcdcf508046adbd8bbedac131252057876ae19e6ec63773211932f1372",
+        "published.mid": "31f0c1d514537fadaaff8182ff34b585da25392601ca75e36c4797ee6c3af86c",
+        "published.pdf": "29e9473dc064eed7a52012c082a5f641fa25c92685b682525fdd78cf0c4ae5c1"
+      }
+    },
+    {
+      "id": "green-day-american-idiot",
+      "raw_notes": 286,
+      "represented_notes": 272,
+      "omitted_notes": 14,
+      "overlap_review_cells": 75,
+      "your_same_grid_reference": {
+        "selected_notes": 311,
+        "represented_notes": 308,
+        "omitted_notes": 3,
+        "overlap_review_cells": 8
+      },
+      "stem_sha256": "211993d2c985756402e418cfe6905a1107c665927ac483eb543d3e13a8316735",
+      "source_audio_sha256": "aedb875ba145c1f5cd21a0a86713d11dff1de9701512b8f1c7e4a40fa4fdf680",
+      "bp_prediction_midi_sha256": "ccdafdab9af2db0b1c5965bbadfe08f98a81a90ce518ca2f5f339d7c55e72417",
+      "bp_raw_output_sha256": "9569daf2567b8026a506deee79f442f9397d461df39b1c42ace7b95907c7844d",
+      "cached_tiny_f0_sha256": "ed3fef42297dffe7a7c45410c082f26ee08f000b41f9e62196832bb4938cd1df",
+      "your_selected_sha256": "8742eed2010dbeb2eb7828f08fb8edbcd4ad4721c348af4ea9926dfca5d6c64d",
+      "canonical_and_published_midi_guard": true,
+      "published_fidelity_max_seconds": 3.0000013566677808e-06,
+      "raw_f0": {
+        "predicted_notes": 286,
+        "compared_notes": 182,
+        "consistent_notes": 160,
+        "octave_suspects": 9,
+        "pitch_suspects": 13
+      },
+      "final_f0": {
+        "predicted_notes": 272,
+        "compared_notes": 164,
+        "consistent_notes": 152,
+        "octave_suspects": 2,
+        "pitch_suspects": 10
+      },
+      "output_sha256": {
+        "score.musicxml": "e0c9d15d1bd5efa06125bf9659298d10cb57f6b2973aa894a0b04592bcd584d6",
+        "score.mid": "4d1535be5994ffa5edb124756719f9a913ecaf2b73eba38772d9763a026e7a5f",
+        "published.musicxml": "a8576fde7634bacb81483f653578ef1c954917896c57019f61fe77275c4f7528",
+        "published.mid": "4d1535be5994ffa5edb124756719f9a913ecaf2b73eba38772d9763a026e7a5f",
+        "published.pdf": "90627bf3a98885198c79198511ee77d4647386f20108c74f865994e5043bea6f"
+      }
+    },
+    {
+      "id": "ham-boo-young-my-song",
+      "raw_notes": 846,
+      "represented_notes": 674,
+      "omitted_notes": 172,
+      "overlap_review_cells": 56,
+      "your_same_grid_reference": {
+        "selected_notes": 605,
+        "represented_notes": 551,
+        "omitted_notes": 54,
+        "overlap_review_cells": 0
+      },
+      "stem_sha256": "0000cde2d65daf30716ed12fc97ef16ab0fcf848e1f8d6f3581d3bff01ae3678",
+      "source_audio_sha256": "871118a06f5021b94f6e56c9066fca50670582f5e530bcee9290e2db270d8ac7",
+      "bp_prediction_midi_sha256": "dd9ef12cd71cd45ab7eceeb64ee96b71968edf49c1b7cc608a831d92e0c9137c",
+      "bp_raw_output_sha256": "216121f9c3e807bd2585a1a9aafc6dae53505a8fab35e1d0b672589613b752e8",
+      "cached_tiny_f0_sha256": "95848603ce721a69558bef5924918596f3bc79687044f886da1d9e81901d05c7",
+      "your_selected_sha256": "b377400654fc797627dc9aaee294180c81df7f1f312afb984d1b45cab3cffac5",
+      "canonical_and_published_midi_guard": true,
+      "published_fidelity_max_seconds": 1.0000026122725103e-06,
+      "raw_f0": {
+        "predicted_notes": 846,
+        "compared_notes": 643,
+        "consistent_notes": 581,
+        "octave_suspects": 17,
+        "pitch_suspects": 45
+      },
+      "final_f0": {
+        "predicted_notes": 674,
+        "compared_notes": 420,
+        "consistent_notes": 373,
+        "octave_suspects": 6,
+        "pitch_suspects": 41
+      },
+      "output_sha256": {
+        "score.musicxml": "5abcd9363c60f9fd98e52abc9e78a59a2936e6cf561a833940daad83710abd73",
+        "score.mid": "533bfda3824a973910e5344ca4ccee632c129d41db90c956ff4b8e2a7a80fb87",
+        "published.musicxml": "9a3ce0b9460505ab8ab91289817603ea7d2d7ee9545a4ca78047933e2761c70d",
+        "published.mid": "533bfda3824a973910e5344ca4ccee632c129d41db90c956ff4b8e2a7a80fb87",
+        "published.pdf": "3f11a9ed59c57ae356c5144cb757101df2beb08a27d7fff38d336b679ed4dcd6"
+      }
+    },
+    {
+      "id": "younha-event-horizon",
+      "raw_notes": 864,
+      "represented_notes": 757,
+      "omitted_notes": 107,
+      "overlap_review_cells": 185,
+      "your_same_grid_reference": {
+        "selected_notes": 623,
+        "represented_notes": 594,
+        "omitted_notes": 29,
+        "overlap_review_cells": 1
+      },
+      "stem_sha256": "512ca500d2cb2d0e6fe01c0d7cfefdddfe72b98f73d501f72eba299b91e933a9",
+      "source_audio_sha256": "2d84bd77253c96851db8bde4cd76de0b7bf7101cf07f79ff8dbf2d03f1d23dce",
+      "bp_prediction_midi_sha256": "ef6e2a59f61f85284640cbdf837b1235650762451645d1da419bca7f34d73039",
+      "bp_raw_output_sha256": "9648b9ee73ef984f29244bffd89e2ef314ef9e9992e5d0807de1ebfcdc6fe68c",
+      "cached_tiny_f0_sha256": "1012e31fda2b4cb62b6aa081c8443bbf96f791a18918654917b46449d2ae4e0d",
+      "your_selected_sha256": "e34cfc781c5a73e4a5d76425a7545e033f1ef6e2731757eb24eacd0dbc4d03b3",
+      "canonical_and_published_midi_guard": true,
+      "published_fidelity_max_seconds": 3.333334404942434e-06,
+      "raw_f0": {
+        "predicted_notes": 864,
+        "compared_notes": 658,
+        "consistent_notes": 600,
+        "octave_suspects": 40,
+        "pitch_suspects": 18
+      },
+      "final_f0": {
+        "predicted_notes": 757,
+        "compared_notes": 580,
+        "consistent_notes": 545,
+        "octave_suspects": 20,
+        "pitch_suspects": 15
+      },
+      "output_sha256": {
+        "score.musicxml": "3e07e558bdf5a8aa053237e76affa72ed5005c75486ba193eb9843522f6c0a78",
+        "score.mid": "da6fe312e4bafa6e849c2bc206cfaaf6206934ab90aa02747702eddec6a0eb5b",
+        "published.musicxml": "46e0df2fb9eda0dfb85a2e963dc43f9acd54878f5e146ab683f18b79cc55ed92",
+        "published.mid": "da6fe312e4bafa6e849c2bc206cfaaf6206934ab90aa02747702eddec6a0eb5b",
+        "published.pdf": "9fa63857d2789220298c976cbafa2fd1aab1ae3063ca45e55118131d39850c0f"
+      }
+    }
+  ],
+  "publisher_window": {
+    "basic_pitch": {
+      "raw": [
+        {
+          "attacks": 8,
+          "reference_attacks": 9,
+          "pitch_order_lcs": 8
+        },
+        {
+          "attacks": 9,
+          "reference_attacks": 9,
+          "pitch_order_lcs": 9
+        }
+      ],
+      "final": [
+        {
+          "attacks": 8,
+          "reference_attacks": 9,
+          "pitch_order_lcs": 8
+        },
+        {
+          "attacks": 8,
+          "reference_attacks": 9,
+          "pitch_order_lcs": 8
+        }
+      ]
+    },
+    "your_selected": [
+      {
+        "attacks": 10,
+        "pitch_order_lcs": 8,
+        "unmatched_reference": 1,
+        "unmatched_candidate": 2
+      },
+      {
+        "attacks": 8,
+        "pitch_order_lcs": 8,
+        "unmatched_reference": 1,
+        "unmatched_candidate": 0
+      }
+    ],
+    "your_final": [
+      {
+        "attacks": 10,
+        "pitch_order_lcs": 8,
+        "unmatched_reference": 1,
+        "unmatched_candidate": 2
+      },
+      {
+        "attacks": 7,
+        "pitch_order_lcs": 7,
+        "unmatched_reference": 2,
+        "unmatched_candidate": 0
+      }
+    ]
+  },
+  "prior_vocadito_40": {
+    "basic_pitch": {
+      "onset_f1": 0.49102129,
+      "onset_offset_f1": 0.31583077
+    },
+    "yourmt3": {
+      "onset_f1": 0.54340549,
+      "onset_offset_f1": 0.30937724
+    },
+    "source": "CPU_PUBLIC_VOCADITO_RESULTS_2026-11-10.json"
+  },
+  "decision": "Retain YourMT3 as incumbent for vocal development; Basic Pitch has not established better whole-song performance on these five. This is not a broader model rejection.",
+  "quality_approved": false,
+  "commercial_quality_approved": false
+}

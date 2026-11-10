@@ -335,6 +335,63 @@ def _register_pdf_fonts(pdf, work: Path) -> None:
             pdf.add_font(family=family, style=style, fname=target)
 
 
+def _no_chord_render_copy(source: Path) -> str | None:
+    """Render NoChord as words without changing the canonical harmony."""
+    if source.suffix.lower() == ".mxl":
+        return None
+    from .omr import _MAX_MUSICXML_BYTES, _strip_audiveris_musicxml_dtd
+
+    if source.stat().st_size > _MAX_MUSICXML_BYTES:
+        raise NotationBackendError("MusicXML exceeds the rendering size limit")
+    data = source.read_bytes()
+    if data.startswith((b"\xff\xfe\x00\x00", b"\x00\x00\xfe\xff")):
+        text = data.decode("utf-32")
+    elif data.startswith((b"\xff\xfe", b"\xfe\xff")):
+        text = data.decode("utf-16")
+    elif data.startswith(b"\x00<\x00?"):
+        text = data.decode("utf-16-be")
+    elif data.startswith(b"<\x00?\x00"):
+        text = data.decode("utf-16-le")
+    else:
+        declaration = re.match(br'\s*<\?xml[^>]*encoding=["\']([^"\']+)["\']', data[:512], re.I)
+        encoding = declaration.group(1).decode("ascii") if declaration else "utf-8-sig"
+        try:
+            text = data.decode(encoding)
+        except (UnicodeDecodeError, LookupError):
+            return None  # shortcut: unknown encodings use legacy rendering, upgrade if encountered.
+    root = ET.fromstring(_strip_audiveris_musicxml_dtd(text))
+    changed = False
+    for parent in root.iter():
+        for element in list(parent):
+            if element.tag.rsplit("}", 1)[-1] != "harmony":
+                continue
+            namespace = element.tag[:-len("harmony")]
+            chord_kind = element.find(f"{namespace}kind")
+            if chord_kind is None or chord_kind.text != "none":
+                continue
+            label = chord_kind.get("text", "N.C.")
+            if element.get("print-object") == "no" or label == "":
+                parent.remove(element)
+                changed = True
+                continue
+            attributes = {k: v for k, v in element.attrib.items()
+                          if k in {"placement", "default-x", "default-y", "relative-x", "relative-y"}}
+            direction = ET.Element(f"{namespace}direction", attributes)
+            kind = ET.SubElement(direction, f"{namespace}direction-type")
+            style = {k: v for node in (element, chord_kind) for k, v in node.attrib.items()
+                     if k in {"font-family", "font-size", "font-style", "font-weight", "color"}}
+            ET.SubElement(kind, f"{namespace}words", style).text = label
+            for name in ("offset", "staff"):
+                child = element.find(f"{namespace}{name}")
+                if child is not None:
+                    direction.append(child)
+            index = list(parent).index(element)
+            parent.remove(element)
+            parent.insert(index, direction)
+            changed = True
+    return ET.tostring(root, encoding="unicode") if changed else None
+
+
 def musicxml_to_pdf_embedded(
     source: Path,
     target: Path,
@@ -361,7 +418,8 @@ def musicxml_to_pdf_embedded(
                 "fontTextLiberation": True,
             }
         )
-        loaded = toolkit.loadFile(str(source))
+        render_copy = _no_chord_render_copy(source)
+        loaded = toolkit.loadData(render_copy) if render_copy is not None else toolkit.loadFile(str(source))
         if loaded is False:
             raise NotationBackendError("Verovio가 MusicXML을 읽지 못했습니다.")
         page_count = int(toolkit.getPageCount())
