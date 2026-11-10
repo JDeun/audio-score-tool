@@ -157,6 +157,7 @@ def prepare_music_audio(
     settings: Settings,
     cancel_event: Event | None = None,
 ) -> tuple[Path, MusicStructureAnalysis]:
+    """Record a start candidate without discarding quiet music before it."""
     analysis = MusicStructureAnalysis()
     analysis_dir = work_dir / "structure"
     analysis_dir.mkdir(parents=True, exist_ok=True)
@@ -177,46 +178,11 @@ def prepare_music_audio(
     analysis.music_start_seconds = round(start_seconds, 3)
     analysis.start_confidence = round(confidence, 3)
     analysis.method = "pcm-energy-spectral-flux"
-    if start_seconds < 1.5 or confidence < 0.72:
-        return audio_path, analysis
-    if not command_exists(settings.ffmpeg_cmd):
-        analysis.warnings.append("Music start was detected but FFmpeg is unavailable for safe trimming.")
-        return audio_path, analysis
-
-    trimmed = analysis_dir / "music-region.wav"
-    try:
-        run_command(
-            settings.ffmpeg_cmd,
-            [
-                "-y",
-                "-hide_banner",
-                "-loglevel",
-                "error",
-                "-ss",
-                f"{start_seconds:.3f}",
-                "-i",
-                audio_path,
-                "-vn",
-                "-ac",
-                "1",
-                "-ar",
-                "44100",
-                "-c:a",
-                "pcm_s16le",
-                trimmed,
-            ],
-            cancel_event=cancel_event,
-            timeout_seconds=600,
-            max_output_bytes=2 * 1024 * 1024,
+    if start_seconds >= 1.5 and confidence >= 0.72:
+        analysis.warnings.append(
+            f"Music-start estimate ({start_seconds:.2f}s) is advisory. "
+            "The complete source is retained because energy changes do not establish an intro boundary."
         )
-    except CommandCancelled:
-        raise
-    except CommandError as exc:
-        analysis.warnings.append(f"Detected music start could not be trimmed safely: {exc}")
-        return audio_path, analysis
-    if trimmed.is_file():
-        analysis.trimmed = True
-        return trimmed, analysis
     return audio_path, analysis
 
 

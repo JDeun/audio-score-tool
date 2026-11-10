@@ -99,6 +99,36 @@ def test_pcm_wav_is_analyzed_directly_without_ffmpeg(tmp_path, monkeypatch):
     assert not (tmp_path / "work" / "structure" / "analysis.wav").exists()
 
 
+def test_high_confidence_start_candidate_never_removes_earlier_music(tmp_path, monkeypatch):
+    import hashlib
+
+    from audio_score_tool import music_structure
+
+    source = tmp_path / "quiet-verse.wav"
+    rate = 22050
+    samples = .03 * np.sin(2 * np.pi * 220 * np.arange(rate * 12) / rate)
+    with wave.open(str(source), "wb") as output:
+        output.setnchannels(1)
+        output.setsampwidth(2)
+        output.setframerate(rate)
+        output.writeframes((samples * 32767).astype("<i2").tobytes())
+    original = hashlib.sha256(source.read_bytes()).hexdigest()
+    monkeypatch.setattr(music_structure, "_decode_analysis_wav", lambda *a, **k: False)
+    monkeypatch.setattr(music_structure, "estimate_music_start", lambda *a: (8.0,.95))
+    monkeypatch.setattr(music_structure, "command_exists", lambda _: True)
+    commands = []
+    def trim(_command, args, **kwargs):
+        commands.append(args)
+        args[-1].write_bytes(b"a successfully written, shortened waveform")
+    monkeypatch.setattr(music_structure, "run_command", trim)
+    result, analysis = prepare_music_audio(source, tmp_path / "work", settings=Settings())
+    assert result == source and not analysis.trimmed
+    assert analysis.music_start_seconds == 8 and analysis.start_confidence == .95
+    assert commands == []
+    assert any("complete source is retained" in warning for warning in analysis.warnings)
+    assert hashlib.sha256(result.read_bytes()).hexdigest() == original
+
+
 def test_missing_meter_cannot_trigger_pickup_rewriting(tmp_path):
     source = tmp_path / "unmetered.mid"
     _write_pickup_midi(source)
