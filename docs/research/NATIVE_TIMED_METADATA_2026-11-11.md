@@ -25,4 +25,4 @@ A subsequent narrow inversion fix (`0d714a5`) supports recognized sixth and mino
 
 The accompanying JSON records input/output hashes, source and script hashes, event counts and per-case limits. No source media, note events or model weights are included.
 
-A cached Me reimport on source  restored 45 matching native bar-start chord reminders. The effective harmony and NoChord timelines remained identical, and 545 performed notes passed the 2 ms MIDI guard. This checks preservation, not source accuracy.
+A cached Me reimport on source commit 51e5fd1 restored 45 matching native bar-start chord reminders. The effective harmony and NoChord timelines remained identical, and 545 performed notes passed the 2 ms MIDI guard. This checks preservation, not source accuracy.
