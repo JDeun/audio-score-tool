@@ -19,3 +19,5 @@ The fixed runtime pins BeatThis revision `b95c8ab0c58c2d9fcfd40508ae8dffbc05ac4f
 [Five-case metadata](BEAT_THIS_DBN_CLOCK_2026-11-11.json) records the source hashes, votes and checks. Cached DBN five-report SHA-256: `b4df197abf834e0fc769e88288914d812447be8c800a3321b7a9e584426c4947`. Current cached adapter report SHA-256: `fa3989cee6f410a7620a9e3ff7f010d0245b541a8e7c4a6dfbc73633f98fd197`.
 
 A subsequent single-recording beat CLI smoke used an isolated runtime and separate snapshot. The source, checkpoint and adapter remained unchanged; the decoded clock and both logits arrays matched the prior cached arrays exactly. The source-derived STFT frame-count check passed. This was not a complete transcription Job. madmom Python sources are pinned independently of architecture; native extension hashes and platform are recorded as build-specific evidence, not cross-platform approval.
+
+The [Me So Bad product run](BEAT_THIS_DBN_PRODUCT_2026-11-11.md) records the full Job, PDF/MIDI/MusicXML export and actual Job deletion in an isolated clone.

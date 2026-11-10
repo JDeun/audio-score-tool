@@ -1,0 +1,103 @@
+{
+  "tested_head": "9ffdcef7b4d4bdf2a0090ebfca2fce0385d678cd",
+  "producer_report_sha256": "c07daef371bb0594b0f5952a888e4264aeb2c62a8bf399fb2c68234dc720ecea",
+  "audit_report_sha256": "18c5b9cffc01cc36ebab08671c1c195943097e22cf9cb49d00773743488e4d09",
+  "clone_delete_report_sha256": "802027c9c14763067810d881becec0cf2edcc2234b2025e29eae5d650623caef",
+  "source_code_sha256": {
+    "src/audio_score_tool/fixed_vocal_lead.py": "0400eaffca1cae1a2ae1b53ee9574c488e786c58833f420cfdb3858e93c93d96",
+    "src/audio_score_tool/fixed_vocal_infer.py": "0d85ab580426752bb4d635528828dd721e98080b0abd0a6cb3cc9d59cae0633a",
+    "src/audio_score_tool/fixed_lead_recipe.py": "06667741ff5ff69eecf27af3b4b079fab66877f704a6eb9494a1f243258b79c6",
+    "src/audio_score_tool/vocal_evidence.py": "466357ac96940d1d73bacebfb7e094a37b0780dd729547f4e1022542d42eaf76",
+    "src/audio_score_tool/selected_stem_score.py": "a3dc63999f956249a6552017fba42e011136f2ddfc67dc9fc5f05c970ea9e86d",
+    "src/audio_score_tool/sheetsage2_score.py": "ecb23284f651620fb30675676701c053abeb6d3a2a0fda09aaf474bf831d31a8",
+    "src/audio_score_tool/lead_notation.py": "27e832932f90866584372918a19948567920c4571b1ad969c2abda27563fc388",
+    "src/audio_score_tool/model_evidence.py": "e6ee0ff1c3e78121187c4c8538474edf0a2af84a2e84b35b2fa0d14dc47ca054",
+    "src/audio_score_tool/beat_clock.py": "d4a98e928273e43988ad3fd5129350d408947bc34d08517fb5d7bc90f79837c0",
+    "src/audio_score_tool/pipeline_v2.py": "4b2897cf4caeb4528b80764af7c9cf7328a95ec7684b6591da95ad63ddc7363d",
+    "scripts/sheetsage2_infer_adapter.py": "e3ab91de19554dd1a5c58190259c3b6fad55eede357f1efd9135370fbbe6bf2f"
+  },
+  "checkpoint_sha256": {
+    "beat_this_final0": "8c328b45f59d8dd3dff219253ff6a8d6482be57d0133a29140e2febbf8eb8331",
+    "yourmt3": "ae38e415c79efd5592dcb9b658cdb99ddb11d4c4e1eaa364cab04a052473fc25",
+    "demucs": "8726e21a993978c7ba086d3872e7608d7d5bfca646ca4aca459ffda844faa8b4",
+    "mert": "e6dd2ab187d6dd62b6521cd7d8f932e237acf0c5757745a7232082e28391350d",
+    "sheetsage2": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+    "torchcrepe_tiny": "d4993eea36ed1a0ad9ac549c740dae5265b049ce72004f00c2f59e01c0be8432"
+  },
+  "driver_sha256": "07efbafc9b822af90d2c5eb5fc53a515e5c4beca351ac25cffeaf4aa6abe1510",
+  "wrapper_sha256": "56ec618a7e4daaf983476bdece8d33ed8c0368348930fdfd591cc63119a20e9f",
+  "source_audio_sha256": "f39788b3075e9117661481470289c6e79ce25171f7a256936a2167bdae49fd65",
+  "job_created_utc": "2026-11-10T19:50:59.501781+00:00",
+  "job_completed_utc": "2026-11-10T19:58:00.048994+00:00",
+  "job_elapsed_seconds": 421.073,
+  "full_source_uncropped": true,
+  "actual_inference": {
+    "sheetsage2": true,
+    "demucs": true,
+    "yourmt3": true,
+    "torchcrepe_tiny": true,
+    "beat_this_dbn": true,
+    "youtube_redownload": false
+  },
+  "runtime_numpy": {
+    "beat": "1.26.4",
+    "tiny": "2.4.6",
+    "your": "2.4.6"
+  },
+  "recipe_version": 3,
+  "raw_notes": 564,
+  "selected_notes": 564,
+  "exported_notes": 550,
+  "omitted_notes": 14,
+  "selection": {
+    "single_part_bypass": true,
+    "acoustic_selection_claimed": false
+  },
+  "fidelity": {
+    "performed_notes": 550,
+    "max_time_difference_seconds": 1.8758328224066645e-12,
+    "tolerance_seconds": 0.002,
+    "pitch_adjustments": 0,
+    "matched_interpretation": true,
+    "original_song_accuracy": null
+  },
+  "notation": {
+    "source_no_chord_intervals": 14,
+    "canonical_no_chords": 6,
+    "published_no_chords": 6,
+    "pdf_text_no_chord_count": 6,
+    "visible_tempo_bpm": 100.0,
+    "tempo_source": "beat_this_audio_grid",
+    "first_observed_downbeat_seconds": 9.38,
+    "hidden_beat_clock_checks": 351,
+    "hidden_beat_clock_max_error_seconds": 1.0516032489249483e-12,
+    "pdf_pages": 5
+  },
+  "output_sha256": {
+    ".pdf": "ed7d7657161160d9033a0b0c304d8ffe8434e3bed354ecf3a0814c7956aeb717",
+    ".mid": "f91f3548784307c400ef2534409adada30417bdc76f71cb7434b88784dfef8e2",
+    ".musicxml": "d712584c58d4de347b5b7cee5683ab07d9ac89a3f41f3fad6ecc8e053d038e2f"
+  },
+  "evidence_sha256": {
+    "beat_archive": "9e4934ad0ae4845a5b847f0192bae1b89b6330ba03a83859098ed7adc155399a",
+    "beat_receipt": "491afde9fe073a454d5f292db5cb4cd57e9c453e30ce0a366a061944ddaa8030",
+    "pitch_archive": "985832444fdff11d3dc4ec032ce4eeefe15031f682abdedd210d69d18964dc50",
+    "pitch_receipt": "7b1a9cefe07e7791e4cbf3aa10d2d8241a9f815ae814d2f6a75e04ac0eb832fd"
+  },
+  "clone_delete": {
+    "passed": true,
+    "evidence_files": 53,
+    "manifest_hashes_verified": true,
+    "original_job_retained": true,
+    "source_song_revision_and_exports_preserved": true
+  },
+  "quality_approved": false,
+  "commercial_approved": false,
+  "original_song_accuracy": null,
+  "limitations": [
+    "Single recording only; not a five-song result.",
+    "Single-part bypass is not an acoustic part selection claim.",
+    "BPM is an observed clock display estimate, not verified original-song tempo.",
+    "3/4 and 4/4 support remains conditional; other meter support and overall quality are not approved."
+  ]
+}
