@@ -6,7 +6,9 @@
   "amt_prediction_source": "Existing cached YourMT3 and MR-MT3 predictions; newly inferred product CLI F0 is reused for selection",
   "actual_inference_cases": 40,
   "inference_failures": 0,
-  "actual_five_song_pipeline": "pending",
+  "actual_five_song_pipeline": "generation_and_exports_passed_fresh_validation_pending",
+  "cloned_five_job_deletion": "passed",
+  "five_song_product_evidence": "FIXED_TINY_FIVE_PRODUCT_2026-11-11.json",
   "final_quality_approved": false,
   "automatic_pitch_edit": false,
   "weights_sha256": "d4993eea36ed1a0ad9ac549c740dae5265b049ce72004f00c2f59e01c0be8432",
@@ -216,7 +218,9 @@
       "skipped": 2,
       "skip_reason": "FFmpeg unavailable"
     },
-    "root_focused_reported_passed": 55
+    "root_focused_reported_passed": 55,
+    "root_integration_including_selection_passed": 61,
+    "root_integration_skipped": 0
   },
   "archive_sha256": "e0d6b99d3f9c594afe5ae5c4d7bdacebe569e53b809e90b89d1c771c4f9990e3",
   "source_wav_sha256": [

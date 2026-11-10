@@ -1,0 +1,188 @@
+{
+  "source_commit": "7a07c88b9c4f1267431d2daf372c7b3acbd8b602",
+  "source_report_sha256": "949c15b6821bc62d16dbd5405da1f5862ac878742cf2ab36ad70478ebb80a8e8",
+  "clone_delete_report_sha256": "c5888162e90073e4ffa97d5a1bd6bd24c27ed0217222ce4fd7773e4b322a39c1",
+  "prior_event_regression": {
+    "report_sha256": "be38d2bc3ffe5f3bcff2ac4620b623c143d467b730ac1638b18121ce4a722b60",
+    "selected_midi_byte_identical_cases": 5,
+    "final_midi_byte_identical_cases": 4,
+    "remaining_case_difference": "One additional key-signature event; identical voice track and absolute-time metadata after excluding key signatures",
+    "compared_final_events": 2693,
+    "fields": ["pitch", "program", "is_drum", "onset", "offset"],
+    "all_compared_fields_identical": true,
+    "max_time_difference_seconds": 0.0,
+    "original_song_accuracy": null
+  },
+  "source_file_sha256": {
+    "src/audio_score_tool/fixed_vocal_lead.py": "9dbc4919b0751042153d78eba459d0577ccebd2364f64af8da44cfdc1b1ab649",
+    "src/audio_score_tool/fixed_vocal_infer.py": "d1a997d40d9d2f65b048c2c8ae9fc437af9f19a5dafde4594d2d8896aea72e2d",
+    "src/audio_score_tool/fixed_lead_recipe.py": "2e960995e077fb5e7bdf62f57926225faabd693eef39fe85a59f1fbb4bc5d96a",
+    "src/audio_score_tool/vocal_evidence.py": "466357ac96940d1d73bacebfb7e094a37b0780dd729547f4e1022542d42eaf76",
+    "src/audio_score_tool/selected_stem_score.py": "a3dc63999f956249a6552017fba42e011136f2ddfc67dc9fc5f05c970ea9e86d",
+    "src/audio_score_tool/sheetsage2_score.py": "deee15b6956e96ce5b7f2e990ed55d4d1fb6dc437cade90ddc94046720169157",
+    "src/audio_score_tool/lead_notation.py": "27e832932f90866584372918a19948567920c4571b1ad969c2abda27563fc388",
+    "src/audio_score_tool/model_evidence.py": "192305155393cf3c2fe2eaa91b14e2a33a1c0e0e9d4bb3fd0f48f5d95ce607a8",
+    "scripts/sheetsage2_infer_adapter.py": "9d4192cee87dffeacc971fd405b43fe39b7b6775eca7a627b3a886bd62083b7f"
+  },
+  "model_weights_sha256": {
+    "YourMT3": "ae38e415c79efd5592dcb9b658cdb99ddb11d4c4e1eaa364cab04a052473fc25",
+    "Demucs": "8726e21a993978c7ba086d3872e7608d7d5bfca646ca4aca459ffda844faa8b4",
+    "MERT": "e6dd2ab187d6dd62b6521cd7d8f932e237acf0c5757745a7232082e28391350d",
+    "SheetSage2": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274",
+    "torchcrepe tiny": "d4993eea36ed1a0ad9ac549c740dae5265b049ce72004f00c2f59e01c0be8432"
+  },
+  "driver_sha256": "f5437bf1f339bc3c77eb58985e4ec9024bb7be39a12eafc0c33f6824c166c595",
+  "source_hashes_verified_at_start_and_unchanged": true,
+  "model_weights_and_driver_unchanged": true,
+  "new_inference": {
+    "sheetsage2": true,
+    "demucs": true,
+    "torchcrepe_tiny": true,
+    "yourmt3": true,
+    "youtube_redownload": false
+  },
+  "totals": {
+    "raw_all_parts": 2902,
+    "selected_part": 2813,
+    "exported_attacks": 2693,
+    "omitted_selected_notes": 120
+  },
+  "cases": [
+    {
+      "id": "tinashe-me-so-bad",
+      "job_created_utc": "2026-11-10T17:25:14.498661+00:00",
+      "job_completed_utc": "2026-11-10T17:31:50.854828+00:00",
+      "job_elapsed_seconds": 396.854,
+      "raw_all_parts": 564,
+      "selected_part": 564,
+      "exported_attacks": 545,
+      "omitted_selected_notes": 19,
+      "pdf_pages": 5,
+      "selection_mode": "single-part bypass",
+      "selected_part_index": 0,
+      "fidelity_max_seconds": 8.928571560318233e-06,
+      "source_audio_sha256": "f39788b3075e9117661481470289c6e79ce25171f7a256936a2167bdae49fd65",
+      "job_receipt_sha256": "00c9e0f77621529b9118259d872ffbb481dd564cf265fec7043fee919e46ca80",
+      "pitch_receipt_sha256": "2fe96e493885d44c2c936fcac110faf2b08ddb9b07f1af61f94d0e501bebea17",
+      "pitch_prediction_sha256": "985832444fdff11d3dc4ec032ce4eeefe15031f682abdedd210d69d18964dc50",
+      "export_sha256": {
+        ".pdf": "69dcd6653f2b391d739748969540bcc84d7ccc089b401e9e21af2312b114a580",
+        ".mid": "101bbbedfdf2427e147d169f7e5b37cecf88f4a8f3029ee797a08a795feda806",
+        ".musicxml": "191d12b75d589dfd8e37659f0f297eda3b9d6d56c356c630455753e04f0eebe9"
+      },
+      "evidence_file_count": 51
+    },
+    {
+      "id": "twice-fancy",
+      "job_created_utc": "2026-11-10T17:32:34.757971+00:00",
+      "job_completed_utc": "2026-11-10T17:39:54.310915+00:00",
+      "job_elapsed_seconds": 440.056,
+      "raw_all_parts": 732,
+      "selected_part": 710,
+      "exported_attacks": 695,
+      "omitted_selected_notes": 15,
+      "pdf_pages": 7,
+      "selection_mode": "Tiny multipart acoustic selection",
+      "selected_part_index": 1,
+      "fidelity_max_seconds": 2.083333345126448e-05,
+      "source_audio_sha256": "5e1b5613b3863ea3babd2dc22bc9fa8ba62deb2ae44d48c8885f832ab56f01ec",
+      "job_receipt_sha256": "3ffb37e3c2a5fe2a1c742ae6a41ff87c822db7d960751e878747fcf313cbffdb",
+      "pitch_receipt_sha256": "62c5cfe63f19b6e5ddb349628c572682789fe7c84fa02ca71579486869cf1286",
+      "pitch_prediction_sha256": "16557e49095eeebabc71628066e2b9c80526f7279be5ac1b7eade57fa844879e",
+      "export_sha256": {
+        ".pdf": "1c3844142b9b2ed5ff8e6888e07705344b60e51ea45f75b8eccb200a99b7c790",
+        ".mid": "22e3e992b56b7e27a53bf93591d737bfcdefee22c796df2543a96f75c7fb5f16",
+        ".musicxml": "9e4e9ebee90e7ad5553e31c1934264242462b8556addfde9924884534f961bfd"
+      },
+      "evidence_file_count": 52
+    },
+    {
+      "id": "green-day-american-idiot",
+      "job_created_utc": "2026-11-10T17:40:43.816337+00:00",
+      "job_completed_utc": "2026-11-10T17:46:59.642511+00:00",
+      "job_elapsed_seconds": 376.076,
+      "raw_all_parts": 311,
+      "selected_part": 311,
+      "exported_attacks": 308,
+      "omitted_selected_notes": 3,
+      "pdf_pages": 9,
+      "selection_mode": "single-part bypass",
+      "selected_part_index": 0,
+      "fidelity_max_seconds": 3.000000447173079e-06,
+      "source_audio_sha256": "aedb875ba145c1f5cd21a0a86713d11dff1de9701512b8f1c7e4a40fa4fdf680",
+      "job_receipt_sha256": "5616e71c591b6fde66e4fec4564c37a81d3ba059b79868c7737b6cbafe3ccc38",
+      "pitch_receipt_sha256": "4a4abf25d81a29ec5a57ea8c25c9b2a8555edaef99810bec074e9ff537bdc734",
+      "pitch_prediction_sha256": "ed3fef42297dffe7a7c45410c082f26ee08f000b41f9e62196832bb4938cd1df",
+      "export_sha256": {
+        ".pdf": "50355f1a4ab97702817db11029159abd15b89e800b5fe8972a29ab405cf1dd2d",
+        ".mid": "c38523502aec4d5fcd1acc8324efc088acbb5c2f3e58c73661e3ce196165c1a7",
+        ".musicxml": "4ecfba1fd1ce042806399f6aef9c860f75a5f6cac3542c087c5cd16dd2402382"
+      },
+      "evidence_file_count": 51
+    },
+    {
+      "id": "ham-boo-young-my-song",
+      "job_created_utc": "2026-11-10T17:47:49.225858+00:00",
+      "job_completed_utc": "2026-11-10T17:56:57.764707+00:00",
+      "job_elapsed_seconds": 549.068,
+      "raw_all_parts": 613,
+      "selected_part": 605,
+      "exported_attacks": 551,
+      "omitted_selected_notes": 54,
+      "pdf_pages": 5,
+      "selection_mode": "Tiny multipart acoustic selection",
+      "selected_part_index": 0,
+      "fidelity_max_seconds": 1.0000016459343897e-06,
+      "source_audio_sha256": "871118a06f5021b94f6e56c9066fca50670582f5e530bcee9290e2db270d8ac7",
+      "job_receipt_sha256": "48ef5b3b74cbdb45092d8e53a178eb00f5e7c7dda431eb8bc151b92ccec94a62",
+      "pitch_receipt_sha256": "560018bb35b2b66aabdedeb97e4ed9f48fbbf0b36ba267734394a1ea4e247049",
+      "pitch_prediction_sha256": "95848603ce721a69558bef5924918596f3bc79687044f886da1d9e81901d05c7",
+      "export_sha256": {
+        ".pdf": "8465fa95dd0ec39ee4df09506e4b9218bb4da95c4bb54a6919690924ac61f97f",
+        ".mid": "499bfe7bb8c3c80ddf693755c5dbd99af2ca1950d6901608ea68906fa360f7d4",
+        ".musicxml": "47c6718609cdf290fc409bd37d131ddc55b0ba0f4bfa9f44712ef9615677609b"
+      },
+      "evidence_file_count": 52
+    },
+    {
+      "id": "younha-event-horizon",
+      "job_created_utc": "2026-11-10T17:57:42.708541+00:00",
+      "job_completed_utc": "2026-11-10T18:07:24.677376+00:00",
+      "job_elapsed_seconds": 582.449,
+      "raw_all_parts": 682,
+      "selected_part": 623,
+      "exported_attacks": 594,
+      "omitted_selected_notes": 29,
+      "pdf_pages": 7,
+      "selection_mode": "Tiny multipart acoustic selection",
+      "selected_part_index": 2,
+      "fidelity_max_seconds": 3.333334063881921e-06,
+      "source_audio_sha256": "2d84bd77253c96851db8bde4cd76de0b7bf7101cf07f79ff8dbf2d03f1d23dce",
+      "job_receipt_sha256": "d7672d47610be469ebe76f3823132db14b0fdcef6bd1b470b23bb441e6075a50",
+      "pitch_receipt_sha256": "34902c641043652b8399b15aed9e7209ec1506527cf963fbe52dfb598e12420a",
+      "pitch_prediction_sha256": "1012e31fda2b4cb62b6aa081c8443bbf96f791a18918654917b46449d2ae4e0d",
+      "export_sha256": {
+        ".pdf": "6f4bcb5ab0d46b292734d79bb2a7434c466536647fbe754bb83dd715eb80ad01",
+        ".mid": "562f7a7f1fbf9ea94b78fa6799e5c999817a892e1a5f214a27a48c4289ae4472",
+        ".musicxml": "6ad4bc2e3e33511503cde787379494765ae18dd388bb879e0586d85154701181"
+      },
+      "evidence_file_count": 52
+    }
+  ],
+  "clone_delete": {
+    "passed": 5,
+    "evidence_files": 258,
+    "manifest_entries_and_source_outputs_hash_matched": true,
+    "source_audio_and_exports_hash_matched": true,
+    "original_workspace_untouched": true
+  },
+  "fresh_validation": {
+    "status": "pending",
+    "claim": "not yet verified"
+  },
+  "policy": {
+    "quality_approved": false,
+    "commercial_quality_approved": false,
+    "original_song_accuracy": null
+  }
+}
