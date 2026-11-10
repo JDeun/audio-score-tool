@@ -375,3 +375,27 @@ def test_legacy_suspended_seventh_is_fixed_only_in_export_copy(state, monkeypatc
         symbols.extend(''.join(''.join(e.itertext()).split()).replace('\uea64', '♭')
                        for e in svg.iter() if 'harm' in e.get('class', '').split())
     assert symbols == ['Esus4(♭7)'] * 29
+
+
+def test_no_chord_survives_export_without_changing_canonical(state):
+    from audio_score_tool.metrics import midi_notes
+    from audio_score_tool.notation_backend import musicxml_to_midi
+
+    client, songs, _worker, _publication, root = state
+    no_chord = ('<harmony><root><root-step text="">C</root-step></root>'
+                '<kind text="N.C.">none</kind></harmony>')
+    original = SCORE.replace('<note><pitch><step>C</step>', no_chord + '<note><pitch><step>C</step>', 1)
+    with songs._connect() as conn:
+        conn.execute('UPDATE songs SET current_score_xml=? WHERE song_id=?', (original, 'song-1'))
+    before = songs.score_xml('song-1')
+    revision = songs.get('song-1')['revision']
+    source = root / 'before.musicxml'
+    source.write_text(before)
+    original_midi = midi_notes(musicxml_to_midi(source, root / 'before.mid'))
+    response = client.post('/api/songs/song-1/export', json={'formats':['musicxml','pdf','midi']})
+    assert response.status_code == 200, response.text
+    output = songs.export_root / 'song-1'
+    assert ET.parse(output / 'score.musicxml').findtext('.//harmony/kind') == 'none'
+    assert [(n.pitch,n.onset,n.offset) for n in midi_notes(output / 'score.mid')] == [
+        (n.pitch,n.onset,n.offset) for n in original_midi]
+    assert songs.score_xml('song-1') == before and songs.get('song-1')['revision'] == revision

@@ -335,6 +335,39 @@ def _register_pdf_fonts(pdf, work: Path) -> None:
             pdf.add_font(family=family, style=style, fname=target)
 
 
+def _no_chord_render_copy(source: Path) -> str | None:
+    """Render NoChord as words without changing the canonical harmony."""
+    if source.suffix.lower() == ".mxl":
+        return None
+    from .omr import _MAX_MUSICXML_BYTES, _strip_audiveris_musicxml_dtd
+
+    if source.stat().st_size > _MAX_MUSICXML_BYTES:
+        raise NotationBackendError("MusicXML exceeds the rendering size limit")
+    root = ET.fromstring(_strip_audiveris_musicxml_dtd(source.read_text(encoding="utf-8-sig")))
+    changed = False
+    for parent in root.iter():
+        for element in list(parent):
+            if element.tag.rsplit("}", 1)[-1] != "harmony":
+                continue
+            namespace = element.tag[:-len("harmony")]
+            if element.findtext(f"{namespace}kind") != "none":
+                continue
+            attributes = {k: v for k, v in element.attrib.items()
+                          if k in {"placement", "default-x", "default-y", "relative-x", "relative-y"}}
+            direction = ET.Element(f"{namespace}direction", attributes)
+            kind = ET.SubElement(direction, f"{namespace}direction-type")
+            ET.SubElement(kind, f"{namespace}words").text = "N.C."
+            for name in ("offset", "staff"):
+                child = element.find(f"{namespace}{name}")
+                if child is not None:
+                    direction.append(child)
+            index = list(parent).index(element)
+            parent.remove(element)
+            parent.insert(index, direction)
+            changed = True
+    return ET.tostring(root, encoding="unicode") if changed else None
+
+
 def musicxml_to_pdf_embedded(
     source: Path,
     target: Path,
@@ -361,7 +394,8 @@ def musicxml_to_pdf_embedded(
                 "fontTextLiberation": True,
             }
         )
-        loaded = toolkit.loadFile(str(source))
+        render_copy = _no_chord_render_copy(source)
+        loaded = toolkit.loadData(render_copy) if render_copy is not None else toolkit.loadFile(str(source))
         if loaded is False:
             raise NotationBackendError("Verovio가 MusicXML을 읽지 못했습니다.")
         page_count = int(toolkit.getPageCount())

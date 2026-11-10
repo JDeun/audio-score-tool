@@ -114,6 +114,8 @@ def _alter_to_accidental(value: str | None) -> str:
 
 
 def parse_chord_symbol(symbol: str) -> dict[str, str | int | None]:
+    if symbol.strip().upper() in {"N", "NC", "N.C."}:
+        return {"kind": "none"}
     match = _CHORD_RE.match(symbol)
     if not match:
         raise ChordEditError(
@@ -135,6 +137,8 @@ def parse_chord_symbol(symbol: str) -> dict[str, str | int | None]:
 
 
 def harmony_symbol(harmony: ET.Element, ns: str) -> str:
+    if harmony.findtext(f"{ns}kind") == "none":
+        return "N.C."
     root = harmony.find(f"{ns}root")
     if root is None:
         return ""
@@ -201,6 +205,12 @@ def chord_symbol_before_note(measure: ET.Element, note: ET.Element, ns: str) -> 
 
 def _build_harmony(ns: str, symbol: str) -> ET.Element:
     parsed = parse_chord_symbol(symbol)
+    if parsed["kind"] == "none":
+        harmony = ET.Element(f"{ns}harmony", {"placement": "above"})
+        root = ET.SubElement(harmony, f"{ns}root")
+        ET.SubElement(root, f"{ns}root-step", {"text": ""}).text = "C"
+        ET.SubElement(harmony, f"{ns}kind", {"text": "N.C."}).text = "none"
+        return harmony
     harmony = ET.Element(f"{ns}harmony", {"placement": "above"})
 
     root = ET.SubElement(harmony, f"{ns}root")
