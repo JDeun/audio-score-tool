@@ -178,6 +178,36 @@ K:A
     assert "ties left open" not in capfd.readouterr().err
 
 
+def test_native_accidentals_carry_across_octaves_and_reset_at_barline(tmp_path, capfd):
+    text = '''X:1
+M:4/4
+L:1/4
+K:Ab
+V: Vocal
+=E e E E- | =E E _E E | E4 |]
+'''
+    (tmp_path / "score.abc").write_text(text)
+    mapping = [dict(start=2*i,end=2*(i+1),score_start=i,score_end=i+1)
+               for i in range(3)]
+    (tmp_path / "playback.json").write_text(json.dumps({"measures": mapping}))
+    target = tmp_path / "accidentals.musicxml"
+    import_native_lead_sheet(tmp_path, target)
+    score = converter.parse(target)
+    assert [n.pitch.midi for n in score.recurse().getElementsByClass(note.Note)] == [
+        64, 76, 64, 64, 64, 64, 63, 63, 63]
+    from audio_score_tool.metrics import midi_notes
+    from audio_score_tool.notation_backend import _verovio_toolkit, musicxml_to_midi
+
+    played = midi_notes(musicxml_to_midi(target, tmp_path / "accidentals.mid"))
+    assert len(played) == 8
+    assert [(n.pitch, n.onset, n.offset) for n in played][3] == (64, 1.5, 2.5)
+    toolkit = _verovio_toolkit()
+    assert toolkit.loadFile(str(target))
+    toolkit.renderToSVG(1)
+    assert "ties left open" not in capfd.readouterr().err
+    assert (tmp_path / "score.abc").read_text() == text
+
+
 @pytest.mark.parametrize("declared,expected", [("treble", "G"), ("bass", "F")])
 def test_vocal_clef_declaration_survives_voice_extraction(tmp_path, declared, expected):
     _native(tmp_path)

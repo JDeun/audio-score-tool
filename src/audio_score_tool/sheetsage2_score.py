@@ -23,7 +23,8 @@ def _parse_vocal_abc(text):
             # Upstream treats mid-song metadata as a bar boundary and drops it.
             return [i for i, token in enumerate(self.tokens) if isinstance(token, abcFormat.ABCBar)]
 
-    handler = NativeABCHandler()
+    # The official writer carries accidentals by letter across octaves to the barline.
+    handler = NativeABCHandler(abcVersion=(2, 1, 0))
     handler.process(text)
     return translate.abcToStreamScore(handler)
 
