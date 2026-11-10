@@ -5,6 +5,7 @@ import argparse
 import json
 import math
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -188,6 +189,10 @@ def rebuild_vocal_notation(model_dir: Path, context: Path, vocal_midi: Path, out
         instrument.name = "Vocal"
     playback, midis = build_playback(melody, rows["chords"], score, duration)
     text = score_to_abc(score)
+    if clock_info is not None:
+        text, count = re.subn(r'(?m)^Q:1/4=\d+$', f'Q:1/4={clock_info["nominal_tempo_bpm"]:.2f}', text)
+        if count != 1:
+            raise ValueError("Native ABC has no unique tempo declaration")
     output.mkdir(parents=True, exist_ok=False)
     (output / "score.abc").write_text(text)
     (output / "playback.json").write_text(json.dumps(playback, indent=2) + "\n")

@@ -5,11 +5,11 @@ import shutil
 import xml.etree.ElementTree as ET
 from collections.abc import Callable
 from pathlib import Path
-from statistics import median
 from threading import Event
 from typing import Any
 
 from .auto_chords import apply_inferred_chords
+from .beat_clock import observed_tempo_bpm
 from .choir_postprocess import reconstruct_satb
 from .config import Settings, packaged_runtime
 from .demucs_runtime import demucs_repo_args, managed_demucs_repository, prepare_demucs_audio
@@ -41,14 +41,7 @@ def _apply_audio_clock(structure, analysis, engine_key):
     beats = analysis.get("beats", [])
     try:
         numerator, denominator = map(int, analysis["meter"].split("/"))
-        periods = [
-            (b["time_seconds"] - a["time_seconds"]) * a["denominator"] / 4
-            for a, b in zip(beats, beats[1:])
-            if a["numerator"] == b["numerator"] and a["denominator"] == b["denominator"]
-            and b["beat"] == a["beat"] % a["numerator"] + 1
-            and b["time_seconds"] > a["time_seconds"]
-        ]
-        structure.tempo_bpm = round(60 / median(periods), 2)
+        structure.tempo_bpm = observed_tempo_bpm(beats)
     except (KeyError, TypeError, ValueError, ZeroDivisionError) as exc:
         raise PipelineError("SheetSage2 has no valid audio beat/meter clock") from exc
     structure.meter_numerator, structure.meter_denominator = numerator, denominator

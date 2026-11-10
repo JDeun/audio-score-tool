@@ -7,3 +7,5 @@ Only constant 2/4, 3/4 and 4/4 are supported. Changing, compound and other meter
 Five cached recordings were reconstructed without new model inference. Four passed the notation-to-MIDI 2 ms interpretation guard; Me So Bad was explicitly rejected because its downbeat phase votes were 42 versus 37. Earlier global-phase reconstructions of all five are not evidence that their bars are correct. Private diagnostic evidence and full per-case input hashes remain in the local QA workspace. The clock experiment must not be merged as the default on these results.
 
 Owned synthetic checks cover simple meter, pickup and terminal boundaries, phase ambiguity, bounded expansion, receipt tampering, visible tempo provenance and Job-deletion evidence retention. The focused suite passed 45 tests with one FFmpeg-dependent test skipped in the local environment. These tests do not establish whole-song transcription accuracy or commercial readiness.
+
+The later [DBN clock experiment](BEAT_THIS_DBN_CLOCK_2026-11-11.md) preserves this minimal-decoder history and reports a separate cached five-recording adapter check.

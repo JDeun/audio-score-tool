@@ -1,0 +1,91 @@
+{
+  "source_report_sha256": "b4df197abf834e0fc769e88288914d812447be8c800a3321b7a9e584426c4947",
+  "cached_adapter_report_sha256": "fa3989cee6f410a7620a9e3ff7f010d0245b541a8e7c4a6dfbc73633f98fd197",
+  "checkpoint_sha256": "8c328b45f59d8dd3dff219253ff6a8d6482be57d0133a29140e2febbf8eb8331",
+  "source_tree_sha256": "3f8d310da05e5b26fb455645dfcad5b835570b23a511003e351ce0f33b45fd04",
+  "cases": [
+    {
+      "id": "tinashe-me-so-bad",
+      "raw_notes": 564,
+      "represented_notes": 550,
+      "omitted_notes": 14,
+      "phase_votes_mod4": [
+        0,
+        0,
+        0,
+        84
+      ],
+      "observed_beats": 338,
+      "observed_downbeats": 84,
+      "nominal_tempo_bpm": 100.0,
+      "midi_guard_max_seconds": 1.8758328224066645e-12
+    },
+    {
+      "id": "twice-fancy",
+      "raw_notes": 710,
+      "represented_notes": 693,
+      "omitted_notes": 17,
+      "phase_votes_mod4": [
+        119,
+        0,
+        0,
+        0
+      ],
+      "observed_beats": 474,
+      "observed_downbeats": 119,
+      "nominal_tempo_bpm": 130.43,
+      "midi_guard_max_seconds": 3.0000000101892965e-06
+    },
+    {
+      "id": "green-day-american-idiot",
+      "raw_notes": 311,
+      "represented_notes": 308,
+      "omitted_notes": 3,
+      "phase_votes_mod4": [
+        135,
+        0,
+        0,
+        0
+      ],
+      "observed_beats": 538,
+      "observed_downbeats": 135,
+      "nominal_tempo_bpm": 187.5,
+      "midi_guard_max_seconds": 3.0000000101892965e-06
+    },
+    {
+      "id": "ham-boo-young-my-song",
+      "raw_notes": 605,
+      "represented_notes": 558,
+      "omitted_notes": 47,
+      "phase_votes_mod4": [
+        0,
+        83,
+        0,
+        0
+      ],
+      "observed_beats": 330,
+      "observed_downbeats": 83,
+      "nominal_tempo_bpm": 63.83,
+      "midi_guard_max_seconds": 2.0000023823740776e-06
+    },
+    {
+      "id": "younha-event-horizon",
+      "raw_notes": 623,
+      "represented_notes": 614,
+      "omitted_notes": 9,
+      "phase_votes_mod4": [
+        122,
+        0,
+        0,
+        0
+      ],
+      "observed_beats": 487,
+      "observed_downbeats": 122,
+      "nominal_tempo_bpm": 96.77,
+      "midi_guard_max_seconds": 3.0000019251019694e-06
+    }
+  ],
+  "new_inference_in_adapter_check": false,
+  "quality_approved": false,
+  "accuracy_established": false
+}
