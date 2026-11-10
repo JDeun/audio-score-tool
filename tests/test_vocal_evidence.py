@@ -170,3 +170,35 @@ def test_real_decoder_then_pitch_analysis_without_optional_ml_dependencies(tmp_p
         stereo = np.frombuffer(handle.readframes(handle.getnframes()), dtype="<i2").reshape(-1, 2)
         assert np.array_equal(stereo[:, 0], stereo[:, 1])
     assert path.is_file()
+
+
+def test_fixed_tiny_observation_checks_provenance_and_rejects_invalid_arrays(tmp_path, monkeypatch):
+    import hashlib
+    import json
+    from types import SimpleNamespace
+
+    from audio_score_tool.vocal_evidence import fixed_tiny_pitch_track
+
+    source = tmp_path / 'vocals.wav'
+    source.write_bytes(b'owned audio')
+    output = tmp_path / 'pitch.npz'
+    config = {'device': 'cpu', 'threads': 2, 'seed': 0, 'sample_rate': 16000, 'hop': 160,
+              'fmin': 55, 'fmax': 880, 'decoder': 'viterbi', 'batch_size': 128, 'pad': True,
+              'periodicity_threshold': .21, 'silence_db': -60}
+    bad = [False]
+    def command(_cmd, _args, **_kwargs):
+        np.savez_compressed(output, times=np.array([0., .01]), hz=np.array([440., -1. if bad[0] else 0.]))
+        receipt = {'provider': 'torchcrepe', 'model': 'tiny', **config,
+                   'runtime': {'torchcrepe': '0.0.24', 'resampy': '0.4.3', 'librosa': '0.11.0'},
+                   'source_sha256': hashlib.sha256(source.read_bytes()).hexdigest(),
+                   'prediction_sha256': hashlib.sha256(output.read_bytes()).hexdigest(),
+                   'checkpoint_sha256': 'd4993eea36ed1a0ad9ac549c740dae5265b049ce72004f00c2f59e01c0be8432'}
+        output.with_suffix('.runtime.json').write_text(json.dumps(receipt))
+    monkeypatch.setattr('audio_score_tool.runner.run_command', command)
+    settings = SimpleNamespace(fixed_vocal_cmd='fixture', fixed_lead_snapshot=tmp_path)
+    (times, pitches), receipt = fixed_tiny_pitch_track(source, output, settings=settings)
+    assert times.tolist() == [0., .01] and pitches[0] == 69 and np.isnan(pitches[1])
+    assert receipt['model'] == 'tiny'
+    bad[0] = True
+    with pytest.raises(ValueError, match='Invalid fixed pitch track'):
+        fixed_tiny_pitch_track(source, output, settings=settings)
