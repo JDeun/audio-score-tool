@@ -145,6 +145,7 @@ def prepare_score_for_midi(score):
         return score
     expanded = score.expandRepeats() if score[stream.Measure] else score
     result = stream.Score()
+    result.metadata = copy.deepcopy(score.metadata)
     parts = list(expanded.parts) if isinstance(expanded, stream.Score) else [expanded]
     for original in parts:
         part = stream.Part(id=original.id)

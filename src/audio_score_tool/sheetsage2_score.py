@@ -1,6 +1,7 @@
 """Import the official model's notated Vocal voice, retaining its raw predictions."""
 from __future__ import annotations
 
+import bisect
 import copy
 import json
 import math
@@ -69,7 +70,7 @@ def vocal_abc(text: str) -> str:
 
 
 def import_native_lead_sheet(root: Path, target: Path) -> dict:
-    from music21 import clef, converter, harmony, note, stream, tempo
+    from music21 import clef, converter, harmony, metadata, meter, note, stream, tempo
     from music21.exceptions21 import Music21Exception
 
     abc = root / "score.abc"
@@ -118,6 +119,25 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
     mapping = playback_data.get("measures") if isinstance(playback_data, dict) else None
     if not isinstance(mapping, list) or len(mapping) != len(measures):
         raise ValueError("ABC import changed the model's measure count")
+    beat_file = root / "notation" / "song_beats.txt"
+    beat_times = None
+    if beat_file.exists() or beat_file.is_symlink():
+        if (beat_file.parent.is_symlink() or beat_file.is_symlink()
+                or not beat_file.is_file() or beat_file.stat().st_size > 16 * 1024 * 1024):
+            raise ValueError("Unsafe native beat clock")
+        beat_times = []
+        for line in beat_file.read_text().splitlines():
+            row = line.split()
+            if len(row) != 4:
+                raise ValueError("Invalid native beat clock columns")
+            at, beat, numerator, denominator = float(row[0]), *map(int, row[1:])
+            if (not math.isfinite(at) or at < 0 or beat < 1 or numerator < 1
+                    or denominator < 1 or denominator & (denominator - 1)
+                    or (beat_times and at <= beat_times[-1])):
+                raise ValueError("Invalid native beat clock event")
+            beat_times.append(at)
+        if len(beat_times) < 2:
+            raise ValueError("Incomplete native beat clock")
     original_marks = list(part.recurse().getElementsByClass(tempo.MetronomeMark))
     nominal_bpm = original_marks[0].getQuarterBPM() if original_marks else None
     for mark in original_marks:
@@ -149,14 +169,41 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
             measure.insert(0, padding)
         elif index == 0:
             initial_offset = start
-        mark = tempo.MetronomeMark(number=60 * (finish - begin - leading - trailing) / (end - start))
-        mark.style.hideObjectOnPrint = index > 0
-        measure.insert(leading, mark)
+        if beat_times is None:
+            segments = [(leading, finish - begin - leading - trailing, end - start)]
+        else:
+            signature = measure.timeSignature or measure.getContextByClass(meter.TimeSignature)
+            if signature is None:
+                raise ValueError("Native beat clock requires an explicit meter")
+            step = 4 / signature.denominator
+            count = (finish - begin - leading - trailing) / step
+            first = bisect.bisect_left(beat_times, start - 1e-6)
+            if (abs(count - round(count)) > 1e-6 or count < 1
+                    or first + round(count) >= len(beat_times)
+                    or abs(beat_times[first] - start) > 1e-6):
+                raise ValueError("Native beats do not cover the notated measure")
+            times = beat_times[first:first + round(count) + 1]
+            if abs(times[-1] - end) > 1e-6:
+                if index != len(mapping) - 1 or not times[-2] < end < times[-1]:
+                    raise ValueError("Native beats disagree with the measure audio clock")
+                times[-1] = end  # The source recording can end inside the final beat.
+            segments = [(leading + k * step, step, b - a)
+                        for k, (a, b) in enumerate(zip(times, times[1:]))]
+        for position, length, seconds in segments:
+            mark = tempo.MetronomeMark(number=60 * length / seconds)
+            mark.style.hideObjectOnPrint = True
+            measure.insert(position, mark)
         if trailing:
             padding = tempo.MetronomeMark(number=60_000_000)
             padding.style.hideObjectOnPrint = True
             measure.insert(finish - begin - trailing, padding)
         previous_end = end
+    if initial_offset:
+        from .score_timing import AUDIO_ORIGIN_FIELD
+
+        if score.metadata is None:
+            score.metadata = metadata.Metadata()
+        score.metadata.addCustom(AUDIO_ORIGIN_FIELD, str(initial_offset))
     target.parent.mkdir(parents=True, exist_ok=True)
     score.write("musicxml", fp=str(target))
     # music21 omits this flag on tempo marks; serialize MusicXML's print-object.
@@ -190,7 +237,8 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
             "measures": len(measures), "vocal_notes": len(list(part.recurse().getElementsByClass(note.Note))),
             "enharmonic_tie_respellings": respellings,
             "chord_symbols": len(list(part.recurse().getElementsByClass(harmony.ChordSymbol))),
-            "timing": "model_notation_with_per_measure_audio_clock",
+            "timing": ("model_notation_with_per_beat_audio_clock" if beat_times is not None
+                       else "model_notation_with_per_measure_audio_clock"),
             "initial_audio_offset_seconds": initial_offset,
             "padding_clock_epsilon_seconds_per_quarter": 1e-6,
             "visible_tempo_decimal_places": 2,

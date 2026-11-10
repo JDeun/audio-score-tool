@@ -162,6 +162,8 @@ def test_music21_export_skips_same_file_with_relative_target(tmp_path: Path, mon
     from audio_score_tool.notation_backend import midi_to_musicxml, musicxml_to_midi
 
     class FakeScore:
+        metadata = None
+
         def write(self, fmt: str, fp: str) -> str:
             written = Path(fp).resolve()
             written.write_text(fmt, encoding="utf-8")
