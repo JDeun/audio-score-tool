@@ -127,7 +127,8 @@ def prepare(candidate: str, work: Path):
     if candidate == "basic_pitch":
         import basic_pitch
         import onnxruntime as ort
-        from basic_pitch.inference import Model, predict as bp_predict
+        from basic_pitch.inference import Model
+        from basic_pitch.inference import predict as bp_predict
 
         from audio_score_tool.metrics import midi_notes
 
