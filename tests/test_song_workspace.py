@@ -236,3 +236,18 @@ def test_song_store_clears_stale_exports(tmp_path: Path):
 
     assert not pdf.exists()
     assert not midi.exists()
+
+
+def test_legacy_suspended_seventh_listing_and_edit(tmp_path: Path):
+    score = write_score(tmp_path / 'legacy.musicxml')
+    tree = ET.parse(score)
+    measure = tree.find('./part/measure')
+    harmony = ET.fromstring('<harmony><root><root-step>E</root-step></root>'
+                            '<kind>suspended-fourth-seventh</kind></harmony>')
+    measure.insert(1, harmony)
+    tree.write(score, encoding='utf-8', xml_declaration=True)
+    assert list_chords(score)[0]['symbol'] == 'E7sus4'
+    set_chord_at_note(score, 'p0-m0-n0', 'F7sus4')
+    tree = ET.parse(score)
+    assert tree.findtext('.//harmony/kind') == 'suspended-fourth'
+    assert tree.findtext('.//harmony/degree/degree-alter') == '-1'

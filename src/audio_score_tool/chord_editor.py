@@ -23,6 +23,8 @@ _KIND_BY_SUFFIX = {
     "Δ7": "major-seventh",
     "m7": "minor-seventh",
     "min7": "minor-seventh",
+    "m(maj7)": "major-minor",
+    "mM7": "major-minor",
     "6": "major-sixth",
     "m6": "minor-sixth",
     "9": "dominant-ninth",
@@ -54,6 +56,7 @@ _SUFFIX_BY_KIND = {
     "dominant": "7",
     "major-seventh": "maj7",
     "minor-seventh": "m7",
+    "major-minor": "m(maj7)",
     "major-sixth": "6",
     "minor-sixth": "m6",
     "dominant-ninth": "9",
@@ -65,6 +68,7 @@ _SUFFIX_BY_KIND = {
     "diminished-seventh": "dim7",
     "augmented": "aug",
     "suspended-fourth": "sus4",
+    "suspended-fourth-seventh": "7sus4",
     "suspended-second": "sus2",
     "half-diminished": "m7b5",
     "power": "5",
@@ -143,6 +147,13 @@ def harmony_symbol(harmony: ET.Element, ns: str) -> str:
         suffix = kind.get("text")
         if suffix is None:
             suffix = _SUFFIX_BY_KIND.get(kind.text or "", "")
+
+    if (kind is not None and kind.text == "minor-seventh" and suffix in {"m7", "min7", ""}
+            and any(d.findtext(f"{ns}degree-value") == "5"
+                    and d.findtext(f"{ns}degree-alter") == "-1"
+                    and d.findtext(f"{ns}degree-type") in {"add", "alter"}
+                    for d in harmony.findall(f"{ns}degree"))):
+        suffix = "m7b5"
 
     if (kind is not None and kind.text == "suspended-fourth" and suffix in {"sus4", ""}
             and any(d.findtext(f"{ns}degree-value") == "7"
@@ -241,6 +252,8 @@ def set_chord_at_note(path: Path, note_id: str, symbol: str | None) -> None:
     existing = harmony_before_note(measure, note, ns)
     cleaned = (symbol or "").strip()
 
+    if cleaned and existing is not None and cleaned == harmony_symbol(existing, ns):
+        return
     if not cleaned:
         if existing is not None:
             measure.remove(existing)

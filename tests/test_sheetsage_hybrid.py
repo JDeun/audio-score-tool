@@ -421,3 +421,67 @@ def test_suspended_seventh_chord_listing_and_edit_preserve_degree():
         assert harmony_symbol(harmony_xml, '') == 'F♯7sus4/C♯'
         assert harmony_xml.findtext('kind') == 'suspended-fourth'
         assert harmony_xml.findtext('degree/degree-alter') == '-1'
+
+
+@pytest.mark.parametrize('symbol', ['B♭m(maj7)/D♭', 'B♭mM7/D♭', 'B♭m7b5/D♭'])
+def test_minor_seventh_aliases_preserve_harmony_on_edit(tmp_path, symbol):
+    from audio_score_tool.chord_editor import set_chord_at_note
+    from audio_score_tool.chord_listing import list_chords
+
+    score = stream.Score()
+    part = stream.Part()
+    part.append(note.Note('C4', quarterLength=4))
+    score.append(part)
+    target = tmp_path / 'score.musicxml'
+    score.write('musicxml', fp=str(target))
+    set_chord_at_note(target, 'p0-m0-n0', symbol)
+    chord = list(converter.parse(target).recurse().getElementsByClass(harmony.ChordSymbol))[0]
+    assert (chord.root().pitchClass, chord.bass().pitchClass) == (10, 1)
+    assert {p.pitchClass for p in chord.pitches} == ({10, 1, 5, 9} if 'maj7' in symbol or 'mM7' in symbol else {10, 1, 4, 8})
+    listed = list_chords(target)[0]
+    set_chord_at_note(target, listed['note_id'], listed['symbol'])
+    assert list_chords(target)[0]['symbol'] == listed['symbol']
+
+
+def test_unchanged_chord_edit_preserves_custom_text_and_extra_degree(tmp_path):
+    import xml.etree.ElementTree as ET
+
+    from audio_score_tool.chord_editor import set_chord_at_note
+    from audio_score_tool.chord_listing import list_chords
+
+    score = stream.Score()
+    part = stream.Part()
+    part.insert(0, harmony.ChordSymbol('Cm7b5add9'))
+    part.insert(0, note.Note('C4', quarterLength=4))
+    score.append(part)
+    target = tmp_path / 'score.musicxml'
+    score.write('musicxml', fp=str(target))
+    tree = ET.parse(target)
+    tree.find('.//harmony/kind').set('text', 'custom')
+    tree.write(target, encoding='utf-8', xml_declaration=True)
+    original = target.read_bytes()
+    chord = list_chords(target)[0]
+    set_chord_at_note(target, chord['note_id'], chord['symbol'])
+    assert target.read_bytes() == original
+    assert len(ET.parse(target).findall('.//harmony/degree')) == 2
+
+
+def test_unchanged_half_diminished_keeps_additional_degree(tmp_path):
+    import xml.etree.ElementTree as ET
+
+    from audio_score_tool.chord_editor import set_chord_at_note
+    from audio_score_tool.chord_listing import list_chords
+
+    score = stream.Score()
+    part = stream.Part()
+    part.insert(0, harmony.ChordSymbol('Cm7b5add9'))
+    part.insert(0, note.Note('C4', quarterLength=4))
+    score.append(part)
+    target = tmp_path / 'score.musicxml'
+    score.write('musicxml', fp=str(target))
+    before = target.read_bytes()
+    listed = list_chords(target)[0]
+    assert listed['symbol'] == 'Cm7b5'
+    set_chord_at_note(target, listed['note_id'], listed['symbol'])
+    assert target.read_bytes() == before
+    assert len(ET.parse(target).findall('.//harmony/degree')) == 2
