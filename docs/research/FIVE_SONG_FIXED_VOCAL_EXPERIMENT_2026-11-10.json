@@ -1,0 +1,328 @@
+{
+  "schema_version": 1,
+  "model_test": {
+    "schema_version": 1,
+    "model": "YourMT3+ YPTF.MoE+Multi (noPS)",
+    "checkpoint_sha256": "ae38e415c79efd5592dcb9b658cdb99ddb11d4c4e1eaa364cab04a052473fc25",
+    "model_revision": "5e66c1ea173a8186e0d20432b841d3180cc015b5",
+    "runtime": {
+      "torch": "2.7.1",
+      "torchaudio": "2.7.1",
+      "transformers": "4.44.2",
+      "mt3-infer": "0.2.0"
+    },
+    "python": "3.11.15",
+    "device": "cpu",
+    "threads": 2,
+    "seed": 0,
+    "source_commit": "e2d9166ca3344b1828a58669c96f55c30dd73e38",
+    "input": "previous independently pinned Demucs vocal stems of all five specified sources",
+    "separator_checkpoint_sha256": "8726e21a993978c7ba086d3872e7608d7d5bfca646ca4aca459ffda844faa8b4",
+    "new_separation": false,
+    "references_available": false,
+    "quality_approved": false,
+    "purpose": "one frozen vocal-model recipe, real inference; no per-song model or preset changes",
+    "inference_source_sha256": {
+      "src/audio_score_tool/mt3_program_midi.py": "0575a499ab9e9d3b3528f0fce6a88a13416d31286c934312af20173d7bf419cc",
+      "scripts/run_cocochorales_stem_ablation.py": "5de5a19aecb57509e82a7a027521fc83a918fbda366213caa31def35f166e001"
+    },
+    "cases": [
+      {
+        "id": "tinashe-me-so-bad",
+        "original_audio_sha256": "f39788b3075e9117661481470289c6e79ce25171f7a256936a2167bdae49fd65",
+        "vocal_stem_sha256": "ed861bf0799081e45c0081e9026de8ba09af927d30c41c34b2ba08e11555df9d",
+        "audio_sha256": "ed861bf0799081e45c0081e9026de8ba09af927d30c41c34b2ba08e11555df9d",
+        "prediction_midi_sha256": "b308680ae523970f1ca41b140d7698310fa9e02d2f345175511e543c99018025",
+        "inference_seconds": 158.120287,
+        "predicted_note_count": 582,
+        "status": "predicted",
+        "empty_prediction": false
+      },
+      {
+        "id": "twice-fancy",
+        "original_audio_sha256": "5e1b5613b3863ea3babd2dc22bc9fa8ba62deb2ae44d48c8885f832ab56f01ec",
+        "vocal_stem_sha256": "009460dfd6bac9082c78296012b1ad034c7c5e51d01e8973a847b567fc76ddf7",
+        "audio_sha256": "009460dfd6bac9082c78296012b1ad034c7c5e51d01e8973a847b567fc76ddf7",
+        "prediction_midi_sha256": "a8deeb32e2a0da4cbba3e552b9b5488c6928ded2ef8cb3975d80b047727fbd65",
+        "inference_seconds": 179.990688,
+        "predicted_note_count": 732,
+        "status": "predicted",
+        "empty_prediction": false
+      },
+      {
+        "id": "green-day-american-idiot",
+        "original_audio_sha256": "aedb875ba145c1f5cd21a0a86713d11dff1de9701512b8f1c7e4a40fa4fdf680",
+        "vocal_stem_sha256": "04f462d29c8bf6212304e6bb7bd5821cc8bebbf0840a697d38b9a828ba502b09",
+        "audio_sha256": "04f462d29c8bf6212304e6bb7bd5821cc8bebbf0840a697d38b9a828ba502b09",
+        "prediction_midi_sha256": "46cbed665292c39f713e1b9d4d5a21199542497648cf560aca1be03cea3c531b",
+        "inference_seconds": 121.472886,
+        "predicted_note_count": 312,
+        "status": "predicted",
+        "empty_prediction": false
+      },
+      {
+        "id": "ham-boo-young-my-song",
+        "original_audio_sha256": "871118a06f5021b94f6e56c9066fca50670582f5e530bcee9290e2db270d8ac7",
+        "vocal_stem_sha256": "c0636c2b501130b5cc7ade0c44ffd7681724c9804c0801a5e86f6be785bdf2d9",
+        "audio_sha256": "c0636c2b501130b5cc7ade0c44ffd7681724c9804c0801a5e86f6be785bdf2d9",
+        "prediction_midi_sha256": "884ccfbdb3f682b165ab9340ccb4bbc688717e81960b4a06394614dafda65f0e",
+        "inference_seconds": 202.70785,
+        "predicted_note_count": 600,
+        "status": "predicted",
+        "empty_prediction": false
+      },
+      {
+        "id": "younha-event-horizon",
+        "original_audio_sha256": "2d84bd77253c96851db8bde4cd76de0b7bf7101cf07f79ff8dbf2d03f1d23dce",
+        "vocal_stem_sha256": "c668b557ae9223af39c89f20a8e03a9e11704afe8efeae40049c7090573b540e",
+        "audio_sha256": "c668b557ae9223af39c89f20a8e03a9e11704afe8efeae40049c7090573b540e",
+        "prediction_midi_sha256": "6d0c3b895347b6c5c5df4ac02fa0dbfc13eb5d1e4c2de0bca601208db8bba387",
+        "inference_seconds": 240.56389,
+        "predicted_note_count": 784,
+        "status": "predicted",
+        "empty_prediction": false
+      }
+    ],
+    "all_five_completed": true
+  },
+  "raw_waveform_review": {
+    "schema_version": 1,
+    "purpose": "vocal diagnostic only, no chord/key/meter quality or final-model approval",
+    "cases": [
+      {
+        "id": "tinashe-me-so-bad",
+        "source_commit": "58a756fb9731d32e84943e9bc52df188cfa99225",
+        "raw_predicted_notes": 582,
+        "raw_prediction_sha256": "b308680ae523970f1ca41b140d7698310fa9e02d2f345175511e543c99018025",
+        "quality_approved": false,
+        "status": "reviewed",
+        "acoustic": {
+          "predicted_notes": 582,
+          "compared_notes": 85,
+          "consistent_notes": 80,
+          "octave_suspects": 5,
+          "pitch_suspects": 0,
+          "whole_song_accuracy": null
+        },
+        "source_parts": 1
+      },
+      {
+        "id": "twice-fancy",
+        "source_commit": "58a756fb9731d32e84943e9bc52df188cfa99225",
+        "raw_predicted_notes": 732,
+        "raw_prediction_sha256": "a8deeb32e2a0da4cbba3e552b9b5488c6928ded2ef8cb3975d80b047727fbd65",
+        "quality_approved": false,
+        "status": "reviewed",
+        "acoustic": {
+          "predicted_notes": 710,
+          "compared_notes": 116,
+          "consistent_notes": 108,
+          "octave_suspects": 5,
+          "pitch_suspects": 3,
+          "whole_song_accuracy": null
+        },
+        "source_parts": 2
+      },
+      {
+        "id": "green-day-american-idiot",
+        "source_commit": "040cb8831ce18d4cac5fefe56a46ebc79264ee2e",
+        "raw_predicted_notes": 312,
+        "raw_prediction_sha256": "46cbed665292c39f713e1b9d4d5a21199542497648cf560aca1be03cea3c531b",
+        "quality_approved": false,
+        "status": "reviewed",
+        "acoustic": {
+          "predicted_notes": 312,
+          "compared_notes": 40,
+          "consistent_notes": 39,
+          "octave_suspects": 1,
+          "pitch_suspects": 0,
+          "whole_song_accuracy": null
+        },
+        "source_parts": 1
+      },
+      {
+        "id": "ham-boo-young-my-song",
+        "source_commit": "040cb8831ce18d4cac5fefe56a46ebc79264ee2e",
+        "raw_predicted_notes": 600,
+        "raw_prediction_sha256": "884ccfbdb3f682b165ab9340ccb4bbc688717e81960b4a06394614dafda65f0e",
+        "quality_approved": false,
+        "status": "reviewed",
+        "acoustic": {
+          "predicted_notes": 600,
+          "compared_notes": 241,
+          "consistent_notes": 224,
+          "octave_suspects": 1,
+          "pitch_suspects": 16,
+          "whole_song_accuracy": null
+        },
+        "source_parts": 1
+      },
+      {
+        "id": "younha-event-horizon",
+        "source_commit": "040cb8831ce18d4cac5fefe56a46ebc79264ee2e",
+        "raw_predicted_notes": 784,
+        "raw_prediction_sha256": "6d0c3b895347b6c5c5df4ac02fa0dbfc13eb5d1e4c2de0bca601208db8bba387",
+        "quality_approved": false,
+        "status": "reviewed",
+        "acoustic": {
+          "predicted_notes": 624,
+          "compared_notes": 283,
+          "consistent_notes": 281,
+          "octave_suspects": 0,
+          "pitch_suspects": 2,
+          "whole_song_accuracy": null
+        },
+        "source_parts": 3
+      }
+    ]
+  },
+  "fixed_grid_conversion": [
+    {
+      "id": "tinashe-me-so-bad",
+      "status": "notated",
+      "vocal_input_sha256": "d0c381a4ff73868ae023810f596fd47e7b522df10acaba781586b0e133fed6f4",
+      "raw_selected_note_count": 582,
+      "represented_raw_notes": 566,
+      "unrepresented_raw_notes": 16,
+      "notated_attacks": 566,
+      "source_note_reentries": 0,
+      "measures": 93,
+      "sixteenth_grid_source": "pinned SheetSage2 existing audio-derived beat/meter clock",
+      "pitch_adjustments": 0,
+      "quality_approved": false,
+      "abc_sha256": "5e2ec12a4ac02cf27ca66e5c86f687a3126c418bc69566bb5e0372b0f181207d",
+      "expected_attacks": 566,
+      "actual_attacks": 566,
+      "differing_events": 0,
+      "comparison_tolerance_seconds": 0.002,
+      "passed": true,
+      "absolute_source_audio_clock": true,
+      "source_file_sha256": {
+        "sheetsage2_score.py": "9e6d57b77a8830d89fb7010e1839e06b1975c113ad9abff1bbc61fc58633fa65",
+        "score_timing.py": "61c91dab40da3208a85ef6fd5c5d546784e4a87ced2db38c42fc9226bbb9ec11",
+        "midi_ties.py": "8269e530773136763191cd636ee9b0ef02a83d5653720d0a4b13db7c1ab9e45f",
+        "notation_backend.py": "6dce120b14ea7ad53e0872ff4f4d8ca330b608f8f8e82f19440f5949f23dbdcd"
+      },
+      "before_max_timing_difference_seconds": 0.09000000000003183
+    },
+    {
+      "id": "twice-fancy",
+      "status": "notated",
+      "vocal_input_sha256": "7cddf2c2f2fc4d4cfcbec3a97f2d80f57a6184c658cd32c7769afff0515e6f67",
+      "raw_selected_note_count": 710,
+      "represented_raw_notes": 695,
+      "unrepresented_raw_notes": 15,
+      "notated_attacks": 695,
+      "source_note_reentries": 0,
+      "measures": 126,
+      "sixteenth_grid_source": "pinned SheetSage2 existing audio-derived beat/meter clock",
+      "pitch_adjustments": 0,
+      "quality_approved": false,
+      "abc_sha256": "980a3e8e88168aeaac2aad3927fb2688b23aa8ce3fa9b3c04be10343501e90e0",
+      "expected_attacks": 695,
+      "actual_attacks": 695,
+      "differing_events": 0,
+      "comparison_tolerance_seconds": 0.002,
+      "passed": true,
+      "absolute_source_audio_clock": true,
+      "source_file_sha256": {
+        "sheetsage2_score.py": "9e6d57b77a8830d89fb7010e1839e06b1975c113ad9abff1bbc61fc58633fa65",
+        "score_timing.py": "61c91dab40da3208a85ef6fd5c5d546784e4a87ced2db38c42fc9226bbb9ec11",
+        "midi_ties.py": "8269e530773136763191cd636ee9b0ef02a83d5653720d0a4b13db7c1ab9e45f",
+        "notation_backend.py": "6dce120b14ea7ad53e0872ff4f4d8ca330b608f8f8e82f19440f5949f23dbdcd"
+      },
+      "before_max_timing_difference_seconds": 0.1249999999999929
+    },
+    {
+      "id": "green-day-american-idiot",
+      "status": "notated",
+      "vocal_input_sha256": "0626ca4ec93a1c9f593c9b5e821f8862356726951384cb97b63ac210001b1581",
+      "raw_selected_note_count": 312,
+      "represented_raw_notes": 309,
+      "unrepresented_raw_notes": 3,
+      "notated_attacks": 309,
+      "source_note_reentries": 0,
+      "measures": 162,
+      "sixteenth_grid_source": "pinned SheetSage2 existing audio-derived beat/meter clock",
+      "pitch_adjustments": 0,
+      "quality_approved": false,
+      "abc_sha256": "9a16e022d8c3f83104a71de8eea9e65ba3bbb1b26f69aecc1fc067cf4725855b",
+      "expected_attacks": 309,
+      "actual_attacks": 309,
+      "differing_events": 0,
+      "comparison_tolerance_seconds": 0.002,
+      "passed": true,
+      "absolute_source_audio_clock": true,
+      "source_file_sha256": {
+        "sheetsage2_score.py": "9e6d57b77a8830d89fb7010e1839e06b1975c113ad9abff1bbc61fc58633fa65",
+        "score_timing.py": "61c91dab40da3208a85ef6fd5c5d546784e4a87ced2db38c42fc9226bbb9ec11",
+        "midi_ties.py": "8269e530773136763191cd636ee9b0ef02a83d5653720d0a4b13db7c1ab9e45f",
+        "notation_backend.py": "6dce120b14ea7ad53e0872ff4f4d8ca330b608f8f8e82f19440f5949f23dbdcd"
+      },
+      "before_max_timing_difference_seconds": 0.08750300000002653
+    },
+    {
+      "id": "ham-boo-young-my-song",
+      "status": "notated",
+      "vocal_input_sha256": "5a26e9e5bbbf7da92f99bdba72c4e2ff5992aab37cddbeaebb8326e64f863091",
+      "raw_selected_note_count": 600,
+      "represented_raw_notes": 552,
+      "unrepresented_raw_notes": 48,
+      "notated_attacks": 552,
+      "source_note_reentries": 0,
+      "measures": 83,
+      "sixteenth_grid_source": "pinned SheetSage2 existing audio-derived beat/meter clock",
+      "pitch_adjustments": 0,
+      "quality_approved": false,
+      "abc_sha256": "c4705b1cece389480bf0d2fbe93bb821d23f1296be62c45551fc3645c8427c06",
+      "expected_attacks": 552,
+      "actual_attacks": 552,
+      "differing_events": 0,
+      "comparison_tolerance_seconds": 0.002,
+      "passed": true,
+      "absolute_source_audio_clock": true,
+      "source_file_sha256": {
+        "sheetsage2_score.py": "9e6d57b77a8830d89fb7010e1839e06b1975c113ad9abff1bbc61fc58633fa65",
+        "score_timing.py": "61c91dab40da3208a85ef6fd5c5d546784e4a87ced2db38c42fc9226bbb9ec11",
+        "midi_ties.py": "8269e530773136763191cd636ee9b0ef02a83d5653720d0a4b13db7c1ab9e45f",
+        "notation_backend.py": "6dce120b14ea7ad53e0872ff4f4d8ca330b608f8f8e82f19440f5949f23dbdcd"
+      },
+      "before_max_timing_difference_seconds": 0.09999699999998768
+    },
+    {
+      "id": "younha-event-horizon",
+      "status": "notated",
+      "vocal_input_sha256": "0259ef40dfe4e4f06d7a92996fe4810b2f48a97f58f686a6bf52dfecab1cd415",
+      "raw_selected_note_count": 624,
+      "represented_raw_notes": 598,
+      "unrepresented_raw_notes": 26,
+      "notated_attacks": 598,
+      "source_note_reentries": 0,
+      "measures": 125,
+      "sixteenth_grid_source": "pinned SheetSage2 existing audio-derived beat/meter clock",
+      "pitch_adjustments": 0,
+      "quality_approved": false,
+      "abc_sha256": "4c590a9753811477dd7a728bd3e5ea12da01f8df66fd5eaf04248d4bd6f7d62e",
+      "expected_attacks": 598,
+      "actual_attacks": 598,
+      "differing_events": 0,
+      "comparison_tolerance_seconds": 0.002,
+      "passed": true,
+      "absolute_source_audio_clock": true,
+      "source_file_sha256": {
+        "sheetsage2_score.py": "9e6d57b77a8830d89fb7010e1839e06b1975c113ad9abff1bbc61fc58633fa65",
+        "score_timing.py": "61c91dab40da3208a85ef6fd5c5d546784e4a87ced2db38c42fc9226bbb9ec11",
+        "midi_ties.py": "8269e530773136763191cd636ee9b0ef02a83d5653720d0a4b13db7c1ab9e45f",
+        "notation_backend.py": "6dce120b14ea7ad53e0872ff4f4d8ca330b608f8f8e82f19440f5949f23dbdcd"
+      },
+      "before_max_timing_difference_seconds": 0.11499700000001667
+    }
+  ],
+  "policy": {
+    "production_job_integration": false,
+    "expert_reference_available": false,
+    "quality_approved": false,
+    "final_model_approved": false,
+    "five_songs_are_held_out": false
+  }
+}

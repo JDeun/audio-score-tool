@@ -102,6 +102,7 @@ def musicxml_to_midi(source: Path, target: Path) -> Path:
 
         from .midi_channels import preserve_program_channels
         from .midi_ties import prepare_score_for_midi, restore_instrument_bindings
+        from .score_timing import apply_midi_audio_origin, score_audio_origin
 
         score = converter.parse(str(source))
         restore_instrument_bindings(score, source)
@@ -109,6 +110,7 @@ def musicxml_to_midi(source: Path, target: Path) -> Path:
         target.parent.mkdir(parents=True, exist_ok=True)
         written = score.write("midi", fp=str(target))
         preserve_program_channels(Path(str(written)) if written else target)
+        apply_midi_audio_origin(Path(str(written)) if written else target, score_audio_origin(score))
     except Exception as exc:
         raise NotationBackendError(f"music21 MusicXML→MIDI 변환 실패: {exc}") from exc
     result = Path(str(written)) if written else target

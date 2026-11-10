@@ -178,6 +178,82 @@ K:A
     assert "ties left open" not in capfd.readouterr().err
 
 
+@pytest.mark.parametrize("origin", [0, .037])
+def test_native_beat_clock_preserves_within_measure_variation_and_changed_meter(tmp_path, origin):
+    (tmp_path / "score.abc").write_text('''X:1
+M:4/4
+L:1/8
+K:C
+V: Vocal
+cdefgabc |
+M:2/4
+c2d2 |]
+''')
+    mapping = [dict(start=origin,end=2+origin,score_start=0,score_end=1),
+               dict(start=2+origin,end=3.4+origin,score_start=1,score_end=1.5)]
+    (tmp_path / "playback.json").write_text(json.dumps({"measures": mapping}))
+    (tmp_path / "notation").mkdir()
+    beats = [(0,1,4),(.4,2,4),(1,3,4),(1.3,4,4),(2,1,2),(2.5,2,2),(3.4,1,2)]
+    (tmp_path / "notation/song_beats.txt").write_text("".join(
+        f"{at+origin}\t{beat}\t{num}\t4\n" for at,beat,num in beats))
+    target = tmp_path / "beats.musicxml"
+    report = import_native_lead_sheet(tmp_path, target)
+    assert report["timing"] == "model_notation_with_per_beat_audio_clock"
+    from audio_score_tool.metrics import midi_notes
+    from audio_score_tool.notation_backend import musicxml_to_midi
+    from audio_score_tool.vocal_evidence import part_notes
+
+    score = converter.parse(target)
+    expected = [at+origin for at in [0, .2, .4, .7, 1, 1.15, 1.3, 1.65, 2, 2.5]]
+    observed = part_notes(score, score.parts[0])
+    assert [n["start_seconds"] for n in observed] == pytest.approx(expected, abs=1e-5)
+    played = midi_notes(musicxml_to_midi(target, tmp_path / "beats.mid"))
+    assert [n.onset for n in played] == pytest.approx(expected, abs=5e-5)
+    assert played[-1].offset == pytest.approx(3.4+origin, abs=5e-5)
+    assert len(ET.parse(target).findall(".//metronome[@print-object='no']")) == 6
+
+
+@pytest.mark.parametrize("rows", ["0 1 3 4\n", "0 1 3 4\n0 2 3 4\n",
+                                  "nan 1 3 4\n3 2 3 4\n", "0 1 3 3\n3 2 3 3\n",
+                                  "0 1 3 4\n2 2 3 4\n4 3 3 4\n6 1 3 4\n"])
+def test_incomplete_or_inconsistent_native_beats_fail_before_export(tmp_path, rows):
+    _native(tmp_path)
+    (tmp_path / "notation").mkdir()
+    (tmp_path / "notation/song_beats.txt").write_text(rows)
+    target = tmp_path / "bad-beats.musicxml"
+    with pytest.raises(ValueError, match="beat"):
+        import_native_lead_sheet(tmp_path, target)
+    assert not target.exists()
+
+
+def test_native_beat_clock_preserves_pickup_and_clipped_last_beat(tmp_path):
+    (tmp_path / "score.abc").write_text('''X:1
+M:4/4
+L:1/8
+K:C
+V: Vocal
+z6c2 | d2e2z4 |]
+''')
+    mapping = [dict(start=.25,end=.75,score_start=0,score_end=1,leading_rest=.75),
+               dict(start=.75,end=1.75,score_start=1,score_end=2,trailing_rest=.5)]
+    (tmp_path / "playback.json").write_text(json.dumps({"measures": mapping}))
+    (tmp_path / "notation").mkdir()
+    (tmp_path / "notation/song_beats.txt").write_text(
+        ".25 4 4 4\n.75 1 4 4\n1.15 2 4 4\n1.85 3 4 4\n")
+    target = tmp_path / "pickup-beats.musicxml"
+    import_native_lead_sheet(tmp_path, target)
+    from audio_score_tool.metrics import midi_notes
+    from audio_score_tool.notation_backend import musicxml_to_midi
+    from audio_score_tool.vocal_evidence import part_notes
+
+    score = converter.parse(target)
+    observations = part_notes(score, score.parts[0])
+    assert [n["start_seconds"] for n in observations] == pytest.approx([.25,.75,1.15], abs=1e-5)
+    events = midi_notes(musicxml_to_midi(target, tmp_path / "pickup-beats.mid"))
+    assert [n.onset for n in events] == pytest.approx([.25,.75,1.15], abs=1e-5)
+    assert events[-1].offset == pytest.approx(1.75, abs=1e-5)
+
+
 def test_native_accidentals_carry_across_octaves_and_reset_at_barline(tmp_path, capfd):
     text = '''X:1
 M:4/4
