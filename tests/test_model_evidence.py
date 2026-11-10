@@ -223,6 +223,7 @@ def test_actual_cleanup_refuses_corrupt_evidence(case, monkeypatch, cleanup):
 @pytest.mark.parametrize("damage", ["missing", "corrupt", "no_source"])
 def test_cleanup_requires_verified_original_audio(case, monkeypatch, cleanup, damage):
     from fastapi import HTTPException
+
     from audio_score_tool import api, job_lifecycle_api_v2, storage_api_v2
     from audio_score_tool.job_store import JobStore
 
