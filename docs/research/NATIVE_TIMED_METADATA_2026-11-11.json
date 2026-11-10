@@ -245,5 +245,8 @@
   "new_model_inference": false,
   "pdf_rerender_in_v4": false,
   "subsequent_inversion_fix_commit": "0d714a5835e1251357dfa75d0bdbc0210e452837",
-  "subsequent_inversion_fix_scope": "Recognized sixth and minor-major-seventh chord-tone bass inversions; no such labels in the five original source chord files."
+  "subsequent_inversion_fix_scope": "Recognized sixth and minor-major-seventh chord-tone bass inversions; no such labels in the five original source chord files.",
+  "subsequent_origin_inheritance_commit": "353e377",
+  "source_slash_labels_previously_supported": 112,
+  "unsupported_harte_slash_policy": "Explicit failure; complete slash grammar support is not claimed."
 }
