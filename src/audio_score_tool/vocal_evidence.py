@@ -117,12 +117,12 @@ def compare_notes(notes: list[dict], times: np.ndarray, pitches: np.ndarray) -> 
             "policy": {"advisory": True, "auto_edit": False, "reference_is_expert_ground_truth": False}}
 
 
-def select_vocal_part(score_path: Path, vocal_audio: Path, *, ffmpeg_cmd: str) -> tuple[int, dict]:
+def select_vocal_part(score_path: Path, vocal_audio: Path, *, ffmpeg_cmd: str, pitch_track=None) -> tuple[int, dict]:
     """Select by absolute acoustic pitch support; refuse unresolved competing parts."""
     from music21 import converter
 
     score = converter.parse(str(score_path))
-    times, pitches = vocal_pitch_track(vocal_audio, ffmpeg_cmd=ffmpeg_cmd)
+    times, pitches = pitch_track if pitch_track is not None else vocal_pitch_track(vocal_audio, ffmpeg_cmd=ffmpeg_cmd)
     finite = np.isfinite(pitches)
     if np.count_nonzero(finite) < 8:
         raise AudioSymbolValidationError("주선율을 고를 안정적인 보컬 음높이 근거가 부족합니다.")
@@ -147,9 +147,68 @@ def select_vocal_part(score_path: Path, vocal_audio: Path, *, ffmpeg_cmd: str) -
             or len(ranked) > 1 and ranked[0]["support"] - ranked[1]["support"] < 0.15):
         raise AudioSymbolValidationError("여러 파트 중 보컬 주선율을 확정할 근거가 부족합니다. 음표 수로 대체 선택하지 않았습니다.")
     return ranked[0]["part_index"], {
-        "provider": "vocal_waveform_yin_v2", "candidates": candidates,
+        "provider": "vocal_waveform_torchcrepe_tiny_v1" if pitch_track is not None else "vocal_waveform_yin_v2", "candidates": candidates,
         "selected_part_index": ranked[0]["part_index"],
         "policy": {"octave_folding": False, "note_count_selection": False,
                    "ambiguous_selection": "refuse", "quality_approved": False,
                    "support_is_note_accuracy": False},
     }
+
+
+def fixed_tiny_pitch_track(source: Path, output: Path, *, settings, cancel_event=None) -> tuple[tuple[np.ndarray, np.ndarray], dict]:
+    """Run the pinned external verifier and validate its bounded observation."""
+    import hashlib
+    import json
+    import zipfile
+
+    from .fixed_lead_recipe import YOUR_RUNTIME
+    from .runner import run_command
+
+    run_command(settings.fixed_vocal_cmd, ['pitch', source, output, '--snapshot', settings.fixed_lead_snapshot],
+                timeout_seconds=1800, cancel_event=cancel_event, env={'PYTHONHASHSEED': '0', 'OMP_NUM_THREADS': '2', 'MKL_NUM_THREADS': '2'})
+    receipt_path = output.with_suffix('.runtime.json')
+    if (output.is_symlink() or receipt_path.is_symlink() or not output.is_file() or not receipt_path.is_file()
+            or output.stat().st_size > 16 * 1024 * 1024 or receipt_path.stat().st_size > 65536):
+        raise ValueError('Missing or unsafe fixed pitch observation')
+    receipt = json.loads(receipt_path.read_text())
+    def digest(path):
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    if (not isinstance(receipt, dict) or not isinstance(receipt.get('runtime'), dict)
+            or receipt.get('provider') != 'torchcrepe' or receipt.get('model') != 'tiny'
+            or receipt.get('source_sha256') != digest(source) or receipt.get('prediction_sha256') != digest(output)
+            or receipt.get('checkpoint_sha256') != 'd4993eea36ed1a0ad9ac549c740dae5265b049ce72004f00c2f59e01c0be8432'
+            or any(receipt.get(k) != v for k, v in {'device': 'cpu', 'threads': 2, 'seed': 0,
+                'sample_rate': 16000, 'hop': 160, 'fmin': 55, 'fmax': 880, 'decoder': 'viterbi',
+                'batch_size': 128, 'pad': True, 'periodicity_threshold': .21, 'silence_db': -60}.items())
+            or receipt.get('weights_source_revision') != '19e2ec3d494c0797a5ff2a11408ec5838fba6681'
+            or not isinstance(receipt.get('python'), str) or not receipt['python'].startswith('3.11.')
+            or receipt.get('adapter_sha256') != digest(Path(__file__).with_name('fixed_vocal_infer.py'))
+            or any(receipt.get('runtime', {}).get(k) != v for k, v in {
+                **YOUR_RUNTIME, 'torchcrepe': '0.0.24', 'resampy': '0.4.3', 'librosa': '0.11.0'}.items())):
+        raise ValueError('Fixed pitch observation provenance mismatch')
+    try:
+        with zipfile.ZipFile(output) as archive:
+            members = archive.infolist()
+            if sorted(x.filename for x in members) != ['hz.npy', 'times.npy'] or sum(x.file_size for x in members) > 32 * 1024 * 1024:
+                raise ValueError('Invalid or oversized fixed pitch arrays')
+        with np.load(output, allow_pickle=False) as data:
+            times, hz = np.asarray(data['times']), np.asarray(data['hz'])
+    except (OSError, EOFError, zipfile.BadZipFile) as exc:
+        raise ValueError('Invalid fixed pitch archive') from exc
+    # torchcrepe uses 20-cent bins based at 1997.3794084376191 cents and ±20-cent dither.
+    base, step = 1997.3794084376191, 20
+    low_bin = math.floor((1200 * math.log2(55 / 10) - base) / step)
+    high_bin = math.ceil((1200 * math.log2(880 / 10) - base) / step) - 1
+    low_hz = 10 * 2 ** ((base + step * (low_bin - 1)) / 1200)
+    high_hz = 10 * 2 ** ((base + step * (high_bin + 1)) / 1200)
+    if (times.ndim != 1 or hz.ndim != 1 or times.shape != hz.shape or not len(times)
+            or times.dtype.kind not in 'fi' or hz.dtype.kind not in 'fi'
+            or not np.isfinite(times).all() or not np.isfinite(hz).all()
+            or not np.allclose(times, np.arange(len(times)) * .01, rtol=0, atol=1e-7)
+            or np.any(hz < 0)
+            or np.any((hz > 0) & ((hz < low_hz - 1e-4) | (hz > high_hz + 1e-4)))):
+        raise ValueError('Invalid fixed pitch track')
+    pitches = np.full(hz.shape, np.nan, dtype=float)
+    voiced = hz > 0
+    pitches[voiced] = 69 + 12 * np.log2(hz[voiced] / 440)
+    return (times, pitches), receipt

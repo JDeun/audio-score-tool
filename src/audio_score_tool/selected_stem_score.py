@@ -53,7 +53,7 @@ def _stem(root: Path, name: str) -> Path:
 
 
 def _main_part(score_path: Path, destination: Path, *, part_name: str,
-               vocal_audio: Path | None = None, ffmpeg_cmd: str = "ffmpeg"):
+               vocal_audio: Path | None = None, ffmpeg_cmd: str = "ffmpeg", pitch_track=None):
     """Extract an acoustically selected vocal part without rewriting its notes.
 
     MT3 is a multi-instrument model, so even one isolated stem may yield several
@@ -73,7 +73,7 @@ def _main_part(score_path: Path, destination: Path, *, part_name: str,
     if part_name == "Voice" and sum(count > 0 for count, _, _ in eligible) > 1:
         if vocal_audio is None:
             raise SelectedScoreError("Multiple vocal parts require waveform evidence")
-        selected_index, report = select_vocal_part(score_path, vocal_audio, ffmpeg_cmd=ffmpeg_cmd)
+        selected_index, report = select_vocal_part(score_path, vocal_audio, ffmpeg_cmd=ffmpeg_cmd, pitch_track=pitch_track)
         source = parts[selected_index]
         (score_path.parent / "part-selection.json").write_text(json.dumps(report, indent=2))
     extract_part_musicxml(score_path, source.get("id"), destination)

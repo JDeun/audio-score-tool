@@ -90,7 +90,9 @@ def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path,
         monkeypatch.setattr(lead, "prepare_demucs_audio", lambda source, target, **kw: shutil.copy2(source, target) and target)
 
     def command(command, args, **kwargs):
-        if command == "vocal-fixture" and args[0] == "separate":
+        if command == "vocal-fixture" and args[0] == "pitch-preflight":
+            observed.append("pitch preflight")
+        elif command == "vocal-fixture" and args[0] == "separate":
             assert args[1] == tmp_path / "result/demucs-input.wav"
             assert args[3:] == ["--snapshot", root]
             stems = args[2] / "htdemucs/source"
@@ -122,17 +124,19 @@ def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path,
                 "grid_audio_seconds": [0,.5,1,1.5], "source_note_indices": [0,1,2]}))
             observed.append("vocal notation")
 
+    monkeypatch.setattr(lead, "fixed_tiny_pitch_track", lambda *a, **k: (([], []), {"model": "tiny"}))
     monkeypatch.setattr(lead, "run_command", command)
     output = tmp_path / "result"
     result = lead.transcribe_fixed_vocal_lead(audio, output, settings=settings)
     assert [x for x in observed if isinstance(x, str)] == [
-        "whole-mix structure", "separate", "vocal inference", "vocal notation"]
+        "pitch preflight", "whole-mix structure", "separate", "vocal inference", "vocal notation"]
     assert [(n.pitch, n.onset, n.offset) for n in midi_notes(result.midi_path)] == [
         (60,0,.5),(62,.5,1),(64,1,1.5)]
     assert (output / "structure/native/score.abc").read_text() == ABC.replace("C D E", "z3")
     assert len(midi_notes(output / "vocal/score.mid")) == 3
     receipt = json.loads((output / "recipe.json").read_text())
     assert receipt["status"] == "completed" and receipt["quality_approved"] is False
+    assert receipt["recipe_version"] == 2 and receipt["pitch_verifier"]["model"] == "tiny"
     assert receipt["notation_fidelity"]["matched_interpretation"] is True
     assert receipt["source_audio_sha256"] == hashlib.sha256(audio.read_bytes()).hexdigest()
     assert receipt["model_audio_sha256"] == next(item[1] for item in observed if isinstance(item, tuple) and item[0] == "model audio hash")
@@ -180,3 +184,20 @@ def test_fixed_readiness_requires_all_components_and_is_never_packaged(tmp_path,
     assert not FixedVocalLeadEngine(replace(settings, fixed_vocal_cmd="missing-fixed-vocal-runtime")).ready()
     monkeypatch.setenv("AST_PACKAGED", "1")
     assert not FixedVocalLeadEngine(settings).ready()
+
+
+def test_tiny_preflight_checks_pinned_runtime_and_weights_before_inference(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from audio_score_tool import fixed_vocal_infer as infer
+
+    calls = []
+    monkeypatch.setattr(infer, 'require_runtime', lambda expected: calls.append(expected) or expected)
+    monkeypatch.setattr(infer, 'verify_weight', lambda path, digest: calls.append((path, digest)))
+    monkeypatch.setitem(sys.modules, 'torchcrepe', SimpleNamespace(__file__=str(tmp_path / 'torchcrepe/__init__.py')))
+    monkeypatch.setattr(sys, 'argv', ['fixed', 'pitch-preflight', str(tmp_path / 'input.wav'),
+                                     str(tmp_path / 'result.npz'), '--snapshot', str(tmp_path)])
+    assert infer.main() == 0
+    assert calls[0]['torchcrepe'] == '0.0.24' and calls[0]['resampy'] == '0.4.3'
+    assert calls[0]['librosa'] == '0.11.0'
+    assert calls[1][0].name == 'tiny.pth' and calls[1][1].startswith('d4993eea')

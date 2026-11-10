@@ -17,11 +17,11 @@ from .demucs_runtime import demucs_ready, demucs_repo_args, prepare_demucs_audio
 from .runner import CommandError, run_command
 from .score_timing import score_time_clocks
 from .selected_stem_score import SelectedScoreError, _stem
-from .vocal_evidence import compare_notes, part_notes, vocal_pitch_track
+from .vocal_evidence import compare_notes, fixed_tiny_pitch_track, part_notes, vocal_pitch_track
 
 
 def compare_lead_stems(*, vocal_audio: Path, backing_audio: Path, xml_text: str,
-                       ffmpeg_cmd: str, origin_seconds: float = 0.0) -> dict:
+                       ffmpeg_cmd: str, origin_seconds: float = 0.0, pitch_track=None, pitch_receipt=None) -> dict:
     """Compare waveform observations with the CURRENT score, including user edits."""
     from music21 import converter, harmony
 
@@ -32,8 +32,11 @@ def compare_lead_stems(*, vocal_audio: Path, backing_audio: Path, xml_text: str,
     if len(voices) != 1:
         raise AudioSymbolValidationError("독립 음향 대조에 사용할 보컬 파트를 하나로 식별하지 못했습니다.")
     part = voices[0]
-    times, pitches = vocal_pitch_track(vocal_audio, ffmpeg_cmd=ffmpeg_cmd)
+    times, pitches = pitch_track if pitch_track is not None else vocal_pitch_track(vocal_audio, ffmpeg_cmd=ffmpeg_cmd)
     report = compare_notes(part_notes(score, part, origin_seconds=origin_seconds), times, pitches)
+    if pitch_track is not None:
+        report["observation_rate"] = (report["compared_notes"] / report["predicted_notes"]
+                                      if report["predicted_notes"] else 0.0)
     issues = []
     for observed in report.pop("observations"):
         if observed["category"] == "consistent":
@@ -99,7 +102,8 @@ def compare_lead_stems(*, vocal_audio: Path, backing_audio: Path, xml_text: str,
             "suggested_action": "원음 반주와 코드 종류·변경 시점을 대조하세요. 자동 교체하지 않았습니다.",
         })
     return {
-        "provider": "separated_waveform_yin_chroma_v1", "melody": report,
+        "provider": "separated_waveform_torchcrepe_tiny_chroma_v1" if pitch_track is not None else "separated_waveform_yin_chroma_v1", "melody": report,
+        "pitch_provenance": pitch_receipt,
         "chords": {"compared_intervals": compared, "spectral_warnings": warnings, "wcsr": None},
         "issues": issues[:200], "total_issue_count": len(issues), "issues_truncated": len(issues) > 200,
         "policy": {"advisory": True, "auto_edit": False, "quality_approved": False,
@@ -108,7 +112,7 @@ def compare_lead_stems(*, vocal_audio: Path, backing_audio: Path, xml_text: str,
 
 
 def validate_lead_audio(*, source_audio: Path, xml_text: str, settings: Settings,
-                        origin_seconds: float = 0.0) -> dict:
+                        origin_seconds: float = 0.0, fixed_tiny: bool = False) -> dict:
     if not demucs_ready(settings):
         raise AudioSymbolValidationError("보컬·반주 원음 대조에 사용할 검증된 Demucs 구성이 없습니다.")
     with tempfile.TemporaryDirectory(prefix="ast-lead-audio-") as folder:
@@ -118,8 +122,12 @@ def validate_lead_audio(*, source_audio: Path, xml_text: str, settings: Settings
             run_command(settings.demucs_cmd, ["-n", "htdemucs", *demucs_repo_args(settings),
                         "--two-stems", "vocals", "--shifts", "0", "-d", "cpu", "-o", root,
                         prepared], timeout_seconds=1800)
-            return compare_lead_stems(vocal_audio=_stem(root, "vocals"),
+            vocal_audio = _stem(root, "vocals")
+            pitch_track, pitch_receipt = (fixed_tiny_pitch_track(vocal_audio, root / "pitch.npz", settings=settings)
+                                          if fixed_tiny else (None, None))
+            return compare_lead_stems(vocal_audio=vocal_audio,
                                       backing_audio=_stem(root, "no_vocals"), xml_text=xml_text,
-                                      ffmpeg_cmd=settings.ffmpeg_cmd, origin_seconds=origin_seconds)
-        except (CommandError, SelectedScoreError, OSError, ValueError) as exc:
+                                      ffmpeg_cmd=settings.ffmpeg_cmd, origin_seconds=origin_seconds,
+                                      pitch_track=pitch_track, pitch_receipt=pitch_receipt)
+        except (CommandError, SelectedScoreError, OSError, ValueError, TypeError) as exc:
             raise AudioSymbolValidationError(f"독립 보컬·코드 대조 실패: {exc}") from exc

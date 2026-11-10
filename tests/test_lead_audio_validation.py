@@ -106,3 +106,49 @@ def test_missing_separator_is_reported_as_unmeasured_not_success():
     with pytest.raises(AudioSymbolValidationError, match="Demucs"):
         lead.validate_lead_audio(source_audio=Path("input.wav"), xml_text="",
                                   settings=Settings(demucs_cmd="definitely-missing-demucs"))
+
+
+@pytest.mark.parametrize("saved,current,expected", [
+    ("vocal_lead_v1", "sheetsage2", True), ("sheetsage2", "vocal_lead_v1", False),
+])
+def test_saved_engine_routes_pitch_after_job_removal(workspace, monkeypatch, tmp_path, saved, current, expected):
+    workspace.set_analysis('test', 'model_evidence', {'selection': {'transcription_engine': saved}})
+    job = tmp_path / 'jobs/test'
+    job.mkdir(parents=True)
+    import shutil
+    shutil.rmtree(job)
+    monkeypatch.setattr(api, 'runtime_settings', lambda **_k: Settings(transcription_engine=current))
+    seen = []
+    monkeypatch.setattr(api, 'validate_lead_audio', lambda **kwargs: seen.append(kwargs) or {'issues': []})
+    api.validate_song('test', api.ValidateRequest(use_audio=True))
+    assert not job.exists() and seen[0]['fixed_tiny'] is expected
+
+
+def test_fixed_tiny_track_is_used_without_yin_reestimation(tmp_path, monkeypatch):
+    monkeypatch.setattr(lead, 'vocal_pitch_track', lambda *_a, **_k: pytest.fail('unexpected YIN'))
+    monkeypatch.setattr(lead, '_decode_to_wav', lambda source, target, cmd: target)
+    monkeypatch.setattr(lead, '_read_pcm16', lambda _path: (np.ones(22050), 22050))
+    monkeypatch.setattr(lead, '_chroma', lambda *_a: np.zeros((12, 100)))
+    track = (np.arange(100) * .02, np.full(100, 69.0))
+    report = lead.compare_lead_stems(vocal_audio=tmp_path / 'v.wav', backing_audio=tmp_path / 'b.wav',
+                                    xml_text=Path(score_xml('A4')).read_text(), ffmpeg_cmd='ffmpeg',
+                                    pitch_track=track, pitch_receipt={'model': 'tiny'})
+    assert report['provider'] == 'separated_waveform_torchcrepe_tiny_chroma_v1'
+    assert report['melody']['consistent_notes'] == 1
+    assert report['pitch_provenance']['model'] == 'tiny'
+
+
+def test_missing_fixed_tiny_is_error_without_yin_fallback(tmp_path, monkeypatch):
+    from audio_score_tool.audio_symbol_validation import AudioSymbolValidationError
+
+    monkeypatch.setattr(lead, 'demucs_ready', lambda _settings: True)
+    monkeypatch.setattr(lead, 'prepare_demucs_audio', lambda _source, target, **_k: target)
+    monkeypatch.setattr(lead, 'run_command', lambda *_a, **_k: None)
+    monkeypatch.setattr(lead, '_stem', lambda root, name: root / f'{name}.wav')
+    def missing(*_args, **_kwargs):
+        raise ValueError('Tiny runtime unavailable')
+    monkeypatch.setattr(lead, 'fixed_tiny_pitch_track', missing)
+    monkeypatch.setattr(lead, 'vocal_pitch_track', lambda *_a, **_k: pytest.fail('unexpected YIN'))
+    with pytest.raises(AudioSymbolValidationError, match='Tiny runtime unavailable'):
+        lead.validate_lead_audio(source_audio=tmp_path / 'source.wav', xml_text='',
+                                 settings=Settings(), fixed_tiny=True)
