@@ -550,6 +550,25 @@ def test_timed_native_key_and_no_chord_preserve_held_note(tmp_path):
     assert (tmp_path / 'score.abc').read_text() == text
 
 
+def test_timed_chords_restore_matching_bar_labels_only(tmp_path):
+    text = 'X:1\nM:4/4\nL:1/4\nK:C\nV: Vocal\n"C"C4|"C"C4|"C"C4|"C"C4|]\n'
+    (tmp_path / 'score.abc').write_text(text)
+    (tmp_path / 'playback.json').write_text(json.dumps({'measures': [
+        dict(start=2*i, end=2*i+2, score_start=i, score_end=i+1) for i in range(4)]}))
+    folder = tmp_path / 'notation'
+    folder.mkdir()
+    (folder / 'song_chords.txt').write_text('0\t4\tC:maj\n4\t6\tN\n6\t8\tG:maj\n')
+    target = tmp_path / 'score.musicxml'
+    report = import_native_lead_sheet(tmp_path, target)
+    part = converter.parse(target).parts[0]
+    chords = list(part.recurse().getElementsByClass(harmony.Harmony))
+    assert [float(c.getOffsetInHierarchy(part)) for c in chords] == [0, 4, 8, 12]
+    assert isinstance(chords[2], harmony.NoChord)
+    assert [c.root().pitchClass for c in (chords[0], chords[1], chords[3])] == [0, 0, 7]
+    assert report['timed_metadata']['restored_bar_chord_labels'] == 1
+    assert (tmp_path / 'score.abc').read_text() == text
+
+
 @pytest.mark.parametrize('body', ['^F4-|^F4|]', '^F4-|^F2z2|]'])
 def test_midnote_key_grid_split_preserves_ties_pitch_and_origin(tmp_path, body):
     from audio_score_tool.metrics import midi_notes
