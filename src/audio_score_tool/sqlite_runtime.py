@@ -17,7 +17,7 @@ class _ClosingConnection(sqlite3.Connection):
 
 
 def connect_sqlite(path: Path, *, row_factory: bool = False) -> sqlite3.Connection:
-    """Open an application SQLite connection with consistent runtime pragmas.
+    """Open a connection that commits/rolls back and closes at context exit.
 
     ``journal_mode=WAL`` is persistent at the database-file level and is configured by
     :func:`configure_sqlite`. ``busy_timeout`` and ``synchronous`` are connection-local,
