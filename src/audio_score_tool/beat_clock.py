@@ -79,10 +79,12 @@ def beat_rows(beats, downbeats, duration, meter_rows):
                       'numerator': numerator, 'denominator': denominator} for i, t in enumerate(beats)]
     observed_downbeats = [dict(observed_rows[i], time_seconds=float(t)) for i, t in zip(matched, downs)]
     compatible_downbeats = [row for row in observed_downbeats if row['beat'] == 1]
+    bar_periods = np.diff(beats[phase::numerator]) / numerator
+    nominal_tempo = round(60 / float(np.median(bar_periods)), 2) if len(bar_periods) else observed_tempo_bpm(observed_rows)
     return rows, {'observed_beat_rows': observed_rows, 'observed_downbeat_rows': observed_downbeats,
                   'phase_compatible_downbeat_rows': compatible_downbeats,
                   'observed_beats': original_count, 'observed_downbeats': len(downs),
-                  'nominal_tempo_bpm': observed_tempo_bpm(observed_rows),
+                  'nominal_tempo_bpm': nominal_tempo,
                   'phase': phase, 'phase_votes': votes, 'unmatched_downbeats': 0,
                   'phase_incompatible_downbeats': len(matched) - votes[phase],
                   'leading_derived_count': len(prefix),

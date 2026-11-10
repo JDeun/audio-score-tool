@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import shutil
 import xml.etree.ElementTree as ET
 from collections.abc import Callable
@@ -41,7 +42,11 @@ def _apply_audio_clock(structure, analysis, engine_key):
     beats = analysis.get("beats", [])
     try:
         numerator, denominator = map(int, analysis["meter"].split("/"))
-        structure.tempo_bpm = observed_tempo_bpm(beats)
+        tempo = analysis["nominal_tempo_bpm"] if engine_key == "vocal_lead_v1" else observed_tempo_bpm(beats)
+        if engine_key == "vocal_lead_v1" and (isinstance(tempo, bool) or not isinstance(tempo, (int, float))
+                                               or not math.isfinite(tempo) or tempo <= 0):
+            raise ValueError("Invalid nominal tempo")
+        structure.tempo_bpm = tempo
     except (KeyError, TypeError, ValueError, ZeroDivisionError) as exc:
         raise PipelineError("SheetSage2 has no valid audio beat/meter clock") from exc
     structure.meter_numerator, structure.meter_denominator = numerator, denominator

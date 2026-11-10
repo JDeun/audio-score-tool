@@ -119,11 +119,28 @@ def test_pipeline_metadata_uses_observed_clock():
 
     _, clock = beat_rows([.5, 1., 1.5, 2., 2.5], [.5, 2.5], 3., [[0, 1, 4, 4]])
     analysis = {'meter': '4/4', 'beats': clock['observed_beat_rows'],
-                'downbeats': clock['observed_downbeat_rows'], 'clock_provider': 'beat-this'}
+                'downbeats': clock['observed_downbeat_rows'], 'clock_provider': 'beat-this',
+                'nominal_tempo_bpm': clock['nominal_tempo_bpm']}
     structure = SimpleNamespace(trimmed=False, music_start_seconds=0)
     _apply_audio_clock(structure, analysis, 'vocal_lead_v1')
     assert structure.tempo_bpm == 120 and structure.first_downbeat_seconds == .5
     assert structure.tempo_source == 'beat_this_audio_grid' and structure.meter_source == 'sheetsage2_audio_model'
+
+
+def test_short_clock_uses_single_intervals():
+    _, clock = beat_rows([0, .46, .92], [0], .92, [[0, 1, 4, 4]])
+    assert clock['nominal_tempo_bpm'] == 130.43
+
+
+@pytest.mark.parametrize('tempo', [None, 0, -1, float('nan'), float('inf'), True, '120'])
+def test_fixed_clock_rejects_invalid_nominal_tempo(tempo):
+    from types import SimpleNamespace
+    from audio_score_tool.pipeline import PipelineError
+    from audio_score_tool.pipeline_v2 import _apply_audio_clock
+
+    with pytest.raises(PipelineError, match='valid audio beat'):
+        _apply_audio_clock(SimpleNamespace(), {'meter': '4/4', 'clock_provider': 'beat-this',
+                                               'nominal_tempo_bpm': tempo}, 'vocal_lead_v1')
 
 
 def test_near_tied_global_phase_is_rejected():
@@ -142,19 +159,20 @@ def test_visible_tempo_matches_ui_without_changing_hidden_clock(tmp_path):
     from audio_score_tool.pipeline_v2 import _apply_audio_clock
     from audio_score_tool.sheetsage2_score import import_native_lead_sheet
 
-    times = [0., .504, 1.008, 1.512, 2.016]
-    _, clock = beat_rows(times, [0., 2.016], 2.016, [[0, 1, 4, 4]])
+    times = [0., .46, .92, 1.36, 1.82, 2.28, 2.72, 3.18, 3.64]
+    _, clock = beat_rows(times, [0., 1.82, 3.64], 3.64, [[0, 1, 4, 4]])
     analysis = {'meter': '4/4', 'beats': clock['observed_beat_rows'],
-                'downbeats': clock['observed_downbeat_rows'], 'clock_provider': 'beat-this'}
+                'downbeats': clock['observed_downbeat_rows'], 'clock_provider': 'beat-this',
+                'nominal_tempo_bpm': clock['nominal_tempo_bpm']}
     structure = SimpleNamespace(trimmed=False, music_start_seconds=0)
     _apply_audio_clock(structure, analysis, 'vocal_lead_v1')
-    assert structure.tempo_bpm == clock['nominal_tempo_bpm'] == 119.05
+    assert structure.tempo_bpm == clock['nominal_tempo_bpm'] == 131.87
     midis = []
-    for name, nominal in [('observed', '119.05'), ('other', '98')]:
+    for name, nominal in [('observed', '131.87'), ('other', '98')]:
         root = tmp_path / name
         root.mkdir()
         (root / 'score.abc').write_text(f'X:1\nM:4/4\nL:1/4\nQ:1/4={nominal}\nV:Vocal clef=treble\nK:C\nV: Vocal\nC D E F |]\n')
-        (root / 'playback.json').write_text(json.dumps({'measures': [dict(start=0, end=2.016, score_start=0, score_end=1)]}))
+        (root / 'playback.json').write_text(json.dumps({'measures': [dict(start=0, end=1.82, score_start=0, score_end=1)]}))
         (root / 'notation').mkdir()
         (root / 'notation/song_beats.txt').write_text(''.join(f'{t} {i % 4 + 1} 4 4\n' for i, t in enumerate(times)))
         report = import_native_lead_sheet(root, root / 'score.musicxml')

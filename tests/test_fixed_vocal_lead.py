@@ -153,6 +153,7 @@ def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path,
     analysis = json.loads((output / "analysis.json").read_text())
     assert analysis["provider"] == ENGINE and analysis["structure_model_revision"] == MODEL_REVISION
     assert analysis["clock_provider"] == "beat-this" and analysis["beats"][1]["time_seconds"] == .5
+    assert analysis['nominal_tempo_bpm'] == mixed_clock['nominal_tempo_bpm']
     assert analysis['downbeats'] == mixed_clock['phase_compatible_downbeat_rows']
     assert [row['time_seconds'] for row in mixed_clock['observed_downbeat_rows']] == [.5, 2., 4., 6., 8.]
     assert mixed_clock['observed_downbeat_rows'][0]['beat'] == 2
