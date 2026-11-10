@@ -62,21 +62,24 @@ def vocal_pitch_track(source: Path, *, ffmpeg_cmd: str) -> tuple[np.ndarray, np.
 
 
 def part_notes(score, part, *, origin_seconds: float = 0.0) -> list[dict]:
-    from music21 import note
+    from music21 import chord, harmony, note
 
     seconds, _ = score_time_clocks(score)
     merged = part.stripTies(inPlace=False)
     result = []
     for item in merged.recurse().notes:
-        if not isinstance(item, note.Note) or item.duration.isGrace:
+        if (isinstance(item, harmony.Harmony) or not isinstance(item, (note.Note, chord.Chord))
+                or item.duration.isGrace):
             continue
         at = float(item.getOffsetInHierarchy(merged))
         end = at + float(item.quarterLength)
         if end <= at:
             continue
-        result.append({"pitch": int(item.pitch.midi), "start_seconds": origin_seconds + seconds(at),
-                       "end_seconds": origin_seconds + seconds(end),
-                       "measure": str(item.measureNumber) if item.measureNumber is not None else None})
+        members = item.notes if isinstance(item, chord.Chord) else [item]
+        for member in members:
+            result.append({"pitch": int(member.pitch.midi), "start_seconds": origin_seconds + seconds(at),
+                           "end_seconds": origin_seconds + seconds(end),
+                           "measure": str(item.measureNumber) if item.measureNumber is not None else None})
     return result
 
 
@@ -126,10 +129,16 @@ def select_vocal_part(score_path: Path, vocal_audio: Path, *, ffmpeg_cmd: str) -
     for index, part in enumerate(score.parts):
         notes = part_notes(score, part)
         support = np.zeros(len(times), dtype=bool)
+        activity = np.zeros(len(times), dtype=np.int32)
         for event in notes:
-            support |= ((times >= event["start_seconds"]) & (times < event["end_seconds"])
-                        & (np.abs(pitches - event["pitch"]) <= 0.5))
-        candidates.append({"part_index": index, "support": float(support.sum() / finite.sum()),
+            active = (times >= event["start_seconds"]) & (times < event["end_seconds"])
+            activity += active
+            support |= active & (np.abs(pitches - event["pitch"]) <= 0.5)
+        coverage = float(support.sum() / finite.sum())
+        precision = float(support.sum() / activity[finite].sum()) if activity[finite].sum() else 0.0
+        fit = 2 * precision * coverage / (precision + coverage) if precision + coverage else 0.0
+        candidates.append({"part_index": index, "support": fit,
+                           "voiced_frame_coverage": coverage, "voiced_frame_precision": precision,
                            **{k: v for k, v in compare_notes(notes, times, pitches).items()
                               if k not in {"observations", "policy"}}})
     ranked = sorted(candidates, key=lambda row: row["support"], reverse=True)
@@ -137,8 +146,9 @@ def select_vocal_part(score_path: Path, vocal_audio: Path, *, ffmpeg_cmd: str) -
             or len(ranked) > 1 and ranked[0]["support"] - ranked[1]["support"] < 0.15):
         raise AudioSymbolValidationError("여러 파트 중 보컬 주선율을 확정할 근거가 부족합니다. 음표 수로 대체 선택하지 않았습니다.")
     return ranked[0]["part_index"], {
-        "provider": "vocal_waveform_yin_v1", "candidates": candidates,
+        "provider": "vocal_waveform_yin_v2", "candidates": candidates,
         "selected_part_index": ranked[0]["part_index"],
         "policy": {"octave_folding": False, "note_count_selection": False,
-                   "ambiguous_selection": "refuse", "quality_approved": False},
+                   "ambiguous_selection": "refuse", "quality_approved": False,
+                   "support_is_note_accuracy": False},
     }

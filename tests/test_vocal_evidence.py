@@ -102,6 +102,46 @@ def test_score_observations_preserve_ties_and_tempo_changes():
     assert [(x["start_seconds"], x["end_seconds"]) for x in events] == [(3, 4), (4, 6)]
 
 
+def test_all_sounding_chord_notes_count_toward_vocal_coverage_but_labels_do_not():
+    from music21 import chord, harmony
+
+    score = stream.Score()
+    part = stream.Part()
+    part.insert(0, tempo.MetronomeMark(number=120))
+    part.insert(0, harmony.ChordSymbol("A"))
+    part.insert(0, chord.Chord(["A4", "C5"], quarterLength=4))
+    score.insert(0, part)
+    events = ve.part_notes(score, part)
+    assert [x["pitch"] for x in events] == [69, 72]
+    times = np.arange(100) * 0.02
+    report = ve.compare_notes(events, times, np.full(100, 69.0))
+    assert report["predicted_notes"] == report["compared_notes"] == 2
+    assert report["consistent_notes"] == report["pitch_suspects"] == 1
+
+
+def test_harmonic_part_cannot_win_by_covering_the_melody_with_extra_notes(tmp_path, monkeypatch):
+    from music21 import chord
+
+    score = stream.Score()
+    voice, guitar = stream.Part(), stream.Part()
+    voice.insert(0, tempo.MetronomeMark(number=120))
+    voice.insert(0, note.Note("A3", quarterLength=1.5))
+    voice.insert(2, note.Note("B3", quarterLength=1))
+    guitar.insert(0, chord.Chord(["A3", "C4", "E4"], quarterLength=2))
+    guitar.insert(2, chord.Chord(["B3", "D4", "F4"], quarterLength=2))
+    score.insert(0, voice)
+    score.insert(0, guitar)
+    path = tmp_path / "harmonic-leak.musicxml"
+    score.write("musicxml", fp=str(path))
+    times = np.arange(100) * 0.02
+    monkeypatch.setattr(ve, "vocal_pitch_track", lambda *_a, **_k: (times, np.where(times < 1, 57.0, 59.0)))
+    index, report = ve.select_vocal_part(path, tmp_path / "vocals.wav", ffmpeg_cmd="ffmpeg")
+    assert index == 0
+    assert report["candidates"][1]["predicted_notes"] == 6
+    assert report["candidates"][1]["voiced_frame_coverage"] == 1.0
+    assert report["candidates"][1]["voiced_frame_precision"] == pytest.approx(1 / 3)
+
+
 def test_real_decoder_then_pitch_analysis_without_optional_ml_dependencies(tmp_path):
     from audio_score_tool.config import Settings
     from audio_score_tool.demucs_runtime import prepare_demucs_audio
