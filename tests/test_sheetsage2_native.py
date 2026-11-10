@@ -4,6 +4,7 @@ import json
 import sys
 import xml.etree.ElementTree as ET
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
 from music21 import clef, converter, harmony, key, meter, note, tempo
@@ -466,6 +467,13 @@ def test_minor_major_alias_with_slash_bass_and_quoted_annotation(symbol, root, b
     symbol = list(score.recurse().getElementsByClass(harmony.ChordSymbol))[0]
     assert symbol.chordKind == 'minor-major-seventh'
     assert symbol.root().pitchClass == root and symbol.bass().pitchClass == bass
+    from tempfile import TemporaryDirectory
+
+    with TemporaryDirectory() as folder:
+        path = Path(folder) / "chord.musicxml"
+        score.write("musicxml", fp=str(path))
+        restored = list(converter.parse(path).recurse().getElementsByClass(harmony.ChordSymbol))[0]
+        assert restored.root().pitchClass == root and restored.bass().pitchClass == bass
 
 
 def test_suspended_seventh_is_visible_in_verovio_and_pdf(tmp_path):
@@ -479,7 +487,9 @@ def test_suspended_seventh_is_visible_in_verovio_and_pdf(tmp_path):
     toolkit = _verovio_toolkit()
     assert toolkit.loadFile(str(target))
     svg = ET.fromstring(toolkit.renderToSVG(1))
-    assert 'sus4' in ''.join(svg.itertext()) and '7' in ''.join(svg.itertext())
+    harmony_text = ["".join("".join(element.itertext()).split()).replace("\uea64", "♭")
+                    for element in svg.iter() if "harm" in element.get("class", "").split()]
+    assert harmony_text == ["Esus4(♭7)"]
     output = tmp_path / 'score.pdf'
     render_pdf(target, output)
     assert output.read_bytes().startswith(b'%PDF')

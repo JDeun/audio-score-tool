@@ -1,0 +1,568 @@
+{
+  "schema_version": 1,
+  "source_commit": "b92cdc42a807543462b84a5e3a48ab71fe785c03",
+  "source_sha256": {
+    "sheetsage2_score.py": "deee15b6956e96ce5b7f2e990ed55d4d1fb6dc437cade90ddc94046720169157",
+    "musicxml_metadata_projection.py": "1e0a129281249834c33c907e8e67fa1611583bc7b3ce00156ce6c58f3bb0e3f6",
+    "notation_backend.py": "e8443622a66bbfd7cef3392f6934f5dc25798e7cd743633ac6ba614c6b02bd34"
+  },
+  "verification_script_sha256": "46a4af753cd9c7313d9fb788f92a0bdec7782200a41ebeb5c942b5524aa78af4",
+  "private_report_sha256": "5301d276a5cd8000853e8dbe31e4ae9e3b0b00708d4c1c8650542aa9b4646069",
+  "source_git_blobs_and_before_after_verified": true,
+  "script_before_after_verified": true,
+  "input_files_unchanged": true,
+  "model_recipe": {
+    "melody": {
+      "model": "yourmt3",
+      "model_revision": "5e66c1ea173a8186e0d20432b841d3180cc015b5",
+      "checkpoint_sha256": "ae38e415c79efd5592dcb9b658cdb99ddb11d4c4e1eaa364cab04a052473fc25"
+    },
+    "structure": {
+      "model": "sheetsage2",
+      "model_revision": "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc",
+      "checkpoint_sha256": "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274"
+    },
+    "separation": {
+      "model": "htdemucs",
+      "checkpoint_sha256": "8726e21a993978c7ba086d3872e7608d7d5bfca646ca4aca459ffda844faa8b4"
+    }
+  },
+  "render": "direct canonical PDF, not publication-layout output",
+  "new_model_inference": false,
+  "original_song_accuracy": null,
+  "quality_approved": false,
+  "final_model_approved": false,
+  "previous_v1": "superseded: substring-only check missed duplicated flat seventh",
+  "cases": [
+    {
+      "id": "tinashe-me-so-bad",
+      "input_files": [
+        {
+          "index": 1,
+          "sha256": "f39788b3075e9117661481470289c6e79ce25171f7a256936a2167bdae49fd65",
+          "bytes": 18567708
+        },
+        {
+          "index": 2,
+          "sha256": "98c3354499eb1a6cfd2e3e433b400c6a6682b42c8af0173e7171ac87559250a3",
+          "bytes": 32580
+        },
+        {
+          "index": 3,
+          "sha256": "a05b054aa885df53208d73877f3b4be605050673848c64ba44c73cdc607c8672",
+          "bytes": 4518
+        },
+        {
+          "index": 4,
+          "sha256": "1e5913a47336463fabb5f91ad085456a33c41684a3990732a18f8d121bc18bae",
+          "bytes": 3434
+        },
+        {
+          "index": 5,
+          "sha256": "bb8f8f5a7203f769f0557b370e09f99903d8724843c29525902252ae6cf1ece7",
+          "bytes": 25
+        },
+        {
+          "index": 6,
+          "sha256": "e89e218a37cda5a6e78e067bfcf201b5fc79a0d2b77349331af802b0f39bcdeb",
+          "bytes": 248
+        },
+        {
+          "index": 7,
+          "sha256": "58909ef37338c2909d83ed20f1e389e8e4a98c2b9c95d72b1f29e49cf9d49679",
+          "bytes": 195913
+        },
+        {
+          "index": 8,
+          "sha256": "aba54831a2987470174b42bf8a509963f8b8d1def45d09871d55b8e4cc74d367",
+          "bytes": 3178
+        },
+        {
+          "index": 9,
+          "sha256": "f8aacc847c755e6aa938802e61b04b552f2d04b1bfc11fdf907c7a329ece2b4e",
+          "bytes": 337499
+        },
+        {
+          "index": 10,
+          "sha256": "a05b054aa885df53208d73877f3b4be605050673848c64ba44c73cdc607c8672",
+          "bytes": 4518
+        },
+        {
+          "index": 11,
+          "sha256": "1e5913a47336463fabb5f91ad085456a33c41684a3990732a18f8d121bc18bae",
+          "bytes": 3434
+        },
+        {
+          "index": 12,
+          "sha256": "bb8f8f5a7203f769f0557b370e09f99903d8724843c29525902252ae6cf1ece7",
+          "bytes": 25
+        },
+        {
+          "index": 13,
+          "sha256": "60326d6690141f459285e241d5a64ba8ab1516625f09b3216eedcfea05677672",
+          "bytes": 3775
+        },
+        {
+          "index": 14,
+          "sha256": "e89e218a37cda5a6e78e067bfcf201b5fc79a0d2b77349331af802b0f39bcdeb",
+          "bytes": 248
+        },
+        {
+          "index": 15,
+          "sha256": "7a10754b9ea56d27c4247c3036006e87e0fdd0942779512695f9fc77ca921085",
+          "bytes": 5377
+        }
+      ],
+      "outputs": {
+        "musicxml": {
+          "sha256": "9076523a17d8a74e791424172377f186db0a3f5541e363743c481897bc5788f5",
+          "bytes": 337499
+        },
+        "mid": {
+          "sha256": "101bbbedfdf2427e147d169f7e5b37cecf88f4a8f3029ee797a08a795feda806",
+          "bytes": 8028
+        },
+        "pdf": {
+          "sha256": "08bf00fb8eb5c18546e15a648e622b0f715e56f6b08312ecedfcce8d2bc0cc65",
+          "bytes": 118213
+        }
+      },
+      "prior_nonstandard_chord_count": 0,
+      "standard_suspended_seventh_count": 0,
+      "visible_sus4_flat7_count": 0,
+      "pages": 3,
+      "fidelity": {
+        "performed_notes": 545,
+        "max_time_difference_seconds": 8.928571560318233e-06,
+        "tolerance_seconds": 0.002,
+        "pitch_adjustments": 0,
+        "matched_interpretation": true,
+        "original_song_accuracy": null
+      }
+    },
+    {
+      "id": "twice-fancy",
+      "input_files": [
+        {
+          "index": 1,
+          "sha256": "5e1b5613b3863ea3babd2dc22bc9fa8ba62deb2ae44d48c8885f832ab56f01ec",
+          "bytes": 19284048
+        },
+        {
+          "index": 2,
+          "sha256": "c74074257cf99e2630d23ecd0c8d56d47de38849ffa103536d1478e04b92d2f5",
+          "bytes": 45303
+        },
+        {
+          "index": 3,
+          "sha256": "7910eb724ab94e233b89eae6e926845f19b41337f8406f6e6ca21e754b520c9c",
+          "bytes": 6127
+        },
+        {
+          "index": 4,
+          "sha256": "a1943d8c1b05e7f94d64462ed8cc647cdbd5bca36f345d960a8b3e69a589470c",
+          "bytes": 3513
+        },
+        {
+          "index": 5,
+          "sha256": "8f5c900051c76ccb0b5f277f317cee1cad5451f94f9c9139318e4d597a1480d7",
+          "bytes": 24
+        },
+        {
+          "index": 6,
+          "sha256": "92cb9975af4efb9e0651daa53b53a36da6cdfafdbf3488e75e29a95cd71cc0cf",
+          "bytes": 323
+        },
+        {
+          "index": 7,
+          "sha256": "913b3135900de67197f8910294616e27d804a4c4456aa87098814b03edd86525",
+          "bytes": 226431
+        },
+        {
+          "index": 8,
+          "sha256": "f7bfeb76869ceac9ae360a097150dd2281401264ff0afb54c6189f6e137e5726",
+          "bytes": 3765
+        },
+        {
+          "index": 9,
+          "sha256": "a3dff6d47daa2b790f6b09ff82b7eed75824dfa417fe59785f0eb2328d01fcde",
+          "bytes": 429210
+        },
+        {
+          "index": 10,
+          "sha256": "7910eb724ab94e233b89eae6e926845f19b41337f8406f6e6ca21e754b520c9c",
+          "bytes": 6127
+        },
+        {
+          "index": 11,
+          "sha256": "a1943d8c1b05e7f94d64462ed8cc647cdbd5bca36f345d960a8b3e69a589470c",
+          "bytes": 3513
+        },
+        {
+          "index": 12,
+          "sha256": "8f5c900051c76ccb0b5f277f317cee1cad5451f94f9c9139318e4d597a1480d7",
+          "bytes": 24
+        },
+        {
+          "index": 13,
+          "sha256": "a4f9d81ab5b54c8c4a916249eada180cdc2fe2452a11f1505bccc6e437f047c9",
+          "bytes": 4381
+        },
+        {
+          "index": 14,
+          "sha256": "92cb9975af4efb9e0651daa53b53a36da6cdfafdbf3488e75e29a95cd71cc0cf",
+          "bytes": 323
+        },
+        {
+          "index": 15,
+          "sha256": "23c94429600851d71371a29e1c66834b20a3158feb9cef55bd0909566f9e8e23",
+          "bytes": 6867
+        }
+      ],
+      "outputs": {
+        "musicxml": {
+          "sha256": "4141bbce0f96684b1e834fbae5c33602806d29df04a926b22e527492093f3af8",
+          "bytes": 429210
+        },
+        "mid": {
+          "sha256": "22e3e992b56b7e27a53bf93591d737bfcdefee22c796df2543a96f75c7fb5f16",
+          "bytes": 10494
+        },
+        "pdf": {
+          "sha256": "4f2bf4d91249bd3c8b82f2861f9324d2a7f2181bfabc36abe93acc6d2a1cf552",
+          "bytes": 134238
+        }
+      },
+      "prior_nonstandard_chord_count": 0,
+      "standard_suspended_seventh_count": 0,
+      "visible_sus4_flat7_count": 0,
+      "pages": 3,
+      "fidelity": {
+        "performed_notes": 695,
+        "max_time_difference_seconds": 2.083333345126448e-05,
+        "tolerance_seconds": 0.002,
+        "pitch_adjustments": 0,
+        "matched_interpretation": true,
+        "original_song_accuracy": null
+      }
+    },
+    {
+      "id": "green-day-american-idiot",
+      "input_files": [
+        {
+          "index": 1,
+          "sha256": "aedb875ba145c1f5cd21a0a86713d11dff1de9701512b8f1c7e4a40fa4fdf680",
+          "bytes": 15375102
+        },
+        {
+          "index": 2,
+          "sha256": "763e24c8f7e6d7a4ad2c04841dbc70a1c72107571f513cdb7f96f97e2bacc764",
+          "bytes": 55392
+        },
+        {
+          "index": 3,
+          "sha256": "0d2c6414e5cd647682372f865b41997419ef1c6ea2a0b0dc6aa23ffc7797dc4f",
+          "bytes": 7963
+        },
+        {
+          "index": 4,
+          "sha256": "e303f5c981ea493c9f68a08227536fc9107996433fd9435746e52813a7e35eff",
+          "bytes": 5840
+        },
+        {
+          "index": 5,
+          "sha256": "647f3328331b151a3e1aa55697fa267ed9b6e063bd4798f36dc26f4774cac518",
+          "bytes": 20
+        },
+        {
+          "index": 6,
+          "sha256": "723ac4f6863a4a758917dbecf987913900dede7b2a0d2624b241cd3e59105d9e",
+          "bytes": 207
+        },
+        {
+          "index": 7,
+          "sha256": "206b5a3befea5df37f72abbb015f4db9e3646679162b31a4e03409edca8957af",
+          "bytes": 227626
+        },
+        {
+          "index": 8,
+          "sha256": "76f48ef6a76136034d4f573bd805c25819e9f63c74e2a752664f390da613bae2",
+          "bytes": 3965
+        },
+        {
+          "index": 9,
+          "sha256": "d84a91c534cd119b3eb149f3a0625c8a17c290f86a027d8e8490e95f249e319a",
+          "bytes": 392147
+        },
+        {
+          "index": 10,
+          "sha256": "0d2c6414e5cd647682372f865b41997419ef1c6ea2a0b0dc6aa23ffc7797dc4f",
+          "bytes": 7963
+        },
+        {
+          "index": 11,
+          "sha256": "e303f5c981ea493c9f68a08227536fc9107996433fd9435746e52813a7e35eff",
+          "bytes": 5840
+        },
+        {
+          "index": 12,
+          "sha256": "647f3328331b151a3e1aa55697fa267ed9b6e063bd4798f36dc26f4774cac518",
+          "bytes": 20
+        },
+        {
+          "index": 13,
+          "sha256": "20407dd751e7b737927f6634b68aacfa4a2fc792d9a5837190947ec3cfd415e0",
+          "bytes": 5728
+        },
+        {
+          "index": 14,
+          "sha256": "723ac4f6863a4a758917dbecf987913900dede7b2a0d2624b241cd3e59105d9e",
+          "bytes": 207
+        },
+        {
+          "index": 15,
+          "sha256": "8742eed2010dbeb2eb7828f08fb8edbcd4ad4721c348af4ea9926dfca5d6c64d",
+          "bytes": 2961
+        }
+      ],
+      "outputs": {
+        "musicxml": {
+          "sha256": "fdd47cf0a31123234db49da86673e7aca5fac5a6debd6d5a603f4f7f9d8a3f07",
+          "bytes": 392147
+        },
+        "mid": {
+          "sha256": "c38523502aec4d5fcd1acc8324efc088acbb5c2f3e58c73661e3ce196165c1a7",
+          "bytes": 8061
+        },
+        "pdf": {
+          "sha256": "db7b32ef0281ba5e4c84882e17ccb33b3a04379fc70bee19934f298774098750",
+          "bytes": 119167
+        }
+      },
+      "prior_nonstandard_chord_count": 0,
+      "standard_suspended_seventh_count": 0,
+      "visible_sus4_flat7_count": 0,
+      "pages": 3,
+      "fidelity": {
+        "performed_notes": 308,
+        "max_time_difference_seconds": 3.000000447173079e-06,
+        "tolerance_seconds": 0.002,
+        "pitch_adjustments": 0,
+        "matched_interpretation": true,
+        "original_song_accuracy": null
+      }
+    },
+    {
+      "id": "ham-boo-young-my-song",
+      "input_files": [
+        {
+          "index": 1,
+          "sha256": "871118a06f5021b94f6e56c9066fca50670582f5e530bcee9290e2db270d8ac7",
+          "bytes": 27318352
+        },
+        {
+          "index": 2,
+          "sha256": "ca0937d1ca630020b2cc667d1040b145a9605d12ba0c3a4617f72e498387536f",
+          "bytes": 31095
+        },
+        {
+          "index": 3,
+          "sha256": "87ac529b190059830eb4ae2d551cf70998f2d458256f03173791e912f4aacc4d",
+          "bytes": 4467
+        },
+        {
+          "index": 4,
+          "sha256": "bb5a32061b7c7665f1f7792e7ed74fd52b955985f141a4836bcc475aed18dbaa",
+          "bytes": 3862
+        },
+        {
+          "index": 5,
+          "sha256": "892ec5d672adf82d44cf7148e7c69588bbf28e7ac28560afa17215240bedf981",
+          "bytes": 67
+        },
+        {
+          "index": 6,
+          "sha256": "43906d1d5fb09e4fef6a976215985b7fcee14dc363317a8db3ce9910901731b3",
+          "bytes": 322
+        },
+        {
+          "index": 7,
+          "sha256": "fc37f80be9e7e3ab0d82b37d21ef7b419f8c914d67560bcb23ea6bd71b4fef52",
+          "bytes": 213293
+        },
+        {
+          "index": 8,
+          "sha256": "aac67c73ebce0e2826f0eb6155890fcf2b091f67cefa7bebd0baf4549bd4cce6",
+          "bytes": 3092
+        },
+        {
+          "index": 9,
+          "sha256": "0f69685f404f8748ae06053585e61fcb98aa70b13913753bd1410c5c0393282d",
+          "bytes": 332064
+        },
+        {
+          "index": 10,
+          "sha256": "87ac529b190059830eb4ae2d551cf70998f2d458256f03173791e912f4aacc4d",
+          "bytes": 4467
+        },
+        {
+          "index": 11,
+          "sha256": "bb5a32061b7c7665f1f7792e7ed74fd52b955985f141a4836bcc475aed18dbaa",
+          "bytes": 3862
+        },
+        {
+          "index": 12,
+          "sha256": "892ec5d672adf82d44cf7148e7c69588bbf28e7ac28560afa17215240bedf981",
+          "bytes": 67
+        },
+        {
+          "index": 13,
+          "sha256": "a0315e97782f797e017c2bab26e3eedecba009081148419d147efe8130d1f99a",
+          "bytes": 4190
+        },
+        {
+          "index": 14,
+          "sha256": "43906d1d5fb09e4fef6a976215985b7fcee14dc363317a8db3ce9910901731b3",
+          "bytes": 322
+        },
+        {
+          "index": 15,
+          "sha256": "b377400654fc797627dc9aaee294180c81df7f1f312afb984d1b45cab3cffac5",
+          "bytes": 5791
+        }
+      ],
+      "outputs": {
+        "musicxml": {
+          "sha256": "47f5681f1a4ca78c0698bc4220f574791c39b2cc365ef57a7186fc12132dece2",
+          "bytes": 333647
+        },
+        "mid": {
+          "sha256": "499bfe7bb8c3c80ddf693755c5dbd99af2ca1950d6901608ea68906fa360f7d4",
+          "bytes": 7806
+        },
+        "pdf": {
+          "sha256": "42c8ec4e554fc92b99f17d9ada224e18c0420242444535429f4bbdde1d1dfe87",
+          "bytes": 107331
+        }
+      },
+      "prior_nonstandard_chord_count": 13,
+      "standard_suspended_seventh_count": 13,
+      "visible_sus4_flat7_count": 13,
+      "pages": 2,
+      "fidelity": {
+        "performed_notes": 551,
+        "max_time_difference_seconds": 1.0000016459343897e-06,
+        "tolerance_seconds": 0.002,
+        "pitch_adjustments": 0,
+        "matched_interpretation": true,
+        "original_song_accuracy": null
+      }
+    },
+    {
+      "id": "younha-event-horizon",
+      "input_files": [
+        {
+          "index": 1,
+          "sha256": "2d84bd77253c96851db8bde4cd76de0b7bf7101cf07f79ff8dbf2d03f1d23dce",
+          "bytes": 26529462
+        },
+        {
+          "index": 2,
+          "sha256": "19f3ee3da5d90a20e700a48d6dacae925b58d55e1c2aa214782e14abbabd322b",
+          "bytes": 51209
+        },
+        {
+          "index": 3,
+          "sha256": "9705705c4283cb8ade079a34d808d7ff44d88f9ed810fd7d55715e53906ce2e7",
+          "bytes": 8028
+        },
+        {
+          "index": 4,
+          "sha256": "2bbff54a5d01d31a4e75919490bc6535818b42afb570ebb288883af581042d2e",
+          "bytes": 4098
+        },
+        {
+          "index": 5,
+          "sha256": "5a9dba2c1ba5194d37eb0ead2650971eb900e256b71dc9301f2d14341c97b169",
+          "bytes": 30
+        },
+        {
+          "index": 6,
+          "sha256": "faa06eefd6e4ac695fcc3b8c1e0126503120b3a6233d0a0f883d7218f310669d",
+          "bytes": 438
+        },
+        {
+          "index": 7,
+          "sha256": "273c567564a433df053d69510354cc8c88d5346d0b78976b3eb4d3d86d591fec",
+          "bytes": 211872
+        },
+        {
+          "index": 8,
+          "sha256": "20beeb902b3e6032a915283988c2a9cdc2fda53bb79fc8e05abbdc2c62c7ecd8",
+          "bytes": 3469
+        },
+        {
+          "index": 9,
+          "sha256": "1ea4226b190b75d423f2f9f3bd0c39024dd8d0c97c8852b999c9d665af106bab",
+          "bytes": 387615
+        },
+        {
+          "index": 10,
+          "sha256": "9705705c4283cb8ade079a34d808d7ff44d88f9ed810fd7d55715e53906ce2e7",
+          "bytes": 8028
+        },
+        {
+          "index": 11,
+          "sha256": "2bbff54a5d01d31a4e75919490bc6535818b42afb570ebb288883af581042d2e",
+          "bytes": 4098
+        },
+        {
+          "index": 12,
+          "sha256": "5a9dba2c1ba5194d37eb0ead2650971eb900e256b71dc9301f2d14341c97b169",
+          "bytes": 30
+        },
+        {
+          "index": 13,
+          "sha256": "910ddc332119a655bae50e40bddb9d82103e7c0dda291acf567e63ffabea315b",
+          "bytes": 6367
+        },
+        {
+          "index": 14,
+          "sha256": "faa06eefd6e4ac695fcc3b8c1e0126503120b3a6233d0a0f883d7218f310669d",
+          "bytes": 438
+        },
+        {
+          "index": 15,
+          "sha256": "e34cfc781c5a73e4a5d76425a7545e033f1ef6e2731757eb24eacd0dbc4d03b3",
+          "bytes": 5834
+        }
+      ],
+      "outputs": {
+        "musicxml": {
+          "sha256": "abedd6457c5b24792a4f162cd910c17fa6ffe14d7bf5d52b01119295690ce300",
+          "bytes": 389407
+        },
+        "mid": {
+          "sha256": "562f7a7f1fbf9ea94b78fa6799e5c999817a892e1a5f214a27a48c4289ae4472",
+          "bytes": 9506
+        },
+        "pdf": {
+          "sha256": "bad7af1ae295300a16a782eac0bcad9cecca1fcf3ff94d0ee95ef09746ebc991",
+          "bytes": 126067
+        }
+      },
+      "prior_nonstandard_chord_count": 16,
+      "standard_suspended_seventh_count": 16,
+      "visible_sus4_flat7_count": 16,
+      "pages": 3,
+      "fidelity": {
+        "performed_notes": 594,
+        "max_time_difference_seconds": 3.333334063881921e-06,
+        "tolerance_seconds": 0.002,
+        "pitch_adjustments": 0,
+        "matched_interpretation": true,
+        "original_song_accuracy": null
+      }
+    }
+  ]
+}
