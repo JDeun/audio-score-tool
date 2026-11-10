@@ -1,6 +1,7 @@
 """Import the official model's notated Vocal voice, retaining its raw predictions."""
 from __future__ import annotations
 
+import copy
 import json
 import math
 import re
@@ -22,7 +23,8 @@ def _parse_vocal_abc(text):
             # Upstream treats mid-song metadata as a bar boundary and drops it.
             return [i for i, token in enumerate(self.tokens) if isinstance(token, abcFormat.ABCBar)]
 
-    handler = NativeABCHandler()
+    # The official writer carries accidentals by letter across octaves to the barline.
+    handler = NativeABCHandler(abcVersion=(2, 1, 0))
     handler.process(text)
     return translate.abcToStreamScore(handler)
 
@@ -67,7 +69,7 @@ def vocal_abc(text: str) -> str:
 
 
 def import_native_lead_sheet(root: Path, target: Path) -> dict:
-    from music21 import converter, harmony, note, stream, tempo
+    from music21 import clef, converter, harmony, note, stream, tempo
     from music21.exceptions21 import Music21Exception
 
     abc = root / "score.abc"
@@ -76,7 +78,8 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
            for p in (abc, playback)):
         raise ValueError("Official notated score/playback is absent or unsafe")
     try:
-        text = vocal_abc(abc.read_text())
+        raw_abc = abc.read_text()
+        text = vocal_abc(raw_abc)
         score = _parse_vocal_abc(text)
         if not list(score.recurse().getElementsByClass(stream.Measure)):
             score.makeMeasures(inPlace=True)
@@ -86,6 +89,30 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
         raise ValueError("SheetSage2 did not produce a vocal melody")
     part = score.parts[0]
     part.partName = "Vocal"
+    declared = re.findall(r"(?m)^V:\s*Vocal\b[^\n]*\bclef=(\S+)", raw_abc)
+    if declared:
+        choices = {"treble": clef.TrebleClef, "bass": clef.BassClef,
+                   "alto": clef.AltoClef, "tenor": clef.TenorClef}
+        if len(set(declared)) != 1 or declared[0] not in choices:
+            raise ValueError("Unsupported or changing native Vocal clef")
+        for original in list(part.recurse().getElementsByClass(clef.Clef)):
+            original.activeSite.remove(original)
+        # Applying the display clef after ABC parsing avoids its bass octave shift.
+        part.getElementsByClass(stream.Measure).first().insert(0, choices[declared[0]]())
+    performed = list(part.recurse().getElementsByClass(note.Note))
+    respellings = 0
+    for previous, current in zip(performed, performed[1:]):
+        if (previous.tie and previous.tie.type in {"start", "continue"}
+                and current.tie and current.tie.type in {"continue", "stop"}
+                and previous.pitch.ps == current.pitch.ps
+                and previous.pitch.nameWithOctave != current.pitch.nameWithOctave
+                and abs(float(previous.getOffsetInHierarchy(part) + previous.quarterLength
+                              - current.getOffsetInHierarchy(part))) < 1e-8):
+            # Keep one written pitch through a tied key change; raw ABC is unchanged.
+            current.pitch = copy.deepcopy(previous.pitch)
+            if current.pitch.accidental is not None:
+                current.pitch.accidental.displayStatus = True
+            respellings += 1
     measures = list(part.getElementsByClass(stream.Measure))
     playback_data = json.loads(playback.read_text())
     mapping = playback_data.get("measures") if isinstance(playback_data, dict) else None
@@ -161,6 +188,7 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
         raise ValueError("MusicXML serialization changed the model's measure grid")
     return {"model_revision": MODEL_REVISION, "checkpoint_sha256": CHECKPOINT_SHA256,
             "measures": len(measures), "vocal_notes": len(list(part.recurse().getElementsByClass(note.Note))),
+            "enharmonic_tie_respellings": respellings,
             "chord_symbols": len(list(part.recurse().getElementsByClass(harmony.ChordSymbol))),
             "timing": "model_notation_with_per_measure_audio_clock",
             "initial_audio_offset_seconds": initial_offset,

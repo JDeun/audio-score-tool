@@ -109,6 +109,10 @@ def test_all_sounding_chord_notes_count_toward_vocal_coverage_but_labels_do_not(
     part = stream.Part()
     part.insert(0, tempo.MetronomeMark(number=120))
     part.insert(0, harmony.ChordSymbol("A"))
+    played_label = harmony.ChordSymbol("D")
+    played_label.writeAsChord = True
+    played_label.quarterLength = 2
+    part.insert(0, played_label)
     part.insert(0, chord.Chord(["A4", "C5"], quarterLength=4))
     score.insert(0, part)
     events = ve.part_notes(score, part)

@@ -185,6 +185,31 @@ def test_unassigned_pitched_instrument_is_not_allocated_to_a_drum_channel(tmp_pa
     assert {(n.pitch, n.is_drum) for n in midi_notes(result)} == {(60, False), (36, True)}
 
 
+def test_enharmonic_tie_across_a_key_change_is_one_performed_note(tmp_path):
+    from music21 import key, note, stream, tempo, tie
+
+    score = stream.Score()
+    part = stream.Part()
+    first = stream.Measure(number=1)
+    first.insert(0, tempo.MetronomeMark(number=120))
+    first.insert(0, key.KeySignature(-4))
+    start = note.Note("B-4", quarterLength=4)
+    start.tie = tie.Tie("start")
+    first.append(start)
+    second = stream.Measure(number=2)
+    second.insert(0, key.KeySignature(3))
+    stop = note.Note("A#4", quarterLength=4)
+    stop.tie = tie.Tie("stop")
+    second.append(stop)
+    part.append(first)
+    part.append(second)
+    score.insert(0, part)
+    source = tmp_path / "enharmonic.musicxml"
+    score.write("musicxml", fp=str(source))
+    events = midi_notes(musicxml_to_midi(source, tmp_path / "enharmonic.mid"))
+    assert [(n.pitch, n.onset, n.offset) for n in events] == [(70, 0, 4)]
+
+
 @pytest.mark.parametrize("first", range(0, 128, 16))
 def test_gm_program_variants_and_recycled_channels_survive_xml_playback(tmp_path, first):
     _roundtrip(tmp_path, [
