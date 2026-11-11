@@ -61,7 +61,7 @@ def parse_midi(raw: bytes):
 
 
 def validate_hits(hits):
-    if len(hits) < 2 or any(
+    if any(
         not isinstance(h, Hit) or h.role not in {'kick', 'backbeat', 'hat'} or
         not math.isfinite(h.time) or h.time < 0 or not math.isfinite(h.weight)
         or not 0 < h.weight <= 1 for h in hits
@@ -146,7 +146,7 @@ def infer(hits, *, bpm=None, meter=None):
         raise ValueError('unsupported meter')
     if bpm is not None and (not math.isfinite(bpm) or not 35 <= bpm <= 260):
         raise ValueError('invalid bpm constraint')
-    if (sum(x.role == 'kick' for x in hits) < MIN_KICK or
+    if (len(hits) < 2 or sum(x.role == 'kick' for x in hits) < MIN_KICK or
             sum(x.role == 'backbeat' for x in hits) < MIN_BACKBEAT):
         return {'status': 'insufficient_drum_roles', 'bpm': None, 'meter': None,
                 'phase': None, 'best_quality': None, 'candidates': []}
