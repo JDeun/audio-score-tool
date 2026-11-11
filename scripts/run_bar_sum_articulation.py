@@ -196,6 +196,8 @@ def aggregate(rows, planned):
     }
     for profile in ALL_PROFILES:
         group = [x for x in rows if x["profile"] == profile]
+        if not group:
+            continue  # unit-test subsets are allowed; full study requires all IDs
         output["paired_changes"]["by_profile"][profile] = {
             "cases": len(group),
             "baseline_pair_exact": mean(x["arms"][base]["metrics"]["note_pair_exact"]
