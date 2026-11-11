@@ -59,8 +59,7 @@ jobs:
             --max-time 240 --retry 3 --max-filesize 8000000 \
             'https://storage.googleapis.com/magentadata/datasets/groove/groove-v1.0.0-midionly.zip' \
             --output "$RUNNER_TEMP/groove-v1.0.0-midionly.zip"
-          echo '651cbc524ffb891be1a3e46d89dc82a1cecb09a57c748c7b45b844c4841dcc1e  ' "$RUNNER_TEMP/groove-v1.0.0-midionly.zip" | sed 's/  /  /' > "$RUNNER_TEMP/gmd.sha"
-          sha256sum --check "$RUNNER_TEMP/gmd.sha"
+          printf '%s  %s\n' '651cbc524ffb891be1a3e46d89dc82a1cecb09a57c748c7b45b844c4841dcc1e' "$RUNNER_TEMP/groove-v1.0.0-midionly.zip" | sha256sum --check
       - name: Compare blind drum events with BPM-only and full metadata constraints
         run: |
           mkdir -p "$RUNNER_TEMP/gmd-report"
