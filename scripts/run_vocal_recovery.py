@@ -84,7 +84,6 @@ def decode_arms(raw_path: Path, output: Path, original):
     from basic_pitch.note_creation import model_output_to_notes
 
     from audio_score_tool.metrics import midi_notes
-
     from scripts.run_cpu_vocadito_candidates import digest
 
     before = digest(raw_path)
