@@ -2,7 +2,7 @@ name: CPU Articulation and Audio Accent Rhythm Research
 
 on:
   pull_request:
-    types: [opened, reopened]
+    types: [opened, reopened, synchronize]
     branches:
       - research/bar-sum-joint-rhythm-20261111
     paths:
@@ -10,7 +10,6 @@ on:
       - 'scripts/bar_sum_articulation.py'
       - 'scripts/run_bar_sum_articulation.py'
       - 'tests/test_bar_sum_articulation.py'
-      - 'docs/research/BAR_SUM_ARTICULATION_PROTOCOL_2026-11-11.md'
   workflow_dispatch:
 
 permissions:
