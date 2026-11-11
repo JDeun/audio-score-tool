@@ -354,3 +354,48 @@ def test_print_opens_exact_generated_pdf_and_rejects_changed_or_missing_output(p
     (songs.export_root / song_id / 'selection' / 'selected-score.pdf').unlink()
     assert client.post(f'/api/songs/{song_id}/export/open-pdf', json=payload).status_code == 404
     assert len(opened) == 1
+
+
+def test_unchanged_rest_chord_preserves_revision_exports_and_telemetry(product, monkeypatch):
+    client, _jobs, songs, root = product
+    xml = SCORE_XML.replace(
+        '<note><pitch><step>C</step><octave>4</octave></pitch>\n      <duration>1920</duration><type>whole</type></note>',
+        '<harmony><root><root-step>C</root-step></root><kind>major</kind></harmony>'
+        '<note><rest/><duration>960</duration><type>half</type></note>'
+        '<note><rest/><duration>960</duration><type>half</type></note>',
+    )
+    assert '<rest/>' in xml
+    response = client.post('/api/import/notation', files={'file': ('rest.musicxml', xml.encode(), 'application/xml')})
+    assert response.status_code == 202, response.text
+    song_id = response.json()['job_id']
+    assert client.get(f'/api/songs/{song_id}').status_code == 200
+    notes = client.get(f'/api/songs/{song_id}/notes').json()
+    anchor = notes['chords'][0]['note_id']
+    empty = next(note['note_id'] for note in notes['notes'] if note['note_id'] != anchor)
+    assert all(note['rest'] for note in notes['notes'])
+    exported = client.post(f'/api/songs/{song_id}/export', json={'formats': ['musicxml']})
+    assert exported.status_code == 200, exported.text
+    export_path = songs.export_root / song_id / 'score.musicxml'
+    before_export, before_xml = export_path.read_bytes(), songs.score_xml(song_id)
+    telemetry = root / 'chord-telemetry.json'
+    start_edit_session(telemetry, case_id='chord', song_id=song_id)
+    monkeypatch.setenv('AST_TIER2_TELEMETRY_FILE', str(telemetry))
+    for note_id, symbol in ((anchor, ' C '), (empty, '')):
+        result = client.patch(f'/api/songs/{song_id}/notes/{note_id}/chord', json={'symbol': symbol})
+        assert result.status_code == 200, result.text
+        assert result.json()['song']['revision'] == 1
+        assert songs.score_xml(song_id) == before_xml
+        assert export_path.read_bytes() == before_export
+        with songs._connect() as conn:
+            assert conn.execute('SELECT count(*) FROM song_revisions WHERE song_id=?', (song_id,)).fetchone()[0] == 0
+    assert read_edit_session(telemetry)['total_edit_actions'] == 0
+    assert read_edit_session(telemetry)['manual_chord_edits'] == 0
+    edit = client.patch(f'/api/songs/{song_id}/notes/{anchor}/chord', json={'symbol': 'Am7'})
+    assert edit.status_code == 200, edit.text
+    assert songs.get(song_id)['revision'] == 2
+    assert songs.score_xml(song_id) != before_xml
+    assert not export_path.exists()
+    with songs._connect() as conn:
+        assert conn.execute('SELECT count(*) FROM song_revisions WHERE song_id=?', (song_id,)).fetchone()[0] == 1
+    assert read_edit_session(telemetry)['manual_chord_edits'] == 1
+    assert read_edit_session(telemetry)['total_edit_actions'] == 1

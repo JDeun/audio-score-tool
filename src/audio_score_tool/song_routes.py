@@ -4,7 +4,7 @@ import shutil
 from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 
@@ -211,6 +211,9 @@ def _mutate(song_id: str, operation) -> dict:
     path = _song_store.checkout_current(song_id)
     try:
         result = operation(song, path)
+        if result is None:
+            _discard_snapshot(song_id, snapshot_revision)
+            return {"song": _public(song), "result": None}
         _refresh_layout(song, path)
         updated = _commit_score_change(song_id, path)
     except (MusicXMLEditError, ChordEditError) as exc:
@@ -312,12 +315,15 @@ def patch_note(song_id: str, note_id: str, payload: NotePatch) -> dict:
 
 
 @router.patch("/{song_id}/notes/{note_id}/chord")
-def patch_chord(song_id: str, note_id: str, payload: ChordPatch) -> dict:
-    def operation(_song: dict, path: Path) -> dict:
-        set_chord_at_note(path, note_id, payload.symbol)
+def patch_chord(song_id: str, note_id: str, payload: ChordPatch, request: Request) -> dict:
+    def operation(_song: dict, path: Path) -> dict | None:
+        if not set_chord_at_note(path, note_id, payload.symbol):
+            return None
         return {"note_id": note_id, "symbol": payload.symbol or ""}
 
     response = _mutate(song_id, operation)
+    if response["result"] is None:
+        request.state.song_edit_unchanged = True
     return {
         "song": response["song"],
         "note_id": note_id,
