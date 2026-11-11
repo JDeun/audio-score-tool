@@ -106,12 +106,18 @@ def case(z, prefix, row):
     # Actual performances may have offset tempo events; note metadata issues.
     catalog_signature = (signatures[0][1], signatures[0][2]) if signatures else None
     if catalog_signature is not None and catalog_signature != (label, 4):
-        return {'id': row['id'], 'status': 'reference_mismatch',
+        return {'id': row['id'], 'split': row['split'],
+                'cohort': 'official_test' if row['split'] == 'test' else 'supplemental_3_4',
+                'status': 'reference_mismatch',
                 'metadata_meter': row['time_signature'], 'midi_meter': catalog_signature}
     if len(set((n, d) for _, n, d in signatures)) > 1:
-        return {'id': row['id'], 'status': 'unsupported_meter_change'}
+        return {'id': row['id'], 'split': row['split'],
+                'cohort': 'official_test' if row['split'] == 'test' else 'supplemental_3_4',
+                'status': 'unsupported_meter_change'}
     if len(set(t for _, t in tempos)) > 1:
-        return {'id': row['id'], 'status': 'unsupported_tempo_change'}
+        return {'id': row['id'], 'split': row['split'],
+                'cohort': 'official_test' if row['split'] == 'test' else 'supplemental_3_4',
+                'status': 'unsupported_tempo_change'}
 
     raw_arm = infer(hits)
     bpm_arm = infer(hits, bpm=meta['bpm'])
@@ -244,15 +250,16 @@ def main():
             try:
                 value = case(z, prefix, r)
             except Exception as e:
-                value = {'id': r['id'], 'status': 'failed', 'error_type': type(e).__name__}
+                value = {'id': r['id'], 'split': r['split'],
+                         'cohort': 'official_test' if r['split'] == 'test' else 'supplemental_3_4',
+                         'status': 'failed', 'error_type': type(e).__name__}
             report['cases'].append(value)
             save()
             print(r['id'], value['status'], flush=True)
     report['summary'] = aggregate(report['cases'], report['planned_ids'])
     report['summary_by_cohort'] = {}
     for cohort in ('official_test', 'supplemental_3_4'):
-        group = [r for r in report['cases'] if r.get('cohort', (
-            'official_test' if r.get('split', 'test') == 'test' else 'supplemental_3_4')) == cohort]
+        group = [r for r in report['cases'] if r['cohort'] == cohort]
         ids = [r['id'] for r in group]
         report['summary_by_cohort'][cohort] = aggregate(group, ids) if group else None
     report['status'] = 'complete' if report['summary'] and not any(
