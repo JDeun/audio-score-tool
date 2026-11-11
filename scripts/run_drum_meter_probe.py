@@ -62,6 +62,15 @@ def candidates_from_manifest(rows):
     return by_meter['3-4'] + by_meter['4-4'], Counter(r['time_signature'] for r in filtered)
 
 
+def supplementary_three_four(rows):
+    """Post-admission exploratory 3/4 coverage, NEVER part of official test."""
+    source = [r for r in rows if r['time_signature'] == '3-4'
+              and r['split'] in ('validation', 'train')]
+    # Validation preferred; deterministic ID hash independent of musical score.
+    chosen = sorted(source, key=lambda r: (r['split'] != 'validation', sha(r['id'].encode())))
+    return chosen[:16], dict(Counter(r['split'] for r in source))
+
+
 def matches_bpm(estimate, truth):
     if estimate is None:
         return False
@@ -118,6 +127,7 @@ def case(z, prefix, row):
                                           row['id'])
     return {
         'id': row['id'], 'status': 'scored', 'split': row['split'],
+        'cohort': 'official_test' if row['split'] == 'test' else 'supplemental_3_4',
         'beat_type': row['beat_type'], 'meter': row['time_signature'],
         'metadata_bpm': official_bpm, 'sha256_midi': sha(raw),
         'kick_count': sum(h.role == 'kick' for h in hits),
@@ -212,8 +222,19 @@ def main():
     with zipfile.ZipFile(args.archive) as z:
         prefix, rows = manifest(z)
         selection, eligible_meter_counts = candidates_from_manifest(rows)
-        report.update(planned_ids=[r['id'] for r in selection],
-                      official_test_meter_counts=dict(eligible_meter_counts))
+        supplementary, supplemental_counts = supplementary_three_four(rows)
+        if eligible_meter_counts.get('3-4', 0):
+            supplementary = []  # official-test 3/4 already has precedence
+        selection = selection + supplementary
+        if len({r['id'] for r in selection}) != len(selection):
+            raise ValueError('duplicated official performance identifier')
+        report.update(
+            planned_ids=[r['id'] for r in selection],
+            official_test_meter_counts=dict(eligible_meter_counts),
+            supplemental_3_4_available=dict(supplemental_counts),
+            supplemental_3_4_selected=len(supplementary),
+            selection_amendment='3/4 in official test absent; non-test coverage separately reported',
+        )
         save()
         if not selection:
             report['status'] = 'no_supported_test_cases'
@@ -228,6 +249,12 @@ def main():
             save()
             print(r['id'], value['status'], flush=True)
     report['summary'] = aggregate(report['cases'], report['planned_ids'])
+    report['summary_by_cohort'] = {}
+    for cohort in ('official_test', 'supplemental_3_4'):
+        group = [r for r in report['cases'] if r.get('cohort', (
+            'official_test' if r.get('split', 'test') == 'test' else 'supplemental_3_4')) == cohort]
+        ids = [r['id'] for r in group]
+        report['summary_by_cohort'][cohort] = aggregate(group, ids) if group else None
     report['status'] = 'complete' if report['summary'] and not any(
         x['status'] == 'failed' for x in report['cases']) else 'incomplete'
     report['elapsed_seconds'] = time.monotonic() - started
