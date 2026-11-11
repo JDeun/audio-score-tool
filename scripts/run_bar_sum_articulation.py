@@ -8,7 +8,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import math
 import os
 import platform
 import random
@@ -257,7 +256,6 @@ def main():
         "cases": [], "all_cases_complete": False,
         "aggregate": None, "real_recordings": False, "learned_model": False,
         "reference_used_in_selector": False,
-        "first_three_arms_receive_true_phase": False,
         "known_phase_arms_have_true_phase": True,
         "quality_approved": False,
         "accuracy_units": "symbolic-written-onset-and-duration, NOT note AMT F1",
