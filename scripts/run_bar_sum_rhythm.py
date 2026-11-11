@@ -14,10 +14,10 @@ from pathlib import Path
 from statistics import mean
 
 from scripts.bar_sum_rhythm import (
-    Q,
     SETTINGS,
     Clock,
     Observation,
+    Q,
     WrittenNote,
     rests,
     search_phases,
