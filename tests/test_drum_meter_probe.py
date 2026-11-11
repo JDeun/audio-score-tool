@@ -143,3 +143,8 @@ def test_complete_aggregator_rejects_missing_and_duplicates():
 def test_no_wrong_automatic_meter_choice_for_three_four_under_bpm_metadata():
     a = infer(rendered_hits(3, bpm=96), bpm=96)
     assert a['meter'] in (None, 3)
+
+
+def test_empty_or_single_drum_event_is_unsupported_not_a_failed_recording():
+    assert infer(())['status'] == 'insufficient_drum_roles'
+    assert infer((Hit(0.0, 'kick'),))['status'] == 'insufficient_drum_roles'
