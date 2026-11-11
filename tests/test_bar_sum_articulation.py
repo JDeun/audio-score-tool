@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import itertools
-from dataclasses import asdict
 
 import numpy as np
 import pytest
