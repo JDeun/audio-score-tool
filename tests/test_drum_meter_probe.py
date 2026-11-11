@@ -21,6 +21,7 @@ from scripts.run_drum_meter_probe import (
     manifest,
     matches_bpm,
     safe_member,
+    supplementary_three_four,
     tempo_alias,
 )
 
@@ -148,3 +149,17 @@ def test_no_wrong_automatic_meter_choice_for_three_four_under_bpm_metadata():
 def test_empty_or_single_drum_event_is_unsupported_not_a_failed_recording():
     assert infer(())['status'] == 'insufficient_drum_roles'
     assert infer((Hit(0.0, 'kick'),))['status'] == 'insufficient_drum_roles'
+
+
+def test_three_four_supplement_is_distinct_from_official_test():
+    rows = [
+        {'id': 'a', 'split': 'test', 'time_signature': '4-4'},
+        {'id': 'b', 'split': 'validation', 'time_signature': '3-4'},
+        {'id': 'c', 'split': 'train', 'time_signature': '3-4'},
+    ]
+    selected, count = supplementary_three_four(rows)
+    assert [r['id'] for r in selected] == ['b', 'c']
+    assert count == {'validation': 1, 'train': 1}
+    main, main_count = candidates_from_manifest(rows)
+    assert [r['id'] for r in main] == ['a']
+    assert main_count == {'4-4': 1}
