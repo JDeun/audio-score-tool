@@ -1,0 +1,126 @@
+name: CPU Mono RNN Admission Repair
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches: ['research/symbolic-postcorrection-stage0-20261111']
+    paths:
+      - '.github/workflows/cpu-symbolic-mono-repair.yml'
+      - 'scripts/requirements-symbolic-mono-cpu.txt'
+      - 'scripts/symbolic_music_runtime_probe.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: symbolic-mono-repair-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}
+  CUDA_VISIBLE_DEVICES: ''
+  HF_TOKEN: ''
+  HUGGING_FACE_HUB_TOKEN: ''
+  HF_HUB_DISABLE_IMPLICIT_TOKEN: '1'
+  HF_HUB_DISABLE_TELEMETRY: '1'
+  PYTHONHASHSEED: '0'
+  OMP_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  TF_NUM_INTRAOP_THREADS: '2'
+  TF_NUM_INTEROP_THREADS: '1'
+
+jobs:
+  mono_admission:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: '3.10'
+      - name: Resolve the actual isolated CPU environment
+        id: install
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -r scripts/requirements-symbolic-mono-cpu.txt 'pytest==8.4.2'
+          python -m pip check
+      - name: Check input isolation and representation contracts
+        id: contracts
+        run: python -m pytest -q tests/test_symbolic_postcorrection_probe.py
+      - name: Fetch the unchanged upstream implementation
+        id: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          git init "$RUNNER_TEMP/upstream"
+          git -C "$RUNNER_TEMP/upstream" remote add origin https://github.com/magenta/magenta.git
+          git -C "$RUNNER_TEMP/upstream" fetch --depth 1 origin c15687ebd1c1cc12658cd468c737d3c24c02b918
+          git -C "$RUNNER_TEMP/upstream" checkout --detach FETCH_HEAD
+          test "$(git -C "$RUNNER_TEMP/upstream" rev-parse HEAD)" = c15687ebd1c1cc12658cd468c737d3c24c02b918
+      - name: Import the real model path before downloading weights
+        id: preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$RUNNER_TEMP/upstream:$PYTHONPATH" python - <<'PY'
+          import tensorflow.compat.v1 as tf
+          tf.disable_v2_behavior()
+          import note_seq
+          from magenta.models.melody_rnn import melody_rnn_sequence_generator
+          from magenta.models.shared import sequence_generator_bundle
+          assert 'mono_rnn' in melody_rnn_sequence_generator.get_generator_map()
+          assert callable(sequence_generator_bundle.read_bundle_file)
+          assert list(note_seq.Melody([60, -2, -1])) == [60, -2, -1]
+          print('Real upstream imports passed; no model inference or accuracy claim yet.')
+          PY
+      - name: Run the unchanged pretrained mono_rnn likelihood probe
+        id: probe
+        run: |
+          python -m scripts.symbolic_music_runtime_probe --arm mono_rnn \
+            --source "$RUNNER_TEMP/upstream" --work "$RUNNER_TEMP/mono-private" \
+            --report "$RUNNER_TEMP/reports/mono_rnn.json"
+      - name: Preserve preparation failures as metadata rather than musical zero
+        if: always()
+        env:
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          CONTRACT_OUTCOME: ${{ steps.contracts.outcome }}
+          UPSTREAM_OUTCOME: ${{ steps.upstream.outcome }}
+          PREFLIGHT_OUTCOME: ${{ steps.preflight.outcome }}
+          PROBE_OUTCOME: ${{ steps.probe.outcome }}
+        run: |
+          python - <<'PY'
+          import hashlib, json, os, pathlib, re
+          path = pathlib.Path(os.environ['RUNNER_TEMP']) / 'reports/mono_rnn.json'
+          path.parent.mkdir(parents=True, exist_ok=True)
+          report = json.loads(path.read_text()) if path.exists() else {
+              'arm': 'mono_rnn', 'stage': 'runtime_admission_only',
+              'status': 'preparation_failed', 'quality_approved': False,
+              'correction_accuracy_measured': False,
+              'source_revision': os.environ['GITHUB_SHA']}
+          report['workflow_outcomes'] = {
+              k.lower().removesuffix('_outcome'): os.getenv(k, '') for k in (
+                  'INSTALL_OUTCOME', 'CONTRACT_OUTCOME', 'UPSTREAM_OUTCOME',
+                  'PREFLIGHT_OUTCOME', 'PROBE_OUTCOME')}
+          req = pathlib.Path('scripts/requirements-symbolic-mono-cpu.txt')
+          report['requirements_sha256'] = hashlib.sha256(req.read_bytes()).hexdigest()
+          error = pathlib.Path(os.environ['RUNNER_TEMP']) / 'mono-private/error.txt'
+          if error.is_file():
+              match = re.fullmatch(r"No module named '([a-zA-Z0-9_.]+)'", error.read_text().strip())
+              if match:
+                  report['missing_module'] = match[1]
+          path.write_text(json.dumps(report, indent=2, allow_nan=False) + '\n')
+          print(json.dumps({'status': report['status'], 'outcomes': report['workflow_outcomes']}))
+          PY
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: symbolic-mono-repair-${{ github.run_id }}
+          path: ${{ runner.temp }}/reports/mono_rnn.json
+          if-no-files-found: warn
+          retention-days: 14
