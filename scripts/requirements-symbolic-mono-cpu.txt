@@ -13,9 +13,10 @@ librosa==0.10.2.post1
 numba==0.57.1
 scipy==1.10.1
 pretty-midi==0.2.10
-# Bound numerical and notebook transitive dependencies to the TF-era API.
-jax==0.4.13
-jaxlib==0.4.13
+# 0.4.13 jaxlib wheels are no longer available from the standard package index.
+# 0.4.18 has Python 3.10 CPU wheels and accepts this NumPy/SciPy generation.
+jax==0.4.18
+jaxlib==0.4.18
 ml-dtypes==0.2.0
 IPython==8.12.3
 bokeh==2.4.3
