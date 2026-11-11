@@ -403,8 +403,6 @@ export default function SongWorkspace() {
     });
   }, [score, partFilter, measureFilter]);
 
-  const chordCandidates = useMemo(() => filteredNotes.filter((note) => !note.rest), [filteredNotes]);
-
   const reload = async () => {
     if (!selectedId) return;
     await Promise.all([loadSong(selectedId), refreshSongs()]);
@@ -810,11 +808,11 @@ export default function SongWorkspace() {
               <div className="inspector-intro"><strong>코드 심벌</strong><p>자동 추정된 코드가 틀린 위치만 수정합니다. 한 마디 안에서도 여러 코드 변화를 지정할 수 있습니다.</p></div>
               {filters}
               <div className="note-list chord-note-list">
-                {chordCandidates.slice(0, 1000).map((note) => (
+                {filteredNotes.slice(0, 1000).map((note) => (
                   <button key={note.note_id} className={selectedNoteId === note.note_id ? "active" : ""} onClick={() => setSelectedNoteId(note.note_id)}><span>M{note.measure}</span><strong>{chordMap.get(note.note_id) || "·"}</strong><small>{pitchLabel(note)} {note.lyric || ""}</small></button>
                 ))}
               </div>
-              {selectedNote && !selectedNote.rest && (
+              {selectedNote && (
                 <div className="chord-editor note-editor">
                   <div className="note-editor-head"><strong>M{selectedNote.measure} · {pitchLabel(selectedNote)} 위치</strong><code>{selectedNote.note_id}</code></div>
                   <label className="lyric-field"><span>코드</span><input value={chordSymbol} onChange={(event) => setChordSymbol(event.target.value)} placeholder="예: Cmaj7, Am7, F#7, G/B" /></label>
