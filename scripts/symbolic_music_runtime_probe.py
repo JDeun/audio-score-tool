@@ -15,6 +15,7 @@ import resource
 import subprocess
 import sys
 import time
+import traceback
 import urllib.request
 from pathlib import Path
 
@@ -115,6 +116,8 @@ def rnn_probe(source: Path, work: Path, report: dict):
     import numpy as np
     import tensorflow.compat.v1 as tf
 
+    from scripts.symbolic_mono_likelihood import score_mono
+
     np.random.seed(0)
     tf.set_random_seed(0)
     tf.disable_v2_behavior()
@@ -156,11 +159,15 @@ def rnn_probe(source: Path, work: Path, report: dict):
         sequence = note_seq.Melody(events)
         before = list(sequence)
         tick = time.monotonic()
-        # Bypass melody_log_likelihood's pitch squashing: never transpose a candidate silently.
-        value = float(generator._model._evaluate_log_likelihood([sequence])[0])
+        # Use the restored graph/codec without upstream partial-batch assembly
+        # or the public wrapper's silent pitch squashing. No parameter changes.
+        value, parity = score_mono(generator._model, sequence)
         if not math.isfinite(value) or list(sequence) != before:
             raise ValueError("invalid or mutating pretrained sequence likelihood")
-        report["sequence_likelihood"] = {"finite": True, "value": value, "seconds": time.monotonic()-tick}
+        report["sequence_likelihood"] = {
+            "finite": True, "value": value, "seconds": time.monotonic()-tick, **parity}
+        report["likelihood_adapter_sha256"] = sha(
+            Path(__file__).with_name("symbolic_mono_likelihood.py"))
         report["unsupported_in_this_codec"] = ["triplets", "32nd-note timing", "polyphony"]
         report["status"] = "runtime_passed"
     finally:
@@ -195,7 +202,10 @@ def main():
                 (t5_probe if args.arm == "melodyt5" else rnn_probe)(args.source, args.work, report)
     except Exception as exc:
         report.update(status="runtime_blocked", error_type=type(exc).__name__)
-        # Owned diagnostics only; no audio, notes, model tensors or stack traces in public logs.
+        # Function/file/line only: no exception text, local values or note data.
+        report["failure_frames"] = [
+            {"file": Path(frame.filename).name, "function": frame.name, "line": frame.lineno}
+            for frame in traceback.extract_tb(exc.__traceback__)[-6:]]
         (args.work / "error.txt").write_text(str(exc))
     finally:
         report["elapsed_seconds"] = time.monotonic()-started
