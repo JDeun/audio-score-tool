@@ -1,0 +1,128 @@
+name: CPU Error Headroom and Interface Ablation
+
+on:
+  pull_request:
+    types: [opened, reopened]
+    branches: [research/symbolic-choice-order-and-prior-20261111]
+    paths:
+      - '.github/workflows/cpu-error-headroom.yml'
+      - 'scripts/note_candidate_diagnostics.py'
+      - 'scripts/run_note_candidate_diagnostics.py'
+      - 'scripts/qwen_constraint_ablation.py'
+      - 'scripts/admit_external_vocal_corpus.py'
+      - 'tests/test_note_candidate_diagnostics.py'
+      - 'tests/test_qwen_constraint_ablation.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cpu-error-headroom-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}
+  CUDA_VISIBLE_DEVICES: ''
+  HF_TOKEN: ''
+  HUGGING_FACE_HUB_TOKEN: ''
+  HF_HUB_DISABLE_IMPLICIT_TOKEN: '1'
+  HF_HUB_DISABLE_TELEMETRY: '1'
+  PYTHONHASHSEED: '0'
+  OMP_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  NUMBA_NUM_THREADS: '2'
+
+jobs:
+  experiment:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        task: [basic_pitch, yourmt3, qwen4, corpus_admission]
+    env:
+      TASK: ${{ matrix.task }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: '3.11'
+      - name: Test reference isolation, candidate invariants and crossed controls
+        run: |
+          python -m pip install 'numpy==1.26.4' 'scipy==1.13.1' 'mir-eval==0.8.2' 'pytest==8.4.2'
+          python -m pytest -q tests/test_note_candidate_diagnostics.py tests/test_qwen_constraint_ablation.py
+      - name: Prepare only this experiment's pinned CPU runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "HF_HOME=$RUNNER_TEMP/error-headroom-hf" >> "$GITHUB_ENV"
+          if [[ "$TASK" == qwen4 ]]; then
+            SRC="$RUNNER_TEMP/llama-src"
+            git init "$SRC"
+            git -C "$SRC" remote add origin https://github.com/ggml-org/llama.cpp.git
+            git -C "$SRC" fetch --depth 1 origin bc098c3cf0aac93e57e9bda9d95e2456acf88894
+            git -C "$SRC" checkout --detach FETCH_HEAD
+            test "$(git -C "$SRC" rev-parse HEAD)" = bc098c3cf0aac93e57e9bda9d95e2456acf88894
+            cmake -S "$SRC" -B "$SRC/build" -DCMAKE_BUILD_TYPE=Release \
+              -DGGML_CUDA=OFF -DGGML_NATIVE=OFF -DLLAMA_CURL=OFF -DBUILD_SHARED_LIBS=OFF
+            cmake --build "$SRC/build" --target llama-server --parallel 2
+          elif [[ "$TASK" != corpus_admission ]]; then
+            sudo apt-get update -qq && sudo apt-get install -y ffmpeg
+            python -m pip install 'librosa==0.10.2.post1' 'soundfile==0.13.1' \
+              'resampy==0.4.2' 'numba==0.60.0' 'mido==1.3.3' 'music21==9.7.1' \
+              'huggingface-hub==0.34.4' 'pyyaml==6.0.2' 'typer==0.16.0'
+            python -m pip install --no-deps -e .
+            if [[ "$TASK" == yourmt3 ]]; then
+              python -m pip install 'torch==2.7.1' 'torchaudio==2.7.1' 'torchvision==0.22.1' \
+                --index-url https://download.pytorch.org/whl/cpu
+              printf 'numpy==1.26.4\ntorch==2.7.1\ntorchaudio==2.7.1\ntorchvision==0.22.1\nmir-eval==0.8.2\nlibrosa==0.10.2.post1\nscipy==1.13.1\n' > "$RUNNER_TEMP/constraints.txt"
+              python -m pip install -c "$RUNNER_TEMP/constraints.txt" 'mt3-infer[torch]==0.2.0' \
+                'transformers==4.44.2' 'mutagen==1.47.0' 'defusedxml==0.7.1'
+            else
+              python -m pip install 'onnxruntime==1.20.1' 'pretty-midi==0.2.10'
+              python -m pip install --no-deps 'basic-pitch==0.4.0'
+            fi
+            curl --fail --location --silent --show-error --proto '=https' --proto-redir '=https' \
+              --max-time 600 --retry 3 --max-filesize 60000000 \
+              'https://zenodo.org/records/5578807/files/vocadito.zip?download=1' \
+              --output "$RUNNER_TEMP/vocadito.zip"
+          fi
+      - name: Run the declared experiment without changing product settings
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/reports/$TASK.json"
+          WORK="$RUNNER_TEMP/private-$TASK"
+          if [[ "$TASK" == qwen4 ]]; then
+            timeout 40m python -m scripts.qwen_constraint_ablation --work "$WORK" --output "$OUT" \
+              --server "$RUNNER_TEMP/llama-src/build/bin/llama-server"
+          elif [[ "$TASK" == corpus_admission ]]; then
+            timeout 12m python -m scripts.admit_external_vocal_corpus --work "$WORK" --output "$OUT"
+          else
+            timeout 60m python -m scripts.run_note_candidate_diagnostics --model "$TASK" \
+              --archive "$RUNNER_TEMP/vocadito.zip" --work "$WORK" --output "$OUT"
+          fi
+      - name: Retain preparation failures, never fill missing scores
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, os, pathlib
+          p = pathlib.Path(os.environ['RUNNER_TEMP'])/'reports'/(os.environ['TASK']+'.json')
+          if not p.exists():
+              p.parent.mkdir(parents=True, exist_ok=True)
+              p.write_text(json.dumps({'task': os.environ['TASK'], 'status': 'preparation_failed',
+                  'source_revision': os.environ['GITHUB_SHA'], 'quality_approved': False})+'\n')
+          PY
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: error-headroom-${{ matrix.task }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/reports/${{ matrix.task }}.json
+          if-no-files-found: warn
+          retention-days: 14
