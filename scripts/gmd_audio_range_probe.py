@@ -5,12 +5,10 @@ Research-only, not a kick/snare recognizer for full-band music.
 from __future__ import annotations
 
 import io
-import math
 import re
 import urllib.request
 import wave
 import zipfile
-from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import PurePosixPath
 
