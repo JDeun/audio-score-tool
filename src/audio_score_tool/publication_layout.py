@@ -209,8 +209,40 @@ def _apply_forced_breaks(root: ET.Element, ns: str, settings: dict[str, Any]) ->
     bars_per_system = max(1, int(settings["bars_per_system"]))
     systems_per_page = max(1, int(settings["systems_per_page"]))
 
-    for part in root.findall(f"{ns}part"):
+    parts = root.findall(f"{ns}part")
+    for part in parts:
         measures = part.findall(f"{ns}measure")
+        last_system = (len(measures) - 1) // bars_per_system
+        move_last_break = False
+        if len(parts) == 1 and systems_per_page >= 3 and last_system > 0:
+            tail = measures[last_system * bars_per_system:]
+            previous = measures[(last_system - 1) * bars_per_system:last_system * bars_per_system]
+            notes = [note for measure in tail for note in measure.findall(f"{ns}note")]
+            directions = [d for measure in tail for d in measure.findall(f"{ns}direction")]
+            hidden_directions = all(
+                d.get("print-object") == "no" or (
+                    bool(d.findall(f"{ns}direction-type"))
+                    and all(
+                        len(kind) > 0 and all(item.tag == f"{ns}metronome"
+                                              and item.get("print-object") == "no" for item in kind)
+                        for kind in d.findall(f"{ns}direction-type")
+                    )
+                ) for d in directions
+            )
+            move_last_break = (
+                last_system % systems_per_page == 0
+                and bool(notes) and all(note.find(f"{ns}rest") is not None for note in notes)
+                and not any(measure.find(f"{ns}harmony") is not None for measure in tail)
+                and hidden_directions
+                and any(
+                    any(note.get("print-object") != "no" and note.find(f"{ns}pitch") is not None
+                        for note in measure.findall(f"{ns}note"))
+                    or any(harmony.get("print-object") != "no"
+                           and harmony.findtext(f"{ns}kind") != "none"
+                           for harmony in measure.findall(f"{ns}harmony"))
+                    for measure in previous
+                )
+            )
         for measure_index, measure in enumerate(measures):
             if measure_index == 0:
                 continue
@@ -218,7 +250,10 @@ def _apply_forced_breaks(root: ET.Element, ns: str, settings: dict[str, Any]) ->
                 continue
             system_index = measure_index // bars_per_system
             print_element = _measure_print(measure, ns)
-            if system_index % systems_per_page == 0:
+            if (move_last_break and system_index == last_system - 1) or (
+                system_index % systems_per_page == 0
+                and not (move_last_break and system_index == last_system)
+            ):
                 print_element.set("new-page", "yes")
                 print_element.attrib.pop("new-system", None)
             else:

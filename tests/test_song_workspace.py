@@ -176,6 +176,58 @@ def test_publication_layout_forces_system_and_page_breaks_and_credits(tmp_path: 
     assert page_layout.find("page-margins") is not None
 
 
+@pytest.mark.parametrize(
+    ("tail_content", "previous_content", "parts", "systems_per_page", "move"),
+    [
+        ('<direction><direction-type><metronome print-object="no"/>'
+         '</direction-type><sound tempo="120"/></direction>', '<harmony/>', 1, 3, True),
+        ('<direction><direction-type><words>Fine</words></direction-type></direction>',
+         '<harmony/>', 1, 3, False),
+        ('<harmony/>', '<harmony/>', 1, 3, False),
+        ('<note><pitch><step>C</step><octave>4</octave></pitch></note>',
+         '<harmony/>', 1, 3, False),
+        ('', '', 1, 3, False),
+        ('', '<harmony><kind>none</kind></harmony>', 1, 3, False),
+        ('', '<harmony/>', 2, 3, False),
+        ('', '<harmony/>', 1, 2, False),
+    ],
+)
+def test_publication_rest_only_final_page(
+    tmp_path: Path, tail_content: str, previous_content: str,
+    parts: int, systems_per_page: int, move: bool,
+):
+    # Four systems at two bars each; the final system occupies a page alone.
+    measures = [ET.fromstring(f'<measure number="{i}"><note><rest/><duration>4</duration>'
+                              '</note></measure>') for i in range(8)]
+    if previous_content:
+        measures[5].append(ET.fromstring(previous_content))
+    if tail_content:
+        measures[6].append(ET.fromstring(tail_content))
+    root = ET.Element("score-partwise")
+    part = ET.SubElement(root, "part", {"id": "P1"})
+    part.extend(measures)
+    if parts == 2:
+        other = ET.SubElement(root, "part", {"id": "P2"})
+        other.extend(ET.fromstring(ET.tostring(m)) for m in measures)
+    original = [[ET.tostring(child) for child in m] for m in measures]
+    score = tmp_path / "tail.musicxml"
+    ET.ElementTree(root).write(score)
+    apply_publication_layout(score, title="Tail", settings={"bars_per_system": 2,
+                                                           "systems_per_page": systems_per_page})
+    result_root = ET.parse(score).getroot()
+    result = result_root.findall("./part[1]/measure")
+    assert [[ET.tostring(c) for c in m if c.tag != "print"] for m in result] == original
+    if systems_per_page == 3:
+        assert result[4].find("print").get("new-page") == ("yes" if move else None)
+        assert result[6].find("print").get("new-page") == (None if move else "yes")
+        assert result[6].find("print").get("new-system") == ("yes" if move else None)
+        if parts == 2:
+            assert result_root.findall("./part[2]/measure")[6].find("print").get("new-page") == "yes"
+    else:
+        assert result[4].find("print").get("new-page") == "yes"
+        assert result[6].find("print").get("new-system") == "yes"
+
+
 def test_publication_settings_are_revisioned(tmp_path: Path):
     store = PublicationStore(root=tmp_path / "songs")
     revisions = tmp_path / "songs" / "song-1" / "revisions"
