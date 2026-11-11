@@ -95,7 +95,6 @@ class MeterContracts(unittest.TestCase):
                 if mode == 'joint_notation':
                     value += notation_cost(0, a.start, 6, 48, False)
                     value += notation_cost(a.start, a.end, 6, 48, True)
-                    value += notation_cost(a.end, b.end, 6, 48, False) if False else 0
                     value += notation_cost(a.end, b.start, 6, 48, False)
                     value += notation_cost(b.start, b.end, 6, 48, True)
                 costs.append(value)
