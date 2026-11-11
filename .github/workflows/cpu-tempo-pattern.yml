@@ -52,7 +52,9 @@ jobs:
         run: |
           python -m ruff check scripts/tempo_pattern_probe.py scripts/run_tempo_pattern_probe.py tests/test_tempo_pattern_probe.py
           python -m compileall -q scripts/tempo_pattern_probe.py scripts/run_tempo_pattern_probe.py
-          python -m pytest -q tests/test_tempo_pattern_probe.py
+          # Only this pinned third-party import warning is filtered; numeric errors still fail.
+          python -m pytest -q tests/test_tempo_pattern_probe.py \
+            -W 'ignore:path is deprecated. Use files() instead:DeprecationWarning:librosa.core.intervals'
       - name: Fetch only checksum-bound GMD metadata MIDI ZIP
         run: |
           curl --fail --location --silent --show-error --proto '=https' --proto-redir '=https' \
