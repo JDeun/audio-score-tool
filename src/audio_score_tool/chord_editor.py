@@ -245,7 +245,7 @@ def _build_harmony(ns: str, symbol: str) -> ET.Element:
     return harmony
 
 
-def set_chord_at_note(path: Path, note_id: str, symbol: str | None) -> None:
+def set_chord_at_note(path: Path, note_id: str, symbol: str | None) -> bool:
     tree = ET.parse(path)
     root = tree.getroot()
     ns = _namespace(root)
@@ -266,8 +266,9 @@ def set_chord_at_note(path: Path, note_id: str, symbol: str | None) -> None:
     existing = harmony_before_note(measure, note, ns)
     cleaned = (symbol or "").strip()
 
-    if cleaned and existing is not None and cleaned == harmony_symbol(existing, ns):
-        return
+    if ((not cleaned and existing is None)
+            or (cleaned and existing is not None and cleaned == harmony_symbol(existing, ns))):
+        return False
     if not cleaned:
         if existing is not None:
             measure.remove(existing)
@@ -285,3 +286,4 @@ def set_chord_at_note(path: Path, note_id: str, symbol: str | None) -> None:
     temp = path.with_suffix(".musicxml.tmp")
     tree.write(temp, encoding="utf-8", xml_declaration=True)
     temp.replace(path)
+    return True

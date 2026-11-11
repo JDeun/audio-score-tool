@@ -80,7 +80,7 @@ class SongMutationSerializationMiddleware:
         async with lock:
             await self.app(scope, receive_with_capture, send_with_status)
 
-        if status_code is not None:
+        if status_code is not None and not scope.get("state", {}).get("song_edit_unchanged", False):
             record_successful_song_mutation(
                 song_id=song_id,
                 method=str(scope.get("method") or ""),
