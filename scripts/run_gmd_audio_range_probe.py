@@ -7,13 +7,12 @@ import json
 import os
 import platform
 import time
-import zipfile
 import wave
+import zipfile
 from pathlib import Path
 
 from scripts.drum_meter_probe import Hit, infer, parse_midi
 from scripts.gmd_audio_range_probe import (
-    ANALYZE_SECONDS,
     FULL_ZIP_URL,
     RangeNotSupported,
     RangeZipReader,

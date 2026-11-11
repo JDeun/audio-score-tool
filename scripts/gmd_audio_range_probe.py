@@ -8,7 +8,6 @@ import io
 import re
 import urllib.request
 import wave
-import zipfile
 from fractions import Fraction
 from pathlib import PurePosixPath
 
