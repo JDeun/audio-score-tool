@@ -8,6 +8,9 @@ on:
       - '.github/workflows/cpu-symbolic-choice-followup.yml'
       - 'scripts/symbolic_choice_followup.py'
       - 'tests/test_symbolic_choice_followup.py'
+  push:
+    branches: [research/symbolic-choice-order-and-prior-20261111]
+    paths: ['.github/workflows/cpu-symbolic-choice-followup.yml']
   workflow_dispatch:
 
 permissions:
@@ -33,14 +36,14 @@ env:
 
 jobs:
   compare:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     strategy:
       fail-fast: false
       max-parallel: 2
       matrix:
-        arm: [mono_rnn, qwen17, qwen4]
+        arm: ${{ github.event_name == 'push' && fromJSON('["mono_rnn"]') || fromJSON('["mono_rnn","qwen17","qwen4"]') }}
     env:
       ARM: ${{ matrix.arm }}
     steps:
@@ -60,8 +63,11 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$ARM" == mono_rnn ]]; then
-            python -m pip install -r scripts/requirements-symbolic-mono-cpu.txt
-            python -m pip check
+            # pytest's exceptiongroup needs typing-extensions>=4.6; TF2.12 pins<4.6.
+            # Keep the successful research runtime separate, not an incompatible pip override.
+            python -m venv "$RUNNER_TEMP/mono-env"
+            "$RUNNER_TEMP/mono-env/bin/python" -m pip install -r scripts/requirements-symbolic-mono-cpu.txt
+            "$RUNNER_TEMP/mono-env/bin/python" -m pip check
             SRC="$RUNNER_TEMP/upstream"
             git init "$SRC"
             git -C "$SRC" remote add origin https://github.com/magenta/magenta.git
@@ -83,12 +89,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          PY=(python)
           if [[ "$ARM" == mono_rnn ]]; then
             EXTRA=(--source "$RUNNER_TEMP/upstream")
+            PY=("$RUNNER_TEMP/mono-env/bin/python")
           else
             EXTRA=(--server "$RUNNER_TEMP/llama-src/build/bin/llama-server")
           fi
-          python -m scripts.symbolic_choice_followup --arm "$ARM" "${EXTRA[@]}" \
+          "${PY[@]}" -m scripts.symbolic_choice_followup --arm "$ARM" "${EXTRA[@]}" \
             --work "$RUNNER_TEMP/$ARM-private" --report "$RUNNER_TEMP/reports/$ARM.json"
       - name: Preserve early failures, never synthesize successful scores
         if: always()
