@@ -14,6 +14,7 @@ from scripts.gmd_audio_range_probe import (
     RangeZipReader,
     decode_excerpt,
     detect_audio_roles,
+    guarded_wav_member,
     match_times,
     select_audio_rows,
 )
@@ -101,3 +102,10 @@ def test_audio_detector_handles_impulse_and_silence_without_reference():
 def test_invalid_audio_fails_closed():
     with pytest.raises(ValueError):
         detect_audio_roles(np.array([float("nan")] * 3000))
+
+
+def test_zip_path_escape_is_rejected_before_member_fetch():
+    with pytest.raises(ValueError):
+        guarded_wav_member(None, "../outside.wav")
+    with pytest.raises(ValueError):
+        guarded_wav_member(None, "other-dataset/audio.wav")
