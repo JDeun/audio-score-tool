@@ -139,9 +139,19 @@ def guarded_wav_member(remote_zip, name):
     if (info.file_size < 1 or info.file_size > MAX_MEMBER_BYTES or
             info.compress_size > MAX_MEMBER_BYTES or info.flag_bits & 1):
         raise ValueError("WAV too large or encrypted")
-    # zipfile verifies CRC when the member is fully read.
-    raw = remote_zip.read(info)
-    if len(raw) != info.file_size:
+    # Fixed chunks prevent a large unbounded ZipExtFile->remote read request.
+    pieces, size = [], 0
+    with remote_zip.open(info, "r") as stream:
+        while True:
+            chunk = stream.read(256 * 1024)
+            if not chunk:
+                break
+            size += len(chunk)
+            if size > MAX_MEMBER_BYTES:
+                raise ValueError("WAV decompression budget exceeded")
+            pieces.append(chunk)
+    raw = b"".join(pieces)
+    if size != info.file_size:
         raise ValueError("WAV size mismatch")
     return raw, info.CRC, info.file_size
 
