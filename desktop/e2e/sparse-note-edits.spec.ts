@@ -90,3 +90,36 @@ test("note editor avoids no-op requests and sends only actual pitch/lyric change
   await expect.poll(() => requests.length).toBe(2);
   expect(requests[1]).toEqual({ step: "D", lyric: "world" });
 });
+
+test("chord editor can edit a rest anchor", async ({ page }) => {
+  const song = { song_id: "song-1", title: "Demo", artist: "", source_kind: "notation", revision: 1, exports: {}, parts: [] };
+  const rest = { note_id: "p0-m0-n0", part_id: "P1", part_name: "Piano", measure: "1", measure_index: 0, rest: true, step: null, alter: null, octave: null, type: "quarter", dots: 0, lyric: "", ties: [], slurs: [], articulations: [], beam: "" };
+  let request: unknown;
+  await page.route("**/api/health", route => route.fulfill({ json: { status: "ok", device_plan: { muscriptor_device: "cpu" }, preflight: { ok: true, missing: [], tools: {} }, presets: { recommended: "quality", presets: [] }, system: { hf_authenticated: false, jobs_bytes: 0, disk_free_bytes: 1000 } } }));
+  await page.route("**/api/songs", route => route.fulfill({ json: { songs: [song] } }));
+  await page.route("**/api/songs/song-1", route => route.fulfill({ json: song }));
+  await page.route("**/api/songs/song-1/notes", route => route.fulfill({ json: { song, parts: [{ part_id: "P1", name: "Piano", notes: 1, measures: 1 }], notes: [rest], chords: [{ note_id: rest.note_id, symbol: "C" }] } }));
+  await page.route("**/api/songs/song-1/structure", route => route.fulfill({ json: { measures: [] } }));
+  await page.route("**/api/songs/song-1/score", route => route.fulfill({ contentType: "application/xml", body: scoreXml }));
+  await page.route("**/api/songs/song-1/publication", route => route.fulfill({ json: { settings: {} } }));
+  await page.route("**/api/songs/song-1/notes/p0-m0-n0/chord", async route => {
+    request = route.request().postDataJSON();
+    await route.fulfill({ json: { song } });
+  });
+  await page.addInitScript(() => {
+    localStorage.setItem("ast-onboarding-v1", "done");
+    localStorage.setItem("ast-setup-center-v2", "dismissed");
+    localStorage.setItem("ast-section", "songs");
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "코드", exact: true }).click();
+  const restButton = page.locator(".chord-note-list button");
+  await expect(restButton).toContainText("쉼표");
+  await restButton.click();
+  const editor = page.locator(".chord-editor");
+  await expect(editor).toContainText("쉼표");
+  await expect(editor.locator("input")).toHaveValue("C");
+  await editor.locator("input").fill("Am7");
+  await editor.getByRole("button", { name: "코드 적용" }).click();
+  await expect.poll(() => request).toEqual({ symbol: "Am7" });
+});
