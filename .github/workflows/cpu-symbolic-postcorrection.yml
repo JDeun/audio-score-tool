@@ -8,6 +8,7 @@ on:
       - '.github/workflows/cpu-symbolic-postcorrection.yml'
       - 'scripts/symbolic_postcorrection_probe.py'
       - 'scripts/symbolic_music_runtime_probe.py'
+      - 'scripts/requirements-symbolic-mono-cpu.txt'
       - 'tests/test_symbolic_postcorrection_probe.py'
   workflow_dispatch:
 
@@ -137,9 +138,8 @@ jobs:
             REPO=https://github.com/sanderwood/melodyt5.git
             REV=9fc0e7dd02ba10a77b46f9d4a669451f17885fbc
           else
-            python -m pip install 'tensorflow-cpu==2.12.1' 'tensorflow-probability==0.20.1' \
-              'tf-slim==1.1.0' 'dm-sonnet==2.0.2' 'note-seq==0.0.5' 'librosa==0.10.2.post1' \
-              'numba==0.57.1' 'scipy==1.10.1' 'pretty-midi==0.2.10' 'protobuf==3.20.3'
+            python -m pip install -r scripts/requirements-symbolic-mono-cpu.txt
+            python -m pip check
             REPO=https://github.com/magenta/magenta.git
             REV=c15687ebd1c1cc12658cd468c737d3c24c02b918
           fi
