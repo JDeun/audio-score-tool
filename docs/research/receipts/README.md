@@ -128,3 +128,36 @@ This fifth receipt contains derived metadata only. Its dataset range/member
 hashes do not claim to verify the complete source ZIP's MD5. The original
 two-receipt verifier above is unchanged and does not claim to audit this new
 receipt. No WAV, XML, source CSV, event arrays or weights are republished.
+
+## Completed KRAISLER source correspondence
+
+`kraisler-alignment-43201534121.zip` preserves artifact **13935537018** from
+[CPU run 43201534121](https://github.com/JDeun/audio-score-tool/actions/runs/43201534121).
+The [completed result](../KRAISLER_ALIGNMENT_RESULTS_2026-11-12.md) records all
+six diagnostics, including 1/6 source-clock admission, 225/947 primary reference
+correspondences, 137 stable correspondences, and unresolved matching transitions.
+Completion does not mean every source was admitted.
+
+- Exact ZIP: **25,366 bytes**; SHA256
+  `6f8af87bef6fa8febc977e037130b520d05d0dab8df815e3684ae6239d475005`.
+- Sole member `report.json`: **543,226 bytes**; SHA256
+  `ec5048b11ede7364ca5c68e9f7fb6f4889ed818d881f502aa34726ba54335f7a`.
+- Frozen head: `c209ac699add448873d0eb15761fbeae3feaccce`; actual checkout:
+  `ff26548443286772df973340ea676bfef82442b3`; both tree:
+  `7bcc3794a02bfb4990c08fc05e243ff111148cce`.
+- Thirty original metadata members verified, seven HTTP ranges / 776,325 bytes,
+  zero audio loads and zero new neural inferences. Previous gate masks and
+  source identities remain unchanged.
+
+Two derived post-run audit JSON files supplement the exact sixth ZIP:
+
+| File | Scope | SHA256 |
+| --- | --- | --- |
+| [kraisler-alignment-audit-43201534121.json](kraisler-alignment-audit-43201534121.json) | Independent membership/conditional arithmetic, aggregates and input/code identity | `17cab647d54c1053ed9508574b51f9c1a2cbdc07f0b1eea77ae60279b96c8bfc` |
+| [kraisler-alignment-postrun-audit-43201534121.json](kraisler-alignment-postrun-audit-43201534121.json) | Exact-tick reversal diagnostics, independent 19 pair reconstruction and rest/context checks | `0f3f093835936bc6fcff54645be8a6083151bee4d4d2e1fbf04738e7809e647a` |
+
+These are verification summaries, not newly measured gate outcomes or modified
+historical artifacts. No original XML/CSV/Match, event arrays or model weights
+are included. The original two-receipt verifier above retains its frozen input
+set and does not claim to audit this later study. All source-consistency and
+annotation limitations remain explicit in the result report.
