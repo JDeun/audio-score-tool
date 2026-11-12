@@ -6,7 +6,11 @@ This is the continuation snapshot taken with main at `7dd5c6ce0b18fda023403d92fb
 
 The user explicitly requested merging ready work and clearing completed PRs. [#272](https://github.com/JDeun/audio-score-tool/pull/272) is merged at `1c9514e30e2aac92ba6857e67a940dc48b6a03e6`; [actual main CI](https://github.com/JDeun/audio-score-tool/actions/runs/43181970207) passed, including Tauri and required `verify`. Fourteen older research drafts were closed only after proving every current head was already a main ancestor. See the [cleanup record](PR_CLEANUP_2026-11-12.md), which also explains why product #236 remains open.
 
-[Issue #273](https://github.com/JDeun/audio-score-tool/issues/273) continues with a [frozen KRAISLER protocol](KRAISLER_GATE_PROTOCOL_2026-11-12.md): six preselected full dry violin recordings outside the vocadito development corpus. The gate, model and decoders are unchanged. Performed-note transfer and damage are measured separately from the unaligned MusicXML/beat structural audit; no written-rest accuracy is implied.
+[Issue #273](https://github.com/JDeun/audio-score-tool/issues/273) / [PR #274](https://github.com/JDeun/audio-score-tool/pull/274) completed the [frozen KRAISLER comparison](KRAISLER_GATE_RESULTS_2026-11-12.md): all six preselected full dry violin recordings, 403.2338 seconds, 947 reference notes, six recording-level inference calls and 48 paired conditions. The gate, model and decoders remained unchanged.
+
+**The tail-only gain did not transfer:** onset0.65 onset+offset F1 is raw **31.9305%**, tail-only **31.8055%**, full relative-soft **33.7766%** and non-tail **33.9726%**. Tail-only restores 0.33s of reference gaps but additionally removes **1.41s of annotated-note time**. Raw and full both match 287 offset-reference notes; full gains one/loses one while reducing predictions 912→852. On track 12, full F1 rises even though matched notes fall 26→25. Keep prediction-count effects distinct from endpoint recovery. All six XML/beat audits completed, but zero verified violin score-to-audio mappings were established; no written-rest accuracy is implied.
+
+[CPU run 43184102838](https://github.com/JDeun/audio-score-tool/actions/runs/43184102838) and initial-head repository CI passed; the completed metadata receipt is retained in the repository. Latest-head checks and merge state are on PR #274. The next scientific step is verified violin note/beat-to-MusicXML mapping before written-rest-versus-articulation scoring, with the negative transfer finding preserved.
 
 ## Repository state at the snapshot
 
@@ -23,7 +27,7 @@ The user explicitly requested merging ready work and clearing completed PRs. [#2
 
 These are observed results for the existing main baseline. They do not verify new changes, installer release readiness or musical accuracy.
 
-## Scientific workstreams
+## Scientific workstreams at the original snapshot
 
 | Workstream | Actual evidence | Remaining limitation | Next useful task |
 |---|---|---|---|
