@@ -1,0 +1,82 @@
+name: Research Main Integration Audit
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+    paths:
+      - '.github/workflows/research-integration-audit.yml'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'docs/research/**'
+      - 'pyproject.toml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pull-requests: read
+concurrency:
+  group: research-integration-audit-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  scope-and-snapshot:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'integration/research-evidence-20261112'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --disable-pip-version-check ruff==0.16.6
+      - name: Record merge scope and immutable source snapshot
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import hashlib, json, os, pathlib, shutil, subprocess
+          root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'research-integration'
+          root.mkdir()
+          base = os.environ.get('BASE_SHA') or 'origin/main'
+          def git(*args):
+              return subprocess.check_output(['git', *args], text=True).strip()
+          names = git('diff', '--name-only', base, 'HEAD').splitlines()
+          statuses = git('diff', '--name-status', base, 'HEAD').splitlines()
+          protected = [n for n in names if n.startswith(('src/', 'desktop/', 'training/'))
+                       or n in ('pyproject.toml', 'uv.lock')]
+          snapshot = root / 'snapshot'
+          for name in sorted(set(names + ['pyproject.toml'])):
+              source = pathlib.Path(name)
+              if not source.is_file() or source.is_symlink():
+                  continue
+              target = snapshot / name
+              target.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copyfile(source, target)
+          python_files = [n for n in names if n.endswith('.py') and pathlib.Path(n).is_file()]
+          lint = subprocess.run(['python', '-m', 'ruff', 'check', '--output-format', 'json',
+                                 *python_files], capture_output=True, text=True)
+          (root / 'lint.json').write_text(lint.stdout)
+          open_prs = json.loads(subprocess.check_output([
+              'gh', 'api', f'/repos/{os.environ["GITHUB_REPOSITORY"]}/pulls?state=open&per_page=100'
+          ], text=True))
+          prs = [{'number': p['number'], 'title': p['title'], 'head': p['head']['ref'],
+                  'head_sha': p['head']['sha'], 'base': p['base']['ref'], 'draft': p['draft']}
+                 for p in open_prs]
+          report = {'base_sha': git('rev-parse', base), 'checkout_sha': git('rev-parse', 'HEAD'),
+                    'changed_files': names, 'statuses': statuses, 'protected_path_changes': protected,
+                    'lint_exit_code': lint.returncode, 'open_prs': prs,
+                    'file_sha256': {n: hashlib.sha256(pathlib.Path(n).read_bytes()).hexdigest()
+                                    for n in names if pathlib.Path(n).is_file()}}
+          (root / 'scope.json').write_text(json.dumps(report, indent=2) + '\n')
+          print(json.dumps({'changed_files': len(names), 'protected_paths': protected,
+                            'lint_exit_code': lint.returncode, 'open_prs': prs}, indent=2))
+          PY
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: research-integration-audit-${{ github.run_id }}
+          path: ${{ runner.temp }}/research-integration/
+          retention-days: 14
+          if-no-files-found: error
