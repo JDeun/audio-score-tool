@@ -2,7 +2,7 @@ name: CPU Tempo Pulse Unit and Playback Invariance
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize]
+    types: [opened, reopened]
     branches:
       - research/tempo-beat-model-20261112
     paths:
