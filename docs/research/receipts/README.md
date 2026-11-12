@@ -161,3 +161,38 @@ historical artifacts. No original XML/CSV/Match, event arrays or model weights
 are included. The original two-receipt verifier above retains its frozen input
 set and does not claim to audit this later study. All source-consistency and
 annotation limitations remain explicit in the result report.
+
+## Completed KRAISLER local timing and duration/rest ranges
+
+`kraisler-expressive-43210425240.zip` preserves exact artifact **13939819598**
+from [CPU run 43210425240](https://github.com/JDeun/audio-score-tool/actions/runs/43210425240),
+attempt 1. The [completed result](../KRAISLER_EXPRESSIVE_RESULTS_2026-11-12.md)
+records six completed diagnostics, 373/607 locally supported beat cells,
+394/947 primary tempo20 pairs, 295 stable pairs, duration/rest ranges and
+unchanged unresolved gate transitions. Coverage is not a model accuracy.
+
+- Exact ZIP: **72,066 bytes**; SHA256
+  `e51fae082cf3c97240a9746cf2ba2214923ce30555ae2f70130f6043cffd478f`.
+- Sole member `report.json`: **1,546,689 bytes**; SHA256
+  `32005007594058ee941fd367aab5cd0ad093cef130fc38a23f47912e36f580bc`.
+- Frozen head: `18e358645fcec5c5314bb69f2725d9bc3be984f7`; actual checkout:
+  `4a9f603d983eb0a576795bffd8e9f4fdb2254a77`; both tree:
+  `7d16179315f8c62ef18f527db2c38fe942d550e1`.
+- Thirty original metadata members verified, seven HTTP ranges / 776,325 bytes,
+  zero audio loads and zero new neural inferences. All six historical global
+  analyses, gate masks and source identities remain unchanged.
+
+Two derived post-run audit JSON files supplement the exact seventh ZIP:
+
+| File | Scope | SHA256 |
+| --- | --- | --- |
+| [kraisler-expressive-audit-43210425240.json](kraisler-expressive-audit-43210425240.json) | Independent standard-library provenance, partitions, conditional/aggregate arithmetic, duration count/sum means and rest decomposition | `5ac257612485c4512e67ad812798a507b9c9d1ce386a4f9ab5feee7e5272831c` |
+| [kraisler-expressive-source-audit-43210425240.json](kraisler-expressive-source-audit-43210425240.json) | Independent local-clock, pair-identity, duration and interval reconstruction, reusing only frozen source parsers/eligibility and symbolic normalization | `123b51ded6e5336fb235e04d9ae69c16674545ddb9f2ecc3fb4b7f8be1fa51a4` |
+
+Both audits passed. They are verification summaries, not independent acoustic
+annotations, new gate outcomes or altered historical artifacts. The receipt's
+`onset_residuals_pulse_fraction` values are dimensionless despite inherited
+`_s` statistic key names; stable-scope residual statistics are explicitly not
+computed. No original XML/CSV/Match, note-event arrays, audio or weights are
+republished. The original two-receipt verifier above retains its frozen input
+set and does not claim to audit this later study.
