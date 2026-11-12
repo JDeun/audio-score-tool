@@ -7,6 +7,14 @@ import subprocess
 from pathlib import Path
 
 
+# Keep the byte-pinned librosa release without hiding new warnings or altering
+# the product warnings-as-errors policy. Show this exact upstream warning.
+RESEARCH_WARNING = (
+    'default:path is deprecated. Use files() instead.:'
+    'DeprecationWarning:librosa.core.intervals'
+)
+
+
 def scopes(root: Path) -> dict[str, list[str]]:
     manifest = json.loads((root / 'scripts/research_test_manifest.json').read_text())
     if not isinstance(manifest, list) or not manifest or not all(isinstance(x, str) for x in manifest):
@@ -29,12 +37,14 @@ def command(scope: str, paths: list[str]) -> list[str]:
     if scope not in ('product', 'research') or not paths:
         raise ValueError('invalid test scope')
     args = ['uv', 'run', '--frozen']
+    warning_args = []
     if scope == 'research':
         # These dependencies live in uv's disposable overlay, never product pyproject/lock.
         args += ['--python', '3.11', '--with', 'numpy==1.26.4',
                  '--with', 'scipy==1.13.1', '--with', 'librosa==0.10.2.post1',
-                 '--with', 'pytest==8.4.2']
-    return args + ['pytest', '-q', *paths]
+                 '--with', 'pytest==8.4.2', '--with', 'mir_eval==0.8.2']
+        warning_args = ['-W', RESEARCH_WARNING]
+    return args + ['pytest', '-q', *warning_args, *paths]
 
 
 def main() -> int:
