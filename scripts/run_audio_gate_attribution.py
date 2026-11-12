@@ -17,6 +17,7 @@ from statistics import mean
 import numpy as np
 
 from scripts.audio_gate_attribution import ARMS, make_attribution_arms, rms_envelope
+from scripts.audio_gate_replay import verify_gate_replay
 from scripts.audio_gate_rest import SETTINGS, gains_and_damage, gate_levels, scored_notes
 from scripts.audio_gate_rest import rms_envelope as legacy_envelope
 from scripts.audit_waveform_gate_receipts import load_receipts
@@ -25,6 +26,9 @@ from scripts.vocal_recovery import event_digest, events_from
 
 ANNOTATORS = ('A1', 'A2')
 METRICS = ('onset_f1', 'onset_offset_f1')
+INCOMPLETE_ZIP = 'waveform-gate-attribution-incomplete-43178487837.zip'
+INCOMPLETE_ZIP_SHA = '40df7f512ebf0680af7393ba0bf8c413dc9db716572803e162f74c9bfd4db388'
+INCOMPLETE_REPORT_SHA = '3391f88dd327d0752cab62cc788d52321e5bf07c5ab28feffef695768675a088'
 
 
 def digest(raw):
@@ -94,6 +98,67 @@ def assert_replay(entry, old):
             raise ValueError('frozen gate replay mismatch: ' + key)
 
 
+def load_incomplete(root, previous):
+    """Reuse only the 39 verified rows of the immutable first attempt.
+
+    This is a fixed recovery receipt, not an arbitrary cache or a way to drop
+    unfavorable cases. Only vocadito_11 may require fresh inference.
+    """
+    path = root / 'docs/research/receipts' / INCOMPLETE_ZIP
+    if path.is_symlink() or path.stat().st_size != 50470:
+        raise ValueError('invalid recovery receipt path/size')
+    if digest(path.read_bytes()) != INCOMPLETE_ZIP_SHA:
+        raise ValueError('recovery ZIP changed')
+    with zipfile.ZipFile(path) as archive:
+        if archive.namelist() != ['report.json']:
+            raise ValueError('unexpected recovery member')
+        raw = archive.read('report.json')
+    if digest(raw) != INCOMPLETE_REPORT_SHA:
+        raise ValueError('recovery report changed')
+    prior = json.loads(raw)
+    if (prior['status'] != 'incomplete' or prior['summary'] is not None
+            or prior['source_head'] != 'f03152cef4e5e12e3beb8675b77ef005fe51d905'
+            or prior['source_revision'] != '55b4fb57f29b6753e04319ab5e9d27bd80aa002d'
+            or prior['archive_sha256'] != previous['archive_sha256']
+            or prior['runtime'] != EXPECTED or prior['settings'] != SETTINGS
+            or prior['model_identity'] != previous['model_identity']):
+        raise ValueError('recovery provenance changed')
+    # Selection/envelope/scoring code must be unchanged. Only this orchestration
+    # runner is repaired; the historical algorithm and original protocol stay frozen.
+    for path_name, expected_hash in prior['source_sha256'].items():
+        if path_name == 'scripts/run_audio_gate_attribution.py':
+            continue
+        if digest((root / path_name).read_bytes()) != expected_hash:
+            raise ValueError('recovery changed frozen component: ' + path_name)
+    old = {r['id']: r for r in previous['cases']}
+    rows = prior['cases']
+    if len(rows) != 40 or {r['id'] for r in rows} != set(old):
+        raise ValueError('recovery source population changed')
+    failed = [r for r in rows if r['status'] != 'scored']
+    if (len(failed) != 1 or failed[0]['id'] != 'vocadito_11'
+            or failed[0]['reason'] != 'frozen relative gate changed'):
+        raise ValueError('unexpected recovery failure set')
+    reused = {r['id']: r for r in rows if r['status'] == 'scored'}
+    for case_id, row in reused.items():
+        if (row['audio_sha256'] != old[case_id]['audio_sha256']
+                or row['reference_sha256'] != old[case_id]['reference_sha256']
+                or not row['historical_envelope_equal']
+                or not row['replayed_raw_and_relative_soft']):
+            raise ValueError('reused source identity/replay changed')
+        for base in BASES:
+            for arm in ('raw', 'relative_soft'):
+                assert_replay(row['bases'][base]['arms'][arm], old[case_id]['bases'][base]['arms'][arm])
+    provenance = {
+        'prior_run_id': 43178487837, 'prior_artifact_id': 13925346757,
+        'prior_head': prior['source_head'], 'prior_checkout': prior['source_revision'],
+        'prior_zip_sha256': INCOMPLETE_ZIP_SHA, 'prior_report_sha256': INCOMPLETE_REPORT_SHA,
+        'prior_source_sha256': prior['source_sha256'],
+        'reused_case_ids': list(reused), 'newly_inferred_case_ids': ['vocadito_11'],
+        'failed_prior_cases': failed, 'reused_rows_value_exact': True,
+    }
+    return reused, provenance
+
+
 def save(path, report):
     tmp = path.with_suffix('.tmp')
     tmp.write_text(json.dumps(report, indent=2, allow_nan=False) + '\n')
@@ -109,6 +174,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('archive', 'work', 'output'):
         parser.add_argument('--' + name, required=True, type=Path)
+    parser.add_argument('--resume-incomplete', action='store_true')
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     if (args.work.exists() or args.work.is_symlink() or args.output.exists()
@@ -126,6 +192,7 @@ def main():
     old_cases = {r['id']: r for r in previous['cases']}
     if set(old_cases) != set(CASE_IDS) or baseline['archive_sha256'] != previous['archive_sha256']:
         raise ValueError('historical source coverage mismatch')
+    reused, recovery = load_incomplete(root, previous) if args.resume_incomplete else ({}, None)
     # Preserve literal historical code identities; the new module only wraps it.
     for path, expected_hash in previous['source_sha256'].items():
         if digest((root / path).read_bytes()) != expected_hash:
@@ -137,6 +204,9 @@ def main():
         'scripts/audit_waveform_gate_receipts.py', 'tests/test_audio_gate_attribution.py',
         'tests/test_waveform_gate_receipts.py', 'tests/test_run_audio_gate_attribution.py',
         'docs/research/AUDIO_GATE_ATTRIBUTION_PROTOCOL_2026-11-12.md',
+        'scripts/audio_gate_replay.py', 'tests/test_audio_gate_replay.py',
+        'tests/test_gate_attribution_recovery.py',
+        'docs/research/AUDIO_GATE_ATTRIBUTION_RECOVERY_2026-11-12.md',
     )
     report = {
         'schema_version': 1, 'status': 'running', 'cases': [], 'planned_ids': list(CASE_IDS),
@@ -147,7 +217,8 @@ def main():
         'runtime': {k: version(k) for k in EXPECTED}, 'python': platform.python_version(),
         'summary': None, 'quality_approved': False, 'model_inference_repeated': True,
         'explicit_notated_rest_reference': False, 'reused_development_corpus': True,
-        'gate_used_reference': False, 'neural_forward_passes_planned': len(CASE_IDS),
+        'gate_used_reference': False, 'neural_forward_passes_planned': len(CASE_IDS) - len(reused),
+        'neural_forward_passes_executed': 0, 'recovery': recovery,
         'historical_source_sha256': previous['source_sha256'],
         'source_sha256': {p: digest((root / p).read_bytes()) for p in source_paths},
         'retained_receipts': {p.name: digest(p.read_bytes())
@@ -166,6 +237,11 @@ def main():
     save(args.output, report)
     with zipfile.ZipFile(args.archive) as archive:
         for case in CASE_IDS:
+            if case in reused:
+                report['cases'].append(reused[case])
+                save(args.output, report)
+                print(case, 'reused_verified_receipt', flush=True)
+                continue
             tick = time.monotonic()
             row = {'id': case, 'status': 'started'}
             directory = args.work / case
@@ -185,14 +261,13 @@ def main():
                 if not (np.array_equal(edges, old_edges) and np.array_equal(levels, old_levels)):
                     raise ValueError('historical waveform was changed by boundary repair')
                 quiet, gate_settings = gate_levels(levels, 'relative')
-                if (int(quiet.sum()) != old['gates']['relative']['quiet_frames']
-                        or len(quiet) != old['gates']['relative']['total_frames']
-                        or any(old['gates']['relative'][k] != v for k, v in gate_settings.items())):
-                    raise ValueError('frozen relative gate changed')
+                row['gate_replay'] = verify_gate_replay(
+                    levels, quiet, gate_settings, old['gates']['relative'])
                 random.seed(0)
                 np.random.seed(0)
                 with (directory / 'model.log').open('w') as log, contextlib.redirect_stdout(log), contextlib.redirect_stderr(log):
                     raw_notes, receipt = predict(audio, directory / 'inference')
+                    report['neural_forward_passes_executed'] += 1
                     originals = bp_decoders(directory / 'inference/raw.npz', directory,
                                             events_from(raw_notes))
                 if set(originals) != set(BASES):

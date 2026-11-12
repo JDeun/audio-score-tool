@@ -10,6 +10,10 @@ on:
       - 'scripts/run_audio_gate_attribution.py'
       - 'tests/test_audio_gate_attribution.py'
   workflow_dispatch:
+  # One explicit recovery push. Later report-only commits do not repeat inference.
+  push:
+    branches: [research/waveform-gate-attribution-20261112]
+    paths: ['.github/workflows/cpu-audio-gate-attribution.yml']
 
 permissions:
   contents: read
@@ -34,7 +38,7 @@ env:
 
 jobs:
   attribution:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
@@ -56,14 +60,14 @@ jobs:
         run: |
           python -m ruff check \
             scripts/audio_gate_attribution.py scripts/run_audio_gate_attribution.py \
-            scripts/audit_waveform_gate_receipts.py \
+            scripts/audit_waveform_gate_receipts.py scripts/audio_gate_replay.py \
             tests/test_audio_gate_attribution.py tests/test_run_audio_gate_attribution.py \
-            tests/test_waveform_gate_receipts.py
+            tests/test_waveform_gate_receipts.py tests/test_audio_gate_replay.py tests/test_gate_attribution_recovery.py
           python -m compileall -q scripts/audio_gate_attribution.py scripts/run_audio_gate_attribution.py
           mkdir -p "$RUNNER_TEMP/attribution-tests"
           cp tests/test_audio_gate_attribution.py tests/test_run_audio_gate_attribution.py \
-            tests/test_waveform_gate_receipts.py "$RUNNER_TEMP/attribution-tests/"
-          python -m pytest -q -c /dev/null "$RUNNER_TEMP/attribution-tests"
+            tests/test_waveform_gate_receipts.py tests/test_audio_gate_replay.py tests/test_gate_attribution_recovery.py "$RUNNER_TEMP/attribution-tests/"
+          python -m pytest -q -p no:cacheprovider -c /dev/null "$RUNNER_TEMP/attribution-tests"
           python -m scripts.audit_waveform_gate_receipts
       - name: Fetch the same original forty recordings without external credentials
         run: |
@@ -71,9 +75,10 @@ jobs:
             --max-time 600 --retry 3 --max-filesize 60000000 \
             'https://zenodo.org/records/5578807/files/vocadito.zip?download=1' \
             --output "$RUNNER_TEMP/attribution-vocadito.zip"
-      - name: Exact historical replay and four frozen intervention arms
+      - name: Recover only failed recording and retain thirty-nine verified rows
         run: |
           python -m scripts.run_audio_gate_attribution \
+            --resume-incomplete \
             --archive "$RUNNER_TEMP/attribution-vocadito.zip" \
             --work "$RUNNER_TEMP/private-gate-attribution" \
             --output "$RUNNER_TEMP/attribution-report/report.json"
