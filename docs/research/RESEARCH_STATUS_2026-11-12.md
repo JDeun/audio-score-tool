@@ -1,6 +1,16 @@
 # Research status — 2026-11-12
 
-This is the continuation snapshot taken with main at `7dd5c6ce0b18fda023403d92fba981867a1f0202`, after #266 and #270. It is navigation and task state, not a replacement for frozen protocols, result reports or execution receipts. The continuation below is now complete in draft PR #272; its results are distinct from this initial main snapshot.
+This is the continuation snapshot taken with main at `7dd5c6ce0b18fda023403d92fba981867a1f0202`, after #266 and #270. It is navigation and task state, not a replacement for frozen protocols, result reports or execution receipts. The completed continuation #272 was subsequently merged; its results and later PR cleanup are distinct from the initial snapshot below.
+
+## Later update: integration and new-recording experiment
+
+The user explicitly requested merging ready work and clearing completed PRs. [#272](https://github.com/JDeun/audio-score-tool/pull/272) is merged at `1c9514e30e2aac92ba6857e67a940dc48b6a03e6`; [actual main CI](https://github.com/JDeun/audio-score-tool/actions/runs/43181970207) passed, including Tauri and required `verify`. Fourteen older research drafts were closed only after proving every current head was already a main ancestor. See the [cleanup record](PR_CLEANUP_2026-11-12.md), which also explains why product #236 remains open.
+
+[Issue #273](https://github.com/JDeun/audio-score-tool/issues/273) / [PR #274](https://github.com/JDeun/audio-score-tool/pull/274) completed the [frozen KRAISLER comparison](KRAISLER_GATE_RESULTS_2026-11-12.md): all six preselected full dry violin recordings, 403.2338 seconds, 947 reference notes, six recording-level inference calls and 48 paired conditions. The gate, model and decoders remained unchanged.
+
+**The tail-only gain did not transfer:** onset0.65 onset+offset F1 is raw **31.9305%**, tail-only **31.8055%**, full relative-soft **33.7766%** and non-tail **33.9726%**. Tail-only restores 0.33s of reference gaps but additionally removes **1.41s of annotated-note time**. Raw and full both match 287 offset-reference notes; full gains one/loses one while reducing predictions 912→852. On track 12, full F1 rises even though matched notes fall 26→25. Keep prediction-count effects distinct from endpoint recovery. All six XML/beat audits completed, but zero verified violin score-to-audio mappings were established; no written-rest accuracy is implied.
+
+[CPU run 43184102838](https://github.com/JDeun/audio-score-tool/actions/runs/43184102838) and initial-head repository CI passed; the completed metadata receipt is retained in the repository. Latest-head checks and merge state are on PR #274. The next scientific step is verified violin note/beat-to-MusicXML mapping before written-rest-versus-articulation scoring, with the negative transfer finding preserved.
 
 ## Repository state at the snapshot
 
@@ -17,7 +27,7 @@ This is the continuation snapshot taken with main at `7dd5c6ce0b18fda023403d92fb
 
 These are observed results for the existing main baseline. They do not verify new changes, installer release readiness or musical accuracy.
 
-## Scientific workstreams
+## Scientific workstreams at the original snapshot
 
 | Workstream | Actual evidence | Remaining limitation | Next useful task |
 |---|---|---|---|
@@ -30,7 +40,7 @@ These are observed results for the existing main baseline. They do not verify ne
 
 F1 values and nASAP exact written-note correctness use different targets and denominators; they must not be combined into one accuracy ranking. Full audio-to-score quality, inferred voices, rendered readability and editing-time benefit remain open. [#249](https://github.com/JDeun/audio-score-tool/issues/249), [#259](https://github.com/JDeun/audio-score-tool/issues/259) and [#269](https://github.com/JDeun/audio-score-tool/issues/269) therefore remain research questions.
 
-## Current continuation: experiment completed in draft PR #272
+## Completed continuation: experiment integrated through PR #272
 
 [Issue #271](https://github.com/JDeun/audio-score-tool/issues/271) and [PR #272](https://github.com/JDeun/audio-score-tool/pull/272) contain the [fixed protocol](AUDIO_GATE_ATTRIBUTION_PROTOCOL_2026-11-12.md), [complete results](AUDIO_GATE_ATTRIBUTION_RESULTS_2026-11-12.md) and [bounded recovery record](AUDIO_GATE_ATTRIBUTION_RECOVERY_2026-11-12.md).
 

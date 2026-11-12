@@ -105,3 +105,26 @@ identifies recovery orchestration; its `recovery` field identifies the original
 execution of the 39 reused case objects. The original failed run remains failed.
 All four ZIPs contain derived metadata only, not original media, note events,
 model outputs or weights. The frozen protocol and recovery addendum are unchanged.
+
+## Completed KRAISLER transfer pilot
+
+`kraisler-gate-43184102838.zip` retains artifact **13927279033** from
+[CPU run 43184102838](https://github.com/JDeun/audio-score-tool/actions/runs/43184102838).
+The [complete result](../KRAISLER_GATE_RESULTS_2026-11-12.md) covers all six
+preselected dry violin recordings, two decoders and four arms, with no reference-
+guided retuning or repeated vocadito inference. Tail-only's negative transfer and
+all time-occupancy damage are retained.
+
+- Exact ZIP: **16,111 bytes**; SHA256
+  `ba88b9bda70d4a560a3d05c85ea5301d2e8ff98ea81746d676a1c6695898e10e`.
+- Sole member `report.json`: **155,591 bytes**; SHA256
+  `e79ff94736b471da64638a93456ef4f1510750c843960ae924fc1f488ad2f754`.
+- PR head: `faac53d0b9b63d8b8420e8fdb788dd3ec4cf4cda`; actual PR checkout:
+  `7491b822c2d0d8cfe82193dea9c7135b91ebec2a`.
+- Complete: six recording-level predictor calls, 48 scored conditions and 947
+  reference notes. Six structural XML/beat audits remain explicitly unaligned.
+
+This fifth receipt contains derived metadata only. Its dataset range/member
+hashes do not claim to verify the complete source ZIP's MD5. The original
+two-receipt verifier above is unchanged and does not claim to audit this new
+receipt. No WAV, XML, source CSV, event arrays or weights are republished.
