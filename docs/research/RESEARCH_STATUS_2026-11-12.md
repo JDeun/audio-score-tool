@@ -1,6 +1,6 @@
 # Research status — 2026-11-12
 
-This is the continuation snapshot taken with main at `7dd5c6ce0b18fda023403d92fba981867a1f0202`, after #266 and #270. It is navigation and task state, not a replacement for frozen protocols, result reports or execution receipts. New work below is in progress; no result is claimed for it.
+This is the continuation snapshot taken with main at `7dd5c6ce0b18fda023403d92fba981867a1f0202`, after #266 and #270. It is navigation and task state, not a replacement for frozen protocols, result reports or execution receipts. The continuation below is now complete in draft PR #272; its results are distinct from this initial main snapshot.
 
 ## Repository state at the snapshot
 
@@ -30,17 +30,17 @@ These are observed results for the existing main baseline. They do not verify ne
 
 F1 values and nASAP exact written-note correctness use different targets and denominators; they must not be combined into one accuracy ranking. Full audio-to-score quality, inferred voices, rendered readability and editing-time benefit remain open. [#249](https://github.com/JDeun/audio-score-tool/issues/249), [#259](https://github.com/JDeun/audio-score-tool/issues/259) and [#269](https://github.com/JDeun/audio-score-tool/issues/269) therefore remain research questions.
 
-## Current continuation: in progress
+## Current continuation: experiment completed in draft PR #272
 
-**Question:** How much of the frozen relative-soft gate's measured improvement and damage comes from tail edits, and how much comes from the complementary non-tail edits?
+[Issue #271](https://github.com/JDeun/audio-score-tool/issues/271) and [PR #272](https://github.com/JDeun/audio-score-tool/pull/272) contain the [fixed protocol](AUDIO_GATE_ATTRIBUTION_PROTOCOL_2026-11-12.md), [complete results](AUDIO_GATE_ATTRIBUTION_RESULTS_2026-11-12.md) and [bounded recovery record](AUDIO_GATE_ATTRIBUTION_RECOVERY_2026-11-12.md).
 
-- Compare raw output, the full frozen relative-soft treatment, tail-only edits and complementary non-tail edits on the **same 40 development recordings**, with the existing two Basic Pitch decoders and both human annotations. This is an attribution ablation, not an independent holdout or a newly tuned winning method.
-- Freeze edit classification and evaluation before measurement. Keep note matching, per-annotator/per-recording outcomes, occupancy damage, deletion/split counts and unchanged-input replay visible. Do not select a different arm using each recording's reference result.
-- Fix the zero-width final RMS-cell boundary case with a focused regression check; retain the original pilot's execution identity and report the effect of the correction explicitly.
-- Preserve checksum-verified **metadata receipts** in versioned research evidence so the historical-baseline check does not depend solely on a 14-day Actions artifact. The existing reports identify the original ZIP/report hashes. Do not add source WAV/MIDI, lyrics, full prediction events or weights to the repository.
-- Execute on bounded CPU resources and record the new exact head, run, artifact/report identity and all planned-case outcomes before drawing a conclusion. Existing main CI numbers above are not this execution's validation.
+On all 40 reused development recordings, onset0.65 onset+offset F1 is raw **37.2572%**, full relative-soft **37.6995%**, tail-only **37.5350%** and complementary non-tail **37.4215%**. Tail-only preserves all 1,783 notes/onsets and gains 11 annotator-specific matches with zero lost matches; 5 recordings improve, 35 tie and neither annotator has a recording F1 regression. It still removes an additional **0.205 seconds** of annotated-note time while restoring 0.705 seconds of non-note time. This is a candidate for further validation, not zero damage or product approval.
 
-This continuation does not yet resolve the central rest-versus-articulation question. It first tests whether the earlier apparent safety is explained by the edit mix. The separate nASAP decoder still receives privileged context, and the already-observed #265 validation works must not be reused for tuning under an untouched-test claim.
+The first run completed 39 cases and failed a strict computed-level replay check for one case. The [successful recovery](https://github.com/JDeun/audio-score-tool/actions/runs/43179593722) retained those 39 rows exactly and inferred only the missing recording. A remote reference-level difference of 3.55e-15 dB left close/open thresholds and every gate decision unchanged; all raw/full predictions and metrics exactly replayed. Original failures and both receipts remain preserved.
+
+The new exact sample-count envelope fixes zero-width final RMS cells at exact hop multiples. Original scientific files remain byte-identical. Four metadata-only ZIPs now preserve the historical baselines and both new attempts beyond Actions retention. New/recovery tests: **147 passed** locally and remotely. The repository scope test now checks exhaustive, disjoint manifest membership instead of a frozen count of 25 research files; its nine focused tests passed. Latest repository CI must be read from PR #272, not inferred from baseline CI above.
+
+The next data requirement remains independently reserved score-aligned mono stems with explicit written-rest versus articulation labels. Keep raw/full/tail-only controls. No nASAP parameter tuning, product activation, private-song work or new model was performed.
 
 ## Evidence handling
 

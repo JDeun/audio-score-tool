@@ -79,5 +79,5 @@ These experiments supply clock/unit/bar/voice/chord context and aligned note inv
 
 ## Current continuation
 
-- [Waveform-gate edit attribution protocol](AUDIO_GATE_ATTRIBUTION_PROTOCOL_2026-11-12.md) — issue #271; fixed full/tail-only/complementary interventions on the reused development corpus. Execution pending.
+- [Waveform-gate edit attribution protocol](AUDIO_GATE_ATTRIBUTION_PROTOCOL_2026-11-12.md) — issue #271; fixed full/tail-only/complementary interventions on the reused development corpus. Completed: [results](AUDIO_GATE_ATTRIBUTION_RESULTS_2026-11-12.md), [one-case recovery](AUDIO_GATE_ATTRIBUTION_RECOVERY_2026-11-12.md).
 - [Durable waveform-gate receipts](receipts/README.md) — exact historical metadata ZIPs and offline integrity/arithmetic checks.

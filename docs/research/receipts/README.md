@@ -1,6 +1,6 @@
 # Durable waveform-gate experiment receipts
 
-These two ZIP files retain the **exact historical GitHub Actions artifact bytes**.
+These ZIP files retain the **exact historical GitHub Actions artifact bytes**.
 They preserve derived evidence after the remote artifacts expire; they are not new
 experiments and do not change a historical result or its protocol.
 
@@ -79,3 +79,29 @@ reproduced prediction-MIDI hash, as well as the reported raw metric values.
 further metadata analyses. `audit(repository_root)` also performs the arithmetic
 and frozen-source checks. Downstream analyses must preserve the development-data
 and annotation limitations of the original report.
+
+## Completed attribution study and preserved failed attempt
+
+The original two-receipt verifier above intentionally keeps its immutable input set.
+The following additional ZIPs preserve the later study and its recovery chain:
+
+| File | Run / artifact | ZIP bytes | JSON bytes | Outcome |
+| --- | --- | ---: | ---: | --- |
+| `waveform-gate-attribution-incomplete-43178487837.zip` | [43178487837](https://github.com/JDeun/audio-score-tool/actions/runs/43178487837) / 13925346757 | 50,470 | 1,041,745 | 39 scored, one failed, null aggregate |
+| `waveform-gate-attribution-43179593722.zip` | [43179593722](https://github.com/JDeun/audio-score-tool/actions/runs/43179593722) / 13926136473 | 53,466 | 1,083,693 | 39 exact reused rows plus one new inference; complete 40 |
+
+Both have exactly one `report.json` member. Failed ZIP SHA256:
+`40df7f512ebf0680af7393ba0bf8c413dc9db716572803e162f74c9bfd4db388`;
+failed JSON SHA256:
+`3391f88dd327d0752cab62cc788d52321e5bf07c5ab28feffef695768675a088`.
+Final ZIP SHA256:
+`b66348c2d0be17874910f46659bdc25f2b0674bcbf9db9647ff857e8c75f6929`;
+final JSON SHA256:
+`90f0f8cd6dd891456e28ecbf98f7af5d58f377ceac1d1959e9ed0c22204b2eee`.
+
+The [complete result](../AUDIO_GATE_ATTRIBUTION_RESULTS_2026-11-12.md) records the
+independent 40-case arithmetic/provenance audit. This final report's current head
+identifies recovery orchestration; its `recovery` field identifies the original
+execution of the 39 reused case objects. The original failed run remains failed.
+All four ZIPs contain derived metadata only, not original media, note events,
+model outputs or weights. The frozen protocol and recovery addendum are unchanged.
