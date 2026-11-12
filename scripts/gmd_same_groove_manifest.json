@@ -1,0 +1,1124 @@
+{
+  "archive": {
+    "bytes": 3260318,
+    "sha256": "651cbc524ffb891be1a3e46d89dc82a1cecb09a57c748c7b45b844c4841dcc1e",
+    "url": "https://storage.googleapis.com/magentadata/datasets/groove/groove-v1.0.0-midionly.zip"
+  },
+  "cases": [
+    {
+      "evaluation": {
+        "drummer": "drummer1",
+        "groove": "groove1"
+      },
+      "id": "gmd001",
+      "member": {
+        "bytes": 4793,
+        "crc32": "431dfff5",
+        "path": "groove/drummer1/eval_session/1_funk-groove1_138_beat_4-4.mid",
+        "sha256": "0c579a8e907ef5a9ccb7e47096f9894179a3a0ab1a2d97acb420044fc34f3562"
+      },
+      "metadata": {
+        "audio_filename": "drummer1/eval_session/1_funk-groove1_138_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "138",
+        "drummer": "drummer1",
+        "duration": "27.872308",
+        "id": "drummer1/eval_session/1",
+        "midi_filename": "drummer1/eval_session/1_funk-groove1_138_beat_4-4.mid",
+        "session": "drummer1/eval_session",
+        "split": "test",
+        "style": "funk/groove1",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer5",
+        "groove": "groove1"
+      },
+      "id": "gmd002",
+      "member": {
+        "bytes": 3877,
+        "crc32": "4d383858",
+        "path": "groove/drummer5/eval_session/1_funk-groove1_138_beat_4-4.mid",
+        "sha256": "59c1a01f5b5182ad6282bb89507fde852741abe2d3eac69cbc79b1f9ff3bfac8"
+      },
+      "metadata": {
+        "audio_filename": "drummer5/eval_session/1_funk-groove1_138_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "138",
+        "drummer": "drummer5",
+        "duration": "27.848757",
+        "id": "drummer5/eval_session/1",
+        "midi_filename": "drummer5/eval_session/1_funk-groove1_138_beat_4-4.mid",
+        "session": "drummer5/eval_session",
+        "split": "test",
+        "style": "funk/groove1",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer7",
+        "groove": "groove1"
+      },
+      "id": "gmd003",
+      "member": {
+        "bytes": 1983,
+        "crc32": "b88b7796",
+        "path": "groove/drummer7/eval_session/1_funk-groove1_138_beat_4-4.mid",
+        "sha256": "65c823de736bb9619a3fe21b8ee4d8f69d881a12b281425f98eb320bfeb2b10b"
+      },
+      "metadata": {
+        "audio_filename": "drummer7/eval_session/1_funk-groove1_138_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "138",
+        "drummer": "drummer7",
+        "duration": "27.721039",
+        "id": "drummer7/eval_session/1",
+        "midi_filename": "drummer7/eval_session/1_funk-groove1_138_beat_4-4.mid",
+        "session": "drummer7/eval_session",
+        "split": "test",
+        "style": "funk/groove1",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer8",
+        "groove": "groove1"
+      },
+      "id": "gmd004",
+      "member": {
+        "bytes": 2839,
+        "crc32": "9d7d5e64",
+        "path": "groove/drummer8/eval_session/1_funk-groove1_138_beat_4-4.mid",
+        "sha256": "499c9f369ecc9149cf438ab8b95a6860bc76f520a17ab701b8dd959970e30f64"
+      },
+      "metadata": {
+        "audio_filename": "drummer8/eval_session/1_funk-groove1_138_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "138",
+        "drummer": "drummer8",
+        "duration": "27.706547",
+        "id": "drummer8/eval_session/1",
+        "midi_filename": "drummer8/eval_session/1_funk-groove1_138_beat_4-4.mid",
+        "session": "drummer8/eval_session",
+        "split": "test",
+        "style": "funk/groove1",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer1",
+        "groove": "groove2"
+      },
+      "id": "gmd005",
+      "member": {
+        "bytes": 3243,
+        "crc32": "d029f24a",
+        "path": "groove/drummer1/eval_session/2_funk-groove2_105_beat_4-4.mid",
+        "sha256": "05bd92056f42f61de95702b55433dc083cd0064148ad6d478880470548bfced1"
+      },
+      "metadata": {
+        "audio_filename": "drummer1/eval_session/2_funk-groove2_105_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "105",
+        "drummer": "drummer1",
+        "duration": "36.351218",
+        "id": "drummer1/eval_session/2",
+        "midi_filename": "drummer1/eval_session/2_funk-groove2_105_beat_4-4.mid",
+        "session": "drummer1/eval_session",
+        "split": "test",
+        "style": "funk/groove2",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer5",
+        "groove": "groove2"
+      },
+      "id": "gmd006",
+      "member": {
+        "bytes": 3305,
+        "crc32": "3b20551b",
+        "path": "groove/drummer5/eval_session/2_funk-groove2_105_beat_4-4.mid",
+        "sha256": "60dc7b5d4c7d0a501ae10c34a9754aedbe1771ef599e70dacf840fe06c0522a8"
+      },
+      "metadata": {
+        "audio_filename": "drummer5/eval_session/2_funk-groove2_105_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "105",
+        "drummer": "drummer5",
+        "duration": "36.564313",
+        "id": "drummer5/eval_session/2",
+        "midi_filename": "drummer5/eval_session/2_funk-groove2_105_beat_4-4.mid",
+        "session": "drummer5/eval_session",
+        "split": "test",
+        "style": "funk/groove2",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer7",
+        "groove": "groove2"
+      },
+      "id": "gmd007",
+      "member": {
+        "bytes": 2801,
+        "crc32": "eec247d8",
+        "path": "groove/drummer7/eval_session/2_funk-groove2_105_beat_4-4.mid",
+        "sha256": "b9b75dee2c266057675621bddff2c6a5405fdc7efa3dd15d58246877d21ab9ea"
+      },
+      "metadata": {
+        "audio_filename": "drummer7/eval_session/2_funk-groove2_105_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "105",
+        "drummer": "drummer7",
+        "duration": "36.098837",
+        "id": "drummer7/eval_session/2",
+        "midi_filename": "drummer7/eval_session/2_funk-groove2_105_beat_4-4.mid",
+        "session": "drummer7/eval_session",
+        "split": "test",
+        "style": "funk/groove2",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer8",
+        "groove": "groove2"
+      },
+      "id": "gmd008",
+      "member": {
+        "bytes": 2732,
+        "crc32": "9caf7c4e",
+        "path": "groove/drummer8/eval_session/2_funk-groove2_105_beat_4-4.mid",
+        "sha256": "bdebf662f759b9027d572a9b91d7639e9dac943f570954f5b0adc30fd0404005"
+      },
+      "metadata": {
+        "audio_filename": "drummer8/eval_session/2_funk-groove2_105_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "105",
+        "drummer": "drummer8",
+        "duration": "36.386932",
+        "id": "drummer8/eval_session/2",
+        "midi_filename": "drummer8/eval_session/2_funk-groove2_105_beat_4-4.mid",
+        "session": "drummer8/eval_session",
+        "split": "test",
+        "style": "funk/groove2",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer1",
+        "groove": "groove3"
+      },
+      "id": "gmd009",
+      "member": {
+        "bytes": 4466,
+        "crc32": "b75a2d2b",
+        "path": "groove/drummer1/eval_session/3_soul-groove3_86_beat_4-4.mid",
+        "sha256": "96291cc9c10a5c8603c066f296f34873d890e0668ade6feb9457de0c15ab2331"
+      },
+      "metadata": {
+        "audio_filename": "drummer1/eval_session/3_soul-groove3_86_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "86",
+        "drummer": "drummer1",
+        "duration": "44.716543",
+        "id": "drummer1/eval_session/3",
+        "midi_filename": "drummer1/eval_session/3_soul-groove3_86_beat_4-4.mid",
+        "session": "drummer1/eval_session",
+        "split": "test",
+        "style": "soul/groove3",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer5",
+        "groove": "groove3"
+      },
+      "id": "gmd010",
+      "member": {
+        "bytes": 4337,
+        "crc32": "17bb4355",
+        "path": "groove/drummer5/eval_session/3_soul-groove3_86_beat_4-4.mid",
+        "sha256": "0d5fca014c2a019ba3e7a46fe6f3683d8e543d573e21b6d00c5baf2d66c80deb"
+      },
+      "metadata": {
+        "audio_filename": "drummer5/eval_session/3_soul-groove3_86_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "86",
+        "drummer": "drummer5",
+        "duration": "44.623520",
+        "id": "drummer5/eval_session/3",
+        "midi_filename": "drummer5/eval_session/3_soul-groove3_86_beat_4-4.mid",
+        "session": "drummer5/eval_session",
+        "split": "test",
+        "style": "soul/groove3",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer7",
+        "groove": "groove3"
+      },
+      "id": "gmd011",
+      "member": {
+        "bytes": 4217,
+        "crc32": "e3d4a57e",
+        "path": "groove/drummer7/eval_session/3_soul-groove3_86_beat_4-4.mid",
+        "sha256": "73f98d8e6c5f42c8dc8b76785dcc97a3ce20518a87927f67d56e7052d4e7c1d1"
+      },
+      "metadata": {
+        "audio_filename": "drummer7/eval_session/3_soul-groove3_86_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "86",
+        "drummer": "drummer7",
+        "duration": "44.639508",
+        "id": "drummer7/eval_session/3",
+        "midi_filename": "drummer7/eval_session/3_soul-groove3_86_beat_4-4.mid",
+        "session": "drummer7/eval_session",
+        "split": "test",
+        "style": "soul/groove3",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer8",
+        "groove": "groove3"
+      },
+      "id": "gmd012",
+      "member": {
+        "bytes": 4103,
+        "crc32": "704f55eb",
+        "path": "groove/drummer8/eval_session/3_soul-groove3_86_beat_4-4.mid",
+        "sha256": "bd8fb1675502bff4f71b2e8e757f36879e362b94ecda7e9c8bf6bba6bbb35a08"
+      },
+      "metadata": {
+        "audio_filename": "drummer8/eval_session/3_soul-groove3_86_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "86",
+        "drummer": "drummer8",
+        "duration": "44.626427",
+        "id": "drummer8/eval_session/3",
+        "midi_filename": "drummer8/eval_session/3_soul-groove3_86_beat_4-4.mid",
+        "session": "drummer8/eval_session",
+        "split": "test",
+        "style": "soul/groove3",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer1",
+        "groove": "groove4"
+      },
+      "id": "gmd013",
+      "member": {
+        "bytes": 2551,
+        "crc32": "bf94b73c",
+        "path": "groove/drummer1/eval_session/4_soul-groove4_80_beat_4-4.mid",
+        "sha256": "3e8023e2e422475809ece6fac6a5cf0eddffc86f9e95735c179347307d832eda"
+      },
+      "metadata": {
+        "audio_filename": "drummer1/eval_session/4_soul-groove4_80_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "80",
+        "drummer": "drummer1",
+        "duration": "47.987500",
+        "id": "drummer1/eval_session/4",
+        "midi_filename": "drummer1/eval_session/4_soul-groove4_80_beat_4-4.mid",
+        "session": "drummer1/eval_session",
+        "split": "test",
+        "style": "soul/groove4",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer5",
+        "groove": "groove4"
+      },
+      "id": "gmd014",
+      "member": {
+        "bytes": 2461,
+        "crc32": "f1bb535f",
+        "path": "groove/drummer5/eval_session/4_soul-groove4_80_beat_4-4.mid",
+        "sha256": "c77a5b9c0e8c2c329c896bd9606baa9f935b7e6758058b744573ffb0d4d5ec58"
+      },
+      "metadata": {
+        "audio_filename": "drummer5/eval_session/4_soul-groove4_80_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "80",
+        "drummer": "drummer5",
+        "duration": "47.945312",
+        "id": "drummer5/eval_session/4",
+        "midi_filename": "drummer5/eval_session/4_soul-groove4_80_beat_4-4.mid",
+        "session": "drummer5/eval_session",
+        "split": "test",
+        "style": "soul/groove4",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer7",
+        "groove": "groove4"
+      },
+      "id": "gmd015",
+      "member": {
+        "bytes": 2153,
+        "crc32": "703ad343",
+        "path": "groove/drummer7/eval_session/4_soul-groove4_80_beat_4-4.mid",
+        "sha256": "fbb724a6463f52b7ba529193369f6f99b0fb89b430ebcd5b5ed1724fd4cc43ff"
+      },
+      "metadata": {
+        "audio_filename": "drummer7/eval_session/4_soul-groove4_80_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "80",
+        "drummer": "drummer7",
+        "duration": "47.731250",
+        "id": "drummer7/eval_session/4",
+        "midi_filename": "drummer7/eval_session/4_soul-groove4_80_beat_4-4.mid",
+        "session": "drummer7/eval_session",
+        "split": "test",
+        "style": "soul/groove4",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer8",
+        "groove": "groove4"
+      },
+      "id": "gmd016",
+      "member": {
+        "bytes": 2516,
+        "crc32": "02a2ac7b",
+        "path": "groove/drummer8/eval_session/4_soul-groove4_80_beat_4-4.mid",
+        "sha256": "dc8a57e374a3def912cf1ec8a75398d2dc81ec970e32c42dc7c9f1abeb3f9a4d"
+      },
+      "metadata": {
+        "audio_filename": "drummer8/eval_session/4_soul-groove4_80_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "80",
+        "drummer": "drummer8",
+        "duration": "47.996875",
+        "id": "drummer8/eval_session/4",
+        "midi_filename": "drummer8/eval_session/4_soul-groove4_80_beat_4-4.mid",
+        "session": "drummer8/eval_session",
+        "split": "test",
+        "style": "soul/groove4",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer1",
+        "groove": "groove5"
+      },
+      "id": "gmd017",
+      "member": {
+        "bytes": 3798,
+        "crc32": "1c5cd94a",
+        "path": "groove/drummer1/eval_session/5_funk-groove5_84_beat_4-4.mid",
+        "sha256": "1c72abd93ccf875f9546ad751758225e1349d7f8f3ceb61d380df534172fd459"
+      },
+      "metadata": {
+        "audio_filename": "drummer1/eval_session/5_funk-groove5_84_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "84",
+        "drummer": "drummer1",
+        "duration": "45.687518",
+        "id": "drummer1/eval_session/5",
+        "midi_filename": "drummer1/eval_session/5_funk-groove5_84_beat_4-4.mid",
+        "session": "drummer1/eval_session",
+        "split": "test",
+        "style": "funk/groove5",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer5",
+        "groove": "groove5"
+      },
+      "id": "gmd018",
+      "member": {
+        "bytes": 4132,
+        "crc32": "8ea27e46",
+        "path": "groove/drummer5/eval_session/5_funk-groove5_84_beat_4-4.mid",
+        "sha256": "13e98e7837d6bea168ed55088fd49432d59a3d7727998247303bcf9815d6826e"
+      },
+      "metadata": {
+        "audio_filename": "drummer5/eval_session/5_funk-groove5_84_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "84",
+        "drummer": "drummer5",
+        "duration": "45.645852",
+        "id": "drummer5/eval_session/5",
+        "midi_filename": "drummer5/eval_session/5_funk-groove5_84_beat_4-4.mid",
+        "session": "drummer5/eval_session",
+        "split": "test",
+        "style": "funk/groove5",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer7",
+        "groove": "groove5"
+      },
+      "id": "gmd019",
+      "member": {
+        "bytes": 3638,
+        "crc32": "66c6fdbb",
+        "path": "groove/drummer7/eval_session/5_funk-groove5_84_beat_4-4.mid",
+        "sha256": "1f6d5e679a91a3bd81c4da7d3f7db35d73d04695957983de52ca1dca87512c15"
+      },
+      "metadata": {
+        "audio_filename": "drummer7/eval_session/5_funk-groove5_84_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "84",
+        "drummer": "drummer7",
+        "duration": "45.784245",
+        "id": "drummer7/eval_session/5",
+        "midi_filename": "drummer7/eval_session/5_funk-groove5_84_beat_4-4.mid",
+        "session": "drummer7/eval_session",
+        "split": "test",
+        "style": "funk/groove5",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer8",
+        "groove": "groove5"
+      },
+      "id": "gmd020",
+      "member": {
+        "bytes": 3584,
+        "crc32": "95398570",
+        "path": "groove/drummer8/eval_session/5_funk-groove5_84_beat_4-4.mid",
+        "sha256": "6ac052b3b45106854b8307467c0ef1840e410292ee0227917882b61ea43b7f6d"
+      },
+      "metadata": {
+        "audio_filename": "drummer8/eval_session/5_funk-groove5_84_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "84",
+        "drummer": "drummer8",
+        "duration": "45.439006",
+        "id": "drummer8/eval_session/5",
+        "midi_filename": "drummer8/eval_session/5_funk-groove5_84_beat_4-4.mid",
+        "session": "drummer8/eval_session",
+        "split": "test",
+        "style": "funk/groove5",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer1",
+        "groove": "groove6"
+      },
+      "id": "gmd021",
+      "member": {
+        "bytes": 3760,
+        "crc32": "4a996acd",
+        "path": "groove/drummer1/eval_session/6_hiphop-groove6_87_beat_4-4.mid",
+        "sha256": "d9eeb4db81623ca0a8eb2073a866745296811b12c22d6fdeada90c6e62e62f73"
+      },
+      "metadata": {
+        "audio_filename": "drummer1/eval_session/6_hiphop-groove6_87_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "87",
+        "drummer": "drummer1",
+        "duration": "44.119242",
+        "id": "drummer1/eval_session/6",
+        "midi_filename": "drummer1/eval_session/6_hiphop-groove6_87_beat_4-4.mid",
+        "session": "drummer1/eval_session",
+        "split": "test",
+        "style": "hiphop/groove6",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer5",
+        "groove": "groove6"
+      },
+      "id": "gmd022",
+      "member": {
+        "bytes": 2498,
+        "crc32": "f8809f95",
+        "path": "groove/drummer5/eval_session/6_hiphop-groove6_87_beat_4-4.mid",
+        "sha256": "230725b8e4a5e63ffca0b5a038beb89b280d481f6432a7b0563e928995fc8219"
+      },
+      "metadata": {
+        "audio_filename": "drummer5/eval_session/6_hiphop-groove6_87_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "87",
+        "drummer": "drummer5",
+        "duration": "44.081886",
+        "id": "drummer5/eval_session/6",
+        "midi_filename": "drummer5/eval_session/6_hiphop-groove6_87_beat_4-4.mid",
+        "session": "drummer5/eval_session",
+        "split": "test",
+        "style": "hiphop/groove6",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer7",
+        "groove": "groove6"
+      },
+      "id": "gmd023",
+      "member": {
+        "bytes": 3305,
+        "crc32": "b0ecffc0",
+        "path": "groove/drummer7/eval_session/6_hiphop-groove6_87_beat_4-4.mid",
+        "sha256": "524be7b67c9ffb4902e3e87a2d86e4fc2a3e6ff0c96842ab0212cdb62f386428"
+      },
+      "metadata": {
+        "audio_filename": "drummer7/eval_session/6_hiphop-groove6_87_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "87",
+        "drummer": "drummer7",
+        "duration": "43.837633",
+        "id": "drummer7/eval_session/6",
+        "midi_filename": "drummer7/eval_session/6_hiphop-groove6_87_beat_4-4.mid",
+        "session": "drummer7/eval_session",
+        "split": "test",
+        "style": "hiphop/groove6",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer8",
+        "groove": "groove6"
+      },
+      "id": "gmd024",
+      "member": {
+        "bytes": 3150,
+        "crc32": "05c2d2ae",
+        "path": "groove/drummer8/eval_session/6_hiphop-groove6_87_beat_4-4.mid",
+        "sha256": "37c1d5eb930c213723cd4b717a08626bac66723c4ed4f8f665da3344645b2f68"
+      },
+      "metadata": {
+        "audio_filename": "drummer8/eval_session/6_hiphop-groove6_87_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "87",
+        "drummer": "drummer8",
+        "duration": "43.866368",
+        "id": "drummer8/eval_session/6",
+        "midi_filename": "drummer8/eval_session/6_hiphop-groove6_87_beat_4-4.mid",
+        "session": "drummer8/eval_session",
+        "split": "test",
+        "style": "hiphop/groove6",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer1",
+        "groove": "groove7"
+      },
+      "id": "gmd025",
+      "member": {
+        "bytes": 1894,
+        "crc32": "65bf4994",
+        "path": "groove/drummer1/eval_session/7_pop-groove7_138_beat_4-4.mid",
+        "sha256": "d65fbd6b773c84859701167094952464632575ccc2a35c7442d457dc5d2e4745"
+      },
+      "metadata": {
+        "audio_filename": "drummer1/eval_session/7_pop-groove7_138_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "138",
+        "drummer": "drummer1",
+        "duration": "27.706547",
+        "id": "drummer1/eval_session/7",
+        "midi_filename": "drummer1/eval_session/7_pop-groove7_138_beat_4-4.mid",
+        "session": "drummer1/eval_session",
+        "split": "test",
+        "style": "pop/groove7",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer5",
+        "groove": "groove7"
+      },
+      "id": "gmd026",
+      "member": {
+        "bytes": 3002,
+        "crc32": "2ecbf0cb",
+        "path": "groove/drummer5/eval_session/7_pop-groove7_138_beat_4-4.mid",
+        "sha256": "ebfc116516d8b74126a984edbb856ea690ab5a7ff27b2df92367944dd85829ff"
+      },
+      "metadata": {
+        "audio_filename": "drummer5/eval_session/7_pop-groove7_138_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "138",
+        "drummer": "drummer5",
+        "duration": "27.824300",
+        "id": "drummer5/eval_session/7",
+        "midi_filename": "drummer5/eval_session/7_pop-groove7_138_beat_4-4.mid",
+        "session": "drummer5/eval_session",
+        "split": "test",
+        "style": "pop/groove7",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer7",
+        "groove": "groove7"
+      },
+      "id": "gmd027",
+      "member": {
+        "bytes": 1714,
+        "crc32": "7022242b",
+        "path": "groove/drummer7/eval_session/7_pop-groove7_138_beat_4-4.mid",
+        "sha256": "42cf3c42b89e9bc12f8a8fde89bb92b47bc4c8f2f1daff8c8ea519421861dbf9"
+      },
+      "metadata": {
+        "audio_filename": "drummer7/eval_session/7_pop-groove7_138_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "138",
+        "drummer": "drummer7",
+        "duration": "27.694771",
+        "id": "drummer7/eval_session/7",
+        "midi_filename": "drummer7/eval_session/7_pop-groove7_138_beat_4-4.mid",
+        "session": "drummer7/eval_session",
+        "split": "test",
+        "style": "pop/groove7",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer8",
+        "groove": "groove7"
+      },
+      "id": "gmd028",
+      "member": {
+        "bytes": 2115,
+        "crc32": "eca7ba1c",
+        "path": "groove/drummer8/eval_session/7_pop-groove7_138_beat_4-4.mid",
+        "sha256": "e374db71ee5861723e8e017311a8924f8d58e1612dd922198179320ef8e737db"
+      },
+      "metadata": {
+        "audio_filename": "drummer8/eval_session/7_pop-groove7_138_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "138",
+        "drummer": "drummer8",
+        "duration": "27.701112",
+        "id": "drummer8/eval_session/7",
+        "midi_filename": "drummer8/eval_session/7_pop-groove7_138_beat_4-4.mid",
+        "session": "drummer8/eval_session",
+        "split": "test",
+        "style": "pop/groove7",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer1",
+        "groove": "groove8"
+      },
+      "id": "gmd029",
+      "member": {
+        "bytes": 2437,
+        "crc32": "e0067771",
+        "path": "groove/drummer1/eval_session/8_rock-groove8_65_beat_4-4.mid",
+        "sha256": "3dff4fa146063ac75d0f58d83f47f217efaf3e25cca8721ff0c2dfbd13a56c0e"
+      },
+      "metadata": {
+        "audio_filename": "drummer1/eval_session/8_rock-groove8_65_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "65",
+        "drummer": "drummer1",
+        "duration": "59.067313",
+        "id": "drummer1/eval_session/8",
+        "midi_filename": "drummer1/eval_session/8_rock-groove8_65_beat_4-4.mid",
+        "session": "drummer1/eval_session",
+        "split": "test",
+        "style": "rock/groove8",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer5",
+        "groove": "groove8"
+      },
+      "id": "gmd030",
+      "member": {
+        "bytes": 2699,
+        "crc32": "cb0856af",
+        "path": "groove/drummer5/eval_session/8_rock-groove8_65_beat_4-4.mid",
+        "sha256": "a41dcd9a08ca1314403e296103dcfc8f2e53ae88c0145d5e6634da55edf2ca68"
+      },
+      "metadata": {
+        "audio_filename": "drummer5/eval_session/8_rock-groove8_65_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "65",
+        "drummer": "drummer5",
+        "duration": "58.482697",
+        "id": "drummer5/eval_session/8",
+        "midi_filename": "drummer5/eval_session/8_rock-groove8_65_beat_4-4.mid",
+        "session": "drummer5/eval_session",
+        "split": "test",
+        "style": "rock/groove8",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer7",
+        "groove": "groove8"
+      },
+      "id": "gmd031",
+      "member": {
+        "bytes": 2276,
+        "crc32": "877a88d7",
+        "path": "groove/drummer7/eval_session/8_rock-groove8_65_beat_4-4.mid",
+        "sha256": "b0c1492b8c32febf37c998fbcc631439c876a62ac2f64f157a3ff2e2156f9333"
+      },
+      "metadata": {
+        "audio_filename": "drummer7/eval_session/8_rock-groove8_65_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "65",
+        "drummer": "drummer7",
+        "duration": "58.544236",
+        "id": "drummer7/eval_session/8",
+        "midi_filename": "drummer7/eval_session/8_rock-groove8_65_beat_4-4.mid",
+        "session": "drummer7/eval_session",
+        "split": "test",
+        "style": "rock/groove8",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer8",
+        "groove": "groove8"
+      },
+      "id": "gmd032",
+      "member": {
+        "bytes": 2453,
+        "crc32": "3749e52d",
+        "path": "groove/drummer8/eval_session/8_rock-groove8_65_beat_4-4.mid",
+        "sha256": "df08434a3702e92e5a089133480394bb217959730248f2092d7e8f7dadbadda7"
+      },
+      "metadata": {
+        "audio_filename": "drummer8/eval_session/8_rock-groove8_65_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "65",
+        "drummer": "drummer8",
+        "duration": "59.028851",
+        "id": "drummer8/eval_session/8",
+        "midi_filename": "drummer8/eval_session/8_rock-groove8_65_beat_4-4.mid",
+        "session": "drummer8/eval_session",
+        "split": "test",
+        "style": "rock/groove8",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer1",
+        "groove": "groove9"
+      },
+      "id": "gmd033",
+      "member": {
+        "bytes": 3448,
+        "crc32": "cf2e83b6",
+        "path": "groove/drummer1/eval_session/9_soul-groove9_105_beat_4-4.mid",
+        "sha256": "0d8d0ce0656541ed589b06b017284c987084707e2255555283cfaeb4aaeea055"
+      },
+      "metadata": {
+        "audio_filename": "drummer1/eval_session/9_soul-groove9_105_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "105",
+        "drummer": "drummer1",
+        "duration": "36.540504",
+        "id": "drummer1/eval_session/9",
+        "midi_filename": "drummer1/eval_session/9_soul-groove9_105_beat_4-4.mid",
+        "session": "drummer1/eval_session",
+        "split": "test",
+        "style": "soul/groove9",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer5",
+        "groove": "groove9"
+      },
+      "id": "gmd034",
+      "member": {
+        "bytes": 2532,
+        "crc32": "83fe9615",
+        "path": "groove/drummer5/eval_session/9_soul-groove9_105_beat_4-4.mid",
+        "sha256": "46d5dbf11b0352a3c67431fb3fbb1c607ef634e59e45eb9007969f8df1279afa"
+      },
+      "metadata": {
+        "audio_filename": "drummer5/eval_session/9_soul-groove9_105_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "105",
+        "drummer": "drummer5",
+        "duration": "36.646456",
+        "id": "drummer5/eval_session/9",
+        "midi_filename": "drummer5/eval_session/9_soul-groove9_105_beat_4-4.mid",
+        "session": "drummer5/eval_session",
+        "split": "test",
+        "style": "soul/groove9",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer7",
+        "groove": "groove9"
+      },
+      "id": "gmd035",
+      "member": {
+        "bytes": 2316,
+        "crc32": "0d59dae8",
+        "path": "groove/drummer7/eval_session/9_soul-groove9_105_beat_4-4.mid",
+        "sha256": "4e1fcc247f8d5f2d556829bd3a962e9672dd1abf60c315d6d125d85473d62295"
+      },
+      "metadata": {
+        "audio_filename": "drummer7/eval_session/9_soul-groove9_105_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "105",
+        "drummer": "drummer7",
+        "duration": "36.554789",
+        "id": "drummer7/eval_session/9",
+        "midi_filename": "drummer7/eval_session/9_soul-groove9_105_beat_4-4.mid",
+        "session": "drummer7/eval_session",
+        "split": "test",
+        "style": "soul/groove9",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer8",
+        "groove": "groove9"
+      },
+      "id": "gmd036",
+      "member": {
+        "bytes": 2301,
+        "crc32": "8bbaf632",
+        "path": "groove/drummer8/eval_session/9_soul-groove9_105_beat_4-4.mid",
+        "sha256": "c42924ca4dbad66cf1e3dca24c421b80c2390c536a4d2eea6e70a70401b0f0ce"
+      },
+      "metadata": {
+        "audio_filename": "drummer8/eval_session/9_soul-groove9_105_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "105",
+        "drummer": "drummer8",
+        "duration": "36.557170",
+        "id": "drummer8/eval_session/9",
+        "midi_filename": "drummer8/eval_session/9_soul-groove9_105_beat_4-4.mid",
+        "session": "drummer8/eval_session",
+        "split": "test",
+        "style": "soul/groove9",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer1",
+        "groove": "groove10"
+      },
+      "id": "gmd037",
+      "member": {
+        "bytes": 2589,
+        "crc32": "68efa48e",
+        "path": "groove/drummer1/eval_session/10_soul-groove10_102_beat_4-4.mid",
+        "sha256": "34609f1b6b71c8e52dfb341434ddef3e72f2c5f53418bc7045f3df6c00b286e3"
+      },
+      "metadata": {
+        "audio_filename": "drummer1/eval_session/10_soul-groove10_102_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "102",
+        "drummer": "drummer1",
+        "duration": "37.691158",
+        "id": "drummer1/eval_session/10",
+        "midi_filename": "drummer1/eval_session/10_soul-groove10_102_beat_4-4.mid",
+        "session": "drummer1/eval_session",
+        "split": "test",
+        "style": "soul/groove10",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer5",
+        "groove": "groove10"
+      },
+      "id": "gmd038",
+      "member": {
+        "bytes": 3007,
+        "crc32": "99af4fc4",
+        "path": "groove/drummer5/eval_session/10_soul-groove10_102_beat_4-4.mid",
+        "sha256": "9ec6bb7777a0d7d670b78259293aa4d841898d6bb8f0ae3c79a39f8a4b371373"
+      },
+      "metadata": {
+        "audio_filename": "drummer5/eval_session/10_soul-groove10_102_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "102",
+        "drummer": "drummer5",
+        "duration": "37.624981",
+        "id": "drummer5/eval_session/10",
+        "midi_filename": "drummer5/eval_session/10_soul-groove10_102_beat_4-4.mid",
+        "session": "drummer5/eval_session",
+        "split": "test",
+        "style": "soul/groove10",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer7",
+        "groove": "groove10"
+      },
+      "id": "gmd039",
+      "member": {
+        "bytes": 2603,
+        "crc32": "2332d3d4",
+        "path": "groove/drummer7/eval_session/10_soul-groove10_102_beat_4-4.mid",
+        "sha256": "9b65a0f1aeaeccc681d05e1a24b76df1cf578c6cd42121ccaea4fad1cd8dd571"
+      },
+      "metadata": {
+        "audio_filename": "drummer7/eval_session/10_soul-groove10_102_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "102",
+        "drummer": "drummer7",
+        "duration": "37.709540",
+        "id": "drummer7/eval_session/10",
+        "midi_filename": "drummer7/eval_session/10_soul-groove10_102_beat_4-4.mid",
+        "session": "drummer7/eval_session",
+        "split": "test",
+        "style": "soul/groove10",
+        "time_signature": "4-4"
+      }
+    },
+    {
+      "evaluation": {
+        "drummer": "drummer8",
+        "groove": "groove10"
+      },
+      "id": "gmd040",
+      "member": {
+        "bytes": 2753,
+        "crc32": "cab51741",
+        "path": "groove/drummer8/eval_session/10_soul-groove10_102_beat_4-4.mid",
+        "sha256": "703e028340709e9ac50fdeee16b7cf360bdc6ec1530d4fec3a5bb48c16aa780e"
+      },
+      "metadata": {
+        "audio_filename": "drummer8/eval_session/10_soul-groove10_102_beat_4-4.wav",
+        "beat_type": "beat",
+        "bpm": "102",
+        "drummer": "drummer8",
+        "duration": "37.465668",
+        "id": "drummer8/eval_session/10",
+        "midi_filename": "drummer8/eval_session/10_soul-groove10_102_beat_4-4.mid",
+        "session": "drummer8/eval_session",
+        "split": "test",
+        "style": "soul/groove10",
+        "time_signature": "4-4"
+      }
+    }
+  ],
+  "dataset": "Groove MIDI Dataset v1.0.0",
+  "kit_pitches": [
+    36,
+    38,
+    42,
+    43,
+    46,
+    47,
+    49,
+    50,
+    51
+  ],
+  "license": "CC-BY-4.0",
+  "metadata_member": {
+    "bytes": 206476,
+    "crc32": "d0e44bc1",
+    "path": "groove/info.csv",
+    "sha256": "3e17eef2f18012c0160c183ad5b106964eb429876cceb1eee1b746def4e6b11b"
+  },
+  "official_source": "https://magenta.tensorflow.org/datasets/groove",
+  "paper_mapping": {
+    "22": 42,
+    "26": 46,
+    "36": 36,
+    "37": 38,
+    "38": 38,
+    "40": 38,
+    "42": 42,
+    "43": 43,
+    "44": 42,
+    "45": 47,
+    "46": 46,
+    "47": 47,
+    "48": 50,
+    "49": 49,
+    "50": 50,
+    "51": 51,
+    "52": 49,
+    "53": 51,
+    "55": 49,
+    "57": 49,
+    "58": 43,
+    "59": 51
+  },
+  "purpose": "All four real drummers performing the same ten instructed grooves; no canonical written-score ground truth.",
+  "schema_version": 1,
+  "selection": {
+    "drummers": [
+      "drummer1",
+      "drummer5",
+      "drummer7",
+      "drummer8"
+    ],
+    "grooves": [
+      "groove1",
+      "groove2",
+      "groove3",
+      "groove4",
+      "groove5",
+      "groove6",
+      "groove7",
+      "groove8",
+      "groove9",
+      "groove10"
+    ],
+    "minimum_source_end_q": 60,
+    "planned_recordings": 40,
+    "rule": "Every info.csv row whose session ends with /eval_session; no performance outcome filtering or replacement.",
+    "split": "test",
+    "supplied_meter": "4/4",
+    "window_onset_q": [
+      0,
+      60
+    ]
+  }
+}

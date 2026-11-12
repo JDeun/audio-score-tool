@@ -1,0 +1,287 @@
+{
+  "archive_bytes": 273834,
+  "archive_sha256": "7dad622b5ed1106691a5c10c387ef810b286cf49ce2bceaac920d0bdf45cd2af",
+  "audit_script_sha256": "18f3a7abd00738a560698977cb66ce47e95fc4e0443e1f990921fa15b978a478",
+  "audit_type": "independent input, model and evaluation reconstruction",
+  "checked": {
+    "arm_decisions": 1572,
+    "assertions": 77952,
+    "cross_drummer_pairs": 600,
+    "derived_pair_distances": 4200,
+    "event_content_fingerprints": 524,
+    "exact_observation_counterfactual_pairs": 2,
+    "fit_summaries": 2096,
+    "input_file_hashes": 524,
+    "measured_source_hashes": 12,
+    "numeric_comparisons": 8735,
+    "original_member_hashes": 41,
+    "per_hit_phase_assignments": 97480,
+    "prediction_content_fingerprints": 524,
+    "prediction_file_hashes": 524,
+    "query_method_results": 280,
+    "real_feature_fingerprints": 280,
+    "real_input_events": 10818,
+    "real_method_aggregates": 7,
+    "same_bpm_controls": 2,
+    "source_midi_files": 40,
+    "source_note_ons": 11493,
+    "synthetic_case_evaluations": 484,
+    "synthetic_family_rows": 32,
+    "synthetic_input_events": 13552,
+    "synthetic_method_aggregates": 4
+  },
+  "checkout_revision": "4a167f7ac2c2eb97fe1e393ca195d947a0da61fe",
+  "checkout_tree": "6fda55f0a3194f0fcc96366b9527a1466feb5e1f",
+  "counterfactual_checks": [
+    {
+      "arms": {
+        "always_four_on_floor": {
+          "correct": 1,
+          "decisions": [
+            "2a4daa89dd14fb99c03822fa58b0a5081f3ab360b750644d0009377b93369583",
+            "2a4daa89dd14fb99c03822fa58b0a5081f3ab360b750644d0009377b93369583"
+          ],
+          "truth_in_candidates": 1,
+          "wrong": 1
+        },
+        "phase_aware": {
+          "correct": 0,
+          "decisions": [
+            null,
+            null
+          ],
+          "truth_in_candidates": 2,
+          "wrong": 0
+        },
+        "straight_narrow": {
+          "correct": 1,
+          "decisions": [
+            "c04bce006be878d46aad8ec523ac526baf5e98d119c9101c86d8032bb8eefe7a",
+            "c04bce006be878d46aad8ec523ac526baf5e98d119c9101c86d8032bb8eefe7a"
+          ],
+          "truth_in_candidates": 1,
+          "wrong": 1
+        },
+        "straight_wide": {
+          "correct": 1,
+          "decisions": [
+            "c04bce006be878d46aad8ec523ac526baf5e98d119c9101c86d8032bb8eefe7a",
+            "c04bce006be878d46aad8ec523ac526baf5e98d119c9101c86d8032bb8eefe7a"
+          ],
+          "truth_in_candidates": 1,
+          "wrong": 1
+        }
+      },
+      "ids": [
+        "counterfactual/three_to_one/swung_eighth",
+        "counterfactual/three_to_one/literal_written"
+      ],
+      "inputs_identical": true,
+      "pair": "three_to_one",
+      "predictions_identical": true,
+      "targets_differ": true
+    },
+    {
+      "arms": {
+        "always_four_on_floor": {
+          "correct": 1,
+          "decisions": [
+            "2a4daa89dd14fb99c03822fa58b0a5081f3ab360b750644d0009377b93369583",
+            "2a4daa89dd14fb99c03822fa58b0a5081f3ab360b750644d0009377b93369583"
+          ],
+          "truth_in_candidates": 1,
+          "wrong": 1
+        },
+        "phase_aware": {
+          "correct": 0,
+          "decisions": [
+            null,
+            null
+          ],
+          "truth_in_candidates": 2,
+          "wrong": 0
+        },
+        "straight_narrow": {
+          "correct": 1,
+          "decisions": [
+            "1cd41f5551d4668a223e91c0dba086aebb0ce8c17739b52b347b8e95420703bd",
+            "1cd41f5551d4668a223e91c0dba086aebb0ce8c17739b52b347b8e95420703bd"
+          ],
+          "truth_in_candidates": 1,
+          "wrong": 1
+        },
+        "straight_wide": {
+          "correct": 1,
+          "decisions": [
+            "1cd41f5551d4668a223e91c0dba086aebb0ce8c17739b52b347b8e95420703bd",
+            "1cd41f5551d4668a223e91c0dba086aebb0ce8c17739b52b347b8e95420703bd"
+          ],
+          "truth_in_candidates": 1,
+          "wrong": 1
+        }
+      },
+      "ids": [
+        "counterfactual/two_to_one/swung_eighth",
+        "counterfactual/two_to_one/literal_written"
+      ],
+      "inputs_identical": true,
+      "pair": "two_to_one",
+      "predictions_identical": true,
+      "targets_differ": true
+    }
+  ],
+  "gmd_archive_sha256": "651cbc524ffb891be1a3e46d89dc82a1cecb09a57c748c7b45b844c4841dcc1e",
+  "limitations": [
+    "This verifies frozen arithmetic and input reconstruction, not adequacy of the phase model.",
+    "Mido 1.3.3 is shared with the original study; raw MIDI decoding is not an independent parser implementation.",
+    "Synthetic random-number and transcendental primitives use the Python standard library as specified.",
+    "GMD groove labels are not canonical score truth; optimistic bar-profile retrieval is not full-score recovery.",
+    "No acoustic perception, human intent, note-release accuracy or independent-sample uncertainty is established.",
+    "Execution ordering and runtime are supported by the frozen runner and receipt, not independently observed here."
+  ],
+  "maximum_absolute_numeric_difference": {
+    "fit": 0.0,
+    "real_aggregate": 0.0,
+    "real_pair": 0.0,
+    "real_retrieval": 0.0,
+    "same_bpm": 0.0
+  },
+  "measured_source_hashes_match": true,
+  "measured_source_sha256": {
+    ".github/workflows/cpu-performed-rhythm-invariance.yml": "ea3ffc6139adc8166dcbb3568a3e4a5ad0494b615d4d004d96ca0f2efffca83c",
+    "docs/research/PERFORMED_RHYTHM_INVARIANCE_PROTOCOL_2026-11-12.md": "45d4060cf7713018742826182ddee4f12d4c95c814dfccc33f07bf91383a6e55",
+    "scripts/gmd_same_groove_manifest.json": "169aa096a1281b2339caa6d31a6cd762b3162b03b4cc2b90ed09d28e710042fb",
+    "scripts/gmd_same_groove_source.py": "0de2cc5655a5c0301c4d8298e8012b55323016ce38686481301fec78ace9c4ae",
+    "scripts/performed_rhythm_invariance.py": "7f42567f97a5b5b51053bcd9e9a5a9859701190971d33df4c308af5f0f11ab22",
+    "scripts/research_test_manifest.json": "a86d7e78925641544e4c406d01a91d188f6545a26a8af19a444d939d700e7199",
+    "scripts/rhythm_invariance_study.py": "adcf66f68514c844f33e9f3b77cfd1a658d7a965bd4226fa6cc0a9532d503e45",
+    "scripts/run_performed_rhythm_invariance.py": "f1fbd288ff203f43d6b8f21659eac041858825de4a46ffc6bf72a47a40511d55",
+    "tests/test_gmd_same_groove_source.py": "ceb291a12069983571dcfa169cee8e32a13d18891c9b15296fc857b3ccddbbab",
+    "tests/test_performed_rhythm_invariance.py": "e7fee3f43cfe649c910ce035edf06e670090a9b99adb59e51828b535443eca6b",
+    "tests/test_rhythm_invariance_study.py": "53ee65993c82461e9dae60de6aec66e03204d481d8b2bf889492957baa613710",
+    "tests/test_run_performed_rhythm_invariance.py": "66aef81679bfa565b11f136203a9dfe78eb111d4629a4b7a736975e64c8e1ba6"
+  },
+  "method": {
+    "authored_inputs_reconstructed_independently": true,
+    "evaluation_reconstruction": "per-hit and multiset truth, stable/wrong families, exact counterfactuals, bar profiles, pairs, retrieval and paired changes",
+    "exact_input_and_prediction_file_hashes_required": true,
+    "full_private_arrays_published": false,
+    "midi_parser_library_reused": "mido 1.3.3; no frozen source-adapter helper reused",
+    "model_reconstruction": "literal rational phase table and exhaustive lattice enumeration; all nearest alternatives retained",
+    "repository_helpers_imported": false,
+    "scientific_parameters_changed": false
+  },
+  "numeric_absolute_tolerance": 1e-12,
+  "paired_outcomes": {
+    "real": {
+      "constant_profile": {
+        "ambiguous": 40,
+        "correct": 0,
+        "correct_queries_gained_vs_straight": 0,
+        "correct_queries_lost_vs_straight": 34,
+        "pair_separation_auc": 0.5,
+        "wrong": 0
+      },
+      "instrument_inventory": {
+        "ambiguous": 1,
+        "correct": 20,
+        "correct_queries_gained_vs_straight": 2,
+        "correct_queries_lost_vs_straight": 16,
+        "pair_separation_auc": 0.7303549382716049,
+        "wrong": 19
+      },
+      "phase_aware": {
+        "ambiguous": 0,
+        "correct": 31,
+        "correct_queries_gained_vs_straight": 1,
+        "correct_queries_lost_vs_straight": 4,
+        "pair_separation_auc": 0.9068827160493828,
+        "wrong": 9
+      },
+      "phase_best_single": {
+        "ambiguous": 0,
+        "correct": 30,
+        "correct_queries_gained_vs_straight": 1,
+        "correct_queries_lost_vs_straight": 5,
+        "pair_separation_auc": 0.839320987654321,
+        "wrong": 10
+      },
+      "straight_narrow": {
+        "ambiguous": 0,
+        "correct": 34,
+        "correct_queries_gained_vs_straight": 0,
+        "correct_queries_lost_vs_straight": 0,
+        "pair_separation_auc": 0.913641975308642,
+        "wrong": 6
+      },
+      "straight_wide": {
+        "ambiguous": 0,
+        "correct": 34,
+        "correct_queries_gained_vs_straight": 0,
+        "correct_queries_lost_vs_straight": 0,
+        "pair_separation_auc": 0.913641975308642,
+        "wrong": 6
+      },
+      "velocity_weighted_straight": {
+        "ambiguous": 0,
+        "correct": 35,
+        "correct_queries_gained_vs_straight": 3,
+        "correct_queries_lost_vs_straight": 2,
+        "pair_separation_auc": 0.8946604938271605,
+        "wrong": 5
+      }
+    },
+    "synthetic": {
+      "always_four_on_floor": {
+        "abstained": 0,
+        "all_takes_correct_families": 1,
+        "correct": 60,
+        "correct_cases_gained_vs_straight": 48,
+        "correct_cases_lost_vs_straight": 93,
+        "stable_wrong_families": 7,
+        "wrong": 420
+      },
+      "phase_aware": {
+        "abstained": 195,
+        "all_takes_correct_families": 0,
+        "correct": 201,
+        "correct_cases_gained_vs_straight": 171,
+        "correct_cases_lost_vs_straight": 75,
+        "stable_wrong_families": 0,
+        "wrong": 84
+      },
+      "straight_narrow": {
+        "abstained": 141,
+        "all_takes_correct_families": 0,
+        "correct": 105,
+        "correct_cases_gained_vs_straight": 0,
+        "correct_cases_lost_vs_straight": 0,
+        "stable_wrong_families": 0,
+        "wrong": 234
+      },
+      "straight_wide": {
+        "abstained": 27,
+        "all_takes_correct_families": 0,
+        "correct": 132,
+        "correct_cases_gained_vs_straight": 27,
+        "correct_cases_lost_vs_straight": 0,
+        "stable_wrong_families": 0,
+        "wrong": 321
+      }
+    }
+  },
+  "prediction_set_sha256": "38692737562f4fc1984917d2ce3c88a18a37d5c7c021226632a9d7955a40c206",
+  "reconstructed_private_prediction_bytes": 29117841,
+  "report_bytes": 4169391,
+  "report_sha256": "30b839ab832780789eb9d4e77632d3679cd9efac2a031f40357e9080b4b4b723",
+  "run_attempt": 1,
+  "run_id": "43236100984",
+  "runtime": {
+    "mido": "1.3.3",
+    "python": "3.12.14"
+  },
+  "schema_version": 1,
+  "source_head": "d56738e77a9d058de430e2f20b07bd238c544ef9",
+  "status": "passed",
+  "verification_identity_content_sha256": "95650608880de397f902303581e5fd2003e2fbcef9d4e7cd9832c91e714f61be"
+}

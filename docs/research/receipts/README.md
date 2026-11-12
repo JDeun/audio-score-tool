@@ -230,3 +230,46 @@ it does not claim bitwise equality of all floating probe hashes or acoustic
 ground truth. These are derived verification summaries, not original source
 event/waveform/spectrogram arrays. The original two-receipt verifier above
 retains its frozen input set and does not claim to audit this later study.
+
+## Completed common-rhythm / expressive-performance pilot
+
+`performed-rhythm-invariance-43236100984.zip` preserves exact artifact
+**13951958071** from [CPU run 43236100984](https://github.com/JDeun/audio-score-tool/actions/runs/43236100984),
+attempt 1. The [completed result](../PERFORMED_RHYTHM_INVARIANCE_RESULTS_2026-11-12.md)
+reports 480 authored onset-score cases, four identical-observation controls and
+40 actual GMD performances. All 524 inference and input-preservation checks
+completed before evaluation. Scientific completion does not establish common
+written-score recovery.
+
+- Exact ZIP: **273,834 bytes**; SHA256
+  `7dad622b5ed1106691a5c10c387ef810b286cf49ce2bceaac920d0bdf45cd2af`.
+- Sole member `report.json`: **4,169,391 bytes**; SHA256
+  `30b839ab832780789eb9d4e77632d3679cd9efac2a031f40357e9080b4b4b723`.
+- Frozen head: `d56738e77a9d058de430e2f20b07bd238c544ef9`; actual checkout:
+  `4a167f7ac2c2eb97fe1e393ca195d947a0da61fe`; both tree:
+  `6fda55f0a3194f0fcc96366b9527a1466feb5e1f`.
+- Cold source acquisition: one HTTP request / 3,260,318 bytes, complete source
+  ZIP SHA256 and 41 member hashes verified. The 40 fixed windows retain 10,818
+  attacks; 675 source attacks outside the window are explicitly counted.
+
+This receipt contains derived metadata, fingerprints, fit/decision summaries,
+pair distances, retrieval outcomes and source provenance. It contains no raw
+MIDI, event arrays, complete prediction arrays, audio or model weights. Hashes
+of indented JSON files and compact content fingerprints are separately named.
+Independent model and source/arithmetic audit summaries accompany it; they do
+not alter the immutable Actions ZIP or measured scientific files. The original
+two-receipt waveform verifier retains its frozen scope and does not claim to
+audit this study.
+
+| Independent audit | Bytes | SHA256 |
+| --- | ---: | --- |
+| [Model reconstruction](performed-rhythm-invariance-model-audit-43236100984.json) | 10,822 | `8d776215fe61c14c9486d559dcbdaa43edf6a828c984b309c568793fc90ff403` |
+| [Source and arithmetic](performed-rhythm-invariance-source-audit-43236100984.json) | 70,819 | `0c2cd62a4c204919c57fe790def7c84613413c4cb7c2d18b7d8816534fbfeac7` |
+
+Both audits pass with zero maximum numeric difference. The first reconstructs
+all 524 input/prediction files byte-for-byte and the full model-derived pair
+metrics without project helpers. The second independently decodes original
+SMF bytes without mido and verifies every reported admission and aggregate.
+Their limits remain explicit: common-groove labels are not written-score truth,
+provided clocks are not audio-inferred, and reproducing arithmetic does not
+prove the adequacy or generalization of the model.
