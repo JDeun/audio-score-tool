@@ -2,9 +2,15 @@ name: CPU Tempo Pulse Unit and Playback Invariance
 
 on:
   pull_request:
-    types: [opened, reopened]
+    types: [opened, reopened, synchronize]
     branches:
       - research/tempo-beat-model-20261112
+    paths:
+      - '.github/workflows/cpu-tempo-unit.yml'
+      - 'scripts/tempo_unit_probe.py'
+      - 'scripts/run_tempo_unit_probe.py'
+      - 'tests/test_tempo_unit_probe.py'
+      - 'tests/test_tempo_unit_boundaries.py'
   workflow_dispatch:
 
 permissions:
@@ -40,9 +46,9 @@ jobs:
           python -m pip check
       - name: Validate unit arithmetic, missing-pulse controls and XML-MIDI roundtrip
         run: |
-          python -m ruff check scripts/tempo_unit_probe.py scripts/run_tempo_unit_probe.py tests/test_tempo_unit_probe.py
+          python -m ruff check scripts/tempo_unit_probe.py scripts/run_tempo_unit_probe.py tests/test_tempo_unit_probe.py tests/test_tempo_unit_boundaries.py
           python -m compileall -q scripts/tempo_unit_probe.py scripts/run_tempo_unit_probe.py
-          python -m pytest -q tests/test_tempo_unit_probe.py
+          python -m pytest -q tests/test_tempo_unit_probe.py tests/test_tempo_unit_boundaries.py
       - name: Read only the immutable previous model result using the job artifact permission
         env:
           GH_TOKEN: ${{ github.token }}
