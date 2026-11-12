@@ -1,0 +1,469 @@
+{
+  "schema_version": 1,
+  "dataset": "KRAISLER",
+  "version": "1.0",
+  "record_id": 21082251,
+  "record_url": "https://zenodo.org/records/21082251",
+  "admission_date": "2026-11-12",
+  "archive": {
+    "url": "https://zenodo.org/api/records/21082251/files/KRAISLER.zip/content",
+    "bytes": 1558287213,
+    "published_md5": "22f6f51e9c356c1ea8f591d85603fd73",
+    "full_archive_md5_verified": false
+  },
+  "selection": {
+    "method": "ascending SHA256 of UTF-8 prefix plus two-digit track ID",
+    "prefix": "waveform-gate-kraisler-v1/",
+    "population_ids": [
+      "01",
+      "02",
+      "03",
+      "04",
+      "05",
+      "06",
+      "07",
+      "08",
+      "09",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15",
+      "16",
+      "17",
+      "18",
+      "19",
+      "20"
+    ],
+    "count": 6,
+    "selected_ids": [
+      "02",
+      "19",
+      "08",
+      "12",
+      "05",
+      "06"
+    ],
+    "replacement_allowed": false,
+    "acoustic_condition": "dry",
+    "channel": "VN",
+    "crop": "complete source file"
+  },
+  "central_directory": {
+    "offset": 1558254047,
+    "bytes": 33144,
+    "entries": 389,
+    "sha256": "44408b2f2544cf444a336ea33f8144202b66110befe501aa966764c5e31800ad"
+  },
+  "metadata_region": {
+    "offset": 1557620248,
+    "bytes": 666965,
+    "sha256": "13a1a91b6a905a191d1de09e6e87f8a99a66401874b38a9eeadc48cb69b81dcb",
+    "purpose": "One bounded suffix request containing annotations, scores, and the central directory; only selected member files are extracted."
+  },
+  "license": {
+    "metadata_label": "CC BY 4.0",
+    "description_restricts_commercial_use": true,
+    "scope": "Noncommercial research; retain attribution and original source notice. Do not claim commercial clearance."
+  },
+  "provenance_scope": "Pinned HTTP byte ranges, central-directory identity, member CRC32 and SHA256. No claim to have verified the complete archive MD5.",
+  "sources": [
+    {
+      "id": "02",
+      "source_id": "kraisler_02",
+      "selection_sha256": "05beccf16aa07e3fbd438bd84895d47eacc3ddd9033798280025ca8996b97a3a",
+      "audio": {
+        "channels": 1,
+        "sample_rate": 44100,
+        "sample_width": 2,
+        "frames": 2788611,
+        "duration_seconds": 63.233809523809526
+      },
+      "members": {
+        "audio": {
+          "path": "KRAISLER/performance_wav/02_VN_dry.wav",
+          "local_header_offset": 981374102,
+          "local_header_bytes": 68,
+          "compressed_bytes": 4591378,
+          "uncompressed_bytes": 5577266,
+          "crc32": "2b61256e",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 4591446,
+          "range_sha256": "bcaef2d962bd1e80cdbc8745188dfac53eefcb253a14ce726d8499b01396a591",
+          "sha256": "b1358c2d5d50ba71ae61c3ab3fe98412f1db25273360b22c5ba9d36d95e4f57d"
+        },
+        "notes": {
+          "path": "KRAISLER/annotation_csv/02_notes_VN.csv",
+          "local_header_offset": 1557634684,
+          "local_header_bytes": 69,
+          "compressed_bytes": 582,
+          "uncompressed_bytes": 1725,
+          "crc32": "42a23662",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 651,
+          "range_sha256": "2cd3065a7f9cbe095676a5ee2ba0e0a2101e40dc4d372aa0f52dab1bfb1124d1",
+          "sha256": "d333804a5d73fa6f99974d2b4ae1b86801ea06e87f85881b7f25acb00450bd71"
+        },
+        "beats": {
+          "path": "KRAISLER/annotation_csv/02_beats.csv",
+          "local_header_offset": 1557651203,
+          "local_header_bytes": 66,
+          "compressed_bytes": 384,
+          "uncompressed_bytes": 1312,
+          "crc32": "35ac2635",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 450,
+          "range_sha256": "462078b920f8c566a52da1121d158f5f3150fb8d45505f1c32a3100765e6d4c9",
+          "sha256": "30249f39cd6fa14216252c2c70cb56615551aca24eba04fa8809713eb1570b92"
+        },
+        "score": {
+          "path": "KRAISLER/score_musicxml/02_VN.musicxml",
+          "local_header_offset": 1557661532,
+          "local_header_bytes": 68,
+          "compressed_bytes": 3832,
+          "uncompressed_bytes": 46022,
+          "crc32": "24efd31d",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 3900,
+          "range_sha256": "59173ca14cf8714e11d132ef46e2241109ffc7f8ba3ea9a102b3d9e1e9eac688",
+          "sha256": "e593905740a24d87802d6a1549a8a5fd3da0419f74c82407aff9aa9b8d997166"
+        }
+      }
+    },
+    {
+      "id": "19",
+      "source_id": "kraisler_19",
+      "selection_sha256": "109c1fce2c268f9f1eafe9e05545b5f14135c23faa8cccc07e4e704ad8fdd33a",
+      "audio": {
+        "channels": 1,
+        "sample_rate": 44100,
+        "sample_width": 2,
+        "frames": 2976750,
+        "duration_seconds": 67.5
+      },
+      "members": {
+        "audio": {
+          "path": "KRAISLER/performance_wav/19_VN_dry.wav",
+          "local_header_offset": 1497960640,
+          "local_header_bytes": 68,
+          "compressed_bytes": 4863552,
+          "uncompressed_bytes": 5953544,
+          "crc32": "76b6fee6",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 4863620,
+          "range_sha256": "cedd531b1598aa028d7691c1626eabac9d5ec0aff75924f58e75921f9a2a07f5",
+          "sha256": "27ba061f03e6a7befd0d7e73e52e04a5a7d1314202362ec02c6a93a2f94ca9a3"
+        },
+        "notes": {
+          "path": "KRAISLER/annotation_csv/19_notes_VN.csv",
+          "local_header_offset": 1557645767,
+          "local_header_bytes": 69,
+          "compressed_bytes": 2042,
+          "uncompressed_bytes": 6851,
+          "crc32": "bf4f7d2c",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 2111,
+          "range_sha256": "69612c10cbe3514228c33552584c7952d4ee98507283141b9a4aabda7cf5022b",
+          "sha256": "37a4de9bc3024b9dc54dd6f946f1ffd3e9ea62a18749c1bc82bed442e89d62ef"
+        },
+        "beats": {
+          "path": "KRAISLER/annotation_csv/19_beats.csv",
+          "local_header_offset": 1557640403,
+          "local_header_bytes": 66,
+          "compressed_bytes": 965,
+          "uncompressed_bytes": 4090,
+          "crc32": "95820cc0",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 1031,
+          "range_sha256": "b95170fa5c8122d382d516983f9587af83480be0eff75c23ebfecf4e522a0a02",
+          "sha256": "cd6dd9ca1eb16ae1c5c5ef794c226fc1fe6f22f5db9ff9d48dbb71b7e29e1b38"
+        },
+        "score": {
+          "path": "KRAISLER/score_musicxml/19_VN.musicxml",
+          "local_header_offset": 1558246420,
+          "local_header_bytes": 68,
+          "compressed_bytes": 7559,
+          "uncompressed_bytes": 135510,
+          "crc32": "b7903778",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 7627,
+          "range_sha256": "df11b6672b36364e6aa540f463a9556d26547c1cc973b6035d53f831e3ada105",
+          "sha256": "3f1b5bb0a4c9ba490437f6b5c065c8be07ba2f487338ce83a31c900a0dfdc7d8"
+        }
+      }
+    },
+    {
+      "id": "08",
+      "source_id": "kraisler_08",
+      "selection_sha256": "11de33314a52e5538644c3acc27482e7665b504c8bac310ae4885fcc7aa55ea2",
+      "audio": {
+        "channels": 1,
+        "sample_rate": 44100,
+        "sample_width": 2,
+        "frames": 3263400,
+        "duration_seconds": 74.0
+      },
+      "members": {
+        "audio": {
+          "path": "KRAISLER/performance_wav/08_VN_dry.wav",
+          "local_header_offset": 1437154116,
+          "local_header_bytes": 68,
+          "compressed_bytes": 5076149,
+          "uncompressed_bytes": 6526844,
+          "crc32": "541af87b",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 5076217,
+          "range_sha256": "ff66b90f9033fae52b4f32db3b01ac2d5eb1aaab087942ebea0cd067e487dc12",
+          "sha256": "c57e4d58ac89ba02da8d35dca480c89283a895dd212ede8627760792e861ee96"
+        },
+        "notes": {
+          "path": "KRAISLER/annotation_csv/08_notes_VN.csv",
+          "local_header_offset": 1557638726,
+          "local_header_bytes": 69,
+          "compressed_bytes": 1608,
+          "uncompressed_bytes": 4770,
+          "crc32": "40642564",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 1677,
+          "range_sha256": "66694764a90dfc66840e5f469841e8fc4325fbc21145fc37d1919c162acd8e12",
+          "sha256": "aec0d643aa6855663166213280345249be5716c34a6b2adc7d077de3278f12c6"
+        },
+        "beats": {
+          "path": "KRAISLER/annotation_csv/08_beats.csv",
+          "local_header_offset": 1557649846,
+          "local_header_bytes": 66,
+          "compressed_bytes": 638,
+          "uncompressed_bytes": 2472,
+          "crc32": "041d98fe",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 704,
+          "range_sha256": "abc5ad05b2ee6b936696a1cd64e8d3259cf84468216d9f20c2a9c0223399353a",
+          "sha256": "b31e1415a52ea168d1dcc326ab703b390e11f8fe6033abfded2fbe8f00debc01"
+        },
+        "score": {
+          "path": "KRAISLER/score_musicxml/08_VN.musicxml",
+          "local_header_offset": 1557920418,
+          "local_header_bytes": 68,
+          "compressed_bytes": 7063,
+          "uncompressed_bytes": 108632,
+          "crc32": "a68df713",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 7131,
+          "range_sha256": "61b252d0680227c02bf23439f5ce06a9a59a7285805d3ee82ea07bc6798aedea",
+          "sha256": "9b70336f0c8746af132a673f602098c60d608bd8963a7b924621697ff8e5406d"
+        }
+      }
+    },
+    {
+      "id": "12",
+      "source_id": "kraisler_12",
+      "selection_sha256": "184aefba538f93ccddb45e7a840db748f8e633383c375750b77990452686bf8d",
+      "audio": {
+        "channels": 1,
+        "sample_rate": 44100,
+        "sample_width": 2,
+        "frames": 2116800,
+        "duration_seconds": 48.0
+      },
+      "members": {
+        "audio": {
+          "path": "KRAISLER/performance_wav/12_VN_dry.wav",
+          "local_header_offset": 604635822,
+          "local_header_bytes": 68,
+          "compressed_bytes": 2975592,
+          "uncompressed_bytes": 4233644,
+          "crc32": "47c29715",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 2975660,
+          "range_sha256": "8344a86a14b0e26f8c3692ec7363515d7d09605558b678d5e82677c23a11ebc6",
+          "sha256": "0e88e6242167f4f3cc22a43d9caedd6c528e4d268dcc121dbe37a081413c2ed8"
+        },
+        "notes": {
+          "path": "KRAISLER/annotation_csv/12_notes_VN.csv",
+          "local_header_offset": 1557652773,
+          "local_header_bytes": 69,
+          "compressed_bytes": 480,
+          "uncompressed_bytes": 1496,
+          "crc32": "f1b74227",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 549,
+          "range_sha256": "a0378042a32f564b116e037ea87126b4bc36f85f7b3562af7aa48af012be1e03",
+          "sha256": "8da6d92567c8f8e42c0731e748d492d4b6a6e6a6ead48568be066280f324d3e0"
+        },
+        "beats": {
+          "path": "KRAISLER/annotation_csv/12_beats.csv",
+          "local_header_offset": 1557641434,
+          "local_header_bytes": 66,
+          "compressed_bytes": 298,
+          "uncompressed_bytes": 975,
+          "crc32": "8b385a1d",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 364,
+          "range_sha256": "ffa3519d6e775074da300d0ec561d08bf4b4b18f9f733ab7cb6400df87425123",
+          "sha256": "afdad01a566983e807a3b79e74d0c0349601637ee5fb3d0e53b11b1d61c85c0f"
+        },
+        "score": {
+          "path": "KRAISLER/score_musicxml/12_VN.musicxml",
+          "local_header_offset": 1557748067,
+          "local_header_bytes": 68,
+          "compressed_bytes": 3090,
+          "uncompressed_bytes": 32803,
+          "crc32": "cf25b9f1",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 3158,
+          "range_sha256": "2e35c22187aef069432504840ad3bd1aab08a10cfc6b1cf12e01fefa9b01c985",
+          "sha256": "3aba1f872bf28f8746e9c796fc24cf52e415b8224236238c1cea839476d9381b"
+        }
+      }
+    },
+    {
+      "id": "05",
+      "source_id": "kraisler_05",
+      "selection_sha256": "1edc8190585e4bfb7e415a53d1204b63294406e1abca0ad138019b38d9ef0e04",
+      "audio": {
+        "channels": 1,
+        "sample_rate": 44100,
+        "sample_width": 2,
+        "frames": 3197250,
+        "duration_seconds": 72.5
+      },
+      "members": {
+        "audio": {
+          "path": "KRAISLER/performance_wav/05_VN_dry.wav",
+          "local_header_offset": 1551426711,
+          "local_header_bytes": 68,
+          "compressed_bytes": 4473364,
+          "uncompressed_bytes": 6394544,
+          "crc32": "22adb28a",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 4473432,
+          "range_sha256": "74401c5ceca9a185a3883e55578a79fb44175046916147761fdda437ed71a885",
+          "sha256": "45abd7854425b534faca695e7af3b7c8bee29def9bfd168295d4ff95c4f43d71"
+        },
+        "notes": {
+          "path": "KRAISLER/annotation_csv/05_notes_VN.csv",
+          "local_header_offset": 1557633544,
+          "local_header_bytes": 69,
+          "compressed_bytes": 1071,
+          "uncompressed_bytes": 3559,
+          "crc32": "09e63861",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 1140,
+          "range_sha256": "a1bc6408a6be024a693a24d82eaa4263fa5178fa7765d00e580872bd7b906782",
+          "sha256": "191b7b1e2f524637aa6e6a569b4e699af1bfe095a857b8abcd7db5cf71a57699"
+        },
+        "beats": {
+          "path": "KRAISLER/annotation_csv/05_beats.csv",
+          "local_header_offset": 1557648862,
+          "local_header_bytes": 66,
+          "compressed_bytes": 500,
+          "uncompressed_bytes": 1783,
+          "crc32": "f60e741b",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 566,
+          "range_sha256": "bb4f3ef4a811a4b9a7350a54e3e613f2a445d955acbd72703d96b46582460edf",
+          "sha256": "6825ef470e9c49dce55536067771bc8cc8086805ff45156e84251db2b2a12e30"
+        },
+        "score": {
+          "path": "KRAISLER/score_musicxml/05_VN.musicxml",
+          "local_header_offset": 1558236554,
+          "local_header_bytes": 68,
+          "compressed_bytes": 5085,
+          "uncompressed_bytes": 80947,
+          "crc32": "d180ce2f",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 5153,
+          "range_sha256": "75ee59b29a98e80a7020ac3a2d051861288ecff107f0e50b266e0c10090cd6e1",
+          "sha256": "15fa4dd430361223900a22794a04ed665683bc29a3331001dde7a89671611cb0"
+        }
+      }
+    },
+    {
+      "id": "06",
+      "source_id": "kraisler_06",
+      "selection_sha256": "6caca5cfcf5091d4731121619925bb63ea7fed664ce8848ecb884ee8201eeb72",
+      "audio": {
+        "channels": 1,
+        "sample_rate": 44100,
+        "sample_width": 2,
+        "frames": 3439800,
+        "duration_seconds": 78.0
+      },
+      "members": {
+        "audio": {
+          "path": "KRAISLER/performance_wav/06_VN_dry.wav",
+          "local_header_offset": 336963908,
+          "local_header_bytes": 68,
+          "compressed_bytes": 5692445,
+          "uncompressed_bytes": 6879644,
+          "crc32": "32bdcf6e",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 5692513,
+          "range_sha256": "ecb5b672f711a0c06dd87b54fff02a995f7de4ef556811c6e03d3afa016b308e",
+          "sha256": "9cf1a01d7e729ff6ac14be93cfa9ec866d63aa22fdded5de6dd1bfbe7d8f1ee1"
+        },
+        "notes": {
+          "path": "KRAISLER/annotation_csv/06_notes_VN.csv",
+          "local_header_offset": 1557657650,
+          "local_header_bytes": 69,
+          "compressed_bytes": 1174,
+          "uncompressed_bytes": 3771,
+          "crc32": "f7f0e072",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 1243,
+          "range_sha256": "4f57fe23122dc9fb6e3aca67f1c3d2d4874bf075fa481717d5822d133c7eb4e9",
+          "sha256": "f86bd6889e26d828bb917a4a9f9a9e22e59286df60f2b779e6c327100966122e"
+        },
+        "beats": {
+          "path": "KRAISLER/annotation_csv/06_beats.csv",
+          "local_header_offset": 1557642853,
+          "local_header_bytes": 66,
+          "compressed_bytes": 660,
+          "uncompressed_bytes": 2712,
+          "crc32": "224f18c2",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 726,
+          "range_sha256": "358605dda433493270cc1f3b6377e982c306fda75d5c190e48bedf49bf8ea5fd",
+          "sha256": "cb1deed537cd3430aa29135297218f4df93ce2c7deedabddc665c31158b02722"
+        },
+        "score": {
+          "path": "KRAISLER/score_musicxml/06_VN.musicxml",
+          "local_header_offset": 1558030324,
+          "local_header_bytes": 68,
+          "compressed_bytes": 4269,
+          "uncompressed_bytes": 78540,
+          "crc32": "756665fe",
+          "compression_method": 8,
+          "flags": 0,
+          "range_bytes": 4337,
+          "range_sha256": "634a0613498a4e3e89ba9a78d1821e9d56c80b782759e72dbfd5dac93187ffa5",
+          "sha256": "6f3c14f3fce4c3f82a174a831fec27d4b8a454176a6795e5e2454e759140ad5f"
+        }
+      }
+    }
+  ]
+}

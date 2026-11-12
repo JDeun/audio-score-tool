@@ -7,7 +7,9 @@ Use the [research template](RESEARCH_TEMPLATE.md) for reproducible investigation
 ## Current navigation
 
 - [Research consolidation scope](RESEARCH_INTEGRATION_2026-11-12.md) and [pinned source manifest](RESEARCH_MERGE_MANIFEST_2026-11-12.json): research evidence integrated through [PR #266](https://github.com/JDeun/audio-score-tool/pull/266); this did not activate corrections in the product.
-- [Actual waveform gate results](AUDIO_GATE_REST_RESULTS_2026-11-12.md): latest completed pilot, integrated through [PR #270](https://github.com/JDeun/audio-score-tool/pull/270). Performed-note gaps remain distinct from written rests.
+- [Actual waveform gate results](AUDIO_GATE_REST_RESULTS_2026-11-12.md) and [edit attribution](AUDIO_GATE_ATTRIBUTION_RESULTS_2026-11-12.md): completed and integrated through [PR #270](https://github.com/JDeun/audio-score-tool/pull/270) and [PR #272](https://github.com/JDeun/audio-score-tool/pull/272). Performed-note gaps remain distinct from written rests.
+- [PR integration and cleanup](PR_CLEANUP_2026-11-12.md): #272 merged, 14 already-integrated research PRs closed, and the substantive reasons #236 remains separate.
+- [KRAISLER frozen-gate protocol](KRAISLER_GATE_PROTOCOL_2026-11-12.md): issue #273; six new actual violin recordings selected before results, with separate score/rest admission limits.
 - [Experiment/failure audit ledger](EXPERIMENT_LEDGER_2026.md), [provider landscape](AMT_PROVIDER_LANDSCAPE_2026.md), and [implementation PR/CI evidence](IMPLEMENTATION_EVIDENCE_2026.json). Verify historical implementation evidence with `python scripts/audit_research_history.py`.
 
 ## CPU vocal decoding and acoustic evidence
@@ -20,6 +22,8 @@ Use the [research template](RESEARCH_TEMPLATE.md) for reproducible investigation
 | DSP octave corroboration | [Protocol](DSP_OCTAVE_HYBRID_PROTOCOL_2026-11-11.md) | [Results](DSP_OCTAVE_HYBRID_RESULTS_2026-11-11.md) |
 | Offset-tail evidence and supplied-clock controls | [Protocol](OFFSET_TAIL_METER_PROTOCOL_2026-11-11.md) | [Basic Pitch snapshot](OFFSET_TAIL_METER_RESULTS_2026-11-11.md); [PR #248 execution record](https://github.com/JDeun/audio-score-tool/pull/248) |
 | Actual RMS gate, hard versus soft edits | [Protocol](AUDIO_GATE_REST_PROTOCOL_2026-11-12.md) | [Results](AUDIO_GATE_REST_RESULTS_2026-11-12.md) |
+| Selected waveform-gate edits, tail versus non-tail | [Protocol](AUDIO_GATE_ATTRIBUTION_PROTOCOL_2026-11-12.md) | [Results](AUDIO_GATE_ATTRIBUTION_RESULTS_2026-11-12.md) |
+| Frozen gate on new KRAISLER violin recordings | [Protocol](KRAISLER_GATE_PROTOCOL_2026-11-12.md) | Execution tracked in [issue #273](https://github.com/JDeun/audio-score-tool/issues/273) |
 
 The vocal corpus is repeatedly used development data. Performed-note F1 and non-note occupancy are not written-rest or full-score accuracy. Reports labelled partial snapshots do not establish the current status of other jobs; consult the [current status](RESEARCH_STATUS_2026-11-12.md) and linked execution records.
 
