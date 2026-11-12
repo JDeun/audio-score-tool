@@ -1,0 +1,11 @@
+{
+  "checks": {
+    "changed_archive_rejected": true,
+    "changed_summary_rejected": true
+  },
+  "original_archive_modified": false,
+  "schema_version": 1,
+  "scientific_case_run": false,
+  "script_sha256": "088c53e149917fb6bb8b58ea218d278c169247ab82b3e399a64612327f3283a2",
+  "status": "pass"
+}
