@@ -2,6 +2,16 @@
 
 This is the continuation snapshot taken with main at `7dd5c6ce0b18fda023403d92fba981867a1f0202`, after #266 and #270. It is navigation and task state, not a replacement for frozen protocols, result reports or execution receipts. The completed continuation #272 was subsequently merged; its results and later PR cleanup are distinct from the initial snapshot below.
 
+## Latest continuation: score correspondence
+
+Following the user's next-experiment instruction, [#275](https://github.com/JDeun/audio-score-tool/issues/275) / [#276](https://github.com/JDeun/audio-score-tool/pull/276) completed the [metadata-only source-correspondence study](KRAISLER_ALIGNMENT_RESULTS_2026-11-12.md) under its [fixed protocol](KRAISLER_ALIGNMENT_PROTOCOL_2026-11-12.md). All six diagnostics and conditional ledgers completed on [CPU run 43201534121](https://github.com/JDeun/audio-score-tool/actions/runs/43201534121), using 30 verified metadata members and no new audio/model inference.
+
+**The method admits only 1/6 source clock pairs:** recording 19 supplies 225/947 primary reference correspondences (23.7592%), with 137/947 stable across 50/100/200ms. The remaining 722 primary references include all previous gate match gains/losses. Three other sources have non-increasing median piano anchors; 05 lacks sufficient supported timing and exceeds residual bounds; 02 retains a grace/tie representation limit. These failures are preserved, not repaired by retuning. Nine written-rest intervals yield 0.9213s of guarded shared interior without annotated-note overlap, but no audio or prediction occupancy was measured. Source consistency remains distinct from independent acoustic truth and written-rest accuracy.
+
+The exact metadata ZIP and two independent audits are retained. New contracts: 195 passed; initial-head CI: product 2,119 / research 914, 200/38 test files, zero omissions. Latest final-head/main evidence is linked on #276. Next work is separately declared local clock support and review of reversed anchor regions, preserving this global-rejection baseline and the previous negative gate result.
+
+The preceding [#274](https://github.com/JDeun/audio-score-tool/pull/274) was merged into actual main `21705cdd3095dc816d5569b8d044807fcbed1918`. Its [main CI](https://github.com/JDeun/audio-score-tool/actions/runs/43185808879) passed with all five jobs including Tauri/verify, 2,119 product tests and 719 research tests. This is the baseline for the new continuation, not verification of its future changes. #236 remains a separate draft with a documented beat/vocal runtime-routing issue.
+
 ## Later update: integration and new-recording experiment
 
 The user explicitly requested merging ready work and clearing completed PRs. [#272](https://github.com/JDeun/audio-score-tool/pull/272) is merged at `1c9514e30e2aac92ba6857e67a940dc48b6a03e6`; [actual main CI](https://github.com/JDeun/audio-score-tool/actions/runs/43181970207) passed, including Tauri and required `verify`. Fourteen older research drafts were closed only after proving every current head was already a main ancestor. See the [cleanup record](PR_CLEANUP_2026-11-12.md), which also explains why product #236 remains open.

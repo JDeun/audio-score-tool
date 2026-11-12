@@ -1,0 +1,116 @@
+{
+  "piano_adjacent_group_audit": {
+    "06": {
+      "adjacent_pairs": 350,
+      "distinct_score_groups": 351,
+      "eligible_anchor_notes": 571,
+      "equal_medians": 0,
+      "strict_reversal_delta_ms": {
+        "maximum": -21.875,
+        "median": -79.6875,
+        "minimum": -97.91666666666667
+      },
+      "strict_reversals": 7
+    },
+    "08": {
+      "adjacent_pairs": 233,
+      "distinct_score_groups": 234,
+      "eligible_anchor_notes": 765,
+      "equal_medians": 1,
+      "strict_reversal_delta_ms": {
+        "maximum": -4.166666666666667,
+        "median": -111.45833333333334,
+        "minimum": -314.0625
+      },
+      "strict_reversals": 12
+    },
+    "12": {
+      "adjacent_pairs": 310,
+      "distinct_score_groups": 311,
+      "eligible_anchor_notes": 395,
+      "equal_medians": 0,
+      "strict_reversal_delta_ms": {
+        "maximum": -2.0833333333333335,
+        "median": -46.875,
+        "minimum": -967.7083333333334
+      },
+      "strict_reversals": 10
+    }
+  },
+  "recording_19_audit": {
+    "checked_category_counts": {
+      "accent": 1,
+      "mixed_articulation": 1,
+      "staccato": 1,
+      "unmarked": 1
+    },
+    "checked_raw_xml_tags_and_mutual_uniqueness_verified": true,
+    "independent_pair_identity_sha256": "7623ef717e038a215550988a22c0c031669cf6829137175826839a2a06524740",
+    "independent_primary_pairs": 225,
+    "last_gain": {
+      "beat_onset_residual_ms": 155.7,
+      "fixed_200ms_admitted": true,
+      "fixed_200ms_category": "unmarked",
+      "piano_onset_residual_ms": 122.89166666666667,
+      "primary_100ms_admitted": false,
+      "same_single_gained_reference_in_both_decoders": true,
+      "stable_across_windows_admitted": false
+    },
+    "pair_identity_matches_report": true,
+    "reference_notes": 295,
+    "rest_aggregate_verification": {
+      "checked_intervals_with_pitched_overlap": 0,
+      "checked_symbolic_rest_intervals": 4,
+      "explicit_rest_elements": 11,
+      "independent_projections": {
+        "global_beats": {
+          "annotated_note_overlap_s": 0.1704,
+          "duration_s": 2.7929
+        },
+        "guarded_shared_core": {
+          "annotated_note_overlap_s": 0.0,
+          "duration_s": 0.92134375
+        },
+        "piano": {
+          "annotated_note_overlap_s": 0.3994875,
+          "duration_s": 2.991796875
+        }
+      },
+      "instrument_wide_rest_intervals": 10,
+      "maximum_absolute_report_difference_s": 8.770761894538737e-15,
+      "projected_rest_intervals": 9,
+      "unprojectable_rest_intervals": 1
+    },
+    "unresolved_reason_counts": {
+      "no_candidate_in_one_or_both_clocks": 55,
+      "reference_has_multiple_candidates": 7,
+      "score_attack_has_multiple_references": 8
+    }
+  },
+  "schema_version": 1,
+  "source_sha256": {
+    "alignment_report": "ec5048b11ede7364ca5c68e9f7fb6f4889ed818d881f502aa34726ba54335f7a",
+    "members": {
+      "06": {
+        "piano_match": "eb4a38eb45d6a1e5df60860a2b707c7f025f30a56761b9ec35922969dbcc918a",
+        "piano_score": "13299fff7e581427c66f3dd98847b079b118a638ab5d8bf69a9b194bf41ca566"
+      },
+      "08": {
+        "piano_match": "72c34f274fd5e5415d9eae465c08b64ad824cca345a9766fb694d28162cdb044",
+        "piano_score": "b2b0e53c544fcd151f70323cb0324f97344aa72577801755c08868b163549273"
+      },
+      "12": {
+        "piano_match": "2579488136ef113c132246d0995a1691855ae12ecf23c19383bc2d119888c549",
+        "piano_score": "34f0b2c3088a63822958cb884e0ad1d2bbc2c03d29eb86a69c391810ba0c5eef"
+      },
+      "19": {
+        "beats": "cd6dd9ca1eb16ae1c5c5ef794c226fc1fe6f22f5db9ff9d48dbb71b7e29e1b38",
+        "notes": "37a4de9bc3024b9dc54dd6f946f1ffd3e9ea62a18749c1bc82bed442e89d62ef",
+        "piano_match": "5d15fd4d98f3bc1e23ad29702e13e6c527ab68b85549f2879d291a4b74ec609f",
+        "piano_score": "4d02aef4fc94495fe93653a53a46c7d322c80f505ba25ccb74fe9903c28c5e98",
+        "score": "3f1b5bb0a4c9ba490437f6b5c065c8be07ba2f487338ce83a31c900a0dfdc7d8"
+      }
+    },
+    "previous_gate_receipt": "ba88b9bda70d4a560a3d05c85ea5301d2e8ff98ea81746d676a1c6695898e10e"
+  }
+}

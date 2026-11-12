@@ -6,6 +6,7 @@ Use the [research template](RESEARCH_TEMPLATE.md) for reproducible investigation
 
 ## Current navigation
 
+- [KRAISLER score correspondence results](KRAISLER_ALIGNMENT_RESULTS_2026-11-12.md) and [protocol](KRAISLER_ALIGNMENT_PROTOCOL_2026-11-12.md): #275/#276 completed. The fixed source-consistency method admits 1/6 recordings and 225/947 references at 100ms (137 stable across windows). All prior gate match transitions remain unresolved in the primary/stable scopes. Exact receipts and independent audits are retained; no new inference or written-rest accuracy claim.
 - [Research consolidation scope](RESEARCH_INTEGRATION_2026-11-12.md) and [pinned source manifest](RESEARCH_MERGE_MANIFEST_2026-11-12.json): research evidence integrated through [PR #266](https://github.com/JDeun/audio-score-tool/pull/266); this did not activate corrections in the product.
 - [Actual waveform gate results](AUDIO_GATE_REST_RESULTS_2026-11-12.md) and [edit attribution](AUDIO_GATE_ATTRIBUTION_RESULTS_2026-11-12.md): completed and integrated through [PR #270](https://github.com/JDeun/audio-score-tool/pull/270) and [PR #272](https://github.com/JDeun/audio-score-tool/pull/272). Performed-note gaps remain distinct from written rests.
 - [PR integration and cleanup](PR_CLEANUP_2026-11-12.md): #272 merged, 14 already-integrated research PRs closed, and the substantive reasons #236 remains separate.
@@ -24,6 +25,7 @@ Use the [research template](RESEARCH_TEMPLATE.md) for reproducible investigation
 | Actual RMS gate, hard versus soft edits | [Protocol](AUDIO_GATE_REST_PROTOCOL_2026-11-12.md) | [Results](AUDIO_GATE_REST_RESULTS_2026-11-12.md) |
 | Selected waveform-gate edits, tail versus non-tail | [Protocol](AUDIO_GATE_ATTRIBUTION_PROTOCOL_2026-11-12.md) | [Results](AUDIO_GATE_ATTRIBUTION_RESULTS_2026-11-12.md) |
 | Frozen gate on new KRAISLER violin recordings | [Protocol](KRAISLER_GATE_PROTOCOL_2026-11-12.md) | [Completed results](KRAISLER_GATE_RESULTS_2026-11-12.md); [run 43184102838](https://github.com/JDeun/audio-score-tool/actions/runs/43184102838) |
+| KRAISLER score correspondence and conditional attribution | [Protocol](KRAISLER_ALIGNMENT_PROTOCOL_2026-11-12.md) | [Completed results](KRAISLER_ALIGNMENT_RESULTS_2026-11-12.md); [run 43201534121](https://github.com/JDeun/audio-score-tool/actions/runs/43201534121) |
 
 The vocal corpus is repeatedly used development data. Performed-note F1 and non-note occupancy are not written-rest or full-score accuracy. Reports labelled partial snapshots do not establish the current status of other jobs; consult the [current status](RESEARCH_STATUS_2026-11-12.md) and linked execution records.
 
@@ -86,3 +88,4 @@ These experiments supply clock/unit/bar/voice/chord context and aligned note inv
 - [Waveform-gate edit attribution protocol](AUDIO_GATE_ATTRIBUTION_PROTOCOL_2026-11-12.md) — issue #271; fixed full/tail-only/complementary interventions on the reused development corpus. Completed: [results](AUDIO_GATE_ATTRIBUTION_RESULTS_2026-11-12.md), [one-case recovery](AUDIO_GATE_ATTRIBUTION_RECOVERY_2026-11-12.md).
 - [Durable waveform-gate receipts](receipts/README.md) — exact historical metadata ZIPs and offline integrity/arithmetic checks.
 - [KRAISLER transfer result](KRAISLER_GATE_RESULTS_2026-11-12.md) — new-recording comparison completed, including the negative tail-only result, matching/count explanation and unaligned score audit.
+- [KRAISLER source correspondence](KRAISLER_ALIGNMENT_RESULTS_2026-11-12.md) — metadata-only follow-up completed with 1/6 clock admission, explicit unresolved denominators, conditional ledgers and limited supported rest context.

@@ -1,0 +1,646 @@
+{
+  "archive_sha256": "6f8af87bef6fa8febc977e037130b520d05d0dab8df815e3684ae6239d475005",
+  "audit_script_sha256": "6bc7d52c6ffe57829d77497df8be1cf0cee9121a0df5b87e35f4796987a62754",
+  "audit_type": "independent standard-library metadata arithmetic and identity",
+  "category_population": {
+    "primary_100ms": {
+      "accent": 6,
+      "mixed_articulation": 4,
+      "other_marked": 0,
+      "staccato": 39,
+      "tenuto": 0,
+      "unmarked": 176,
+      "unresolved": 722
+    },
+    "stable_50_100_200ms": {
+      "accent": 4,
+      "mixed_articulation": 3,
+      "other_marked": 0,
+      "staccato": 26,
+      "tenuto": 0,
+      "unmarked": 104,
+      "unresolved": 810
+    }
+  },
+  "checked": {
+    "aggregate_conditional_ledger_rows": 224,
+    "assertions": 46982,
+    "frozen_source_hashes": 14,
+    "membership_partitions": 24,
+    "new_source_hashes": 14,
+    "per_case_conditional_ledger_rows": 1344,
+    "per_case_rest_partitions": 3,
+    "prior_mask_f1_identities": 96,
+    "verified_member_hashes_and_crcs": 30
+  },
+  "checkout": "ff26548443286772df973340ea676bfef82442b3",
+  "conditional_transition_totals": {
+    "primary_100ms": {
+      "default/non_tail_only/onset": {
+        "damaged": 1,
+        "gained": 0,
+        "matched": 544,
+        "raw_matched": 545,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      "default/non_tail_only/onset_offset": {
+        "damaged": 0,
+        "gained": 0,
+        "matched": 247,
+        "raw_matched": 247,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 0,
+        "unresolved_gained": 0
+      },
+      "default/raw/onset": {
+        "damaged": 0,
+        "gained": 0,
+        "matched": 545,
+        "raw_matched": 545,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 0,
+        "unresolved_gained": 0
+      },
+      "default/raw/onset_offset": {
+        "damaged": 0,
+        "gained": 0,
+        "matched": 247,
+        "raw_matched": 247,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 0,
+        "unresolved_gained": 0
+      },
+      "default/relative_soft/onset": {
+        "damaged": 1,
+        "gained": 0,
+        "matched": 544,
+        "raw_matched": 545,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      "default/relative_soft/onset_offset": {
+        "damaged": 1,
+        "gained": 1,
+        "matched": 247,
+        "raw_matched": 247,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      "default/tail_only/onset": {
+        "damaged": 0,
+        "gained": 0,
+        "matched": 545,
+        "raw_matched": 545,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 0,
+        "unresolved_gained": 0
+      },
+      "default/tail_only/onset_offset": {
+        "damaged": 1,
+        "gained": 1,
+        "matched": 247,
+        "raw_matched": 247,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      "onset065/non_tail_only/onset": {
+        "damaged": 1,
+        "gained": 0,
+        "matched": 548,
+        "raw_matched": 549,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      "onset065/non_tail_only/onset_offset": {
+        "damaged": 0,
+        "gained": 0,
+        "matched": 287,
+        "raw_matched": 287,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 0,
+        "unresolved_gained": 0
+      },
+      "onset065/raw/onset": {
+        "damaged": 0,
+        "gained": 0,
+        "matched": 549,
+        "raw_matched": 549,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 0,
+        "unresolved_gained": 0
+      },
+      "onset065/raw/onset_offset": {
+        "damaged": 0,
+        "gained": 0,
+        "matched": 287,
+        "raw_matched": 287,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 0,
+        "unresolved_gained": 0
+      },
+      "onset065/relative_soft/onset": {
+        "damaged": 1,
+        "gained": 0,
+        "matched": 548,
+        "raw_matched": 549,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      "onset065/relative_soft/onset_offset": {
+        "damaged": 1,
+        "gained": 1,
+        "matched": 287,
+        "raw_matched": 287,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      "onset065/tail_only/onset": {
+        "damaged": 0,
+        "gained": 0,
+        "matched": 549,
+        "raw_matched": 549,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 0,
+        "unresolved_gained": 0
+      },
+      "onset065/tail_only/onset_offset": {
+        "damaged": 1,
+        "gained": 1,
+        "matched": 287,
+        "raw_matched": 287,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      }
+    },
+    "stable_50_100_200ms": {
+      "default/non_tail_only/onset": {
+        "damaged": 1,
+        "gained": 0,
+        "matched": 544,
+        "raw_matched": 545,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      "default/non_tail_only/onset_offset": {
+        "damaged": 0,
+        "gained": 0,
+        "matched": 247,
+        "raw_matched": 247,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 0,
+        "unresolved_gained": 0
+      },
+      "default/raw/onset": {
+        "damaged": 0,
+        "gained": 0,
+        "matched": 545,
+        "raw_matched": 545,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 0,
+        "unresolved_gained": 0
+      },
+      "default/raw/onset_offset": {
+        "damaged": 0,
+        "gained": 0,
+        "matched": 247,
+        "raw_matched": 247,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 0,
+        "unresolved_gained": 0
+      },
+      "default/relative_soft/onset": {
+        "damaged": 1,
+        "gained": 0,
+        "matched": 544,
+        "raw_matched": 545,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      "default/relative_soft/onset_offset": {
+        "damaged": 1,
+        "gained": 1,
+        "matched": 247,
+        "raw_matched": 247,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      "default/tail_only/onset": {
+        "damaged": 0,
+        "gained": 0,
+        "matched": 545,
+        "raw_matched": 545,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 0,
+        "unresolved_gained": 0
+      },
+      "default/tail_only/onset_offset": {
+        "damaged": 1,
+        "gained": 1,
+        "matched": 247,
+        "raw_matched": 247,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      "onset065/non_tail_only/onset": {
+        "damaged": 1,
+        "gained": 0,
+        "matched": 548,
+        "raw_matched": 549,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      "onset065/non_tail_only/onset_offset": {
+        "damaged": 0,
+        "gained": 0,
+        "matched": 287,
+        "raw_matched": 287,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 0,
+        "unresolved_gained": 0
+      },
+      "onset065/raw/onset": {
+        "damaged": 0,
+        "gained": 0,
+        "matched": 549,
+        "raw_matched": 549,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 0,
+        "unresolved_gained": 0
+      },
+      "onset065/raw/onset_offset": {
+        "damaged": 0,
+        "gained": 0,
+        "matched": 287,
+        "raw_matched": 287,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 0,
+        "unresolved_gained": 0
+      },
+      "onset065/relative_soft/onset": {
+        "damaged": 1,
+        "gained": 0,
+        "matched": 548,
+        "raw_matched": 549,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      "onset065/relative_soft/onset_offset": {
+        "damaged": 1,
+        "gained": 1,
+        "matched": 287,
+        "raw_matched": 287,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      "onset065/tail_only/onset": {
+        "damaged": 0,
+        "gained": 0,
+        "matched": 549,
+        "raw_matched": 549,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 0,
+        "unresolved_gained": 0
+      },
+      "onset065/tail_only/onset_offset": {
+        "damaged": 1,
+        "gained": 1,
+        "matched": 287,
+        "raw_matched": 287,
+        "resolved_damaged": 0,
+        "resolved_gained": 0,
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      }
+    }
+  },
+  "coverage": {
+    "100": {
+      "coverage": 0.2375923970432946,
+      "matched_pairs": 225,
+      "unresolved": 722
+    },
+    "200": {
+      "coverage": 0.249208025343189,
+      "matched_pairs": 236,
+      "unresolved": 711
+    },
+    "50": {
+      "coverage": 0.16156282998944033,
+      "matched_pairs": 153,
+      "unresolved": 794
+    }
+  },
+  "head": "c209ac699add448873d0eb15761fbeae3feaccce",
+  "identical_head_checkout_tree": "7bcc3794a02bfb4990c08fc05e243ff111148cce",
+  "input_identity": {
+    "central_directory_sha256": "44408b2f2544cf444a336ea33f8144202b66110befe501aa966764c5e31800ad",
+    "metadata_region_sha256": "13a1a91b6a905a191d1de09e6e87f8a99a66401874b38a9eeadc48cb69b81dcb",
+    "new_archive_bytes": 25366,
+    "new_report_bytes": 543226,
+    "previous_archive_bytes": 16111,
+    "previous_archive_sha256": "ba88b9bda70d4a560a3d05c85ea5301d2e8ff98ea81746d676a1c6695898e10e",
+    "previous_report_bytes": 155591,
+    "previous_report_sha256": "e79ff94736b471da64638a93456ef4f1510750c843960ae924fc1f488ad2f754",
+    "source_manifest_sha256": "ba062dc673f0ebb64c12a95c096144b3efb0975ab7e7be34be645359c3d6503d",
+    "source_member_sha256": {
+      "02": {
+        "beats": "30249f39cd6fa14216252c2c70cb56615551aca24eba04fa8809713eb1570b92",
+        "notes": "d333804a5d73fa6f99974d2b4ae1b86801ea06e87f85881b7f25acb00450bd71",
+        "piano_match": "e8ae9fdde12257b35b06df6225cbf7d35916c0a26458623b82f433c230310606",
+        "piano_score": "4d62f526d0281cf54100ac32fb9ba4cb9feed24807dda205b6429a8f935f7b82",
+        "score": "e593905740a24d87802d6a1549a8a5fd3da0419f74c82407aff9aa9b8d997166"
+      },
+      "05": {
+        "beats": "6825ef470e9c49dce55536067771bc8cc8086805ff45156e84251db2b2a12e30",
+        "notes": "191b7b1e2f524637aa6e6a569b4e699af1bfe095a857b8abcd7db5cf71a57699",
+        "piano_match": "121fa341e429b5448e41d5d8ea06b628a45c8250c7489882c99ce12f2ed5d7d5",
+        "piano_score": "87bbb3ce203b9e909c2556d54bef58ae88384ec5b4f499ff10ab51a2d6edc77d",
+        "score": "15fa4dd430361223900a22794a04ed665683bc29a3331001dde7a89671611cb0"
+      },
+      "06": {
+        "beats": "cb1deed537cd3430aa29135297218f4df93ce2c7deedabddc665c31158b02722",
+        "notes": "f86bd6889e26d828bb917a4a9f9a9e22e59286df60f2b779e6c327100966122e",
+        "piano_match": "eb4a38eb45d6a1e5df60860a2b707c7f025f30a56761b9ec35922969dbcc918a",
+        "piano_score": "13299fff7e581427c66f3dd98847b079b118a638ab5d8bf69a9b194bf41ca566",
+        "score": "6f3c14f3fce4c3f82a174a831fec27d4b8a454176a6795e5e2454e759140ad5f"
+      },
+      "08": {
+        "beats": "b31e1415a52ea168d1dcc326ab703b390e11f8fe6033abfded2fbe8f00debc01",
+        "notes": "aec0d643aa6855663166213280345249be5716c34a6b2adc7d077de3278f12c6",
+        "piano_match": "72c34f274fd5e5415d9eae465c08b64ad824cca345a9766fb694d28162cdb044",
+        "piano_score": "b2b0e53c544fcd151f70323cb0324f97344aa72577801755c08868b163549273",
+        "score": "9b70336f0c8746af132a673f602098c60d608bd8963a7b924621697ff8e5406d"
+      },
+      "12": {
+        "beats": "afdad01a566983e807a3b79e74d0c0349601637ee5fb3d0e53b11b1d61c85c0f",
+        "notes": "8da6d92567c8f8e42c0731e748d492d4b6a6e6a6ead48568be066280f324d3e0",
+        "piano_match": "2579488136ef113c132246d0995a1691855ae12ecf23c19383bc2d119888c549",
+        "piano_score": "34f0b2c3088a63822958cb884e0ad1d2bbc2c03d29eb86a69c391810ba0c5eef",
+        "score": "3aba1f872bf28f8746e9c796fc24cf52e415b8224236238c1cea839476d9381b"
+      },
+      "19": {
+        "beats": "cd6dd9ca1eb16ae1c5c5ef794c226fc1fe6f22f5db9ff9d48dbb71b7e29e1b38",
+        "notes": "37a4de9bc3024b9dc54dd6f946f1ffd3e9ea62a18749c1bc82bed442e89d62ef",
+        "piano_match": "5d15fd4d98f3bc1e23ad29702e13e6c527ab68b85549f2879d291a4b74ec609f",
+        "piano_score": "4d02aef4fc94495fe93653a53a46c7d322c80f505ba25ccb74fe9903c28c5e98",
+        "score": "3f1b5bb0a4c9ba490437f6b5c065c8be07ba2f487338ce83a31c900a0dfdc7d8"
+      }
+    }
+  },
+  "limitations": [
+    "No acoustic inference or raw-note re-matching was executed.",
+    "Published category memberships were checked as partitions and stable subsets; symbolic pair identities were not independently reconstructed.",
+    "Rest checks validate projected metadata conservation and aggregate sums; no prediction occupancy or written-rest accuracy is established.",
+    "Source-only-before-outcome ordering is supported by frozen runner inspection and receipt hashes; it is not inferred from arithmetic alone."
+  ],
+  "nonzero_whole_recording_transitions": [
+    {
+      "arm": "relative_soft",
+      "base": "default",
+      "count": 1,
+      "kind": "damaged",
+      "metric": "onset"
+    },
+    {
+      "arm": "relative_soft",
+      "base": "default",
+      "count": 1,
+      "kind": "gained",
+      "metric": "onset_offset"
+    },
+    {
+      "arm": "relative_soft",
+      "base": "default",
+      "count": 1,
+      "kind": "damaged",
+      "metric": "onset_offset"
+    },
+    {
+      "arm": "tail_only",
+      "base": "default",
+      "count": 1,
+      "kind": "gained",
+      "metric": "onset_offset"
+    },
+    {
+      "arm": "tail_only",
+      "base": "default",
+      "count": 1,
+      "kind": "damaged",
+      "metric": "onset_offset"
+    },
+    {
+      "arm": "non_tail_only",
+      "base": "default",
+      "count": 1,
+      "kind": "damaged",
+      "metric": "onset"
+    },
+    {
+      "arm": "relative_soft",
+      "base": "onset065",
+      "count": 1,
+      "kind": "damaged",
+      "metric": "onset"
+    },
+    {
+      "arm": "relative_soft",
+      "base": "onset065",
+      "count": 1,
+      "kind": "gained",
+      "metric": "onset_offset"
+    },
+    {
+      "arm": "relative_soft",
+      "base": "onset065",
+      "count": 1,
+      "kind": "damaged",
+      "metric": "onset_offset"
+    },
+    {
+      "arm": "tail_only",
+      "base": "onset065",
+      "count": 1,
+      "kind": "gained",
+      "metric": "onset_offset"
+    },
+    {
+      "arm": "tail_only",
+      "base": "onset065",
+      "count": 1,
+      "kind": "damaged",
+      "metric": "onset_offset"
+    },
+    {
+      "arm": "non_tail_only",
+      "base": "onset065",
+      "count": 1,
+      "kind": "damaged",
+      "metric": "onset"
+    }
+  ],
+  "per_recording": [
+    {
+      "beat_alignment": "unadmitted",
+      "id": "02",
+      "matched_pairs_100ms": 0,
+      "reference_notes": 73,
+      "stable_pairs": 0
+    },
+    {
+      "beat_alignment": "admitted",
+      "id": "19",
+      "matched_pairs_100ms": 225,
+      "reference_notes": 295,
+      "stable_pairs": 137
+    },
+    {
+      "beat_alignment": "unadmitted",
+      "id": "08",
+      "matched_pairs_100ms": 0,
+      "reference_notes": 203,
+      "stable_pairs": 0
+    },
+    {
+      "beat_alignment": "unadmitted",
+      "id": "12",
+      "matched_pairs_100ms": 0,
+      "reference_notes": 65,
+      "stable_pairs": 0
+    },
+    {
+      "beat_alignment": "unadmitted",
+      "id": "05",
+      "matched_pairs_100ms": 0,
+      "reference_notes": 151,
+      "stable_pairs": 0
+    },
+    {
+      "beat_alignment": "unadmitted",
+      "id": "06",
+      "matched_pairs_100ms": 0,
+      "reference_notes": 160,
+      "stable_pairs": 0
+    }
+  ],
+  "remote_evidence": {
+    "artifact_api": "https://api.github.com/repos/JDeun/audio-score-tool/actions/artifacts/13935537018",
+    "checkout_commit_api": "https://api.github.com/repos/JDeun/audio-score-tool/git/commits/ff26548443286772df973340ea676bfef82442b3",
+    "workflow_run": "https://github.com/JDeun/audio-score-tool/actions/runs/43201534121"
+  },
+  "report_sha256": "ec5048b11ede7364ca5c68e9f7fb6f4889ed818d881f502aa34726ba54335f7a",
+  "resolved_gain_loss_count": 0,
+  "rest_context": {
+    "explicit_rest_elements": 77,
+    "instrument_wide_rest_intervals": 36,
+    "projected_recordings": 1,
+    "projected_rest_intervals": 9,
+    "projections": {
+      "global_beats": {
+        "annotated_note_overlap_s": 0.17040000000000033,
+        "duration_s": 2.792899999999997,
+        "uncovered_by_note_annotations_s": 2.6224999999999965
+      },
+      "guarded_shared_core": {
+        "annotated_note_overlap_s": 0.0,
+        "duration_s": 0.9213437499999912,
+        "uncovered_by_note_annotations_s": 0.9213437499999912
+      },
+      "piano": {
+        "annotated_note_overlap_s": 0.3994874999999962,
+        "duration_s": 2.991796875000002,
+        "uncovered_by_note_annotations_s": 2.592309375000006
+      }
+    },
+    "unknown_score_intervals": 0,
+    "unprojectable_rest_intervals": 27
+  },
+  "schema_version": 1,
+  "stable": {
+    "coverage": 0.1446673706441394,
+    "matched_pairs": 137,
+    "unresolved": 810
+  },
+  "status": "passed",
+  "verified_source_sha256": {
+    "measured_14": {
+      ".github/workflows/cpu-kraisler-alignment.yml": "d94b6841b12507491df7f58c595084d22b238de7a550e70328725b0353ce64f3",
+      "docs/research/KRAISLER_ALIGNMENT_PROTOCOL_2026-11-12.md": "49d9cc04e08b03afd22201a5a4541336f1fe294d57167ed968476b196d126a28",
+      "scripts/kraisler_alignment_manifest.json": "ba062dc673f0ebb64c12a95c096144b3efb0975ab7e7be34be645359c3d6503d",
+      "scripts/kraisler_alignment_source.py": "25e0ed3327facffdd0f1dcf1a34134176673f9012f2c9f318d2b32ce288642f5",
+      "scripts/kraisler_correspondence.py": "c3046d387ba83c7a97c2eb2d16d7f609ecd71c6708ec45d25f5aec9238198efb",
+      "scripts/kraisler_match.py": "3fbf1c07783bfa9205eb152e553032e5922018c3c1c7d673b524d2a7632a373c",
+      "scripts/kraisler_score.py": "515f7f06579e9ee590f4a17147993d496d0b4040e9f60574eb82377c7ac3c431",
+      "scripts/research_test_manifest.json": "146d85b0e877bc1d0d010a9a2e1acd5c00967d493caad6507d89ff5e8eabfd3b",
+      "scripts/run_kraisler_alignment.py": "fb5a1682ead8d5416143228a9ff845006ccfd1672d700b277f5f41a0eaea4847",
+      "tests/test_kraisler_alignment_source.py": "f53aab084da20bb60333e6a7205c74e0476806b9a2309fcc9c299dd76700167f",
+      "tests/test_kraisler_correspondence.py": "82f4f6226c2e1e3f9a21a30cfca7a58019f8853666d406fa5316882fa156cf7e",
+      "tests/test_kraisler_match.py": "e630f244d1c526325954dba12a467eee6668a52dfa05a789105b57d93114b9ca",
+      "tests/test_kraisler_score.py": "e1e8f40144d37936bfe505b866a72326fbfb3709b1adb864482c1afaf31661c4",
+      "tests/test_run_kraisler_alignment.py": "3bfa6640ef4be15f4cd62bbc82c7fbe88801f35f26741d016ea46c5c84c00c48"
+    },
+    "retained_14": {
+      ".github/workflows/cpu-kraisler-gate.yml": "15a408d208567cb4c9ff272460ab2dfc0d937730741e61b8efb061ec12cec705",
+      "docs/research/KRAISLER_GATE_PROTOCOL_2026-11-12.md": "bfbe4bce2335f1b942f7f55a9c855c8f87657ba4ec8efa5f4ac040981b0e0c1d",
+      "scripts/audio_gate_attribution.py": "99b3c494b59fbb0725cc9dd4cd25665a777c93d1516ba6e5a13eb238ddf65cea",
+      "scripts/audio_gate_rest.py": "05f239835c2bee14e40cb059b68bad35c7c5a79f247c3d616677c501161fff73",
+      "scripts/kraisler_gate_eval.py": "ea664ad392d61a12a52b98dcb3987d4bad62ad8d2dbd2aa34301b669434695bf",
+      "scripts/kraisler_gate_manifest.json": "a18857a4b7a2025ea327f9a03855ca02dca0964110d973d5224b85dfbb258c60",
+      "scripts/kraisler_source.py": "94ba9c30adfd60dfc518a371a53b6fdaa722a44352a019311582b8125423e2bd",
+      "scripts/offset_tail_evidence.py": "5adb61edca4b68deac9a0f9f6f619009d8295f006a5913b9f14c6a30f6ce0b4c",
+      "scripts/run_cpu_vocadito_candidates.py": "0265be97c1f891816da30e75fa145a58a1972636a5729fcb1ccc761665c52465",
+      "scripts/run_kraisler_gate.py": "57b23a975bb8f4a64858c8f034c8a66c50def91053a72004717b815114fe700a",
+      "scripts/run_offset_tail_probe.py": "44730f903b4e8eddc1755ff0ae89793052c43abc129f15028b91b0d16562939e",
+      "scripts/vocadito_reference.py": "2ee6f18518e0f4887b9f0c163fff6cfcb964a05d21da1eddd6fcf8e031259194",
+      "scripts/vocal_recovery.py": "9cbc4c1e635b78263c46473d357fa928350fabdf3efcab79ec44a42e00fa246b",
+      "src/audio_score_tool/metrics.py": "476fdb3dcebf8660a83b258263a2719193590eee5135d40f79b87ceab313df4f"
+    }
+  }
+}
