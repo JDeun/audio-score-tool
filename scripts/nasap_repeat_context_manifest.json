@@ -1,0 +1,387 @@
+{
+  "schema_version": 1,
+  "dataset": "nASAP",
+  "revision": "4097b45757bed854818cf87e77b92323ebf90615",
+  "official_repository": "https://github.com/CPJKU/asap-dataset",
+  "source_base": "https://raw.githubusercontent.com/CPJKU/asap-dataset/4097b45757bed854818cf87e77b92323ebf90615/",
+  "license": "CC-BY-NC-SA-4.0",
+  "metadata_blob_sha1": "f9b655ca92b3d88febab09763e7ed3b74c2c7878",
+  "selection": {
+    "scope": "real_additional_same_score",
+    "planned_recordings": 4,
+    "planned_scores": 2,
+    "preceding_xml": "Bach/Fugue/bwv_854/xml_score.musicxml",
+    "rule": "Next two robust >=2 exact XML Bach/Fugue groups lexicographically after bwv_854, and first two distinct MIDI paths in each group. No replacement.",
+    "length_q": 32.0,
+    "score_origin_q": 4.0,
+    "bars": 8,
+    "meter": "4/4",
+    "replacements": [],
+    "model_inference_before_freeze": false,
+    "prior_composition_membership": {
+      "original_development12": false,
+      "joint_holdout24": false,
+      "schema_inspections846_848": false
+    },
+    "source_readiness_date": "2026-11-13 Asia/Seoul"
+  },
+  "selection_before_source_read": {
+    "revision": "4097b45757bed854818cf87e77b92323ebf90615",
+    "metadata_sha256": "5c6622cae9ae34643fc5b35150de5e2891fd8ffbddd1fd579fa6b984014e6924",
+    "selection_rule": "Next two robust >=2 exact XML Bach/Fugue groups lexicographically after bwv_854, and first two distinct MIDI paths in each group. No replacement.",
+    "selected_groups": [
+      "Bach/Fugue/bwv_857/xml_score.musicxml",
+      "Bach/Fugue/bwv_858/xml_score.musicxml"
+    ],
+    "selected_rows": [
+      {
+        "composer": "Bach",
+        "title": "Fugue_bwv_857",
+        "folder": "Bach/Fugue/bwv_857",
+        "xml_score": "Bach/Fugue/bwv_857/xml_score.musicxml",
+        "midi_score": "Bach/Fugue/bwv_857/midi_score.mid",
+        "midi_performance": "Bach/Fugue/bwv_857/Bult-ItoS02M.mid",
+        "performance_annotations": "Bach/Fugue/bwv_857/Bult-ItoS02M_annotations.txt",
+        "midi_score_annotations": "Bach/Fugue/bwv_857/midi_score_annotations.txt",
+        "maestro_midi_performance": "{maestro}/2015/MIDI-Unprocessed_R1_D1-1-8_mid--AUDIO-from_mp3_05_R1_2015_wav--2.midi",
+        "maestro_audio_performance": "{maestro}/2015/MIDI-Unprocessed_R1_D1-1-8_mid--AUDIO-from_mp3_05_R1_2015_wav--2.wav",
+        "start": "107.07395833333334",
+        "end": "",
+        "audio_performance": "Bach/Fugue/bwv_857/Bult-ItoS02M.wav",
+        "robust_note_alignment": "1.0",
+        "note_alignments": "Bach/Fugue/bwv_857/Bult-ItoS02M_note_alignments/note_alignment.tsv",
+        "parangonada_data_folder": "Bach/Fugue/bwv_857/Bult-ItoS02M_note_alignments/parangonada_data",
+        "match_file": "Bach/Fugue/bwv_857/Bult-ItoS02M.match"
+      },
+      {
+        "composer": "Bach",
+        "title": "Fugue_bwv_857",
+        "folder": "Bach/Fugue/bwv_857",
+        "xml_score": "Bach/Fugue/bwv_857/xml_score.musicxml",
+        "midi_score": "Bach/Fugue/bwv_857/midi_score.mid",
+        "midi_performance": "Bach/Fugue/bwv_857/Lan01M.mid",
+        "performance_annotations": "Bach/Fugue/bwv_857/Lan01M_annotations.txt",
+        "midi_score_annotations": "Bach/Fugue/bwv_857/midi_score_annotations.txt",
+        "maestro_midi_performance": "",
+        "maestro_audio_performance": "",
+        "start": "",
+        "end": "19.40755208333333",
+        "audio_performance": "",
+        "robust_note_alignment": "1.0",
+        "note_alignments": "Bach/Fugue/bwv_857/Lan01M_note_alignments/note_alignment.tsv",
+        "parangonada_data_folder": "Bach/Fugue/bwv_857/Lan01M_note_alignments/parangonada_data",
+        "match_file": "Bach/Fugue/bwv_857/Lan01M.match"
+      },
+      {
+        "composer": "Bach",
+        "title": "Fugue_bwv_858",
+        "folder": "Bach/Fugue/bwv_858",
+        "xml_score": "Bach/Fugue/bwv_858/xml_score.musicxml",
+        "midi_score": "Bach/Fugue/bwv_858/midi_score.mid",
+        "midi_performance": "Bach/Fugue/bwv_858/VuV01M.mid",
+        "performance_annotations": "Bach/Fugue/bwv_858/VuV01M_annotations.txt",
+        "midi_score_annotations": "Bach/Fugue/bwv_858/midi_score_annotations.txt",
+        "maestro_midi_performance": "{maestro}/2015/MIDI-Unprocessed_R1_D1-1-8_mid--AUDIO-from_mp3_02_R1_2015_wav--1.midi",
+        "maestro_audio_performance": "{maestro}/2015/MIDI-Unprocessed_R1_D1-1-8_mid--AUDIO-from_mp3_02_R1_2015_wav--1.wav",
+        "start": "83.88229166666666",
+        "end": "",
+        "audio_performance": "Bach/Fugue/bwv_858/VuV01M.wav",
+        "robust_note_alignment": "1.0",
+        "note_alignments": "Bach/Fugue/bwv_858/VuV01M_note_alignments/note_alignment.tsv",
+        "parangonada_data_folder": "Bach/Fugue/bwv_858/VuV01M_note_alignments/parangonada_data",
+        "match_file": "Bach/Fugue/bwv_858/VuV01M.match"
+      },
+      {
+        "composer": "Bach",
+        "title": "Fugue_bwv_858",
+        "folder": "Bach/Fugue/bwv_858",
+        "xml_score": "Bach/Fugue/bwv_858/xml_score.musicxml",
+        "midi_score": "Bach/Fugue/bwv_858/midi_score.mid",
+        "midi_performance": "Bach/Fugue/bwv_858/Zhang01M.mid",
+        "performance_annotations": "Bach/Fugue/bwv_858/Zhang01M_annotations.txt",
+        "midi_score_annotations": "Bach/Fugue/bwv_858/midi_score_annotations.txt",
+        "maestro_midi_performance": "{maestro}/2011/MIDI-Unprocessed_07_R1_2011_MID--AUDIO_R1-D3_02_Track02_wav.midi",
+        "maestro_audio_performance": "{maestro}/2011/MIDI-Unprocessed_07_R1_2011_MID--AUDIO_R1-D3_02_Track02_wav.wav",
+        "start": "90.33072916666666",
+        "end": "",
+        "audio_performance": "Bach/Fugue/bwv_858/Zhang01M.wav",
+        "robust_note_alignment": "1.0",
+        "note_alignments": "Bach/Fugue/bwv_858/Zhang01M_note_alignments/note_alignment.tsv",
+        "parangonada_data_folder": "Bach/Fugue/bwv_858/Zhang01M_note_alignments/parangonada_data",
+        "match_file": "Bach/Fugue/bwv_858/Zhang01M.match"
+      }
+    ],
+    "source_outcomes_inspected": false,
+    "model_inferences": 0
+  },
+  "selection_before_source_read_sha256": "7d2f7c2ef42599cc74b66dedd091629bac2d766e52e506e6a365be43af3012ed",
+  "canonical_serialization_contract": {
+    "truth": "unchanged MusicXML Fraction onset/duration",
+    "checks": [
+      "onset_quarter",
+      "duration_quarter",
+      "onset_beat",
+      "duration_beat"
+    ],
+    "acceptance": "exact Fraction equality OR identical IEEE754 binary32 packed bytes; no absolute or relative tolerance",
+    "pitch_voice_ids_and_ties": "exact existing symbolic consistency; no relaxed check",
+    "mismatch_counting": "All full-score timing scalars checked; each exact mismatch is recorded even outside the fixed evaluation window."
+  },
+  "budget": {
+    "member_count": 25,
+    "total_bytes": 2360916,
+    "input_member_count": 8,
+    "input_bytes": 69674,
+    "maximum_member_bytes": 4000000
+  },
+  "combined_independent_workdirs": {
+    "actual_member_reads_cold": 50,
+    "actual_bytes_cold": 4602128,
+    "unique_member_count": 49,
+    "unique_member_bytes": 3985273,
+    "metadata_downloaded_twice": true
+  },
+  "members": {
+    "Bach/Fugue/bwv_857/Bult-ItoS02M.mid": {
+      "bytes": 27046,
+      "sha256": "cabf07332144915d1f74763a7c3b05f165d7ba0d6f9bf4f90aaaea67f703e05d"
+    },
+    "Bach/Fugue/bwv_857/Bult-ItoS02M_annotations.txt": {
+      "bytes": 6083,
+      "sha256": "22a50424fe51786cdbac5e82fde17e00dfdafa203443bae3c9844c747dd632b8"
+    },
+    "Bach/Fugue/bwv_857/Bult-ItoS02M_note_alignments/note_alignment.tsv": {
+      "bytes": 53487,
+      "sha256": "dbcdcc4f923f6e6f8e9a953ac2d2bb95bfcdf5b9f959de36ab3a5bd67f39dfe1"
+    },
+    "Bach/Fugue/bwv_857/Bult-ItoS02M_note_alignments/parangonada_data/part.csv": {
+      "bytes": 74500,
+      "sha256": "cf4b44603c2d12979fcac6c5805f800a6009423bf77537c4661874d4e769f8d2"
+    },
+    "Bach/Fugue/bwv_857/Bult-ItoS02M_note_alignments/parangonada_data/ppart.csv": {
+      "bytes": 70336,
+      "sha256": "5e83b64582459f8216bc77e9815637ebb06e21b63718ed476fcf29a3392edd6a"
+    },
+    "Bach/Fugue/bwv_857/Lan01M.mid": {
+      "bytes": 9247,
+      "sha256": "ca17c4bfdfb57a25e6699c763c869686bdc6a5e60c2a5804564fa9cd879dea27"
+    },
+    "Bach/Fugue/bwv_857/Lan01M_annotations.txt": {
+      "bytes": 6385,
+      "sha256": "b57c2584b54c3bcafa9003e440c88eea6115551ee7e38330550e8595d93ca35a"
+    },
+    "Bach/Fugue/bwv_857/Lan01M_note_alignments/note_alignment.tsv": {
+      "bytes": 51029,
+      "sha256": "320f4badc3882b617e6e35042c86eb4bb5ab01f7e3de552d58383f73cf7962de"
+    },
+    "Bach/Fugue/bwv_857/Lan01M_note_alignments/parangonada_data/part.csv": {
+      "bytes": 74380,
+      "sha256": "6ef5ec2725ba7d12ec48fc4df85c3407a878990df7ce14562b44f150b37b2643"
+    },
+    "Bach/Fugue/bwv_857/Lan01M_note_alignments/parangonada_data/ppart.csv": {
+      "bytes": 68616,
+      "sha256": "a60af50dd0717f9ce301216548e96af1d6522acbb24f3fa99b40ce7e030bc4d0"
+    },
+    "Bach/Fugue/bwv_857/midi_score_annotations.txt": {
+      "bytes": 2821,
+      "sha256": "28f893443f12c64576cfe808edaf58fb3cdc7bcd74291e4909a31e8bc7a84f41"
+    },
+    "Bach/Fugue/bwv_857/xml_score.musicxml": {
+      "bytes": 606700,
+      "sha256": "ace7456d8df197c6deb249bcab8d91548b49bcbaf9a09e771fc31dde1017e86e"
+    },
+    "Bach/Fugue/bwv_858/VuV01M.mid": {
+      "bytes": 8039,
+      "sha256": "59c1a111026aeb5f503b5577441aff98f575fa5e38b5378a7380587b4de8f062"
+    },
+    "Bach/Fugue/bwv_858/VuV01M_annotations.txt": {
+      "bytes": 3429,
+      "sha256": "a6aa01351ff4c5b76254dbeeca0d034846cc1443ff4a10f8161bec3aadfba320"
+    },
+    "Bach/Fugue/bwv_858/VuV01M_note_alignments/note_alignment.tsv": {
+      "bytes": 33103,
+      "sha256": "d8d6820cae9553dc3be5252ff52cdb19b528daa39d438c93d81d6c7c12ed8e7a"
+    },
+    "Bach/Fugue/bwv_858/VuV01M_note_alignments/parangonada_data/part.csv": {
+      "bytes": 51941,
+      "sha256": "0ad4ecac30e91e26b260778b6fe7b7c5cbef351b7f6988182b407392c0e469e9"
+    },
+    "Bach/Fugue/bwv_858/VuV01M_note_alignments/parangonada_data/ppart.csv": {
+      "bytes": 43150,
+      "sha256": "e4d7da198d898e550d02dc9cb46e710bb7822e54f885539c9a36c439af265b26"
+    },
+    "Bach/Fugue/bwv_858/Zhang01M.mid": {
+      "bytes": 5660,
+      "sha256": "ac997e788c8a4029ebd7b221e1839ce35c8e7c0c35b34b684ff0d633cbfbb9da"
+    },
+    "Bach/Fugue/bwv_858/Zhang01M_annotations.txt": {
+      "bytes": 3785,
+      "sha256": "002fe57d1a9765ca5226bb0e9b6d0dd24a9f8881c2c5939df2c0ae32567968f9"
+    },
+    "Bach/Fugue/bwv_858/Zhang01M_note_alignments/note_alignment.tsv": {
+      "bytes": 33494,
+      "sha256": "0f87534e89458663d65874cf931c20a5412b903764f8999dbabc0f11ebb77330"
+    },
+    "Bach/Fugue/bwv_858/Zhang01M_note_alignments/parangonada_data/part.csv": {
+      "bytes": 51916,
+      "sha256": "eb0223dc92ffc23f668072b5d50bc1b4113f63acd1861b40ef6fe9458742982f"
+    },
+    "Bach/Fugue/bwv_858/Zhang01M_note_alignments/parangonada_data/ppart.csv": {
+      "bytes": 44391,
+      "sha256": "0111539cbd65238e7b258e44406869b5f5937536b340536a3afca51b99609e88"
+    },
+    "Bach/Fugue/bwv_858/midi_score_annotations.txt": {
+      "bytes": 1635,
+      "sha256": "a544e635da3e41757ce184d6dd7034afdf873ae432293b1da71089941d03f235"
+    },
+    "Bach/Fugue/bwv_858/xml_score.musicxml": {
+      "bytes": 412888,
+      "sha256": "880a6700d39b8ae1c30cfc5f3581019438df7538792555ff066ec8ea7e6b6684"
+    },
+    "metadata.csv": {
+      "bytes": 616855,
+      "sha256": "5c6622cae9ae34643fc5b35150de5e2891fd8ffbddd1fd579fa6b984014e6924"
+    }
+  },
+  "cases": [
+    {
+      "id": "nasap005",
+      "score_id": "score003",
+      "performance_id": "nasap005",
+      "midi": "Bach/Fugue/bwv_857/Bult-ItoS02M.mid",
+      "performance_annotations": "Bach/Fugue/bwv_857/Bult-ItoS02M_annotations.txt",
+      "xml": "Bach/Fugue/bwv_857/xml_score.musicxml",
+      "score_annotations": "Bach/Fugue/bwv_857/midi_score_annotations.txt",
+      "part": "Bach/Fugue/bwv_857/Bult-ItoS02M_note_alignments/parangonada_data/part.csv",
+      "ppart": "Bach/Fugue/bwv_857/Bult-ItoS02M_note_alignments/parangonada_data/ppart.csv",
+      "alignment": "Bach/Fugue/bwv_857/Bult-ItoS02M_note_alignments/note_alignment.tsv",
+      "metadata_row": {
+        "composer": "Bach",
+        "title": "Fugue_bwv_857",
+        "folder": "Bach/Fugue/bwv_857",
+        "xml_score": "Bach/Fugue/bwv_857/xml_score.musicxml",
+        "midi_score": "Bach/Fugue/bwv_857/midi_score.mid",
+        "midi_performance": "Bach/Fugue/bwv_857/Bult-ItoS02M.mid",
+        "performance_annotations": "Bach/Fugue/bwv_857/Bult-ItoS02M_annotations.txt",
+        "midi_score_annotations": "Bach/Fugue/bwv_857/midi_score_annotations.txt",
+        "maestro_midi_performance": "{maestro}/2015/MIDI-Unprocessed_R1_D1-1-8_mid--AUDIO-from_mp3_05_R1_2015_wav--2.midi",
+        "maestro_audio_performance": "{maestro}/2015/MIDI-Unprocessed_R1_D1-1-8_mid--AUDIO-from_mp3_05_R1_2015_wav--2.wav",
+        "start": "107.07395833333334",
+        "end": "",
+        "audio_performance": "Bach/Fugue/bwv_857/Bult-ItoS02M.wav",
+        "robust_note_alignment": "1.0",
+        "note_alignments": "Bach/Fugue/bwv_857/Bult-ItoS02M_note_alignments/note_alignment.tsv",
+        "parangonada_data_folder": "Bach/Fugue/bwv_857/Bult-ItoS02M_note_alignments/parangonada_data",
+        "match_file": "Bach/Fugue/bwv_857/Bult-ItoS02M.match"
+      }
+    },
+    {
+      "id": "nasap006",
+      "score_id": "score003",
+      "performance_id": "nasap006",
+      "midi": "Bach/Fugue/bwv_857/Lan01M.mid",
+      "performance_annotations": "Bach/Fugue/bwv_857/Lan01M_annotations.txt",
+      "xml": "Bach/Fugue/bwv_857/xml_score.musicxml",
+      "score_annotations": "Bach/Fugue/bwv_857/midi_score_annotations.txt",
+      "part": "Bach/Fugue/bwv_857/Lan01M_note_alignments/parangonada_data/part.csv",
+      "ppart": "Bach/Fugue/bwv_857/Lan01M_note_alignments/parangonada_data/ppart.csv",
+      "alignment": "Bach/Fugue/bwv_857/Lan01M_note_alignments/note_alignment.tsv",
+      "metadata_row": {
+        "composer": "Bach",
+        "title": "Fugue_bwv_857",
+        "folder": "Bach/Fugue/bwv_857",
+        "xml_score": "Bach/Fugue/bwv_857/xml_score.musicxml",
+        "midi_score": "Bach/Fugue/bwv_857/midi_score.mid",
+        "midi_performance": "Bach/Fugue/bwv_857/Lan01M.mid",
+        "performance_annotations": "Bach/Fugue/bwv_857/Lan01M_annotations.txt",
+        "midi_score_annotations": "Bach/Fugue/bwv_857/midi_score_annotations.txt",
+        "maestro_midi_performance": "",
+        "maestro_audio_performance": "",
+        "start": "",
+        "end": "19.40755208333333",
+        "audio_performance": "",
+        "robust_note_alignment": "1.0",
+        "note_alignments": "Bach/Fugue/bwv_857/Lan01M_note_alignments/note_alignment.tsv",
+        "parangonada_data_folder": "Bach/Fugue/bwv_857/Lan01M_note_alignments/parangonada_data",
+        "match_file": "Bach/Fugue/bwv_857/Lan01M.match"
+      }
+    },
+    {
+      "id": "nasap007",
+      "score_id": "score004",
+      "performance_id": "nasap007",
+      "midi": "Bach/Fugue/bwv_858/VuV01M.mid",
+      "performance_annotations": "Bach/Fugue/bwv_858/VuV01M_annotations.txt",
+      "xml": "Bach/Fugue/bwv_858/xml_score.musicxml",
+      "score_annotations": "Bach/Fugue/bwv_858/midi_score_annotations.txt",
+      "part": "Bach/Fugue/bwv_858/VuV01M_note_alignments/parangonada_data/part.csv",
+      "ppart": "Bach/Fugue/bwv_858/VuV01M_note_alignments/parangonada_data/ppart.csv",
+      "alignment": "Bach/Fugue/bwv_858/VuV01M_note_alignments/note_alignment.tsv",
+      "metadata_row": {
+        "composer": "Bach",
+        "title": "Fugue_bwv_858",
+        "folder": "Bach/Fugue/bwv_858",
+        "xml_score": "Bach/Fugue/bwv_858/xml_score.musicxml",
+        "midi_score": "Bach/Fugue/bwv_858/midi_score.mid",
+        "midi_performance": "Bach/Fugue/bwv_858/VuV01M.mid",
+        "performance_annotations": "Bach/Fugue/bwv_858/VuV01M_annotations.txt",
+        "midi_score_annotations": "Bach/Fugue/bwv_858/midi_score_annotations.txt",
+        "maestro_midi_performance": "{maestro}/2015/MIDI-Unprocessed_R1_D1-1-8_mid--AUDIO-from_mp3_02_R1_2015_wav--1.midi",
+        "maestro_audio_performance": "{maestro}/2015/MIDI-Unprocessed_R1_D1-1-8_mid--AUDIO-from_mp3_02_R1_2015_wav--1.wav",
+        "start": "83.88229166666666",
+        "end": "",
+        "audio_performance": "Bach/Fugue/bwv_858/VuV01M.wav",
+        "robust_note_alignment": "1.0",
+        "note_alignments": "Bach/Fugue/bwv_858/VuV01M_note_alignments/note_alignment.tsv",
+        "parangonada_data_folder": "Bach/Fugue/bwv_858/VuV01M_note_alignments/parangonada_data",
+        "match_file": "Bach/Fugue/bwv_858/VuV01M.match"
+      }
+    },
+    {
+      "id": "nasap008",
+      "score_id": "score004",
+      "performance_id": "nasap008",
+      "midi": "Bach/Fugue/bwv_858/Zhang01M.mid",
+      "performance_annotations": "Bach/Fugue/bwv_858/Zhang01M_annotations.txt",
+      "xml": "Bach/Fugue/bwv_858/xml_score.musicxml",
+      "score_annotations": "Bach/Fugue/bwv_858/midi_score_annotations.txt",
+      "part": "Bach/Fugue/bwv_858/Zhang01M_note_alignments/parangonada_data/part.csv",
+      "ppart": "Bach/Fugue/bwv_858/Zhang01M_note_alignments/parangonada_data/ppart.csv",
+      "alignment": "Bach/Fugue/bwv_858/Zhang01M_note_alignments/note_alignment.tsv",
+      "metadata_row": {
+        "composer": "Bach",
+        "title": "Fugue_bwv_858",
+        "folder": "Bach/Fugue/bwv_858",
+        "xml_score": "Bach/Fugue/bwv_858/xml_score.musicxml",
+        "midi_score": "Bach/Fugue/bwv_858/midi_score.mid",
+        "midi_performance": "Bach/Fugue/bwv_858/Zhang01M.mid",
+        "performance_annotations": "Bach/Fugue/bwv_858/Zhang01M_annotations.txt",
+        "midi_score_annotations": "Bach/Fugue/bwv_858/midi_score_annotations.txt",
+        "maestro_midi_performance": "{maestro}/2011/MIDI-Unprocessed_07_R1_2011_MID--AUDIO_R1-D3_02_Track02_wav.midi",
+        "maestro_audio_performance": "{maestro}/2011/MIDI-Unprocessed_07_R1_2011_MID--AUDIO_R1-D3_02_Track02_wav.wav",
+        "start": "90.33072916666666",
+        "end": "",
+        "audio_performance": "Bach/Fugue/bwv_858/Zhang01M.wav",
+        "robust_note_alignment": "1.0",
+        "note_alignments": "Bach/Fugue/bwv_858/Zhang01M_note_alignments/note_alignment.tsv",
+        "parangonada_data_folder": "Bach/Fugue/bwv_858/Zhang01M_note_alignments/parangonada_data",
+        "match_file": "Bach/Fugue/bwv_858/Zhang01M.match"
+      }
+    }
+  ],
+  "parser_dependencies": {
+    "scripts/nasap_joint_rhythm.py": "e2f136d486c0ef14206469db1a4b1c7a5dfc5dfcd55de3c3a80df2f6f5263681",
+    "scripts/nasap_duration_probe.py": "881a0a7544745d5fe50317ca81bca8ea05adce510bbfb2facc46405c65ffa973",
+    "scripts/nasap_keyoff_paired.py": "97368c713177ac5537a6c22f57689d375260674a36efe5b92cbfbd64131a641a",
+    "scripts/audit_nasap_duration_source.py": "c63c44b2a6c5a391d972b22417cba21830b71c0bed2dd6996b38f9f93044244c"
+  },
+  "inherited_source_sha256": {
+    "scripts/nasap_same_score_source.py": "a1a60da73da4f25dad5ddd3b1576a2dbee42a5d750e7b212eea4b318042c1f0a",
+    "scripts/same_score_phase.py": "109985eeb81f8119c202927b1c6f9e7e285cec83c38f549908e36a15c3c69aa3",
+    "scripts/nasap_joint_rhythm.py": "e2f136d486c0ef14206469db1a4b1c7a5dfc5dfcd55de3c3a80df2f6f5263681",
+    "scripts/nasap_duration_probe.py": "881a0a7544745d5fe50317ca81bca8ea05adce510bbfb2facc46405c65ffa973",
+    "scripts/nasap_keyoff_paired.py": "97368c713177ac5537a6c22f57689d375260674a36efe5b92cbfbd64131a641a",
+    "scripts/audit_nasap_duration_source.py": "c63c44b2a6c5a391d972b22417cba21830b71c0bed2dd6996b38f9f93044244c"
+  },
+  "mido_version": "1.3.3"
+}
