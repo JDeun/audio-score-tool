@@ -2,7 +2,11 @@
 
 This is the continuation snapshot taken with main at `7dd5c6ce0b18fda023403d92fba981867a1f0202`, after #266 and #270. It is navigation and task state, not a replacement for frozen protocols, result reports or execution receipts. The completed continuation #272 was subsequently merged; its results and later PR cleanup are distinct from the initial snapshot below.
 
-## Latest continuation: score correspondence
+## Latest continuation: expressive timing and ranges
+
+The user's next-experiment request adds a concrete hypothesis: performed note/rest lengths should allow timing variation and distinguish swing/articulation from exact symbolic duration. [#277](https://github.com/JDeun/audio-score-tool/issues/277) implements the [local timing/range protocol](KRAISLER_EXPRESSIVE_PROTOCOL_2026-11-12.md), retaining the same six sources and unchanged global baseline. New local-support admission, fixed100 and tempo10/20/30 onset bands, descriptive duration ratios and rest boundary ranges are declared before execution. Synthetic timing/swing controls are separate from real-data evidence. Actual six-recording outcomes are pending; no amplitude ground truth or real swing recognizer is available from these violin metadata.
+
+## Preceding continuation: score correspondence
 
 Following the user's next-experiment instruction, [#275](https://github.com/JDeun/audio-score-tool/issues/275) / [#276](https://github.com/JDeun/audio-score-tool/pull/276) completed the [metadata-only source-correspondence study](KRAISLER_ALIGNMENT_RESULTS_2026-11-12.md) under its [fixed protocol](KRAISLER_ALIGNMENT_PROTOCOL_2026-11-12.md). All six diagnostics and conditional ledgers completed on [CPU run 43201534121](https://github.com/JDeun/audio-score-tool/actions/runs/43201534121), using 30 verified metadata members and no new audio/model inference.
 
