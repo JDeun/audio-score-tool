@@ -1,0 +1,1288 @@
+{
+  "audit_script_sha256": "180b4162cc871f87aafeb5f23e592723ba39b8fdf6cb70d265e55fe267dfad4b",
+  "audit_type": "independent standard-library identity and metadata arithmetic; no repository helper imports",
+  "checks": {
+    "aggregate_conditional_ledger_rows": 560,
+    "assertions": 127130,
+    "cohort_weighted_ratio_mean_checks": 32,
+    "constructed_synthetic_scenarios": 4,
+    "duration_case_category_groups": 96,
+    "exact_historical_baseline_cases": 6,
+    "new_scope_partitions": 30,
+    "new_source_hashes": 11,
+    "per_case_conditional_ledger_rows": 3360,
+    "per_case_rest_union_decompositions": 18,
+    "per_case_statistic_consistency_checks": 204,
+    "prior_mask_f1_identities": 96,
+    "retained_source_hashes": 27,
+    "source_member_sha_crc_identities": 30
+  },
+  "execution_identity": {
+    "artifact_id": 13939819598,
+    "checkout": "4a9f603d983eb0a576795bffd8e9f4fdb2254a77",
+    "checkout_commit_api": "https://api.github.com/repos/JDeun/audio-score-tool/git/commits/4a9f603d983eb0a576795bffd8e9f4fdb2254a77",
+    "head": "18e358645fcec5c5314bb69f2725d9bc3be984f7",
+    "run_attempt": 1,
+    "run_id": 43210425240,
+    "run_url": "https://github.com/JDeun/audio-score-tool/actions/runs/43210425240",
+    "runtime": {
+      "contract_tools": {
+        "pytest": "8.4.2",
+        "ruff": "0.16.6"
+      },
+      "implementation": "CPython",
+      "python": "3.12.16",
+      "standard_library_only": true
+    },
+    "same_git_tree": "7d16179315f8c62ef18f527db2c38fe942d550e1"
+  },
+  "input_identity": {
+    "alignment_archive_sha256": "6f8af87bef6fa8febc977e037130b520d05d0dab8df815e3684ae6239d475005",
+    "alignment_report_sha256": "ec5048b11ede7364ca5c68e9f7fb6f4889ed818d881f502aa34726ba54335f7a",
+    "archive_bytes": 72066,
+    "archive_sha256": "e51fae082cf3c97240a9746cf2ba2214923ce30555ae2f70130f6043cffd478f",
+    "central_directory_sha256": "44408b2f2544cf444a336ea33f8144202b66110befe501aa966764c5e31800ad",
+    "gate_archive_sha256": "ba88b9bda70d4a560a3d05c85ea5301d2e8ff98ea81746d676a1c6695898e10e",
+    "gate_report_sha256": "e79ff94736b471da64638a93456ef4f1510750c843960ae924fc1f488ad2f754",
+    "manifest_sha256": "ba062dc673f0ebb64c12a95c096144b3efb0975ab7e7be34be645359c3d6503d",
+    "metadata_range_sha256": "13a1a91b6a905a191d1de09e6e87f8a99a66401874b38a9eeadc48cb69b81dcb",
+    "report_bytes": 1546689,
+    "report_sha256": "32005007594058ee941fd367aab5cd0ad093cef130fc38a23f47912e36f580bc",
+    "source_member_sha256": {
+      "02": {
+        "beats": "30249f39cd6fa14216252c2c70cb56615551aca24eba04fa8809713eb1570b92",
+        "notes": "d333804a5d73fa6f99974d2b4ae1b86801ea06e87f85881b7f25acb00450bd71",
+        "piano_match": "e8ae9fdde12257b35b06df6225cbf7d35916c0a26458623b82f433c230310606",
+        "piano_score": "4d62f526d0281cf54100ac32fb9ba4cb9feed24807dda205b6429a8f935f7b82",
+        "score": "e593905740a24d87802d6a1549a8a5fd3da0419f74c82407aff9aa9b8d997166"
+      },
+      "05": {
+        "beats": "6825ef470e9c49dce55536067771bc8cc8086805ff45156e84251db2b2a12e30",
+        "notes": "191b7b1e2f524637aa6e6a569b4e699af1bfe095a857b8abcd7db5cf71a57699",
+        "piano_match": "121fa341e429b5448e41d5d8ea06b628a45c8250c7489882c99ce12f2ed5d7d5",
+        "piano_score": "87bbb3ce203b9e909c2556d54bef58ae88384ec5b4f499ff10ab51a2d6edc77d",
+        "score": "15fa4dd430361223900a22794a04ed665683bc29a3331001dde7a89671611cb0"
+      },
+      "06": {
+        "beats": "cb1deed537cd3430aa29135297218f4df93ce2c7deedabddc665c31158b02722",
+        "notes": "f86bd6889e26d828bb917a4a9f9a9e22e59286df60f2b779e6c327100966122e",
+        "piano_match": "eb4a38eb45d6a1e5df60860a2b707c7f025f30a56761b9ec35922969dbcc918a",
+        "piano_score": "13299fff7e581427c66f3dd98847b079b118a638ab5d8bf69a9b194bf41ca566",
+        "score": "6f3c14f3fce4c3f82a174a831fec27d4b8a454176a6795e5e2454e759140ad5f"
+      },
+      "08": {
+        "beats": "b31e1415a52ea168d1dcc326ab703b390e11f8fe6033abfded2fbe8f00debc01",
+        "notes": "aec0d643aa6855663166213280345249be5716c34a6b2adc7d077de3278f12c6",
+        "piano_match": "72c34f274fd5e5415d9eae465c08b64ad824cca345a9766fb694d28162cdb044",
+        "piano_score": "b2b0e53c544fcd151f70323cb0324f97344aa72577801755c08868b163549273",
+        "score": "9b70336f0c8746af132a673f602098c60d608bd8963a7b924621697ff8e5406d"
+      },
+      "12": {
+        "beats": "afdad01a566983e807a3b79e74d0c0349601637ee5fb3d0e53b11b1d61c85c0f",
+        "notes": "8da6d92567c8f8e42c0731e748d492d4b6a6e6a6ead48568be066280f324d3e0",
+        "piano_match": "2579488136ef113c132246d0995a1691855ae12ecf23c19383bc2d119888c549",
+        "piano_score": "34f0b2c3088a63822958cb884e0ad1d2bbc2c03d29eb86a69c391810ba0c5eef",
+        "score": "3aba1f872bf28f8746e9c796fc24cf52e415b8224236238c1cea839476d9381b"
+      },
+      "19": {
+        "beats": "cd6dd9ca1eb16ae1c5c5ef794c226fc1fe6f22f5db9ff9d48dbb71b7e29e1b38",
+        "notes": "37a4de9bc3024b9dc54dd6f946f1ffd3e9ea62a18749c1bc82bed442e89d62ef",
+        "piano_match": "5d15fd4d98f3bc1e23ad29702e13e6c527ab68b85549f2879d291a4b74ec609f",
+        "piano_score": "4d02aef4fc94495fe93653a53a46c7d322c80f505ba25ccb74fe9903c28c5e98",
+        "score": "3f1b5bb0a4c9ba490437f6b5c065c8be07ba2f487338ce83a31c900a0dfdc7d8"
+      }
+    }
+  },
+  "limitations": [
+    "No audio, model inference, complete study rerun, or raw-note re-matching was performed.",
+    "Memberships were checked as partitions and stable category subsets; no new symbolic pair identity reconstruction is claimed.",
+    "Scope resolved-set differences are independently verified; same/different pair identity split is checked for accounting and category consistency, not fully reconstructed from hashes.",
+    "Duration sample counts, sums, means, category/cohort aggregation and quantile consistency were checked. Per-case raw ratio samples and band assignments were not independently reconstructed.",
+    "Cohort means were recomputed from count/sum; per-recording medians were never pooled as cohort quantiles.",
+    "Rest union arithmetic and overlap conservation were checked; underlying projected boundaries and acoustic silence were not independently reconstructed.",
+    "Analysis-before-historical-read ordering is supported by frozen runner inspection, stored analysis hashes and receipt state, not by arithmetic alone."
+  ],
+  "reconstructed_summary": {
+    "category_populations": {
+      "fixed100": {
+        "accent": 21,
+        "mixed_articulation": 9,
+        "other_marked": 0,
+        "staccato": 41,
+        "tenuto": 0,
+        "unmarked": 341,
+        "unresolved": 535
+      },
+      "stable_tempo": {
+        "accent": 17,
+        "mixed_articulation": 7,
+        "other_marked": 0,
+        "staccato": 25,
+        "tenuto": 0,
+        "unmarked": 246,
+        "unresolved": 652
+      },
+      "tempo10": {
+        "accent": 17,
+        "mixed_articulation": 7,
+        "other_marked": 0,
+        "staccato": 25,
+        "tenuto": 0,
+        "unmarked": 254,
+        "unresolved": 644
+      },
+      "tempo20": {
+        "accent": 22,
+        "mixed_articulation": 8,
+        "other_marked": 0,
+        "staccato": 37,
+        "tenuto": 0,
+        "unmarked": 327,
+        "unresolved": 553
+      },
+      "tempo30": {
+        "accent": 24,
+        "mixed_articulation": 8,
+        "other_marked": 0,
+        "staccato": 42,
+        "tenuto": 0,
+        "unmarked": 366,
+        "unresolved": 507
+      }
+    },
+    "duration_context": {
+      "fixed100": {
+        "band_counts": {
+          "clock_dependent": 55,
+          "inside_both": 268,
+          "longer_both": 21,
+          "shorter_both": 61
+        },
+        "by_category": {
+          "accent": {
+            "band_counts": {
+              "clock_dependent": 2,
+              "inside_both": 13,
+              "longer_both": 5,
+              "shorter_both": 1
+            },
+            "musical_correctness_measured": false,
+            "paired_notes": 21,
+            "ratios": {
+              "global_beats": {
+                "cohort_quantiles_computed": false,
+                "count": 21,
+                "mean": 1.0525052089345361,
+                "sum": 22.102609387625257
+              },
+              "piano": {
+                "cohort_quantiles_computed": false,
+                "count": 21,
+                "mean": 1.0722869001844368,
+                "sum": 22.518024903873172
+              }
+            },
+            "reference_notes": 21,
+            "supported_pairs": 21,
+            "unpaired_notes": 0,
+            "unsupported_pairs": 0,
+            "unsupported_reasons": {}
+          },
+          "mixed_articulation": {
+            "band_counts": {
+              "clock_dependent": 1,
+              "inside_both": 8
+            },
+            "musical_correctness_measured": false,
+            "paired_notes": 9,
+            "ratios": {
+              "global_beats": {
+                "cohort_quantiles_computed": false,
+                "count": 9,
+                "mean": 0.9728736153572378,
+                "sum": 8.75586253821514
+              },
+              "piano": {
+                "cohort_quantiles_computed": false,
+                "count": 9,
+                "mean": 0.95056238072765,
+                "sum": 8.55506142654885
+              }
+            },
+            "reference_notes": 9,
+            "supported_pairs": 9,
+            "unpaired_notes": 0,
+            "unsupported_pairs": 0,
+            "unsupported_reasons": {}
+          },
+          "other_marked": {
+            "band_counts": {},
+            "musical_correctness_measured": false,
+            "paired_notes": 0,
+            "ratios": {
+              "global_beats": {
+                "cohort_quantiles_computed": false,
+                "count": 0,
+                "mean": null,
+                "sum": 0.0
+              },
+              "piano": {
+                "cohort_quantiles_computed": false,
+                "count": 0,
+                "mean": null,
+                "sum": 0.0
+              }
+            },
+            "reference_notes": 0,
+            "supported_pairs": 0,
+            "unpaired_notes": 0,
+            "unsupported_pairs": 0,
+            "unsupported_reasons": {}
+          },
+          "staccato": {
+            "band_counts": {
+              "clock_dependent": 3,
+              "inside_both": 5,
+              "longer_both": 1,
+              "shorter_both": 32
+            },
+            "musical_correctness_measured": false,
+            "paired_notes": 41,
+            "ratios": {
+              "global_beats": {
+                "cohort_quantiles_computed": false,
+                "count": 41,
+                "mean": 0.5230263793179106,
+                "sum": 21.444081552034334
+              },
+              "piano": {
+                "cohort_quantiles_computed": false,
+                "count": 41,
+                "mean": 0.5275203875333165,
+                "sum": 21.62833588886598
+              }
+            },
+            "reference_notes": 41,
+            "supported_pairs": 41,
+            "unpaired_notes": 0,
+            "unsupported_pairs": 0,
+            "unsupported_reasons": {}
+          },
+          "tenuto": {
+            "band_counts": {},
+            "musical_correctness_measured": false,
+            "paired_notes": 0,
+            "ratios": {
+              "global_beats": {
+                "cohort_quantiles_computed": false,
+                "count": 0,
+                "mean": null,
+                "sum": 0.0
+              },
+              "piano": {
+                "cohort_quantiles_computed": false,
+                "count": 0,
+                "mean": null,
+                "sum": 0.0
+              }
+            },
+            "reference_notes": 0,
+            "supported_pairs": 0,
+            "unpaired_notes": 0,
+            "unsupported_pairs": 0,
+            "unsupported_reasons": {}
+          },
+          "unmarked": {
+            "band_counts": {
+              "clock_dependent": 49,
+              "inside_both": 242,
+              "longer_both": 15,
+              "shorter_both": 28
+            },
+            "musical_correctness_measured": false,
+            "paired_notes": 341,
+            "ratios": {
+              "global_beats": {
+                "cohort_quantiles_computed": false,
+                "count": 334,
+                "mean": 0.9752548785066433,
+                "sum": 325.73512942121886
+              },
+              "piano": {
+                "cohort_quantiles_computed": false,
+                "count": 334,
+                "mean": 0.9823480632765089,
+                "sum": 328.104253134354
+              }
+            },
+            "reference_notes": 341,
+            "supported_pairs": 334,
+            "unpaired_notes": 0,
+            "unsupported_pairs": 7,
+            "unsupported_reasons": {
+              "interval_not_supported_by_both_clocks": 7
+            }
+          },
+          "unresolved": {
+            "band_counts": {},
+            "musical_correctness_measured": false,
+            "paired_notes": 0,
+            "ratios": {
+              "global_beats": {
+                "cohort_quantiles_computed": false,
+                "count": 0,
+                "mean": null,
+                "sum": 0.0
+              },
+              "piano": {
+                "cohort_quantiles_computed": false,
+                "count": 0,
+                "mean": null,
+                "sum": 0.0
+              }
+            },
+            "reference_notes": 535,
+            "supported_pairs": 0,
+            "unpaired_notes": 535,
+            "unsupported_pairs": 0,
+            "unsupported_reasons": {}
+          }
+        },
+        "musical_correctness_measured": false,
+        "paired_notes": 412,
+        "ratios": {
+          "global_beats": {
+            "cohort_quantiles_computed": false,
+            "count": 405,
+            "mean": 0.9334263775286261,
+            "sum": 378.03768289909357
+          },
+          "piano": {
+            "cohort_quantiles_computed": false,
+            "count": 405,
+            "mean": 0.9402609267991161,
+            "sum": 380.805675353642
+          }
+        },
+        "reference_notes": 947,
+        "supported_pairs": 405,
+        "unpaired_notes": 535,
+        "unsupported_pairs": 7,
+        "unsupported_reasons": {
+          "interval_not_supported_by_both_clocks": 7
+        }
+      },
+      "tempo20": {
+        "band_counts": {
+          "clock_dependent": 51,
+          "inside_both": 258,
+          "longer_both": 22,
+          "shorter_both": 57
+        },
+        "by_category": {
+          "accent": {
+            "band_counts": {
+              "clock_dependent": 2,
+              "inside_both": 13,
+              "longer_both": 6,
+              "shorter_both": 1
+            },
+            "musical_correctness_measured": false,
+            "paired_notes": 22,
+            "ratios": {
+              "global_beats": {
+                "cohort_quantiles_computed": false,
+                "count": 22,
+                "mean": 1.0964837355331498,
+                "sum": 24.122642181729294
+              },
+              "piano": {
+                "cohort_quantiles_computed": false,
+                "count": 22,
+                "mean": 1.102147695014117,
+                "sum": 24.247249290310574
+              }
+            },
+            "reference_notes": 22,
+            "supported_pairs": 22,
+            "unpaired_notes": 0,
+            "unsupported_pairs": 0,
+            "unsupported_reasons": {}
+          },
+          "mixed_articulation": {
+            "band_counts": {
+              "clock_dependent": 1,
+              "inside_both": 7
+            },
+            "musical_correctness_measured": false,
+            "paired_notes": 8,
+            "ratios": {
+              "global_beats": {
+                "cohort_quantiles_computed": false,
+                "count": 8,
+                "mean": 0.9643036459443056,
+                "sum": 7.714429167554445
+              },
+              "piano": {
+                "cohort_quantiles_computed": false,
+                "count": 8,
+                "mean": 0.9300410211108878,
+                "sum": 7.440328168887103
+              }
+            },
+            "reference_notes": 8,
+            "supported_pairs": 8,
+            "unpaired_notes": 0,
+            "unsupported_pairs": 0,
+            "unsupported_reasons": {}
+          },
+          "other_marked": {
+            "band_counts": {},
+            "musical_correctness_measured": false,
+            "paired_notes": 0,
+            "ratios": {
+              "global_beats": {
+                "cohort_quantiles_computed": false,
+                "count": 0,
+                "mean": null,
+                "sum": 0.0
+              },
+              "piano": {
+                "cohort_quantiles_computed": false,
+                "count": 0,
+                "mean": null,
+                "sum": 0.0
+              }
+            },
+            "reference_notes": 0,
+            "supported_pairs": 0,
+            "unpaired_notes": 0,
+            "unsupported_pairs": 0,
+            "unsupported_reasons": {}
+          },
+          "staccato": {
+            "band_counts": {
+              "clock_dependent": 3,
+              "inside_both": 3,
+              "longer_both": 2,
+              "shorter_both": 29
+            },
+            "musical_correctness_measured": false,
+            "paired_notes": 37,
+            "ratios": {
+              "global_beats": {
+                "cohort_quantiles_computed": false,
+                "count": 37,
+                "mean": 0.5341277623469842,
+                "sum": 19.762727206838417
+              },
+              "piano": {
+                "cohort_quantiles_computed": false,
+                "count": 37,
+                "mean": 0.5366862041706325,
+                "sum": 19.857389554313404
+              }
+            },
+            "reference_notes": 37,
+            "supported_pairs": 37,
+            "unpaired_notes": 0,
+            "unsupported_pairs": 0,
+            "unsupported_reasons": {}
+          },
+          "tenuto": {
+            "band_counts": {},
+            "musical_correctness_measured": false,
+            "paired_notes": 0,
+            "ratios": {
+              "global_beats": {
+                "cohort_quantiles_computed": false,
+                "count": 0,
+                "mean": null,
+                "sum": 0.0
+              },
+              "piano": {
+                "cohort_quantiles_computed": false,
+                "count": 0,
+                "mean": null,
+                "sum": 0.0
+              }
+            },
+            "reference_notes": 0,
+            "supported_pairs": 0,
+            "unpaired_notes": 0,
+            "unsupported_pairs": 0,
+            "unsupported_reasons": {}
+          },
+          "unmarked": {
+            "band_counts": {
+              "clock_dependent": 45,
+              "inside_both": 235,
+              "longer_both": 14,
+              "shorter_both": 27
+            },
+            "musical_correctness_measured": false,
+            "paired_notes": 327,
+            "ratios": {
+              "global_beats": {
+                "cohort_quantiles_computed": false,
+                "count": 321,
+                "mean": 0.9693830582355439,
+                "sum": 311.1719616936096
+              },
+              "piano": {
+                "cohort_quantiles_computed": false,
+                "count": 321,
+                "mean": 0.9774303784010784,
+                "sum": 313.75515146674616
+              }
+            },
+            "reference_notes": 327,
+            "supported_pairs": 321,
+            "unpaired_notes": 0,
+            "unsupported_pairs": 6,
+            "unsupported_reasons": {
+              "interval_not_supported_by_both_clocks": 6
+            }
+          },
+          "unresolved": {
+            "band_counts": {},
+            "musical_correctness_measured": false,
+            "paired_notes": 0,
+            "ratios": {
+              "global_beats": {
+                "cohort_quantiles_computed": false,
+                "count": 0,
+                "mean": null,
+                "sum": 0.0
+              },
+              "piano": {
+                "cohort_quantiles_computed": false,
+                "count": 0,
+                "mean": null,
+                "sum": 0.0
+              }
+            },
+            "reference_notes": 553,
+            "supported_pairs": 0,
+            "unpaired_notes": 553,
+            "unsupported_pairs": 0,
+            "unsupported_reasons": {}
+          }
+        },
+        "musical_correctness_measured": false,
+        "paired_notes": 394,
+        "ratios": {
+          "global_beats": {
+            "cohort_quantiles_computed": false,
+            "count": 388,
+            "mean": 0.9349787635302365,
+            "sum": 362.77176024973176
+          },
+          "piano": {
+            "cohort_quantiles_computed": false,
+            "count": 388,
+            "mean": 0.9414951507223125,
+            "sum": 365.30011848025725
+          }
+        },
+        "reference_notes": 947,
+        "supported_pairs": 388,
+        "unpaired_notes": 553,
+        "unsupported_pairs": 6,
+        "unsupported_reasons": {
+          "interval_not_supported_by_both_clocks": 6
+        }
+      }
+    },
+    "fixed100_to_tempo20_set_accounting": {
+      "different_pair": 0,
+      "newly_resolved_reference": 18,
+      "newly_unresolved_reference": 36,
+      "same_pair": 376
+    },
+    "frozen_baseline": {
+      "admitted_recordings": 1,
+      "primary_pairs": 225,
+      "stable_pairs": 137
+    },
+    "local_support": {
+      "beat_cells": 607,
+      "support_components": 55,
+      "supported_beat_cells": 373,
+      "supported_score_quarters": 426.0,
+      "unsupported_beat_cells": 234
+    },
+    "nonzero_whole_recording_matching_transitions": [
+      {
+        "arm": "relative_soft",
+        "base": "default",
+        "damaged": 1,
+        "gained": 0,
+        "matched": 544,
+        "metric": "onset",
+        "raw_matched": 545,
+        "scope": "fixed100",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      {
+        "arm": "relative_soft",
+        "base": "default",
+        "damaged": 1,
+        "gained": 1,
+        "matched": 247,
+        "metric": "onset_offset",
+        "raw_matched": 247,
+        "scope": "fixed100",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      {
+        "arm": "tail_only",
+        "base": "default",
+        "damaged": 1,
+        "gained": 1,
+        "matched": 247,
+        "metric": "onset_offset",
+        "raw_matched": 247,
+        "scope": "fixed100",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      {
+        "arm": "non_tail_only",
+        "base": "default",
+        "damaged": 1,
+        "gained": 0,
+        "matched": 544,
+        "metric": "onset",
+        "raw_matched": 545,
+        "scope": "fixed100",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      {
+        "arm": "relative_soft",
+        "base": "onset065",
+        "damaged": 1,
+        "gained": 0,
+        "matched": 548,
+        "metric": "onset",
+        "raw_matched": 549,
+        "scope": "fixed100",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      {
+        "arm": "relative_soft",
+        "base": "onset065",
+        "damaged": 1,
+        "gained": 1,
+        "matched": 287,
+        "metric": "onset_offset",
+        "raw_matched": 287,
+        "scope": "fixed100",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      {
+        "arm": "tail_only",
+        "base": "onset065",
+        "damaged": 1,
+        "gained": 1,
+        "matched": 287,
+        "metric": "onset_offset",
+        "raw_matched": 287,
+        "scope": "fixed100",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      {
+        "arm": "non_tail_only",
+        "base": "onset065",
+        "damaged": 1,
+        "gained": 0,
+        "matched": 548,
+        "metric": "onset",
+        "raw_matched": 549,
+        "scope": "fixed100",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      {
+        "arm": "relative_soft",
+        "base": "default",
+        "damaged": 1,
+        "gained": 0,
+        "matched": 544,
+        "metric": "onset",
+        "raw_matched": 545,
+        "scope": "tempo10",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      {
+        "arm": "relative_soft",
+        "base": "default",
+        "damaged": 1,
+        "gained": 1,
+        "matched": 247,
+        "metric": "onset_offset",
+        "raw_matched": 247,
+        "scope": "tempo10",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      {
+        "arm": "tail_only",
+        "base": "default",
+        "damaged": 1,
+        "gained": 1,
+        "matched": 247,
+        "metric": "onset_offset",
+        "raw_matched": 247,
+        "scope": "tempo10",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      {
+        "arm": "non_tail_only",
+        "base": "default",
+        "damaged": 1,
+        "gained": 0,
+        "matched": 544,
+        "metric": "onset",
+        "raw_matched": 545,
+        "scope": "tempo10",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      {
+        "arm": "relative_soft",
+        "base": "onset065",
+        "damaged": 1,
+        "gained": 0,
+        "matched": 548,
+        "metric": "onset",
+        "raw_matched": 549,
+        "scope": "tempo10",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      {
+        "arm": "relative_soft",
+        "base": "onset065",
+        "damaged": 1,
+        "gained": 1,
+        "matched": 287,
+        "metric": "onset_offset",
+        "raw_matched": 287,
+        "scope": "tempo10",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      {
+        "arm": "tail_only",
+        "base": "onset065",
+        "damaged": 1,
+        "gained": 1,
+        "matched": 287,
+        "metric": "onset_offset",
+        "raw_matched": 287,
+        "scope": "tempo10",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      {
+        "arm": "non_tail_only",
+        "base": "onset065",
+        "damaged": 1,
+        "gained": 0,
+        "matched": 548,
+        "metric": "onset",
+        "raw_matched": 549,
+        "scope": "tempo10",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      {
+        "arm": "relative_soft",
+        "base": "default",
+        "damaged": 1,
+        "gained": 0,
+        "matched": 544,
+        "metric": "onset",
+        "raw_matched": 545,
+        "scope": "tempo20",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      {
+        "arm": "relative_soft",
+        "base": "default",
+        "damaged": 1,
+        "gained": 1,
+        "matched": 247,
+        "metric": "onset_offset",
+        "raw_matched": 247,
+        "scope": "tempo20",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      {
+        "arm": "tail_only",
+        "base": "default",
+        "damaged": 1,
+        "gained": 1,
+        "matched": 247,
+        "metric": "onset_offset",
+        "raw_matched": 247,
+        "scope": "tempo20",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      {
+        "arm": "non_tail_only",
+        "base": "default",
+        "damaged": 1,
+        "gained": 0,
+        "matched": 544,
+        "metric": "onset",
+        "raw_matched": 545,
+        "scope": "tempo20",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      {
+        "arm": "relative_soft",
+        "base": "onset065",
+        "damaged": 1,
+        "gained": 0,
+        "matched": 548,
+        "metric": "onset",
+        "raw_matched": 549,
+        "scope": "tempo20",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      {
+        "arm": "relative_soft",
+        "base": "onset065",
+        "damaged": 1,
+        "gained": 1,
+        "matched": 287,
+        "metric": "onset_offset",
+        "raw_matched": 287,
+        "scope": "tempo20",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      {
+        "arm": "tail_only",
+        "base": "onset065",
+        "damaged": 1,
+        "gained": 1,
+        "matched": 287,
+        "metric": "onset_offset",
+        "raw_matched": 287,
+        "scope": "tempo20",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      {
+        "arm": "non_tail_only",
+        "base": "onset065",
+        "damaged": 1,
+        "gained": 0,
+        "matched": 548,
+        "metric": "onset",
+        "raw_matched": 549,
+        "scope": "tempo20",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      {
+        "arm": "relative_soft",
+        "base": "default",
+        "damaged": 1,
+        "gained": 0,
+        "matched": 544,
+        "metric": "onset",
+        "raw_matched": 545,
+        "scope": "tempo30",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      {
+        "arm": "relative_soft",
+        "base": "default",
+        "damaged": 1,
+        "gained": 1,
+        "matched": 247,
+        "metric": "onset_offset",
+        "raw_matched": 247,
+        "scope": "tempo30",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      {
+        "arm": "tail_only",
+        "base": "default",
+        "damaged": 1,
+        "gained": 1,
+        "matched": 247,
+        "metric": "onset_offset",
+        "raw_matched": 247,
+        "scope": "tempo30",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      {
+        "arm": "non_tail_only",
+        "base": "default",
+        "damaged": 1,
+        "gained": 0,
+        "matched": 544,
+        "metric": "onset",
+        "raw_matched": 545,
+        "scope": "tempo30",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      {
+        "arm": "relative_soft",
+        "base": "onset065",
+        "damaged": 1,
+        "gained": 0,
+        "matched": 548,
+        "metric": "onset",
+        "raw_matched": 549,
+        "scope": "tempo30",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      {
+        "arm": "relative_soft",
+        "base": "onset065",
+        "damaged": 1,
+        "gained": 1,
+        "matched": 287,
+        "metric": "onset_offset",
+        "raw_matched": 287,
+        "scope": "tempo30",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      {
+        "arm": "tail_only",
+        "base": "onset065",
+        "damaged": 1,
+        "gained": 1,
+        "matched": 287,
+        "metric": "onset_offset",
+        "raw_matched": 287,
+        "scope": "tempo30",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      {
+        "arm": "non_tail_only",
+        "base": "onset065",
+        "damaged": 1,
+        "gained": 0,
+        "matched": 548,
+        "metric": "onset",
+        "raw_matched": 549,
+        "scope": "tempo30",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      {
+        "arm": "relative_soft",
+        "base": "default",
+        "damaged": 1,
+        "gained": 0,
+        "matched": 544,
+        "metric": "onset",
+        "raw_matched": 545,
+        "scope": "stable_tempo",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      {
+        "arm": "relative_soft",
+        "base": "default",
+        "damaged": 1,
+        "gained": 1,
+        "matched": 247,
+        "metric": "onset_offset",
+        "raw_matched": 247,
+        "scope": "stable_tempo",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      {
+        "arm": "tail_only",
+        "base": "default",
+        "damaged": 1,
+        "gained": 1,
+        "matched": 247,
+        "metric": "onset_offset",
+        "raw_matched": 247,
+        "scope": "stable_tempo",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      {
+        "arm": "non_tail_only",
+        "base": "default",
+        "damaged": 1,
+        "gained": 0,
+        "matched": 544,
+        "metric": "onset",
+        "raw_matched": 545,
+        "scope": "stable_tempo",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      {
+        "arm": "relative_soft",
+        "base": "onset065",
+        "damaged": 1,
+        "gained": 0,
+        "matched": 548,
+        "metric": "onset",
+        "raw_matched": 549,
+        "scope": "stable_tempo",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      },
+      {
+        "arm": "relative_soft",
+        "base": "onset065",
+        "damaged": 1,
+        "gained": 1,
+        "matched": 287,
+        "metric": "onset_offset",
+        "raw_matched": 287,
+        "scope": "stable_tempo",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      {
+        "arm": "tail_only",
+        "base": "onset065",
+        "damaged": 1,
+        "gained": 1,
+        "matched": 287,
+        "metric": "onset_offset",
+        "raw_matched": 287,
+        "scope": "stable_tempo",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 1
+      },
+      {
+        "arm": "non_tail_only",
+        "base": "onset065",
+        "damaged": 1,
+        "gained": 0,
+        "matched": 548,
+        "metric": "onset",
+        "raw_matched": 549,
+        "scope": "stable_tempo",
+        "unresolved_damaged": 1,
+        "unresolved_gained": 0
+      }
+    ],
+    "per_recording": [
+      {
+        "id": "02",
+        "local_support_status": "unadmitted",
+        "reference_notes": 73,
+        "scopes": {
+          "fixed100": 0,
+          "stable_tempo": 0,
+          "tempo10": 0,
+          "tempo20": 0,
+          "tempo30": 0
+        },
+        "supported_beat_cells": 0
+      },
+      {
+        "id": "19",
+        "local_support_status": "admitted",
+        "reference_notes": 295,
+        "scopes": {
+          "fixed100": 212,
+          "stable_tempo": 150,
+          "tempo10": 150,
+          "tempo20": 183,
+          "tempo30": 212
+        },
+        "supported_beat_cells": 170
+      },
+      {
+        "id": "08",
+        "local_support_status": "admitted",
+        "reference_notes": 203,
+        "scopes": {
+          "fixed100": 59,
+          "stable_tempo": 39,
+          "tempo10": 43,
+          "tempo20": 67,
+          "tempo30": 80
+        },
+        "supported_beat_cells": 56
+      },
+      {
+        "id": "12",
+        "local_support_status": "admitted",
+        "reference_notes": 65,
+        "scopes": {
+          "fixed100": 21,
+          "stable_tempo": 19,
+          "tempo10": 21,
+          "tempo20": 20,
+          "tempo30": 19
+        },
+        "supported_beat_cells": 24
+      },
+      {
+        "id": "05",
+        "local_support_status": "admitted",
+        "reference_notes": 151,
+        "scopes": {
+          "fixed100": 24,
+          "stable_tempo": 20,
+          "tempo10": 22,
+          "tempo20": 24,
+          "tempo30": 22
+        },
+        "supported_beat_cells": 25
+      },
+      {
+        "id": "06",
+        "local_support_status": "admitted",
+        "reference_notes": 160,
+        "scopes": {
+          "fixed100": 96,
+          "stable_tempo": 67,
+          "tempo10": 67,
+          "tempo20": 100,
+          "tempo30": 107
+        },
+        "supported_beat_cells": 98
+      }
+    ],
+    "reference_notes": 947,
+    "resolved_matching_transitions": {
+      "fixed100": {
+        "damaged": 0,
+        "gained": 0
+      },
+      "stable_tempo": {
+        "damaged": 0,
+        "gained": 0
+      },
+      "tempo10": {
+        "damaged": 0,
+        "gained": 0
+      },
+      "tempo20": {
+        "damaged": 0,
+        "gained": 0
+      },
+      "tempo30": {
+        "damaged": 0,
+        "gained": 0
+      }
+    },
+    "rest_ranges": {
+      "collapsed_core_intervals": 0,
+      "instrument_wide_rest_intervals": 36,
+      "projected_rest_intervals": 18,
+      "projections": {
+        "boundary_uncertain": {
+          "annotated_note_overlap_s": 3.6574227777777604,
+          "duration_s": 7.55970062499999,
+          "uncovered_by_note_annotations_s": 3.9022778472222295
+        },
+        "core": {
+          "annotated_note_overlap_s": 0.04203722222222517,
+          "duration_s": 3.4038449999999996,
+          "uncovered_by_note_annotations_s": 3.3618077777777744
+        },
+        "envelope": {
+          "annotated_note_overlap_s": 3.6994599999999855,
+          "duration_s": 10.96354562499999,
+          "uncovered_by_note_annotations_s": 7.264085625000003
+        }
+      },
+      "unprojectable_rest_intervals": 18
+    },
+    "scope_counts": {
+      "fixed100": 412,
+      "stable_tempo": 295,
+      "tempo10": 303,
+      "tempo20": 394,
+      "tempo30": 440
+    },
+    "scope_coverage": {
+      "fixed100": 0.4350580781414995,
+      "stable_tempo": 0.3115100316789863,
+      "tempo10": 0.3199577613516367,
+      "tempo20": 0.4160506863780359,
+      "tempo30": 0.46462513199577615
+    }
+  },
+  "schema_notes": [
+    "onset_residuals_pulse_fraction is dimensionless despite inherited median_s/p95_s/max_s field names; no seconds conversion was made.",
+    "stable_tempo deliberately has residual_statistics_computed=false, zero residual counts and null residual statistics."
+  ],
+  "schema_version": 1,
+  "status": "passed",
+  "verified_source_sha256": {
+    "measured_11": {
+      ".github/workflows/cpu-kraisler-expressive.yml": "34d5212a28a3f6ee7ea2755f2adfc1a63a22051345aa49a52d6f4259d59151b2",
+      "docs/research/KRAISLER_EXPRESSIVE_PROTOCOL_2026-11-12.md": "3ad6dc012ff934c92779bb4fc1c7a46cebb14d1b4821a8764b5f5b4271e4f94f",
+      "scripts/kraisler_expressive.py": "f34fdca98c388d3b4f7e27bacfce319f0cee91b289b37a6d2d17355b233b0b1f",
+      "scripts/kraisler_local_clock.py": "a3af99572ed39c87d1c64311a6c537d1275f8e47a8b8914286e7c8a3637ce2c0",
+      "scripts/kraisler_rhythm_ranges.py": "7083a1a4bde6195ef56662a4a62ddd95aaf944e6d723efeb1108d4f757f5cbeb",
+      "scripts/research_test_manifest.json": "d5a5ed949b3385e0a957b70c291e2de398f964ce37024f4c6cc689c87dc9cfc7",
+      "scripts/run_kraisler_expressive.py": "774826f48f4abc430924db5f8593f6ed0ad68eb2d6095645aecaeb75221c3ab0",
+      "tests/test_kraisler_expressive.py": "20a68d1bb6ad48f7dbe2dcd1ce1886bef709afaedbd68d996df9814f1430d7ad",
+      "tests/test_kraisler_local_clock.py": "6e71e19a1d6798fcea9a63e51a750616bf264b3c8608fa3c4a8410a6a053b57c",
+      "tests/test_kraisler_rhythm_ranges.py": "f2f6e4153cae65e0e67071f44f1db00d670767b738bdfc7b7bdf6568afd407e7",
+      "tests/test_run_kraisler_expressive.py": "100d8b7bd8f582a3b09a67a0caebfa52d4e055002f30e4501f4a72278fd527af"
+    },
+    "retained_27": {
+      ".github/workflows/cpu-kraisler-alignment.yml": "d94b6841b12507491df7f58c595084d22b238de7a550e70328725b0353ce64f3",
+      ".github/workflows/cpu-kraisler-gate.yml": "15a408d208567cb4c9ff272460ab2dfc0d937730741e61b8efb061ec12cec705",
+      "docs/research/KRAISLER_ALIGNMENT_PROTOCOL_2026-11-12.md": "49d9cc04e08b03afd22201a5a4541336f1fe294d57167ed968476b196d126a28",
+      "docs/research/KRAISLER_GATE_PROTOCOL_2026-11-12.md": "bfbe4bce2335f1b942f7f55a9c855c8f87657ba4ec8efa5f4ac040981b0e0c1d",
+      "scripts/audio_gate_attribution.py": "99b3c494b59fbb0725cc9dd4cd25665a777c93d1516ba6e5a13eb238ddf65cea",
+      "scripts/audio_gate_rest.py": "05f239835c2bee14e40cb059b68bad35c7c5a79f247c3d616677c501161fff73",
+      "scripts/kraisler_alignment_manifest.json": "ba062dc673f0ebb64c12a95c096144b3efb0975ab7e7be34be645359c3d6503d",
+      "scripts/kraisler_alignment_source.py": "25e0ed3327facffdd0f1dcf1a34134176673f9012f2c9f318d2b32ce288642f5",
+      "scripts/kraisler_correspondence.py": "c3046d387ba83c7a97c2eb2d16d7f609ecd71c6708ec45d25f5aec9238198efb",
+      "scripts/kraisler_gate_eval.py": "ea664ad392d61a12a52b98dcb3987d4bad62ad8d2dbd2aa34301b669434695bf",
+      "scripts/kraisler_gate_manifest.json": "a18857a4b7a2025ea327f9a03855ca02dca0964110d973d5224b85dfbb258c60",
+      "scripts/kraisler_match.py": "3fbf1c07783bfa9205eb152e553032e5922018c3c1c7d673b524d2a7632a373c",
+      "scripts/kraisler_score.py": "515f7f06579e9ee590f4a17147993d496d0b4040e9f60574eb82377c7ac3c431",
+      "scripts/kraisler_source.py": "94ba9c30adfd60dfc518a371a53b6fdaa722a44352a019311582b8125423e2bd",
+      "scripts/offset_tail_evidence.py": "5adb61edca4b68deac9a0f9f6f619009d8295f006a5913b9f14c6a30f6ce0b4c",
+      "scripts/run_cpu_vocadito_candidates.py": "0265be97c1f891816da30e75fa145a58a1972636a5729fcb1ccc761665c52465",
+      "scripts/run_kraisler_alignment.py": "fb5a1682ead8d5416143228a9ff845006ccfd1672d700b277f5f41a0eaea4847",
+      "scripts/run_kraisler_gate.py": "57b23a975bb8f4a64858c8f034c8a66c50def91053a72004717b815114fe700a",
+      "scripts/run_offset_tail_probe.py": "44730f903b4e8eddc1755ff0ae89793052c43abc129f15028b91b0d16562939e",
+      "scripts/vocadito_reference.py": "2ee6f18518e0f4887b9f0c163fff6cfcb964a05d21da1eddd6fcf8e031259194",
+      "scripts/vocal_recovery.py": "9cbc4c1e635b78263c46473d357fa928350fabdf3efcab79ec44a42e00fa246b",
+      "src/audio_score_tool/metrics.py": "476fdb3dcebf8660a83b258263a2719193590eee5135d40f79b87ceab313df4f",
+      "tests/test_kraisler_alignment_source.py": "f53aab084da20bb60333e6a7205c74e0476806b9a2309fcc9c299dd76700167f",
+      "tests/test_kraisler_correspondence.py": "82f4f6226c2e1e3f9a21a30cfca7a58019f8853666d406fa5316882fa156cf7e",
+      "tests/test_kraisler_match.py": "e630f244d1c526325954dba12a467eee6668a52dfa05a789105b57d93114b9ca",
+      "tests/test_kraisler_score.py": "e1e8f40144d37936bfe505b866a72326fbfb3709b1adb864482c1afaf31661c4",
+      "tests/test_run_kraisler_alignment.py": "3bfa6640ef4be15f4cd62bbc82c7fbe88801f35f26741d016ea46c5c84c00c48"
+    }
+  }
+}

@@ -1,0 +1,903 @@
+{
+  "archive_sha256": "e51fae082cf3c97240a9746cf2ba2214923ce30555ae2f70130f6043cffd478f",
+  "audit_script_sha256": "0726fd0dfa5aa15c426da5e46fa799488f172848e110bd9616dd755160e09ce5",
+  "audit_type": "post-run independent source-clock, correspondence, duration and interval mathematics",
+  "cases": [
+    {
+      "duration_context": {
+        "fixed100": {
+          "band_counts": {
+            "clock_dependent": 0,
+            "inside_both": 0,
+            "longer_both": 0,
+            "shorter_both": 0
+          },
+          "ratio_means": {
+            "global_beats": null,
+            "piano": null
+          },
+          "supported_pairs": 0,
+          "unsupported_pairs": 0
+        },
+        "tempo20": {
+          "band_counts": {
+            "clock_dependent": 0,
+            "inside_both": 0,
+            "longer_both": 0,
+            "shorter_both": 0
+          },
+          "ratio_means": {
+            "global_beats": null,
+            "piano": null
+          },
+          "supported_pairs": 0,
+          "unsupported_pairs": 0
+        }
+      },
+      "fixed100_to_tempo20": {
+        "different_pair": 0,
+        "newly_resolved_reference": 0,
+        "newly_unresolved_reference": 0,
+        "same_pair": 0
+      },
+      "id": "02",
+      "local_support": {
+        "supported_beat_cells": 0,
+        "symbolic_admission": false,
+        "unsupported_beat_cells": 58
+      },
+      "reference_notes": 73,
+      "rest_ranges": {
+        "collapsed_core_intervals": 0,
+        "projected_rest_intervals": 0,
+        "projections": {
+          "boundary_uncertain": {
+            "annotated_note_overlap_s": 0.0,
+            "duration_s": 0.0,
+            "interval_count": 0,
+            "uncovered_by_note_annotations_s": 0.0
+          },
+          "core": {
+            "annotated_note_overlap_s": 0.0,
+            "duration_s": 0.0,
+            "interval_count": 0,
+            "uncovered_by_note_annotations_s": 0.0
+          },
+          "envelope": {
+            "annotated_note_overlap_s": 0.0,
+            "duration_s": 0.0,
+            "interval_count": 0,
+            "uncovered_by_note_annotations_s": 0.0
+          }
+        },
+        "unprojectable_rest_intervals": 4
+      },
+      "scopes": {
+        "fixed100": {
+          "matched_pairs": 0,
+          "pair_identity_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "unresolved_reasons": {
+            "source_clock_unadmitted": 73
+          }
+        },
+        "stable_tempo": {
+          "matched_pairs": 0,
+          "pair_identity_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "unresolved_reasons": {
+            "not_same_unique_pair_at_all_tempo_windows": 73
+          }
+        },
+        "tempo10": {
+          "matched_pairs": 0,
+          "pair_identity_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "unresolved_reasons": {
+            "source_clock_unadmitted": 73
+          }
+        },
+        "tempo20": {
+          "matched_pairs": 0,
+          "pair_identity_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "unresolved_reasons": {
+            "source_clock_unadmitted": 73
+          }
+        },
+        "tempo30": {
+          "matched_pairs": 0,
+          "pair_identity_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "unresolved_reasons": {
+            "source_clock_unadmitted": 73
+          }
+        }
+      },
+      "source_member_sha256": {
+        "beats": "30249f39cd6fa14216252c2c70cb56615551aca24eba04fa8809713eb1570b92",
+        "notes": "d333804a5d73fa6f99974d2b4ae1b86801ea06e87f85881b7f25acb00450bd71",
+        "piano_match": "e8ae9fdde12257b35b06df6225cbf7d35916c0a26458623b82f433c230310606",
+        "piano_score": "4d62f526d0281cf54100ac32fb9ba4cb9feed24807dda205b6429a8f935f7b82",
+        "score": "e593905740a24d87802d6a1549a8a5fd3da0419f74c82407aff9aa9b8d997166"
+      }
+    },
+    {
+      "duration_context": {
+        "fixed100": {
+          "band_counts": {
+            "clock_dependent": 34,
+            "inside_both": 118,
+            "longer_both": 6,
+            "shorter_both": 50
+          },
+          "ratio_means": {
+            "global_beats": 0.8604031552101262,
+            "piano": 0.8631950473661003
+          },
+          "supported_pairs": 208,
+          "unsupported_pairs": 4
+        },
+        "tempo20": {
+          "band_counts": {
+            "clock_dependent": 29,
+            "inside_both": 101,
+            "longer_both": 5,
+            "shorter_both": 46
+          },
+          "ratio_means": {
+            "global_beats": 0.8438858867258068,
+            "piano": 0.8489052464260157
+          },
+          "supported_pairs": 181,
+          "unsupported_pairs": 2
+        }
+      },
+      "fixed100_to_tempo20": {
+        "different_pair": 0,
+        "newly_resolved_reference": 5,
+        "newly_unresolved_reference": 34,
+        "same_pair": 178
+      },
+      "id": "19",
+      "local_support": {
+        "accepted_components_sha256": "3f4a5fb40441bbd99106baca8b6edf02a7bcceb8bbe6d868a8a2787192b95740",
+        "beat_cell_mask_sha256": "56f8d22abadf288d1760f3c871bf504b64dd87b98f1315a60d5c061f00d3fc7b",
+        "beat_mapping_sha256": "ba43f54f7b63a29e4dc561886a38d98de4f6475cddd067edeb7c2ce94e6718a2",
+        "observed_score_quarters": 190.0,
+        "piano_anchor_groups": 187,
+        "piano_edge_mask_sha256": "33cbaed855e40cf062d9e9472f599452df088044268b7dc6d5458067f7fe7564",
+        "piano_median_anchors_sha256": "db715ec081ea646dafb80b0264f28000c05c5037c9b6ae30cec2e7b5aeb18902",
+        "piano_nonincreasing_edges": 0,
+        "piano_original_anchors_sha256": "7943f0c5f41fe89ca2810b3cb452fdb72ace410a3888a92ba45d6009ba24046b",
+        "piano_quarantined_anchor_groups": 0,
+        "piano_trusted_edges": 186,
+        "support_components": 8,
+        "supported_beat_cells": 170,
+        "supported_score_quarters": 170.0,
+        "unsupported_beat_cells": 20
+      },
+      "reference_notes": 295,
+      "rest_ranges": {
+        "collapsed_core_intervals": 0,
+        "projected_rest_intervals": 9,
+        "projections": {
+          "boundary_uncertain": {
+            "annotated_note_overlap_s": 1.0260274999999939,
+            "duration_s": 2.547849374999994,
+            "interval_count": 18,
+            "uncovered_by_note_annotations_s": 1.521821875
+          },
+          "core": {
+            "annotated_note_overlap_s": 0.01065999999999967,
+            "duration_s": 1.6184237500000025,
+            "interval_count": 9,
+            "uncovered_by_note_annotations_s": 1.6077637500000028
+          },
+          "envelope": {
+            "annotated_note_overlap_s": 1.0366874999999935,
+            "duration_s": 4.1662731249999965,
+            "interval_count": 9,
+            "uncovered_by_note_annotations_s": 3.129585625000003
+          }
+        },
+        "unprojectable_rest_intervals": 1
+      },
+      "scopes": {
+        "fixed100": {
+          "matched_pairs": 212,
+          "pair_identity_sha256": "35636c28e014816330465558b8d6a1109f43f8bd871dd7a368ae12d6d1a823d4",
+          "unresolved_reasons": {
+            "full_onset_window_not_locally_supported": 6,
+            "no_candidate_in_one_or_both_clocks": 62,
+            "reference_has_multiple_candidates": 7,
+            "score_attack_has_multiple_references": 8
+          }
+        },
+        "stable_tempo": {
+          "matched_pairs": 150,
+          "pair_identity_sha256": "e4ffafea66c33634c192f46e9e75d72215e2d924e1514300cf49e32eed67ec46",
+          "unresolved_reasons": {
+            "not_same_unique_pair_at_all_tempo_windows": 145
+          }
+        },
+        "tempo10": {
+          "matched_pairs": 150,
+          "pair_identity_sha256": "e4ffafea66c33634c192f46e9e75d72215e2d924e1514300cf49e32eed67ec46",
+          "unresolved_reasons": {
+            "full_onset_window_not_locally_supported": 3,
+            "no_candidate_in_one_or_both_clocks": 136,
+            "score_attack_has_multiple_references": 6
+          }
+        },
+        "tempo20": {
+          "matched_pairs": 183,
+          "pair_identity_sha256": "6812873e2587fcf0c1ffe358a89aa9eadd28e169ba3282398d314828c5c0369a",
+          "unresolved_reasons": {
+            "full_onset_window_not_locally_supported": 6,
+            "no_candidate_in_one_or_both_clocks": 99,
+            "score_attack_has_multiple_references": 7
+          }
+        },
+        "tempo30": {
+          "matched_pairs": 212,
+          "pair_identity_sha256": "efb26be47e4faed06f4a9a105adf412be6efff6c3c5f08f9b765d45cb3847110",
+          "unresolved_reasons": {
+            "full_onset_window_not_locally_supported": 6,
+            "no_candidate_in_one_or_both_clocks": 68,
+            "reference_has_multiple_candidates": 1,
+            "score_attack_has_multiple_references": 8
+          }
+        }
+      },
+      "source_member_sha256": {
+        "beats": "cd6dd9ca1eb16ae1c5c5ef794c226fc1fe6f22f5db9ff9d48dbb71b7e29e1b38",
+        "notes": "37a4de9bc3024b9dc54dd6f946f1ffd3e9ea62a18749c1bc82bed442e89d62ef",
+        "piano_match": "5d15fd4d98f3bc1e23ad29702e13e6c527ab68b85549f2879d291a4b74ec609f",
+        "piano_score": "4d02aef4fc94495fe93653a53a46c7d322c80f505ba25ccb74fe9903c28c5e98",
+        "score": "3f1b5bb0a4c9ba490437f6b5c065c8be07ba2f487338ce83a31c900a0dfdc7d8"
+      }
+    },
+    {
+      "duration_context": {
+        "fixed100": {
+          "band_counts": {
+            "clock_dependent": 6,
+            "inside_both": 45,
+            "longer_both": 4,
+            "shorter_both": 3
+          },
+          "ratio_means": {
+            "global_beats": 0.9683729220879336,
+            "piano": 0.9526308133541931
+          },
+          "supported_pairs": 58,
+          "unsupported_pairs": 1
+        },
+        "tempo20": {
+          "band_counts": {
+            "clock_dependent": 7,
+            "inside_both": 50,
+            "longer_both": 6,
+            "shorter_both": 3
+          },
+          "ratio_means": {
+            "global_beats": 0.988225201129979,
+            "piano": 0.9763398858209441
+          },
+          "supported_pairs": 66,
+          "unsupported_pairs": 1
+        }
+      },
+      "fixed100_to_tempo20": {
+        "different_pair": 0,
+        "newly_resolved_reference": 9,
+        "newly_unresolved_reference": 1,
+        "same_pair": 58
+      },
+      "id": "08",
+      "local_support": {
+        "accepted_components_sha256": "6891a42ce1bacb6b6fc1db3968fd53bfb4693d343bb2c02fdb6bd5f30b42b690",
+        "beat_cell_mask_sha256": "c27574f4120afc3967f5355319817f96d2990250c4adda3cc3df61b6213df1de",
+        "beat_mapping_sha256": "352ca29c74a2103a08331d641df860847d57e103850301e6f34199b2887aa6e9",
+        "observed_score_quarters": 168.0,
+        "piano_anchor_groups": 234,
+        "piano_edge_mask_sha256": "c0b854dfc115d42681543184f9fab4df97c6983d064f7dfb99d930aeff5fe54a",
+        "piano_median_anchors_sha256": "2ea3a3899f0cf959cb3beb3169ce70b01a7b0357817d8d6710ef5b77a26f29c4",
+        "piano_nonincreasing_edges": 13,
+        "piano_original_anchors_sha256": "8b01763802af88b1b332be2aaa06c1e8f168af946854bf192641992659a229d2",
+        "piano_quarantined_anchor_groups": 26,
+        "piano_trusted_edges": 191,
+        "support_components": 12,
+        "supported_beat_cells": 56,
+        "supported_score_quarters": 84.0,
+        "unsupported_beat_cells": 56
+      },
+      "reference_notes": 203,
+      "rest_ranges": {
+        "collapsed_core_intervals": 0,
+        "projected_rest_intervals": 8,
+        "projections": {
+          "boundary_uncertain": {
+            "annotated_note_overlap_s": 2.0200394444444374,
+            "duration_s": 4.224393750000001,
+            "interval_count": 16,
+            "uncovered_by_note_annotations_s": 2.2043543055555634
+          },
+          "core": {
+            "annotated_note_overlap_s": 0.0313772222222255,
+            "duration_s": 1.051022916666664,
+            "interval_count": 8,
+            "uncovered_by_note_annotations_s": 1.0196456944444385
+          },
+          "envelope": {
+            "annotated_note_overlap_s": 2.051416666666663,
+            "duration_s": 5.275416666666665,
+            "interval_count": 8,
+            "uncovered_by_note_annotations_s": 3.224000000000002
+          }
+        },
+        "unprojectable_rest_intervals": 6
+      },
+      "scopes": {
+        "fixed100": {
+          "matched_pairs": 59,
+          "pair_identity_sha256": "854f4bfeb4da8a0354fd45d12b0af5097803df0e80205716671073ac5533d59c",
+          "unresolved_reasons": {
+            "full_onset_window_not_locally_supported": 15,
+            "no_candidate_in_one_or_both_clocks": 117,
+            "ornament_or_grace_context": 4,
+            "score_attack_has_multiple_references": 8
+          }
+        },
+        "stable_tempo": {
+          "matched_pairs": 39,
+          "pair_identity_sha256": "f747957169af782b0ec510dcbaff4d2daff9b92a21cf46c14d3c523ac760045b",
+          "unresolved_reasons": {
+            "not_same_unique_pair_at_all_tempo_windows": 164
+          }
+        },
+        "tempo10": {
+          "matched_pairs": 43,
+          "pair_identity_sha256": "8dbfc5e53359b059a59773fd92a91d0cea674111c426a857413c82f5af3116ce",
+          "unresolved_reasons": {
+            "full_onset_window_not_locally_supported": 9,
+            "no_candidate_in_one_or_both_clocks": 142,
+            "ornament_or_grace_context": 4,
+            "score_attack_has_multiple_references": 5
+          }
+        },
+        "tempo20": {
+          "matched_pairs": 67,
+          "pair_identity_sha256": "7fb74e2af4089cb8b3fb3ad576d4994ea4142e62b70696509b1b804433ff3144",
+          "unresolved_reasons": {
+            "full_onset_window_not_locally_supported": 16,
+            "no_candidate_in_one_or_both_clocks": 104,
+            "ornament_or_grace_context": 4,
+            "reference_has_multiple_candidates": 1,
+            "score_attack_has_multiple_references": 11
+          }
+        },
+        "tempo30": {
+          "matched_pairs": 80,
+          "pair_identity_sha256": "e28739bcd273cea392e65883a2e27bcbdaebeb502d9484ec99a64cab38f8415a",
+          "unresolved_reasons": {
+            "full_onset_window_not_locally_supported": 18,
+            "no_candidate_in_one_or_both_clocks": 84,
+            "ornament_or_grace_context": 2,
+            "reference_has_multiple_candidates": 3,
+            "score_attack_has_multiple_references": 16
+          }
+        }
+      },
+      "source_member_sha256": {
+        "beats": "b31e1415a52ea168d1dcc326ab703b390e11f8fe6033abfded2fbe8f00debc01",
+        "notes": "aec0d643aa6855663166213280345249be5716c34a6b2adc7d077de3278f12c6",
+        "piano_match": "72c34f274fd5e5415d9eae465c08b64ad824cca345a9766fb694d28162cdb044",
+        "piano_score": "b2b0e53c544fcd151f70323cb0324f97344aa72577801755c08868b163549273",
+        "score": "9b70336f0c8746af132a673f602098c60d608bd8963a7b924621697ff8e5406d"
+      }
+    },
+    {
+      "duration_context": {
+        "fixed100": {
+          "band_counts": {
+            "clock_dependent": 1,
+            "inside_both": 14,
+            "longer_both": 4,
+            "shorter_both": 2
+          },
+          "ratio_means": {
+            "global_beats": 1.0068566753759771,
+            "piano": 1.0538471272763108
+          },
+          "supported_pairs": 21,
+          "unsupported_pairs": 0
+        },
+        "tempo20": {
+          "band_counts": {
+            "clock_dependent": 1,
+            "inside_both": 14,
+            "longer_both": 3,
+            "shorter_both": 2
+          },
+          "ratio_means": {
+            "global_beats": 0.9963400679932098,
+            "piano": 1.0123415314216964
+          },
+          "supported_pairs": 20,
+          "unsupported_pairs": 0
+        }
+      },
+      "fixed100_to_tempo20": {
+        "different_pair": 0,
+        "newly_resolved_reference": 0,
+        "newly_unresolved_reference": 1,
+        "same_pair": 20
+      },
+      "id": "12",
+      "local_support": {
+        "accepted_components_sha256": "1d4dd6801a0f0a4c9f5aa88bb7f9e2e63bb308777e4b0fa84f1a953f3fdf57c9",
+        "beat_cell_mask_sha256": "7d907361ea03b45c2991fe86bff75ce3a00672dbb4d6a738ef05728d5729bf95",
+        "beat_mapping_sha256": "a7f839ec90d2b2056a537fc0c395bd5aef6a294ec288362b823a53cca4b0a118",
+        "observed_score_quarters": 42.0,
+        "piano_anchor_groups": 311,
+        "piano_edge_mask_sha256": "1ebf42f2e0b86b71623f8ce7ec4783dbb23b65616f51c32619470bd18d7d6f53",
+        "piano_median_anchors_sha256": "400a3267c5458809f3bbd9a1a3735140a262810e466744c1d80b6c860ea7fce1",
+        "piano_nonincreasing_edges": 10,
+        "piano_original_anchors_sha256": "7141fcfd196038b9017d51bbd08834419bc41a8cfbdb13a5fb0936f089a119f6",
+        "piano_quarantined_anchor_groups": 20,
+        "piano_trusted_edges": 281,
+        "support_components": 14,
+        "supported_beat_cells": 24,
+        "supported_score_quarters": 24.0,
+        "unsupported_beat_cells": 18
+      },
+      "reference_notes": 65,
+      "rest_ranges": {
+        "collapsed_core_intervals": 0,
+        "projected_rest_intervals": 1,
+        "projections": {
+          "boundary_uncertain": {
+            "annotated_note_overlap_s": 0.6113558333333291,
+            "duration_s": 0.787457499999995,
+            "interval_count": 2,
+            "uncovered_by_note_annotations_s": 0.17610166666666593
+          },
+          "core": {
+            "annotated_note_overlap_s": 0.0,
+            "duration_s": 0.734398333333333,
+            "interval_count": 1,
+            "uncovered_by_note_annotations_s": 0.734398333333333
+          },
+          "envelope": {
+            "annotated_note_overlap_s": 0.6113558333333291,
+            "duration_s": 1.521855833333328,
+            "interval_count": 1,
+            "uncovered_by_note_annotations_s": 0.910499999999999
+          }
+        },
+        "unprojectable_rest_intervals": 3
+      },
+      "scopes": {
+        "fixed100": {
+          "matched_pairs": 21,
+          "pair_identity_sha256": "ea18753080020450b6fdccf9daa5b63b8ca41d1ed805b9fe28230239a3fe3ac4",
+          "unresolved_reasons": {
+            "full_onset_window_not_locally_supported": 17,
+            "no_candidate_in_one_or_both_clocks": 27
+          }
+        },
+        "stable_tempo": {
+          "matched_pairs": 19,
+          "pair_identity_sha256": "5e8737d924760d0ed8a321cf98973d843ae69bbcbe70aa4aa86d42863ff21d88",
+          "unresolved_reasons": {
+            "not_same_unique_pair_at_all_tempo_windows": 46
+          }
+        },
+        "tempo10": {
+          "matched_pairs": 21,
+          "pair_identity_sha256": "ea18753080020450b6fdccf9daa5b63b8ca41d1ed805b9fe28230239a3fe3ac4",
+          "unresolved_reasons": {
+            "full_onset_window_not_locally_supported": 17,
+            "no_candidate_in_one_or_both_clocks": 27
+          }
+        },
+        "tempo20": {
+          "matched_pairs": 20,
+          "pair_identity_sha256": "5fc74836aed9a07c433884e2877351de5f6195cb036ef9f57f30250d796b1b51",
+          "unresolved_reasons": {
+            "full_onset_window_not_locally_supported": 17,
+            "no_candidate_in_one_or_both_clocks": 25,
+            "reference_has_multiple_candidates": 2,
+            "score_attack_has_multiple_references": 1
+          }
+        },
+        "tempo30": {
+          "matched_pairs": 19,
+          "pair_identity_sha256": "5e8737d924760d0ed8a321cf98973d843ae69bbcbe70aa4aa86d42863ff21d88",
+          "unresolved_reasons": {
+            "full_onset_window_not_locally_supported": 17,
+            "no_candidate_in_one_or_both_clocks": 24,
+            "reference_has_multiple_candidates": 3,
+            "score_attack_has_multiple_references": 2
+          }
+        }
+      },
+      "source_member_sha256": {
+        "beats": "afdad01a566983e807a3b79e74d0c0349601637ee5fb3d0e53b11b1d61c85c0f",
+        "notes": "8da6d92567c8f8e42c0731e748d492d4b6a6e6a6ead48568be066280f324d3e0",
+        "piano_match": "2579488136ef113c132246d0995a1691855ae12ecf23c19383bc2d119888c549",
+        "piano_score": "34f0b2c3088a63822958cb884e0ad1d2bbc2c03d29eb86a69c391810ba0c5eef",
+        "score": "3aba1f872bf28f8746e9c796fc24cf52e415b8224236238c1cea839476d9381b"
+      }
+    },
+    {
+      "duration_context": {
+        "fixed100": {
+          "band_counts": {
+            "clock_dependent": 1,
+            "inside_both": 20,
+            "longer_both": 2,
+            "shorter_both": 1
+          },
+          "ratio_means": {
+            "global_beats": 0.9892692871094936,
+            "piano": 0.9927076239756674
+          },
+          "supported_pairs": 24,
+          "unsupported_pairs": 0
+        },
+        "tempo20": {
+          "band_counts": {
+            "clock_dependent": 1,
+            "inside_both": 20,
+            "longer_both": 2,
+            "shorter_both": 1
+          },
+          "ratio_means": {
+            "global_beats": 0.9892692871094936,
+            "piano": 0.9927076239756674
+          },
+          "supported_pairs": 24,
+          "unsupported_pairs": 0
+        }
+      },
+      "fixed100_to_tempo20": {
+        "different_pair": 0,
+        "newly_resolved_reference": 0,
+        "newly_unresolved_reference": 0,
+        "same_pair": 24
+      },
+      "id": "05",
+      "local_support": {
+        "accepted_components_sha256": "27942f57ce5de561019e3f1031977e16f66d254bf8844c1825c6e9d6427ef00a",
+        "beat_cell_mask_sha256": "21a7e51db124fb1d161d2f8efbd59561b40a6fe72c1b0d2a193d75096a90f6d6",
+        "beat_mapping_sha256": "4222c17eb6e840ed4533354f1265e16bd1ec40d940f9fab74911781140560657",
+        "observed_score_quarters": 158.0,
+        "piano_anchor_groups": 76,
+        "piano_edge_mask_sha256": "e05edfb127814c626a54b13df60d5bf6394acb829e798faca8f34fd97571616c",
+        "piano_median_anchors_sha256": "a6be84e5e2f20adcbf9412104f18df5d405b5f1f08aac178d8ad472adf6cbc98",
+        "piano_nonincreasing_edges": 0,
+        "piano_original_anchors_sha256": "ff5b91c6577dbdc4ddd51eac94cb5c5bb017c400a626760129904d2c42816a4e",
+        "piano_quarantined_anchor_groups": 0,
+        "piano_trusted_edges": 69,
+        "support_components": 7,
+        "supported_beat_cells": 25,
+        "supported_score_quarters": 50.0,
+        "unsupported_beat_cells": 54
+      },
+      "reference_notes": 151,
+      "rest_ranges": {
+        "collapsed_core_intervals": 0,
+        "projected_rest_intervals": 0,
+        "projections": {
+          "boundary_uncertain": {
+            "annotated_note_overlap_s": 0.0,
+            "duration_s": 0.0,
+            "interval_count": 0,
+            "uncovered_by_note_annotations_s": 0.0
+          },
+          "core": {
+            "annotated_note_overlap_s": 0.0,
+            "duration_s": 0.0,
+            "interval_count": 0,
+            "uncovered_by_note_annotations_s": 0.0
+          },
+          "envelope": {
+            "annotated_note_overlap_s": 0.0,
+            "duration_s": 0.0,
+            "interval_count": 0,
+            "uncovered_by_note_annotations_s": 0.0
+          }
+        },
+        "unprojectable_rest_intervals": 3
+      },
+      "scopes": {
+        "fixed100": {
+          "matched_pairs": 24,
+          "pair_identity_sha256": "17c7306cb137a81f51c22226a7d447460544c96639dcf9f8d0d1b2d73b386061",
+          "unresolved_reasons": {
+            "full_onset_window_not_locally_supported": 5,
+            "no_candidate_in_one_or_both_clocks": 122
+          }
+        },
+        "stable_tempo": {
+          "matched_pairs": 20,
+          "pair_identity_sha256": "c8243f7fa9ee1a330f4b54ce329e015f5aa0eae268561609ddfcbf4c523fba23",
+          "unresolved_reasons": {
+            "not_same_unique_pair_at_all_tempo_windows": 131
+          }
+        },
+        "tempo10": {
+          "matched_pairs": 22,
+          "pair_identity_sha256": "5b3aab5e3018cd099eb7050a705558c9d7abf326547a02f59ca4d2641f492c08",
+          "unresolved_reasons": {
+            "full_onset_window_not_locally_supported": 5,
+            "no_candidate_in_one_or_both_clocks": 124
+          }
+        },
+        "tempo20": {
+          "matched_pairs": 24,
+          "pair_identity_sha256": "17c7306cb137a81f51c22226a7d447460544c96639dcf9f8d0d1b2d73b386061",
+          "unresolved_reasons": {
+            "full_onset_window_not_locally_supported": 7,
+            "no_candidate_in_one_or_both_clocks": 120
+          }
+        },
+        "tempo30": {
+          "matched_pairs": 22,
+          "pair_identity_sha256": "dcfc4c4e5219436a41af056f399335f82061bcc4b0a5d1e27ec455a5c1fa8bfd",
+          "unresolved_reasons": {
+            "full_onset_window_not_locally_supported": 9,
+            "no_candidate_in_one_or_both_clocks": 120
+          }
+        }
+      },
+      "source_member_sha256": {
+        "beats": "6825ef470e9c49dce55536067771bc8cc8086805ff45156e84251db2b2a12e30",
+        "notes": "191b7b1e2f524637aa6e6a569b4e699af1bfe095a857b8abcd7db5cf71a57699",
+        "piano_match": "121fa341e429b5448e41d5d8ea06b628a45c8250c7489882c99ce12f2ed5d7d5",
+        "piano_score": "87bbb3ce203b9e909c2556d54bef58ae88384ec5b4f499ff10ab51a2d6edc77d",
+        "score": "15fa4dd430361223900a22794a04ed665683bc29a3331001dde7a89671611cb0"
+      }
+    },
+    {
+      "duration_context": {
+        "fixed100": {
+          "band_counts": {
+            "clock_dependent": 13,
+            "inside_both": 71,
+            "longer_both": 5,
+            "shorter_both": 5
+          },
+          "ratio_means": {
+            "global_beats": 1.0427845112847214,
+            "piano": 1.064390911475866
+          },
+          "supported_pairs": 94,
+          "unsupported_pairs": 2
+        },
+        "tempo20": {
+          "band_counts": {
+            "clock_dependent": 13,
+            "inside_both": 73,
+            "longer_both": 6,
+            "shorter_both": 5
+          },
+          "ratio_means": {
+            "global_beats": 1.0426421363638152,
+            "piano": 1.0632785856609914
+          },
+          "supported_pairs": 97,
+          "unsupported_pairs": 3
+        }
+      },
+      "fixed100_to_tempo20": {
+        "different_pair": 0,
+        "newly_resolved_reference": 4,
+        "newly_unresolved_reference": 0,
+        "same_pair": 96
+      },
+      "id": "06",
+      "local_support": {
+        "accepted_components_sha256": "d9f551941a14e45afcc0782ee4c09b2a894bce0bc9bf36aa4022ce4b7b43c957",
+        "beat_cell_mask_sha256": "c72e027fc4ed49c7af66f7ef5d905a17cbf949df782621713a7d3299457942fb",
+        "beat_mapping_sha256": "4409d04c026482b479c3c650a80f4fb760f600a03f6ca042af2ffdec71c27c41",
+        "observed_score_quarters": 126.0,
+        "piano_anchor_groups": 351,
+        "piano_edge_mask_sha256": "a5369627e36729c5e99e1e7d1fc5a57c710de2058b945ce0f04643cd1e9f183c",
+        "piano_median_anchors_sha256": "d6da15f74d3e5bffa498102f53494612daf232b5e57db21292a893127959700c",
+        "piano_nonincreasing_edges": 7,
+        "piano_original_anchors_sha256": "0d2f7c250ba234e691efcd8c3c98a2ce3e362f6a2444662fb6323a85c7992bf3",
+        "piano_quarantined_anchor_groups": 14,
+        "piano_trusted_edges": 329,
+        "support_components": 14,
+        "supported_beat_cells": 98,
+        "supported_score_quarters": 98.0,
+        "unsupported_beat_cells": 28
+      },
+      "reference_notes": 160,
+      "rest_ranges": {
+        "collapsed_core_intervals": 0,
+        "projected_rest_intervals": 0,
+        "projections": {
+          "boundary_uncertain": {
+            "annotated_note_overlap_s": 0.0,
+            "duration_s": 0.0,
+            "interval_count": 0,
+            "uncovered_by_note_annotations_s": 0.0
+          },
+          "core": {
+            "annotated_note_overlap_s": 0.0,
+            "duration_s": 0.0,
+            "interval_count": 0,
+            "uncovered_by_note_annotations_s": 0.0
+          },
+          "envelope": {
+            "annotated_note_overlap_s": 0.0,
+            "duration_s": 0.0,
+            "interval_count": 0,
+            "uncovered_by_note_annotations_s": 0.0
+          }
+        },
+        "unprojectable_rest_intervals": 1
+      },
+      "scopes": {
+        "fixed100": {
+          "matched_pairs": 96,
+          "pair_identity_sha256": "395a6570a1e2678d10d99069ac9f8396966601c40324fc9313ba0cb879abb970",
+          "unresolved_reasons": {
+            "full_onset_window_not_locally_supported": 15,
+            "no_candidate_in_one_or_both_clocks": 49
+          }
+        },
+        "stable_tempo": {
+          "matched_pairs": 67,
+          "pair_identity_sha256": "5b54c73b2d9a11e92c8e1252a34934f64190ca57c42993bc1e833e7b44b49e72",
+          "unresolved_reasons": {
+            "not_same_unique_pair_at_all_tempo_windows": 93
+          }
+        },
+        "tempo10": {
+          "matched_pairs": 67,
+          "pair_identity_sha256": "5b54c73b2d9a11e92c8e1252a34934f64190ca57c42993bc1e833e7b44b49e72",
+          "unresolved_reasons": {
+            "full_onset_window_not_locally_supported": 9,
+            "no_candidate_in_one_or_both_clocks": 84
+          }
+        },
+        "tempo20": {
+          "matched_pairs": 100,
+          "pair_identity_sha256": "37e1aad4d451272cc5e4e00636f7c11e428edd1c90c586c526dfdd1211ad8300",
+          "unresolved_reasons": {
+            "full_onset_window_not_locally_supported": 15,
+            "no_candidate_in_one_or_both_clocks": 45
+          }
+        },
+        "tempo30": {
+          "matched_pairs": 107,
+          "pair_identity_sha256": "46668d4f7e8e0d535e354c0f2f4288f4857d96bb51887214d95e60556e4e473c",
+          "unresolved_reasons": {
+            "full_onset_window_not_locally_supported": 17,
+            "no_candidate_in_one_or_both_clocks": 34,
+            "reference_has_multiple_candidates": 1,
+            "score_attack_has_multiple_references": 1
+          }
+        }
+      },
+      "source_member_sha256": {
+        "beats": "cb1deed537cd3430aa29135297218f4df93ce2c7deedabddc665c31158b02722",
+        "notes": "f86bd6889e26d828bb917a4a9f9a9e22e59286df60f2b779e6c327100966122e",
+        "piano_match": "eb4a38eb45d6a1e5df60860a2b707c7f025f30a56761b9ec35922969dbcc918a",
+        "piano_score": "13299fff7e581427c66f3dd98847b079b118a638ab5d8bf69a9b194bf41ca566",
+        "score": "6f3c14f3fce4c3f82a174a831fec27d4b8a454176a6795e5e2454e759140ad5f"
+      }
+    }
+  ],
+  "checked": {
+    "anchor_and_support_hashes": 30,
+    "assertions": 28067,
+    "code_or_protocol_hashes": 38,
+    "conditional_ledger_rows": 3360,
+    "duration_category_rows": 84,
+    "duration_scope_rows": 12,
+    "frozen_baseline_identities": 6,
+    "local_clock_audits": 5,
+    "membership_partitions": 30,
+    "numeric_comparisons": 5327,
+    "original_member_hashes": 30,
+    "raw_tick_anchor_notes": 2553,
+    "rest_source_contexts": 6,
+    "scope_pair_hashes": 30
+  },
+  "gate_transition_source_audit": {
+    "causal_explanation_established": false,
+    "raw_xml_tag_checks_by_category": {},
+    "resolved_and_unresolved_transition_counts": {
+      "fixed100": {
+        "unresolved_damaged": 8,
+        "unresolved_gained": 4
+      },
+      "stable_tempo": {
+        "unresolved_damaged": 8,
+        "unresolved_gained": 4
+      },
+      "tempo10": {
+        "unresolved_damaged": 8,
+        "unresolved_gained": 4
+      },
+      "tempo20": {
+        "unresolved_damaged": 8,
+        "unresolved_gained": 4
+      },
+      "tempo30": {
+        "unresolved_damaged": 8,
+        "unresolved_gained": 4
+      }
+    },
+    "transition_counts_repeat_references_across_decoders_arms_metrics_and_scopes": true,
+    "transition_join_sha256": "9393d3e1556d4dfa5897dccead5eeef744f55eb528250b99758b24494ee13c57",
+    "unique_changed_reference_count": 4
+  },
+  "local_support_totals": {
+    "beat_cells": 607,
+    "support_components": 55,
+    "supported_beat_cells": 373,
+    "supported_score_quarters": 426.0,
+    "unsupported_beat_cells": 234
+  },
+  "maximum_absolute_numeric_difference": {
+    "aggregate": 0.0,
+    "duration": 0.0,
+    "ledger": 0.0,
+    "pairing": 0.0,
+    "rest": 0.0,
+    "source_ticks": 0.0,
+    "support": 0.0
+  },
+  "method": {
+    "delta_interpretation": "numeric differences are audit/receipt arithmetic differences, not new scientific results",
+    "gate_predictions_recomputed": false,
+    "independent_calculations": "original tick-to-second crosscheck; coincident medians; structural beat mapping; quarantine and original-edge support; all-breakpoint cell disagreement; five onset graphs; full-window guards; duration ratios; interval union, overlap and difference; source-labelled historical transitions",
+    "musical_or_acoustic_truth_independently_established": false,
+    "new_clock_matcher_or_range_helpers_imported": false,
+    "numeric_absolute_tolerance": 1e-12,
+    "reuse_scope": "symbolic parsing, tie collapse, score IDs, explicit-rest union and Match anchor eligibility",
+    "reused_frozen_parsers": [
+      "scripts.kraisler_score.parse_score",
+      "scripts.kraisler_match.parse_piano_match"
+    ]
+  },
+  "previous_alignment_receipt_sha256": "6f8af87bef6fa8febc977e037130b520d05d0dab8df815e3684ae6239d475005",
+  "previous_gate_receipt_sha256": "ba88b9bda70d4a560a3d05c85ea5301d2e8ff98ea81746d676a1c6695898e10e",
+  "report_sha256": "32005007594058ee941fd367aab5cd0ad093cef130fc38a23f47912e36f580bc",
+  "reported_checkout_revision": "4a9f603d983eb0a576795bffd8e9f4fdb2254a77",
+  "reported_checkout_tree": "7d16179315f8c62ef18f527db2c38fe942d550e1",
+  "rest_projection_totals": {
+    "boundary_uncertain": {
+      "annotated_note_overlap_s": 3.6574227777777604,
+      "duration_s": 7.55970062499999,
+      "uncovered_by_note_annotations_s": 3.9022778472222295
+    },
+    "core": {
+      "annotated_note_overlap_s": 0.04203722222222517,
+      "duration_s": 3.4038449999999996,
+      "uncovered_by_note_annotations_s": 3.3618077777777744
+    },
+    "envelope": {
+      "annotated_note_overlap_s": 3.6994599999999855,
+      "duration_s": 10.96354562499999,
+      "uncovered_by_note_annotations_s": 7.264085625000003
+    }
+  },
+  "runtime": {
+    "python": "3.12.14",
+    "standard_library_only": true
+  },
+  "schema_version": 1,
+  "scope_pair_totals": {
+    "fixed100": 412,
+    "stable_tempo": 295,
+    "tempo10": 303,
+    "tempo20": 394,
+    "tempo30": 440
+  },
+  "source_head": "18e358645fcec5c5314bb69f2725d9bc3be984f7",
+  "status": "passed"
+}
