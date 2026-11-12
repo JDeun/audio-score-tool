@@ -1,0 +1,93 @@
+name: CPU Waveform Gate and Vocal Gap Evidence
+
+on:
+  pull_request:
+    types: [opened, reopened]
+    branches: [main]
+    paths:
+      - '.github/workflows/cpu-audio-gate-rest.yml'
+      - 'scripts/audio_gate_rest.py'
+      - 'scripts/run_audio_gate_rest.py'
+      - 'tests/test_audio_gate_rest.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: audio-gate-rest-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}
+  PYTHONHASHSEED: '0'
+  CUDA_VISIBLE_DEVICES: ''
+  HF_TOKEN: ''
+  HUGGING_FACE_HUB_TOKEN: ''
+  HF_HUB_DISABLE_IMPLICIT_TOKEN: '1'
+  HF_HUB_DISABLE_TELEMETRY: '1'
+  OMP_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  NUMBA_NUM_THREADS: '2'
+  EXPERIMENT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  gate:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.11'
+      - name: Install the existing pinned ONNX CPU research runtime
+        run: |
+          python -m pip install --disable-pip-version-check \
+            numpy==1.26.4 scipy==1.13.1 mir-eval==0.8.2 librosa==0.10.2.post1 \
+            soundfile==0.13.1 resampy==0.4.2 numba==0.60.0 mido==1.3.3 \
+            music21==9.7.1 pretty-midi==0.2.10 onnxruntime==1.20.1 \
+            pytest==8.4.2 ruff==0.16.6
+          python -m pip install --no-deps basic-pitch==0.4.0
+      - name: Check new-code lint, compile and standalone regression contracts
+        run: |
+          python -m ruff check scripts/audio_gate_rest.py scripts/run_audio_gate_rest.py tests/test_audio_gate_rest.py
+          python -m compileall -q scripts/audio_gate_rest.py scripts/run_audio_gate_rest.py
+          mkdir -p "$RUNNER_TEMP/gate-tests"
+          cp tests/test_audio_gate_rest.py "$RUNNER_TEMP/gate-tests/"
+          python -m pytest -q -c /dev/null "$RUNNER_TEMP/gate-tests/test_audio_gate_rest.py"
+      - name: Retrieve immutable historical metadata only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl --fail --location --silent --show-error --proto '=https' --proto-redir '=https' \
+            --max-time 180 --retry 3 --max-filesize 1000000 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            'https://api.github.com/repos/JDeun/audio-score-tool/actions/artifacts/13825524844/zip' \
+            --output "$RUNNER_TEMP/gate-baseline.zip"
+          printf '%s  %s\n' '6dc61e728c749ebfe8a51b3d4eea94026d18ca2cb6ec59c4e4ff734894cda3b0' "$RUNNER_TEMP/gate-baseline.zip" | sha256sum --check
+      - name: Fetch original forty recordings without external credentials
+        run: |
+          curl --fail --location --silent --show-error --proto '=https' --proto-redir '=https' \
+            --max-time 600 --retry 3 --max-filesize 60000000 \
+            'https://zenodo.org/records/5578807/files/vocadito.zip?download=1' \
+            --output "$RUNNER_TEMP/gate-vocadito.zip"
+      - name: Replay common predictions then compare all frozen gate conditions
+        run: |
+          python -m scripts.run_audio_gate_rest \
+            --archive "$RUNNER_TEMP/gate-vocadito.zip" \
+            --baseline "$RUNNER_TEMP/gate-baseline.zip" \
+            --work "$RUNNER_TEMP/private-audio-gate" \
+            --output "$RUNNER_TEMP/gate-report/report.json"
+      - name: Upload derived receipt only, never audio, MIDI, lyrics or weights
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: waveform-gate-rest-${{ github.run_id }}
+          path: ${{ runner.temp }}/gate-report/report.json
+          retention-days: 14
+          if-no-files-found: warn
