@@ -1,0 +1,24 @@
+# Isolated research-only Python 3.10 runtime for PR #241's mono_rnn probe.
+# Does not install or alter the product environment, model or evaluator.
+# note-seq 0.0.5 requires protobuf>=4.21.2; TF 2.12.1 requires <5 and
+# excludes 4.21.0-4.21.5. The original 3.20.3 pin has no valid intersection.
+numpy==1.23.5
+tensorflow-cpu==2.12.1
+tensorflow-probability==0.20.1
+tf-slim==1.1.0
+dm-sonnet==2.0.2
+note-seq==0.0.5
+protobuf==4.25.8
+librosa==0.10.2.post1
+numba==0.57.1
+scipy==1.10.1
+pretty-midi==0.2.10
+# 0.4.13 jaxlib wheels are no longer available from the standard package index.
+# 0.4.18 has Python 3.10 CPU wheels and accepts this NumPy/SciPy generation.
+jax==0.4.18
+jaxlib==0.4.18
+ml-dtypes==0.2.0
+IPython==8.12.3
+bokeh==2.4.3
+pandas==1.5.3
+typing-extensions==4.5.0

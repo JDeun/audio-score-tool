@@ -1,0 +1,7 @@
+# This archived test file is byte-checked by historical experiment receipts.
+extend = "../pyproject.toml"
+# Nested configuration changes Ruff's project root; preserve root-level import discovery.
+src = ["..", "../src"]
+
+[lint.extend-per-file-ignores]
+"test_nasap_joint_rhythm.py" = ["I001"]

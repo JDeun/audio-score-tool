@@ -1,0 +1,91 @@
+name: CPU DSP Note Baseline
+
+on:
+  pull_request:
+    types: [opened, reopened]
+    branches: [main]
+    paths:
+      - '.github/workflows/cpu-dsp-note-baseline.yml'
+      - 'scripts/dsp_note_probe.py'
+      - 'tests/test_dsp_note_probe.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dsp-note-baseline-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PYTHONPATH: ${{ github.workspace }}
+  CUDA_VISIBLE_DEVICES: ''
+  HF_TOKEN: ''
+  HUGGING_FACE_HUB_TOKEN: ''
+  HF_HUB_DISABLE_IMPLICIT_TOKEN: '1'
+  PYTHONHASHSEED: '0'
+  OMP_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  NUMBA_NUM_THREADS: '2'
+
+jobs:
+  dsp:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: '3.11'
+      - name: Install isolated fixed DSP runtime, no model downloads
+        run: |
+          python -m venv "$RUNNER_TEMP/dsp-venv"
+          "$RUNNER_TEMP/dsp-venv/bin/python" -m pip install \
+            'numpy==1.26.4' 'scipy==1.13.1' 'librosa==0.10.2.post1' \
+            'numba==0.60.0' 'soundfile==0.13.1' 'resampy==0.4.2' \
+            'mir-eval==0.8.2' 'pytest==8.4.2' 'ruff==0.12.12'
+          "$RUNNER_TEMP/dsp-venv/bin/python" -m pip check
+      - name: Segmentation, repeat, silence, octave and clock contracts
+        run: |
+          "$RUNNER_TEMP/dsp-venv/bin/python" -m ruff check scripts/dsp_note_probe.py tests/test_dsp_note_probe.py
+          "$RUNNER_TEMP/dsp-venv/bin/python" -m pytest -q tests/test_dsp_note_probe.py
+      - name: Measure source-owned synthetic signals without hiding failures of DSP
+        run: |
+          "$RUNNER_TEMP/dsp-venv/bin/python" -m scripts.dsp_note_probe --synthetic-only \
+            --work "$RUNNER_TEMP/dsp-synthetic-private" --report "$RUNNER_TEMP/dsp-reports/synthetic.json"
+      - name: Fetch unchanged original forty-recording corpus
+        run: |
+          curl --fail --location --silent --show-error --proto '=https' --proto-redir '=https' \
+            --max-time 600 --retry 3 --max-filesize 60000000 \
+            'https://zenodo.org/records/5578807/files/vocadito.zip?download=1' \
+            --output "$RUNNER_TEMP/vocadito.zip"
+      - name: One F0 pass, three frozen segmenters, both original-Hz annotators
+        run: |
+          "$RUNNER_TEMP/dsp-venv/bin/python" -m scripts.dsp_note_probe \
+            --archive "$RUNNER_TEMP/vocadito.zip" --work "$RUNNER_TEMP/dsp-corpus-private" \
+            --report "$RUNNER_TEMP/dsp-reports/vocadito.json"
+      - name: Preserve a preparation failure rather than inventing an accuracy
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, os, pathlib
+          p = pathlib.Path(os.environ['RUNNER_TEMP']) / 'dsp-reports/vocadito.json'
+          if not p.exists():
+              p.parent.mkdir(parents=True, exist_ok=True)
+              p.write_text(json.dumps({'status': 'preparation_failed',
+                  'source_revision': os.environ['GITHUB_SHA'], 'quality_approved': False,
+                  'all_cases_complete': False, 'aggregate': None}) + '\n')
+          PY
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: dsp-note-baseline-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/dsp-reports/synthetic.json
+            ${{ runner.temp }}/dsp-reports/vocadito.json
+          if-no-files-found: warn
+          retention-days: 14

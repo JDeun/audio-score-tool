@@ -114,8 +114,11 @@ jobs:
         if: github.event_name != 'pull_request'
         run: uv run --frozen pytest -q tests/test_concurrency_soak.py
 
-      - name: Python tests (warnings are errors)
-        run: uv run --frozen pytest -q
+      - name: Locked product Python tests (warnings are errors)
+        run: python scripts/run_ci_test_scope.py --scope product
+
+      - name: All research regressions in isolated numerical environment
+        run: python scripts/run_ci_test_scope.py --scope research
 
   frontend:
     name: frontend

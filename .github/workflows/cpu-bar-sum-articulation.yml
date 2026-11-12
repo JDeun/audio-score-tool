@@ -1,0 +1,66 @@
+name: CPU Articulation and Audio Accent Rhythm Research
+
+on:
+  pull_request:
+    types: [opened, reopened]
+    branches:
+      - research/bar-sum-joint-rhythm-20261111
+    paths:
+      - '.github/workflows/cpu-bar-sum-articulation.yml'
+      - 'scripts/bar_sum_articulation.py'
+      - 'scripts/run_bar_sum_articulation.py'
+      - 'tests/test_bar_sum_articulation.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cpu-bar-sum-articulation-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PYTHONPATH: ${{ github.workspace }}
+  PYTHONHASHSEED: '0'
+  CUDA_VISIBLE_DEVICES: ''
+  HF_TOKEN: ''
+  HUGGING_FACE_HUB_TOKEN: ''
+  OMP_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  NUMBA_NUM_THREADS: '2'
+
+jobs:
+  study:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.11'
+      - name: Install bounded numeric and regression runtime
+        run: |
+          python -m pip install --disable-pip-version-check \
+            numpy==1.26.4 pytest==8.4.2 ruff==0.16.6
+      - name: Lint, compile, and compare exact DP with exhaustive search
+        run: |
+          python -m ruff check scripts/bar_sum_articulation.py scripts/run_bar_sum_articulation.py tests/test_bar_sum_articulation.py
+          python -m compileall -q scripts/bar_sum_articulation.py scripts/run_bar_sum_articulation.py
+          python -m pytest -q tests/test_bar_sum_rhythm.py tests/test_bar_sum_articulation.py
+      - name: Run frozen authored rhythms plus signal-extracted synthetic accents
+        run: |
+          mkdir -p "$RUNNER_TEMP/bar-sum-articulation-report"
+          python -m scripts.run_bar_sum_articulation \
+            --output "$RUNNER_TEMP/bar-sum-articulation-report/report.json"
+      - name: Upload metadata only; no source audio or model arrays
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bar-sum-articulation-${{ github.run_id }}
+          path: ${{ runner.temp }}/bar-sum-articulation-report/report.json
+          if-no-files-found: warn
+          retention-days: 14

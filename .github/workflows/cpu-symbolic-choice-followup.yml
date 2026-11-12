@@ -1,0 +1,119 @@
+name: CPU Symbolic Choice Follow-up
+
+on:
+  pull_request:
+    types: [opened, reopened]
+    branches: [fix/symbolic-mono-admission-20261111]
+    paths:
+      - '.github/workflows/cpu-symbolic-choice-followup.yml'
+      - 'scripts/symbolic_choice_followup.py'
+      - 'tests/test_symbolic_choice_followup.py'
+  push:
+    branches: [research/symbolic-choice-order-and-prior-20261111]
+    paths: ['.github/workflows/cpu-symbolic-choice-followup.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: symbolic-choice-followup-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}
+  CUDA_VISIBLE_DEVICES: ''
+  HF_TOKEN: ''
+  HUGGING_FACE_HUB_TOKEN: ''
+  HF_HUB_DISABLE_IMPLICIT_TOKEN: '1'
+  HF_HUB_DISABLE_TELEMETRY: '1'
+  PYTHONHASHSEED: '0'
+  OMP_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  TF_NUM_INTRAOP_THREADS: '2'
+  TF_NUM_INTEROP_THREADS: '1'
+
+jobs:
+  compare:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        arm: ${{ github.event_name == 'push' && fromJSON('["mono_rnn"]') || fromJSON('["mono_rnn","qwen17","qwen4"]') }}
+    env:
+      ARM: ${{ matrix.arm }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: '3.10'
+      - name: Test the new protocol before any model download
+        run: |
+          python -m pip install 'pytest==8.4.2' 'ruff==0.12.12'
+          python -m ruff check scripts/symbolic_choice_followup.py tests/test_symbolic_choice_followup.py
+          python -m pytest -q tests/test_symbolic_choice_followup.py
+      - name: Prepare only this arm's pinned CPU runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$ARM" == mono_rnn ]]; then
+            # pytest's exceptiongroup needs typing-extensions>=4.6; TF2.12 pins<4.6.
+            # Keep the successful research runtime separate, not an incompatible pip override.
+            python -m venv "$RUNNER_TEMP/mono-env"
+            "$RUNNER_TEMP/mono-env/bin/python" -m pip install -r scripts/requirements-symbolic-mono-cpu.txt
+            "$RUNNER_TEMP/mono-env/bin/python" -m pip check
+            SRC="$RUNNER_TEMP/upstream"
+            git init "$SRC"
+            git -C "$SRC" remote add origin https://github.com/magenta/magenta.git
+            git -C "$SRC" fetch --depth 1 origin c15687ebd1c1cc12658cd468c737d3c24c02b918
+            git -C "$SRC" checkout --detach FETCH_HEAD
+            test "$(git -C "$SRC" rev-parse HEAD)" = c15687ebd1c1cc12658cd468c737d3c24c02b918
+          else
+            SRC="$RUNNER_TEMP/llama-src"
+            git init "$SRC"
+            git -C "$SRC" remote add origin https://github.com/ggml-org/llama.cpp.git
+            git -C "$SRC" fetch --depth 1 origin bc098c3cf0aac93e57e9bda9d95e2456acf88894
+            git -C "$SRC" checkout --detach FETCH_HEAD
+            test "$(git -C "$SRC" rev-parse HEAD)" = bc098c3cf0aac93e57e9bda9d95e2456acf88894
+            cmake -S "$SRC" -B "$SRC/build" -DCMAKE_BUILD_TYPE=Release \
+              -DGGML_CUDA=OFF -DGGML_NATIVE=OFF -DLLAMA_CURL=OFF -DBUILD_SHARED_LIBS=OFF
+            cmake --build "$SRC/build" --target llama-server --parallel 2
+          fi
+      - name: Evaluate real pretrained candidates without training or musical ground-truth prompts
+        shell: bash
+        run: |
+          set -euo pipefail
+          PY=(python)
+          if [[ "$ARM" == mono_rnn ]]; then
+            EXTRA=(--source "$RUNNER_TEMP/upstream")
+            PY=("$RUNNER_TEMP/mono-env/bin/python")
+          else
+            EXTRA=(--server "$RUNNER_TEMP/llama-src/build/bin/llama-server")
+          fi
+          "${PY[@]}" -m scripts.symbolic_choice_followup --arm "$ARM" "${EXTRA[@]}" \
+            --work "$RUNNER_TEMP/$ARM-private" --report "$RUNNER_TEMP/reports/$ARM.json"
+      - name: Preserve early failures, never synthesize successful scores
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, os, pathlib
+          p = pathlib.Path(os.environ['RUNNER_TEMP']) / 'reports' / (os.environ['ARM'] + '.json')
+          if not p.exists():
+              p.parent.mkdir(parents=True, exist_ok=True)
+              p.write_text(json.dumps({'arm': os.environ['ARM'], 'status': 'preparation_failed',
+                  'source_revision': os.environ['GITHUB_SHA'], 'real_audio_evaluated': False,
+                  'quality_approved': False}) + '\n')
+          PY
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: symbolic-choice-${{ matrix.arm }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/reports/${{ matrix.arm }}.json
+          if-no-files-found: warn
+          retention-days: 14

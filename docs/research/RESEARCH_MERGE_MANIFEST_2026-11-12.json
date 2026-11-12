@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "integration_pr": 266,
+  "main_before_integration": "37390df4f15ac5cd8fd49612357725f27093f2b9",
+  "sources": [
+    {"pr": 265, "head": "ce32aa8d70ff495c9dc29d30dc0de9a504676bfe", "includes_stacked_research": [250,251,253,254,255,256,258,260,261,262,263,264,265]},
+    {"pr": 244, "head": "838e0e6b7cf574e29c93348312702d1fd0013d29", "includes_stacked_research": [241,242,243,244]},
+    {"pr": 247, "head": "86088e6371e35dc2f2ab12c7e134a92d3cfe0cf7", "includes_stacked_research": [246,247]},
+    {"pr": 248, "head": "11596ecf5cdacedd5f5cfff7cada9dd4ea492d93"},
+    {"pr": 239, "head": "ae232110df8d672435fad985963963ffc6ef9186"},
+    {"pr": 267, "head": "38dbdab97a50dc140b1de848715cb1b97c26115e"}
+  ],
+  "other_session_product_prs_excluded": [236],
+  "application_code_change_authorized_by_this_manifest": false,
+  "experimental_auto_correction_enabled": false,
+  "model_default_changed": false,
+  "full_audio_to_score_quality_approved": false,
+  "required_main_check": "verify",
+  "protection_bypass_allowed": false,
+  "ci_status_at_authoring": "pending_full_integrated_verification",
+  "final_merge_status_source": "GitHub PR266 merged field, not this static manifest",
+  "research_tests": "scripts/research_test_manifest.json",
+  "latest_experiment": {"pr":267,"run":43155095702,"artifact":13916200034,"report_sha256":"82116d0ed540b3d5ae0c9f5d72faa661bc6ec47256bed52e1ad443578b27c9a4","scope":"development_only_with_provided_context","production_approved":false}
+}

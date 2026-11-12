@@ -1,0 +1,64 @@
+name: Research Integration Audit
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - '.github/workflows/research-integration-audit.yml'
+      - 'docs/research/**'
+      - 'scripts/**'
+      - 'tests/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pull-requests: read
+concurrency:
+  group: research-integration-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  integration-scope:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'integrate/research-evidence-')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Inspect integration scope and open research branches without mutations
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/research-integration/source"
+          gh api --paginate "/repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100" --jq '.[] | {number,title,draft,head:.head.ref,head_sha:.head.sha,base:.base.ref,base_sha:.base.sha}' | jq -s . > "$RUNNER_TEMP/research-integration/open-prs.json"
+          if [[ -z "$BASE_SHA" ]]; then BASE_SHA=$(git rev-parse origin/main); fi
+          export BASE_SHA
+          python - <<'PY'
+          import hashlib,json,os,pathlib,subprocess
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'research-integration'
+          base=os.environ['BASE_SHA']
+          paths=subprocess.check_output(['git','diff','--name-only',base+'...HEAD'],text=True).splitlines()
+          protected=[p for p in paths if p.startswith(('src/','desktop/')) or p in ('pyproject.toml','uv.lock')]
+          report={'base':base,'checkout':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'changed':paths,'product_changes':protected}
+          tracked=subprocess.check_output(['git','ls-files','-z'],text=True).split('\0')
+          for name in tracked:
+              p=pathlib.Path(name)
+              if not name or not p.is_file() or p.is_symlink(): continue
+              if not (name.startswith(('scripts/','tests/','.github/','docs/research/')) or name in ('pyproject.toml','uv.lock')): continue
+              if p.suffix not in ('.py','.md','.yml','.yaml','.toml','.lock','.json','.txt'): continue
+              if p.stat().st_size>4000000: continue
+              target=out/'source'/p;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(p.read_bytes())
+          (out/'scope.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          if protected: raise SystemExit('Research integration must not change application code or runtime dependency defaults')
+          PY
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: research-integration-${{ github.run_id }}
+          path: ${{ runner.temp }}/research-integration/
+          retention-days: 14
+          if-no-files-found: error

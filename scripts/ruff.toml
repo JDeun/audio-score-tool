@@ -1,0 +1,8 @@
+# Preserve byte-pinned historical experiment code; functional lint remains enabled.
+extend = "../pyproject.toml"
+# Nested configuration changes Ruff's project root, even when extending the root config.
+# Retain the repository's default source roots so internal imports stay first-party.
+src = ["..", "../src"]
+
+[lint.extend-per-file-ignores]
+"nasap_joint_rhythm.py" = ["I001"]
