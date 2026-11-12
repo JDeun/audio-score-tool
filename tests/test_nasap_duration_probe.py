@@ -9,10 +9,10 @@ import pytest
 from scripts.nasap_duration_probe import (
     DURATION_METHODS,
     GATES,
-    Observation,
-    Reader,
     UNITS,
     VOCAB,
+    Observation,
+    Reader,
     beat_clock,
     choose_units,
     evaluate,
