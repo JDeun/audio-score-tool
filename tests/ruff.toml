@@ -1,0 +1,4 @@
+# This archived test file is byte-checked by historical experiment receipts.
+extend = "../pyproject.toml"
+[lint.extend-per-file-ignores]
+"test_nasap_joint_rhythm.py" = ["I001"]

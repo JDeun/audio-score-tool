@@ -1,0 +1,4 @@
+# Preserve byte-pinned historical experiment code; functional lint remains enabled.
+extend = "../pyproject.toml"
+[lint.extend-per-file-ignores]
+"nasap_joint_rhythm.py" = ["I001"]
