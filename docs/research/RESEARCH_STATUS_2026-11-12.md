@@ -2,7 +2,11 @@
 
 This is the continuation snapshot taken with main at `7dd5c6ce0b18fda023403d92fba981867a1f0202`, after #266 and #270. It is navigation and task state, not a replacement for frozen protocols, result reports or execution receipts. The completed continuation #272 was subsequently merged; its results and later PR cleanup are distinct from the initial snapshot below.
 
-## Latest continuation: original-waveform boundary context
+## Current priority: common rhythm across expressive performances
+
+The user clarified the target: different performers/takes can express the same written rhythm with different timing, swing and accents. [#281](https://github.com/JDeun/audio-score-tool/issues/281) and execution [#282](https://github.com/JDeun/audio-score-tool/issues/282) therefore take priority over further waveform-release diagnostics. The [frozen protocol](PERFORMED_RHYTHM_INVARIANCE_PROTOCOL_2026-11-12.md) plans480 authored onset-score cases,4 observational counterfactuals and40 actual GMD performances (four drummers × ten common beat instructions). The source's15-bar window and provided clock, withheld labels/BPM, always-same-score controls, ambiguity, strict canonical decisions and diagnostic profile retrieval are explicit. The actual study has not run yet. Keep #278/#280 as completed supporting diagnostics, not proof of expressive rhythm recovery.
+
+## Preceding continuation: original-waveform boundary context
 
 Following the user's continuation instruction, [#279](https://github.com/JDeun/audio-score-tool/issues/279) / [#280](https://github.com/JDeun/audio-score-tool/pull/280) completed the [original-waveform boundary/rest study](KRAISLER_BOUNDARY_RESULTS_2026-11-12.md) under its [frozen protocol](KRAISLER_BOUNDARY_PROTOCOL_2026-11-12.md). [Actual CPU run 43222529760](https://github.com/JDeun/audio-score-tool/actions/runs/43222529760) processed all six original dry violin WAVs, all 947 reference onsets/offsets and all 947 midpoints. All six original gate masks/scalars and full #278 expressive baselines reproduced exactly. Acquisition verified 36 unique members in 14 ranges / 29,116,178 bytes; no new model inference was performed.
 
