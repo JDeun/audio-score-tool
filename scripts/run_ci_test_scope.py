@@ -6,7 +6,6 @@ import json
 import subprocess
 from pathlib import Path
 
-
 # Keep the byte-pinned librosa release without hiding new warnings or altering
 # the product warnings-as-errors policy. Show this exact upstream warning.
 RESEARCH_WARNING = (
