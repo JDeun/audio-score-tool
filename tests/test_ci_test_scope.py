@@ -43,7 +43,18 @@ def test_product_uses_locked_dependencies_and_research_is_explicit_overlay():
 def test_actual_repository_partition_is_exhaustive():
     root = Path(__file__).resolve().parents[1]
     result = scopes(root)
-    assert len(result['research']) == 25
+    manifest = json.loads((root / 'scripts/research_test_manifest.json').read_text())
+    discovered = {
+        path.relative_to(root).as_posix()
+        for pattern in ('test_*.py', '*_test.py')
+        for path in (root / 'tests').rglob(pattern)
+    }
+    product, research = set(result['product']), set(result['research'])
+    assert research == set(manifest)
+    assert len(result['research']) == len(research)
+    assert len(result['product']) == len(product)
+    assert product.isdisjoint(research)
+    assert product | research == discovered
     assert 'tests/test_ci_test_scope.py' in result['product']
 
 

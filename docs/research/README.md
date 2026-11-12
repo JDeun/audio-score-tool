@@ -1,15 +1,69 @@
 # Research reports
 
-Use [research template](RESEARCH_TEMPLATE.md) for reproducible investigations. Index each report here and link source records in [knowledge wiki](../knowledge/README.md). Existing performance and benchmark documents remain authoritative until explicitly superseded.
+Start with the [current research status and next experiment](RESEARCH_STATUS_2026-11-12.md). It distinguishes completed execution, code integrated into main, and scientific or product acceptance. Historical reports retain their original snapshots, including earlier `pending`, `keep draft`, and `main unchanged` wording.
 
-## Research inventory
+Use the [research template](RESEARCH_TEMPLATE.md) for reproducible investigations and link source records in the [knowledge wiki](../knowledge/README.md). Existing performance and benchmark documents remain authoritative until explicitly superseded.
+
+## Current navigation
+
+- [Research consolidation scope](RESEARCH_INTEGRATION_2026-11-12.md) and [pinned source manifest](RESEARCH_MERGE_MANIFEST_2026-11-12.json): research evidence integrated through [PR #266](https://github.com/JDeun/audio-score-tool/pull/266); this did not activate corrections in the product.
+- [Actual waveform gate results](AUDIO_GATE_REST_RESULTS_2026-11-12.md): latest completed pilot, integrated through [PR #270](https://github.com/JDeun/audio-score-tool/pull/270). Performed-note gaps remain distinct from written rests.
+- [Experiment/failure audit ledger](EXPERIMENT_LEDGER_2026.md), [provider landscape](AMT_PROVIDER_LANDSCAPE_2026.md), and [implementation PR/CI evidence](IMPLEMENTATION_EVIDENCE_2026.json). Verify historical implementation evidence with `python scripts/audit_research_history.py`.
+
+## CPU vocal decoding and acoustic evidence
+
+| Study | Protocol | Recorded results |
+|---|---|---|
+| Public vocadito provider comparison | [CPU specialist scope](CPU_SPECIALIST_PROTOCOL_2026-11-10.md) | [Specialist results](CPU_SPECIALIST_RESULTS_2026-11-10.md); [public vocadito results](CPU_PUBLIC_VOCADITO_RESULTS_2026-11-10.md) |
+| Basic Pitch decoding and YourMT3 recovery | [Protocol](CPU_VOCAL_RECOVERY_PROTOCOL_2026-11-11.md) | [Basic Pitch snapshot](CPU_VOCAL_RECOVERY_RESULTS_2026-11-11.md); [PR #239 execution record](https://github.com/JDeun/audio-score-tool/pull/239) |
+| DSP note baseline | [Protocol](DSP_NOTE_BASELINE_PROTOCOL_2026-11-11.md) | [Results](DSP_NOTE_BASELINE_RESULTS_2026-11-11.md) |
+| DSP octave corroboration | [Protocol](DSP_OCTAVE_HYBRID_PROTOCOL_2026-11-11.md) | [Results](DSP_OCTAVE_HYBRID_RESULTS_2026-11-11.md) |
+| Offset-tail evidence and supplied-clock controls | [Protocol](OFFSET_TAIL_METER_PROTOCOL_2026-11-11.md) | [Basic Pitch snapshot](OFFSET_TAIL_METER_RESULTS_2026-11-11.md); [PR #248 execution record](https://github.com/JDeun/audio-score-tool/pull/248) |
+| Actual RMS gate, hard versus soft edits | [Protocol](AUDIO_GATE_REST_PROTOCOL_2026-11-12.md) | [Results](AUDIO_GATE_REST_RESULTS_2026-11-12.md) |
+
+The vocal corpus is repeatedly used development data. Performed-note F1 and non-note occupancy are not written-rest or full-score accuracy. Reports labelled partial snapshots do not establish the current status of other jobs; consult the [current status](RESEARCH_STATUS_2026-11-12.md) and linked execution records.
+
+## Symbolic selection and candidate headroom
+
+| Study | Protocol | Recorded results |
+|---|---|---|
+| Rule, Markov, Qwen, LSTM and MelodyT5 admission | [Stage 0 protocol](SYMBOLIC_POSTCORRECTION_STAGE0_2026-11-11.md) | [Stage 0 results](SYMBOLIC_POSTCORRECTION_STAGE0_RESULTS_2026-11-11.md); [mono runtime repair #242](https://github.com/JDeun/audio-score-tool/pull/242) |
+| Crossed candidate order/labels and learned mono prior | [Protocol](SYMBOLIC_CHOICE_FOLLOWUP_PROTOCOL_2026-11-11.md) | [Results](SYMBOLIC_CHOICE_FOLLOWUP_RESULTS_2026-11-11.md) |
+| Actual vocal error and candidate headroom | [Protocol](ERROR_HEADROOM_INTERFACE_PROTOCOL_2026-11-11.md) | [Basic Pitch snapshot](ERROR_HEADROOM_INTERFACE_RESULTS_2026-11-11.md); [PR #244 execution record](https://github.com/JDeun/audio-score-tool/pull/244) |
+
+Runtime admission, valid JSON and reference-selected candidate ceilings are separate from achieved correction. The Qwen instruction-gate failures and lack of demonstrated LSTM gain remain part of the evidence.
+
+## Rhythm, drum observations and tempo units
+
+| Study | Protocol | Recorded results |
+|---|---|---|
+| Measure-sum joint rhythm on authored phrases | [Protocol](BAR_SUM_RHYTHM_PROTOCOL_2026-11-11.md) | [Results](BAR_SUM_RHYTHM_RESULTS_2026-11-11.md) |
+| Sounding/written duration and synthesized accent evidence | [Protocol](BAR_SUM_ARTICULATION_PROTOCOL_2026-11-11.md) | [Results](BAR_SUM_ARTICULATION_RESULTS_2026-11-11.md) |
+| Human-played GMD MIDI and supplied recording metadata | [Protocol](DRUM_METER_METADATA_PROTOCOL_2026-11-11.md) | [PR #253 record](https://github.com/JDeun/audio-score-tool/pull/253); [successful run](https://github.com/JDeun/audio-score-tool/actions/runs/43032170166) |
+| Bounded real GMD WAV access and onset extraction | [Protocol](GMD_AUDIO_RANGE_PROTOCOL_2026-11-11.md) | [Results](GMD_AUDIO_RANGE_RESULTS_2026-11-11.md) |
+| BPM from rhythm patterns | [Protocol](TEMPO_PATTERN_PROTOCOL_2026-11-11.md) | [Results](TEMPO_PATTERN_RESULTS_2026-11-11.md) |
+| Multiwindow consensus and alias abstention | [Protocol](TEMPO_CONSENSUS_PROTOCOL_2026-11-12.md) | [Results](TEMPO_CONSENSUS_RESULTS_2026-11-12.md) |
+| DSP versus file-held-out Beat This checkpoints | [Protocol](TEMPO_BEAT_MODEL_PROTOCOL_2026-11-12.md) | [Results](TEMPO_BEAT_MODEL_RESULTS_2026-11-12.md); [frozen inputs](TEMPO_BEAT_MODEL_INPUTS_2026-11-12.json) |
+| Half/double pulse units and playback invariance | [Protocol](TEMPO_UNIT_PROTOCOL_2026-11-12.md) | [Results](TEMPO_UNIT_RESULTS_2026-11-12.md) |
+| Automatic pulse-unit choice from notation priors | [Protocol](TEMPO_UNIT_SELECTION_PROTOCOL_2026-11-12.md) | [Results](TEMPO_UNIT_SELECTION_RESULTS_2026-11-12.md) |
+
+Nominal BPM, tempo-family membership, beat sequence, meter and downbeat are different outcomes. Supplied units and authored MusicXML playback controls do not establish automatically inferred notation quality.
+
+## Real score/performance duration and rest interpretation
+
+| Study | Protocol | Recorded results |
+|---|---|---|
+| nASAP duration and pulse-unit pilot | [Protocol](NASAP_DURATION_PROTOCOL_2026-11-12.md) | [Results](NASAP_DURATION_RESULTS_2026-11-12.md) |
+| Paired key release versus sustain endpoints | [Protocol](NASAP_KEYOFF_PAIRED_PROTOCOL_2026-11-12.md) | [Results](NASAP_KEYOFF_PAIRED_RESULTS_2026-11-12.md) |
+| Joint voice/rest/measure decoding | [Protocol](NASAP_JOINT_RHYTHM_PROTOCOL_2026-11-12.md) | [Results](NASAP_JOINT_RHYTHM_RESULTS_2026-11-12.md) |
+| Frozen decoder on composition-disjoint works | [Protocol](NASAP_JOINT_HOLDOUT_PROTOCOL_2026-11-12.md) | [Results](NASAP_JOINT_HOLDOUT_RESULTS_2026-11-12.md) |
+| Development-only symbolic quiet-core evidence | [Protocol](NASAP_REST_EVIDENCE_PROTOCOL_2026-11-12.md) | [Results](NASAP_REST_EVIDENCE_RESULTS_2026-11-12.md) |
+
+These experiments supply clock/unit/bar/voice/chord context and aligned note inventory. Preserve their admission denominators and note-damage/rest-erasure measures. The #265 validation works must not become tuning data while retaining an untouched-validation claim. Data-license conditions remain in the source reports.
+
+## Earlier baseline inventory
 
 - [실제 보컬 40개 MR-MT3 / YourMT3+ 평가](VOCADITO_VOCAL_BASELINES_2026-11-09.md) — 원본 체크섬·두 독립 주석자·곡별 실제 F1; 두 모델 각 40/40 완료, 최종 모델 미승인. [Metadata-only 원본 결과](VOCADITO_VOCAL_BASELINES_2026-11-09.json).
-
-- [AMT provider landscape](AMT_PROVIDER_LANDSCAPE_2026.md) — published vs reproduced evidence, license constraints
-- [Experiment/failure audit ledger](EXPERIMENT_LEDGER_2026.md) — workstream status and missing evidence
-
-- [Audited implementation PR/CI timeline](IMPLEMENTATION_EVIDENCE_2026.json) — pinned source PRs, merge commits and successful workflow IDs (code evidence only); [scope and unknowns](EXPERIMENT_LEDGER_2026.md). Verify offline via `python scripts/audit_research_history.py`.
 
 - [CocoChorales MR-MT3 real sample baseline](COCOCHORALES_MRMT3_REAL_SAMPLE_2026-11-08.md) — independently scored author WAV/reference MIDI, exact model/source hashes, low instrument/onset F1 and explicit non-generalization limits; actual CI run #42489135513.
 
@@ -22,3 +76,8 @@ Use [research template](RESEARCH_TEMPLATE.md) for reproducible investigations. I
 - [혼합 음원 vs 분리 stem 채보 비교](MIX_VS_STEMS_ABLATION_2026-11-09.md) — 동일 모델·원본·정답을 고정한 직접 채보와 Demucs 6개 stem 채보 비교, 전체 음표 보존 및 실패 포함 평가; Actions run #42584934707.
 
 - [CASD 공개 원본 주석 가져오기 검사](CASD_ANNOTATION_IMPORT_2026-11-09.json) — pinned 원본 JAMS 3개, 전문가 12그룹·6,704구간의 실제 import/시간 구간 검사; 음원 매칭과 모델 정확도는 미측정.
+
+## Current continuation
+
+- [Waveform-gate edit attribution protocol](AUDIO_GATE_ATTRIBUTION_PROTOCOL_2026-11-12.md) — issue #271; fixed full/tail-only/complementary interventions on the reused development corpus. Completed: [results](AUDIO_GATE_ATTRIBUTION_RESULTS_2026-11-12.md), [one-case recovery](AUDIO_GATE_ATTRIBUTION_RECOVERY_2026-11-12.md).
+- [Durable waveform-gate receipts](receipts/README.md) — exact historical metadata ZIPs and offline integrity/arithmetic checks.
