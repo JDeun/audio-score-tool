@@ -273,3 +273,46 @@ SMF bytes without mido and verifies every reported admission and aggregate.
 Their limits remain explicit: common-groove labels are not written-score truth,
 provided clocks are not audio-inferred, and reproducing arithmetic does not
 prove the adequacy or generalization of the model.
+
+## Completed repeat-context study and report-only recovery
+
+The [completed result](../REPEAT_CONTEXT_RESULTS_2026-11-13.md) retains both
+execution artifacts without recompression or replacement:
+
+| Exact ZIP | Run / artifact | Bytes | SHA256 |
+| --- | --- | ---: | --- |
+| [Original failed receipt](repeat-context-incomplete-43256776331.zip) | [43256776331](https://github.com/JDeun/audio-score-tool/actions/runs/43256776331) / 13962156613 | 361,958 | `cf11f4757ae756878b108ab7b89a49a90db71b5c9fa04803a79f00d1c9e4f93e` |
+| [Official recovery receipt](repeat-context-recovery-43261359821.zip) | [43261359821](https://github.com/JDeun/audio-score-tool/actions/runs/43261359821) / 13963788382 | 1,519,299 | `d77222eef446dbe9f24caa4b733139c59f2f06b96c8dcaf461dba34c3caa8528` |
+
+Both ZIPs contain only `report.json`. The original member is 2,842,632 bytes,
+SHA256 `568898b9c1f1fb6d5d2671e1805305eaa2939b2d1580175f0e2d6fc43e16c559`;
+the compact recovered member is 16,524,883 bytes,
+SHA256 `b64985586ec5f0340a61b45bce99107bccfd60d50bd3d19491e0f524c699bf93`.
+The original remains `evaluation_failed`, with null evaluation and summary.
+The recovery reproduces every original input/prediction file hash before the
+unchanged evaluator and preserves all 1,520 planned cases in four separate
+cohorts. Public JSON whitespace is the only report repair.
+
+The original [model](repeat-context-model-audit-43256776331.json) and
+[source](repeat-context-source-audit-43256776331.json) audit receipts retain
+their prediction/source-only scope. The result document links the later
+evaluation audits and their explicit independence limits. These verification
+receipts do not establish musical generalization, successful common-score
+recovery, audio beat inference, duration/rest accuracy or product readiness.
+
+| Recovery verification receipt | Scope | SHA256 |
+| --- | --- | --- |
+| [Independent authored evaluation](repeat-context-recovery-evaluation-audit-43261359821.json) | 248,070 checks; all 1,512 authored input/prediction hashes reproduced before independent scoring; maximum numeric difference 0 | `ff743bb0f2030bfcdb638fc60e3ef70caa4fc53041c80624f4bed761f48367c1` |
+| [Public real-mask and source-continuity arithmetic](repeat-context-real-receipt-audit-43261359821.json) | 36,971 checks; exact source receipt chain, all actual target/paired denominators and context aggregation; no private tick reconstruction in this script | `a2edf832fd1be2dda944da280b6d46b874f7517d34e769e899605af4b7baee43` |
+| [Actual source replay and independent target/pair evaluation](repeat-context-real-replay-audit-43261359821.json) | 5,259 checks; 49 exact source members, eight full input/prediction replays and all real pair categories independently rejudged | `80b3189536a3a9df4daf3a52a25516c989c2978af1615af7a32e48c8d525ddde` |
+| [Audit negative controls](repeat-context-recovery-audit-negatives-43261359821.json) | Rejects modified archive bytes and a modified summary count | `fe4dbe28b52694c755fbcd1b25baa47346ef9c8d165bc043ea3e20e411bc8a96` |
+
+The authored [audit script](../../../scripts/audit_repeat_context_recovery.py)
+has SHA256 `088c53e149917fb6bb8b58ea218d278c169247ab82b3e399a64612327f3283a2`;
+the public real [audit script](../../../scripts/audit_repeat_context_real_receipt.py)
+has SHA256 `072e0ea098c96c8399e4d70fddfa7af524474f2f72e0394f5a393f9dc76dcbf5`.
+The actual [replay script](../../../scripts/audit_repeat_context_real_replay.py)
+has SHA256 `d0593d3c77072ac0f143418793ccc148c7b966752a740a9b7e17660c6f3d802e`.
+Their independence boundaries and reproduction commands are described in the
+result report. Verification does not add a new scientific trial or modify the
+original artifact.

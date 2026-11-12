@@ -1,0 +1,263 @@
+{
+  "both_wrong_pair_categories_requiring_private_ticks_for_full_rejudgment": {
+    "additional_real/global_phase": 9,
+    "additional_real/local_switch005": 9,
+    "additional_real/repeat_hard": 9,
+    "additional_real/repeat_soft0025": 9,
+    "additional_real/repeat_soft010": 9,
+    "additional_real/straight_narrow": 9,
+    "reused_real/global_phase": 1,
+    "reused_real/local_switch005": 1,
+    "reused_real/repeat_hard": 1,
+    "reused_real/repeat_soft0025": 1,
+    "reused_real/repeat_soft010": 1,
+    "reused_real/straight_narrow": 1
+  },
+  "checks_by_kind": {
+    "both_wrong_pair_valid_partition": 60,
+    "by_score_denominator": 24,
+    "by_score_mask_total": 96,
+    "case_boolean_mask_count": 144,
+    "case_lattice_count": 48,
+    "case_mask_count": 192,
+    "case_mask_total": 48,
+    "case_observed_total": 48,
+    "case_pitch_mismatch_count": 48,
+    "committed_source_audit_hash": 1,
+    "context_block_reason_partition": 1512,
+    "context_eligible_reason": 1512,
+    "context_event_pair_truth_partition": 1512,
+    "context_event_partition": 1512,
+    "context_link_truth_partition": 1512,
+    "context_summary_from_rows": 4,
+    "correct_target_lattice_supported": 7408,
+    "correct_target_onset_and_pitch": 7408,
+    "different_score_source_hashes": 8,
+    "equal_score_rate": 12,
+    "historical_source_audit_scope": 1,
+    "input_classifications_exhaustive": 8,
+    "lattice_mask_alphabet": 8,
+    "lattice_mask_length": 8,
+    "official_recovery_report_hash": 1,
+    "official_run": 1,
+    "official_success": 1,
+    "pair_category_from_case_masks": 4074,
+    "pair_population": 2,
+    "pair_score_classification": 12,
+    "paired_denominator_including_missing": 12,
+    "paired_mask_alphabet": 24,
+    "paired_mask_count": 120,
+    "paired_mask_length": 24,
+    "paired_summary_from_masks": 12,
+    "paired_target_total": 24,
+    "real_case_population": 2,
+    "real_gains": 36,
+    "real_losses": 36,
+    "real_method_population": 8,
+    "real_no_repeat_links": 24,
+    "real_repeat_equals_local_decisions": 216,
+    "real_repeat_equals_local_masks": 24,
+    "real_summary_from_masks": 48,
+    "real_transition_summary": 12,
+    "reference_coverage_count": 8,
+    "reference_coverage_histogram": 8,
+    "reference_key_count": 8,
+    "reference_keys_unique": 8,
+    "reference_mask_alphabet": 240,
+    "reference_mask_length": 240,
+    "row_input_denominator": 2,
+    "row_target_denominator": 2,
+    "same_score_canonical_content": 4,
+    "same_score_original_joint_coverage": 4,
+    "same_score_original_pair_denominator": 4,
+    "same_score_reference_keys": 4,
+    "same_score_source_hash": 4,
+    "source_canonical_hash": 24,
+    "source_case_population_field": 32,
+    "source_grace_denominator": 2,
+    "source_input_denominator": 2,
+    "source_input_event_hash": 8,
+    "source_input_receipt_field": 184,
+    "source_ordinary_coverage": 8,
+    "source_serialization_contract": 56,
+    "source_target_denominator": 2,
+    "top_level_summary_identity": 2,
+    "unobserved_target_retained": 8268
+  },
+  "checks_passed": 36971,
+  "context_summaries": {
+    "additional_real": {
+      "block_count": 32,
+      "cases": 4,
+      "cases_with_links": 0,
+      "distinct_linked_event_count": 0,
+      "eligibility_reason_counts": {
+        "canonical_outside_observed_block": 20,
+        "coarse_quarter_disagreement": 3,
+        "eligible": 7,
+        "too_few_attacks": 2
+      },
+      "eligible_block_count": 7,
+      "evaluation_only_link_truth": {
+        "event_pairs_different_canonical": 0,
+        "event_pairs_same_canonical": 0,
+        "event_pairs_unscorable": 0,
+        "links_different_canonical": 0,
+        "links_same_canonical": 0,
+        "links_unscorable": 0
+      },
+      "link_count": 0,
+      "linked_event_pair_count": 0,
+      "unlinked_event_count": 605
+    },
+    "factorial_authored": {
+      "block_count": 4096,
+      "cases": 1024,
+      "cases_with_links": 387,
+      "distinct_linked_event_count": 15636,
+      "eligibility_reason_counts": {
+        "canonical_outside_observed_block": 1526,
+        "coarse_quarter_disagreement": 80,
+        "eligible": 2202,
+        "nearest_tie": 288
+      },
+      "eligible_block_count": 2202,
+      "evaluation_only_link_truth": {
+        "event_pairs_different_canonical": 2384,
+        "event_pairs_same_canonical": 7961,
+        "event_pairs_unscorable": 0,
+        "links_different_canonical": 435,
+        "links_same_canonical": 313,
+        "links_unscorable": 0
+      },
+      "link_count": 748,
+      "linked_event_pair_count": 10345,
+      "unlinked_event_count": 41708
+    },
+    "reused_authored": {
+      "block_count": 960,
+      "cases": 480,
+      "cases_with_links": 156,
+      "distinct_linked_event_count": 4368,
+      "eligibility_reason_counts": {
+        "canonical_outside_observed_block": 252,
+        "coarse_quarter_disagreement": 51,
+        "eligible": 564,
+        "nearest_tie": 93
+      },
+      "eligible_block_count": 564,
+      "evaluation_only_link_truth": {
+        "event_pairs_different_canonical": 0,
+        "event_pairs_same_canonical": 2184,
+        "event_pairs_unscorable": 0,
+        "links_different_canonical": 0,
+        "links_same_canonical": 156,
+        "links_unscorable": 0
+      },
+      "link_count": 156,
+      "linked_event_pair_count": 2184,
+      "unlinked_event_count": 9072
+    },
+    "reused_real": {
+      "block_count": 32,
+      "cases": 4,
+      "cases_with_links": 0,
+      "distinct_linked_event_count": 0,
+      "eligibility_reason_counts": {
+        "canonical_outside_observed_block": 24,
+        "eligible": 8
+      },
+      "eligible_block_count": 8,
+      "evaluation_only_link_truth": {
+        "event_pairs_different_canonical": 0,
+        "event_pairs_same_canonical": 0,
+        "event_pairs_unscorable": 0,
+        "links_different_canonical": 0,
+        "links_same_canonical": 0,
+        "links_unscorable": 0
+      },
+      "link_count": 0,
+      "linked_event_pair_count": 0,
+      "unlinked_event_count": 789
+    }
+  },
+  "input_report": {
+    "bytes": 16524883,
+    "run_id": 43261359821,
+    "sha256": "b64985586ec5f0340a61b45bce99107bccfd60d50bd3d19491e0f524c699bf93"
+  },
+  "input_source_audit": {
+    "bytes": 67991,
+    "filename": "repeat-context-source-audit-43256776331.json",
+    "sha256": "b21728b8bd92d4e9525c79a72d8314a8ed5424ce9b85375192d95a2b81c7bca2"
+  },
+  "limitations": [
+    "Original musical sources were independently parsed in the committed prior audit; this audit verifies receipt continuity and does not repeat that parsing.",
+    "Individual correctness masks are accepted as public evaluation evidence; private predicted ticks are not available in this artifact.",
+    "Both-wrong pairs are checked for a valid same-wrong/disagreement partition and summary arithmetic, but that choice cannot be independently adjudicated from public masks alone.",
+    "False-repeat link counts are independently aggregated and partition-checked here, not rejudged from raw event pairs and canonical truth.",
+    "The actual cohort has zero repeat links; equality to the local comparator does not establish successful repeated-context use on human performances.",
+    "Fixed supplied beat clocks and publisher note alignment condition these metrics; no fresh audio transcription, inferred-clock, duration/rest or final-score quality claim follows."
+  ],
+  "model_calls": 0,
+  "network_downloads": 0,
+  "pair_categories_uniquely_reconstructed_from_case_masks": {
+    "additional_real/global_phase": 289,
+    "additional_real/local_switch005": 289,
+    "additional_real/repeat_hard": 289,
+    "additional_real/repeat_soft0025": 289,
+    "additional_real/repeat_soft010": 289,
+    "additional_real/straight_narrow": 289,
+    "reused_real/global_phase": 390,
+    "reused_real/local_switch005": 390,
+    "reused_real/repeat_hard": 390,
+    "reused_real/repeat_soft0025": 390,
+    "reused_real/repeat_soft010": 390,
+    "reused_real/straight_narrow": 390
+  },
+  "product_activation_claimed": false,
+  "real_cohorts": {
+    "additional_real": {
+      "canonical_same_score_reference_pairs": 298,
+      "input_attacks": 605,
+      "ordinary_targets": 596,
+      "primary_outcomes": {
+        "abstained": 38,
+        "correct": 492,
+        "unobserved": 25,
+        "wrong": 41
+      },
+      "primary_paired_references": {
+        "abstention": 33,
+        "disagreement": 14,
+        "same_correct": 229,
+        "same_wrong": 7,
+        "unobserved": 15
+      }
+    },
+    "reused_real": {
+      "canonical_same_score_reference_pairs": 391,
+      "input_attacks": 789,
+      "ordinary_targets": 782,
+      "primary_outcomes": {
+        "abstained": 35,
+        "correct": 720,
+        "unobserved": 5,
+        "wrong": 22
+      },
+      "primary_paired_references": {
+        "abstention": 18,
+        "disagreement": 19,
+        "same_correct": 350,
+        "same_wrong": 1,
+        "unobserved": 3
+      }
+    }
+  },
+  "repository_imports": [],
+  "schema_version": 1,
+  "scope": "independent public-mask arithmetic, reference denominators, historical source-receipt continuity and context aggregation",
+  "script_sha256": "072e0ea098c96c8399e4d70fddfa7af524474f2f72e0394f5a393f9dc76dcbf5",
+  "source_files_reparsed": 0,
+  "status": "pass_for_public_real_arithmetic_and_source_continuity"
+}

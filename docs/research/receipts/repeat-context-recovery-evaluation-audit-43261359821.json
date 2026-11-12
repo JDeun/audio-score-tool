@@ -1,0 +1,222 @@
+{
+  "authored_replay": {
+    "all_original_prediction_hashes_matched": true,
+    "cases": 1512,
+    "evaluation_loaders_called_after_all_replay_predictions_verified": true,
+    "link_truth_totals": {
+      "factorial_authored": {
+        "event_pairs_different_canonical": 2384,
+        "event_pairs_same_canonical": 7961,
+        "event_pairs_unscorable": 0,
+        "links_different_canonical": 435,
+        "links_same_canonical": 313,
+        "links_unscorable": 0
+      },
+      "reused_authored": {
+        "event_pairs_different_canonical": 0,
+        "event_pairs_same_canonical": 2184,
+        "event_pairs_unscorable": 0,
+        "links_different_canonical": 0,
+        "links_same_canonical": 156,
+        "links_unscorable": 0
+      }
+    }
+  },
+  "authored_summary": {
+    "factorial_authored": {
+      "always_four_on_floor": {
+        "cases": 1024,
+        "diagnostic_joint_truth_available": 32,
+        "full_abstained": 0,
+        "full_correct": 32,
+        "full_wrong": 992,
+        "retained_joint_truth_available": 32
+      },
+      "global_phase": {
+        "cases": 1024,
+        "diagnostic_joint_truth_available": 427,
+        "full_abstained": 366,
+        "full_correct": 314,
+        "full_wrong": 344,
+        "retained_joint_truth_available": 427
+      },
+      "local_switch005": {
+        "cases": 1024,
+        "diagnostic_joint_truth_available": 683,
+        "full_abstained": 933,
+        "full_correct": 79,
+        "full_wrong": 12,
+        "retained_joint_truth_available": 683
+      },
+      "repeat_hard": {
+        "cases": 1024,
+        "diagnostic_joint_truth_available": 592,
+        "full_abstained": 840,
+        "full_correct": 89,
+        "full_wrong": 95,
+        "retained_joint_truth_available": 592
+      },
+      "repeat_soft0025": {
+        "cases": 1024,
+        "diagnostic_joint_truth_available": 677,
+        "full_abstained": 928,
+        "full_correct": 82,
+        "full_wrong": 14,
+        "retained_joint_truth_available": 677
+      },
+      "repeat_soft010": {
+        "cases": 1024,
+        "diagnostic_joint_truth_available": 657,
+        "full_abstained": 921,
+        "full_correct": 83,
+        "full_wrong": 20,
+        "retained_joint_truth_available": 657
+      },
+      "straight_narrow": {
+        "cases": 1024,
+        "diagnostic_joint_truth_available": 202,
+        "full_abstained": 422,
+        "full_correct": 202,
+        "full_wrong": 400,
+        "retained_joint_truth_available": 202
+      }
+    },
+    "reused_authored": {
+      "always_four_on_floor": {
+        "cases": 480,
+        "diagnostic_joint_truth_available": 60,
+        "full_abstained": 0,
+        "full_correct": 60,
+        "full_wrong": 420,
+        "retained_joint_truth_available": 60
+      },
+      "global_phase": {
+        "cases": 480,
+        "diagnostic_joint_truth_available": 381,
+        "full_abstained": 195,
+        "full_correct": 201,
+        "full_wrong": 84,
+        "retained_joint_truth_available": 381
+      },
+      "local_switch005": {
+        "cases": 480,
+        "diagnostic_joint_truth_available": 441,
+        "full_abstained": 255,
+        "full_correct": 210,
+        "full_wrong": 15,
+        "retained_joint_truth_available": 441
+      },
+      "repeat_hard": {
+        "cases": 480,
+        "diagnostic_joint_truth_available": 441,
+        "full_abstained": 240,
+        "full_correct": 222,
+        "full_wrong": 18,
+        "retained_joint_truth_available": 441
+      },
+      "repeat_soft0025": {
+        "cases": 480,
+        "diagnostic_joint_truth_available": 441,
+        "full_abstained": 255,
+        "full_correct": 210,
+        "full_wrong": 15,
+        "retained_joint_truth_available": 441
+      },
+      "repeat_soft010": {
+        "cases": 480,
+        "diagnostic_joint_truth_available": 441,
+        "full_abstained": 246,
+        "full_correct": 219,
+        "full_wrong": 15,
+        "retained_joint_truth_available": 441
+      },
+      "straight_narrow": {
+        "cases": 480,
+        "diagnostic_joint_truth_available": 105,
+        "full_abstained": 141,
+        "full_correct": 105,
+        "full_wrong": 234,
+        "retained_joint_truth_available": 105
+      }
+    }
+  },
+  "checks_by_kind": {
+    "archive_chain": 2,
+    "authored_main_aggregation": 238,
+    "authored_subgroup_aggregation": 4165,
+    "authored_truth_identity": 1512,
+    "counterfactual": 16,
+    "counterfactual_aggregation": 140,
+    "counterfactual_population": 2,
+    "current_measured_source_identity": 35,
+    "direct_pair_enumeration": 84,
+    "evaluation_identity": 1,
+    "family_aggregation": 4760,
+    "family_stability": 588,
+    "full_transition_aggregation": 72,
+    "gain_loss_aggregation": 126,
+    "independent_authored_full_score": 9072,
+    "independent_authored_joint_truth": 18144,
+    "independent_authored_link_truth": 9072,
+    "independent_authored_per_hit": 99792,
+    "independent_constant_control": 18144,
+    "independent_link_truth_aggregate": 12,
+    "inventory_exception": 1,
+    "main_population": 2,
+    "official_recovery_identity": 1,
+    "original_failure_preserved": 3,
+    "original_recovery_case_chain": 64700,
+    "original_recovery_chain": 3043,
+    "population": 1521,
+    "prior_model_audit_coverage": 4,
+    "prior_model_audit_identity": 2,
+    "prior_source_audit_identity": 2,
+    "recovery_status": 1,
+    "replayed_authored_complete_prediction_hash": 1512,
+    "replayed_authored_input_content_hash": 1512,
+    "replayed_authored_input_hash": 1512,
+    "replayed_authored_prediction_content_hash": 1512,
+    "replayed_input_preservation": 1512,
+    "summary_copy": 5224,
+    "unchanged_original_scientific_source": 29
+  },
+  "checks_passed": 248070,
+  "dependencies": "Python standard library; frozen repository generators and selector only when replay enabled",
+  "elapsed_seconds": 47.61259339099979,
+  "input_archive": {
+    "report_bytes": 16524883,
+    "report_sha256": "b64985586ec5f0340a61b45bce99107bccfd60d50bd3d19491e0f524c699bf93",
+    "zip_bytes": 1519299,
+    "zip_sha256": "d77222eef446dbe9f24caa4b733139c59f2f06b96c8dcaf461dba34c3caa8528"
+  },
+  "limitations": [
+    "Authored replay reuses the frozen generators and selector, tied to the prior independent model/source audits by complete file SHA256 parity.",
+    "The study evaluator, outcome counters, joint-truth helpers and repeat-link truth scorer are never called by this audit.",
+    "The independent code scores existing authored development cases; it adds no new accuracy sample or independent truth source.",
+    "Real selected ticks are not regenerated here; real source/mask/paired arithmetic has a separate audit with explicit scope limits.",
+    "This audit makes no product accuracy, audio-clock, duration, rest, engraving or naturalness claim."
+  ],
+  "maximum_numeric_difference": 0.0,
+  "original_archive": {
+    "report_bytes": 2842632,
+    "report_sha256": "568898b9c1f1fb6d5d2671e1805305eaa2939b2d1580175f0e2d6fc43e16c559",
+    "zip_bytes": 361958,
+    "zip_sha256": "cf11f4757ae756878b108ab7b89a49a90db71b5c9fa04803a79f00d1c9e4f93e"
+  },
+  "prior_independent_audit_receipts": {
+    "model": {
+      "sha256": "05c35be0fcd9438a049203682d959e3c7499c103189a7dd9939708e26bd80827",
+      "status": "prediction_only_complete"
+    },
+    "source": {
+      "sha256": "b21728b8bd92d4e9525c79a72d8314a8ed5424ce9b85375192d95a2b81c7bca2",
+      "status": "pass_for_source_and_execution_ledger_only"
+    }
+  },
+  "raw_musical_arrays_published": false,
+  "schema_version": 1,
+  "scope": "recovery identity, authored aggregates and optional independent authored evaluation",
+  "script_sha256": "088c53e149917fb6bb8b58ea218d278c169247ab82b3e399a64612327f3283a2",
+  "source_network_downloads": 0,
+  "status": "pass"
+}

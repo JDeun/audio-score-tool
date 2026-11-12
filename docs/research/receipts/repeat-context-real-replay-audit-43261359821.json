@@ -1,0 +1,354 @@
+{
+  "all_eight_replay_predictions_saved_before_reference_acquisition": true,
+  "checks_by_kind": {
+    "actual_repeat_links": 8,
+    "all_eight_predictions_before_reference_acquisition": 1,
+    "frozen_scientific_file": 35,
+    "independent_real_case_score": 528,
+    "independent_real_cohort_pairs": 12,
+    "independent_real_cohort_score": 132,
+    "independent_real_joint_truth": 96,
+    "independent_real_pair_count": 120,
+    "independent_real_pair_mask_including_both_wrong": 24,
+    "independent_real_target_masks": 48,
+    "independent_source_audit_canonical_chain": 24,
+    "input_preserved_after_replay": 8,
+    "official_report_sha256": 1,
+    "original_complete_prediction_file_bytes": 8,
+    "original_complete_prediction_file_hash": 8,
+    "original_input_file_hash": 8,
+    "prior_source_audit_sha256": 1,
+    "public_input_content_hash": 8,
+    "public_prediction_content_hash": 8,
+    "reference_key_order_from_source": 8,
+    "reference_lattice_from_source": 8,
+    "reference_source_admission": 8,
+    "same_score_full_target_identity": 4134,
+    "same_score_occurrence_population": 4,
+    "shared_source_identity": 1,
+    "source_adapter_target_payload_hash": 8,
+    "source_input_admission": 8,
+    "unique_source_bytes": 1,
+    "unique_source_members": 1
+  },
+  "checks_passed": 5259,
+  "descriptive_posthoc_excluded_block_candidate_direction": {
+    "additional_real/following_block": 20,
+    "reused_real/following_block": 24
+  },
+  "limitations": [
+    "This is independent evaluation of byte-identical original model predictions, not an independently implemented model.",
+    "Canonical truth is reconstructed by the frozen adapters and verified against the prior independently parsed source audit; no new independent annotation is claimed.",
+    "Source alignment and supplied beat clocks condition the evaluation. Missing targets stay in the denominator.",
+    "Private source files, targets and predictions remain outside the repository; public output contains only derived counts and hashes.",
+    "Block direction counts are descriptive post-hoc geometry, not a new predeclared experiment or a proposed-model performance result."
+  ],
+  "model_calls": 8,
+  "official_recovery_report_sha256": "b64985586ec5f0340a61b45bce99107bccfd60d50bd3d19491e0f524c699bf93",
+  "official_recovery_run": 43261359821,
+  "ordinary_reference_scores": {
+    "additional_real": {
+      "global_phase": {
+        "abstained": 7,
+        "correct": 529,
+        "diagnostic_collision_observations": 0,
+        "lattice_supported_targets": 560,
+        "observed": 571,
+        "onset_correct": 529,
+        "paired_references": {
+          "abstention": 5,
+          "disagreement": 16,
+          "same_correct": 255,
+          "same_wrong": 7,
+          "unobserved": 15
+        },
+        "pitch_mismatched_observations": 0,
+        "targets": 596,
+        "truth_in_diagnostic_candidates": 529,
+        "unobserved": 25,
+        "wrong": 35
+      },
+      "local_switch005": {
+        "abstained": 38,
+        "correct": 492,
+        "diagnostic_collision_observations": 0,
+        "lattice_supported_targets": 560,
+        "observed": 571,
+        "onset_correct": 492,
+        "paired_references": {
+          "abstention": 33,
+          "disagreement": 14,
+          "same_correct": 229,
+          "same_wrong": 7,
+          "unobserved": 15
+        },
+        "pitch_mismatched_observations": 0,
+        "targets": 596,
+        "truth_in_diagnostic_candidates": 519,
+        "unobserved": 25,
+        "wrong": 41
+      },
+      "repeat_hard": {
+        "abstained": 38,
+        "correct": 492,
+        "diagnostic_collision_observations": 0,
+        "lattice_supported_targets": 560,
+        "observed": 571,
+        "onset_correct": 492,
+        "paired_references": {
+          "abstention": 33,
+          "disagreement": 14,
+          "same_correct": 229,
+          "same_wrong": 7,
+          "unobserved": 15
+        },
+        "pitch_mismatched_observations": 0,
+        "targets": 596,
+        "truth_in_diagnostic_candidates": 519,
+        "unobserved": 25,
+        "wrong": 41
+      },
+      "repeat_soft0025": {
+        "abstained": 38,
+        "correct": 492,
+        "diagnostic_collision_observations": 0,
+        "lattice_supported_targets": 560,
+        "observed": 571,
+        "onset_correct": 492,
+        "paired_references": {
+          "abstention": 33,
+          "disagreement": 14,
+          "same_correct": 229,
+          "same_wrong": 7,
+          "unobserved": 15
+        },
+        "pitch_mismatched_observations": 0,
+        "targets": 596,
+        "truth_in_diagnostic_candidates": 519,
+        "unobserved": 25,
+        "wrong": 41
+      },
+      "repeat_soft010": {
+        "abstained": 38,
+        "correct": 492,
+        "diagnostic_collision_observations": 0,
+        "lattice_supported_targets": 560,
+        "observed": 571,
+        "onset_correct": 492,
+        "paired_references": {
+          "abstention": 33,
+          "disagreement": 14,
+          "same_correct": 229,
+          "same_wrong": 7,
+          "unobserved": 15
+        },
+        "pitch_mismatched_observations": 0,
+        "targets": 596,
+        "truth_in_diagnostic_candidates": 519,
+        "unobserved": 25,
+        "wrong": 41
+      },
+      "straight_narrow": {
+        "abstained": 7,
+        "correct": 529,
+        "diagnostic_collision_observations": 0,
+        "lattice_supported_targets": 560,
+        "observed": 571,
+        "onset_correct": 529,
+        "paired_references": {
+          "abstention": 5,
+          "disagreement": 16,
+          "same_correct": 255,
+          "same_wrong": 7,
+          "unobserved": 15
+        },
+        "pitch_mismatched_observations": 0,
+        "targets": 596,
+        "truth_in_diagnostic_candidates": 529,
+        "unobserved": 25,
+        "wrong": 35
+      }
+    },
+    "reused_real": {
+      "global_phase": {
+        "abstained": 1,
+        "correct": 751,
+        "diagnostic_collision_observations": 0,
+        "lattice_supported_targets": 782,
+        "observed": 777,
+        "onset_correct": 751,
+        "paired_references": {
+          "abstention": 1,
+          "disagreement": 22,
+          "same_correct": 364,
+          "same_wrong": 1,
+          "unobserved": 3
+        },
+        "pitch_mismatched_observations": 0,
+        "targets": 782,
+        "truth_in_diagnostic_candidates": 751,
+        "unobserved": 5,
+        "wrong": 25
+      },
+      "local_switch005": {
+        "abstained": 35,
+        "correct": 720,
+        "diagnostic_collision_observations": 0,
+        "lattice_supported_targets": 782,
+        "observed": 777,
+        "onset_correct": 720,
+        "paired_references": {
+          "abstention": 18,
+          "disagreement": 19,
+          "same_correct": 350,
+          "same_wrong": 1,
+          "unobserved": 3
+        },
+        "pitch_mismatched_observations": 0,
+        "targets": 782,
+        "truth_in_diagnostic_candidates": 751,
+        "unobserved": 5,
+        "wrong": 22
+      },
+      "repeat_hard": {
+        "abstained": 35,
+        "correct": 720,
+        "diagnostic_collision_observations": 0,
+        "lattice_supported_targets": 782,
+        "observed": 777,
+        "onset_correct": 720,
+        "paired_references": {
+          "abstention": 18,
+          "disagreement": 19,
+          "same_correct": 350,
+          "same_wrong": 1,
+          "unobserved": 3
+        },
+        "pitch_mismatched_observations": 0,
+        "targets": 782,
+        "truth_in_diagnostic_candidates": 751,
+        "unobserved": 5,
+        "wrong": 22
+      },
+      "repeat_soft0025": {
+        "abstained": 35,
+        "correct": 720,
+        "diagnostic_collision_observations": 0,
+        "lattice_supported_targets": 782,
+        "observed": 777,
+        "onset_correct": 720,
+        "paired_references": {
+          "abstention": 18,
+          "disagreement": 19,
+          "same_correct": 350,
+          "same_wrong": 1,
+          "unobserved": 3
+        },
+        "pitch_mismatched_observations": 0,
+        "targets": 782,
+        "truth_in_diagnostic_candidates": 751,
+        "unobserved": 5,
+        "wrong": 22
+      },
+      "repeat_soft010": {
+        "abstained": 35,
+        "correct": 720,
+        "diagnostic_collision_observations": 0,
+        "lattice_supported_targets": 782,
+        "observed": 777,
+        "onset_correct": 720,
+        "paired_references": {
+          "abstention": 18,
+          "disagreement": 19,
+          "same_correct": 350,
+          "same_wrong": 1,
+          "unobserved": 3
+        },
+        "pitch_mismatched_observations": 0,
+        "targets": 782,
+        "truth_in_diagnostic_candidates": 751,
+        "unobserved": 5,
+        "wrong": 22
+      },
+      "straight_narrow": {
+        "abstained": 1,
+        "correct": 751,
+        "diagnostic_collision_observations": 0,
+        "lattice_supported_targets": 782,
+        "observed": 777,
+        "onset_correct": 751,
+        "paired_references": {
+          "abstention": 1,
+          "disagreement": 22,
+          "same_correct": 364,
+          "same_wrong": 1,
+          "unobserved": 3
+        },
+        "pitch_mismatched_observations": 0,
+        "targets": 782,
+        "truth_in_diagnostic_candidates": 751,
+        "unobserved": 5,
+        "wrong": 25
+      }
+    }
+  },
+  "original_input_and_prediction_parity": [
+    {
+      "id": "nasap001",
+      "input_sha256": "9e6cd434e4e85af26baf2ede8fcfd6381e825f598d508ec9e85805f9b2e41ba0",
+      "prediction_sha256": "b9e02e93492011bf62a0c6709bcc1bb9e3e2510e04d948d8b1f38a363ebf5626"
+    },
+    {
+      "id": "nasap002",
+      "input_sha256": "53192fe7bbbb8248bf654947d3f9a4dff8fe956e890692ca30a0bd7eaaa9c6dc",
+      "prediction_sha256": "c1444db65a53056a2c1840be496982c389db6e420a3b7c9e02827bbda854332f"
+    },
+    {
+      "id": "nasap003",
+      "input_sha256": "15266099e5c89c92bb21d04113e50f3407ab1e5cefa62148cb41f18e8dd730d4",
+      "prediction_sha256": "8b9b756f5e12b39b463d09ac19983c380910f20df09bf3e8a64a1e7a28aefc9f"
+    },
+    {
+      "id": "nasap004",
+      "input_sha256": "e23b7f367cfd74de600d1aa7b1ff0d9f38aa182f9f080f812480699bcc2d8d73",
+      "prediction_sha256": "bf80aec9789dc9bad902cebd29693ad2898fdb88645f92aadd5df9a2968d7985"
+    },
+    {
+      "id": "nasap005",
+      "input_sha256": "6bd5979286f6ed8c553ea70bb7afd7fc291d46ac3741886465ba7a6b1ba1bbdf",
+      "prediction_sha256": "59e996964a656bdb55d174b8734fef68014e13b14ae2962ec8bdcd16113f74d1"
+    },
+    {
+      "id": "nasap006",
+      "input_sha256": "6c619ed54dae3585430e6a3f338b1e6c1c07141f71a95f62efe7e52e4174fe84",
+      "prediction_sha256": "5d75b5b41202d1ae669056302339a4b87417f79bb9495b1ff00b8d28e4749832"
+    },
+    {
+      "id": "nasap007",
+      "input_sha256": "a502f43de0dc84d6ba3b54228c7a4b945c01ebde420f37756cc36186312039f7",
+      "prediction_sha256": "c859c9670404ca34b5d10f0df2a029fe92546353cacb19dfe4a9b2da5fd9cc10"
+    },
+    {
+      "id": "nasap008",
+      "input_sha256": "e68e7033a73fb8487042612f402392d1c676568a21a1c655d500510554a821f4",
+      "prediction_sha256": "ca8e0fdc20b0a3d42ae76335b8f9a51590b46ef346318162452afce5b2309f33"
+    }
+  ],
+  "prior_independent_source_audit_sha256": "b21728b8bd92d4e9525c79a72d8314a8ed5424ce9b85375192d95a2b81c7bca2",
+  "public_raw_sources_or_predictions": false,
+  "remaining_unresolved_both_wrong_pair_categories": 0,
+  "reused_components": [
+    "frozen nASAP source adapters and their parsers",
+    "frozen repeat-context selector"
+  ],
+  "schema_version": 1,
+  "scope": "eight real input/prediction byte identities; canonical source-audit chain; independently computed target and paired-reference scores",
+  "scoring_helpers_imported": [],
+  "script_sha256": "d0593d3c77072ac0f143418793ccc148c7b966752a740a9b7e17660c6f3d802e",
+  "source_network_bytes": 0,
+  "source_network_requests": 0,
+  "status": "pass_for_exact_real_replay_and_independent_evaluation",
+  "study_evaluator_calls": 0,
+  "unique_source_bytes_verified": 3985273,
+  "unique_source_members_verified": 49
+}
