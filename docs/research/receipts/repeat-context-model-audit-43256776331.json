@@ -1,0 +1,119 @@
+{
+  "artifact_zip_bytes": 361958,
+  "artifact_zip_sha256": "cf11f4757ae756878b108ab7b89a49a90db71b5c9fa04803a79f00d1c9e4f93e",
+  "audit_script_sha256": "e9022e30bb5508b9e256a7cc5b14474644540af020ffe8aadcd1179bdec0d774",
+  "audited_cases": 1520,
+  "audited_events": 72514,
+  "audited_linked_event_pairs": 12585,
+  "audited_links": 908,
+  "audited_phase_fits": 6080,
+  "audited_selector_arms": 9120,
+  "checkout_revision": "357c7531fd3d10364c515b8a45a0607bea30afa4",
+  "checkout_tree": "5cccebbe6b4aa5342790feae9183b1be36505134",
+  "comparison_checks": 3070,
+  "derived_decision_totals": null,
+  "elapsed_seconds": 32.903259701000934,
+  "evaluation_checked": false,
+  "exact_hash_checks": {
+    "complete_prediction_contents": {
+      "checked": 0,
+      "matched": 0
+    },
+    "complete_prediction_files": {
+      "checked": 1520,
+      "matched": 1520
+    },
+    "input_contents": {
+      "checked": 0,
+      "matched": 0
+    },
+    "input_files": {
+      "checked": 1520,
+      "matched": 1520
+    },
+    "original_six_arm_baseline_contents": {
+      "checked": 0,
+      "matched": 0
+    }
+  },
+  "independence": {
+    "evaluation": "Not executed: no truth scoring, joint-truth tests, link-truth classification or accuracy aggregates were computed in this prediction-only audit.",
+    "legacy_authored_inputs": "reuses immutable legacy generator only",
+    "measured_selector_evaluator_source_adapter_imported": false,
+    "new_factorial_inputs": "independent authored templates, rotations, phases, common random numbers and seconds/beat interpolation",
+    "phase_baseline": "previous independent full-lattice/exhaustive-path audit implementation",
+    "real_inputs_and_targets": "separate source-auditor original-byte stdlib reconstruction",
+    "repeat_selector": "independently assembled coarse-pitch groups, previous-match links, complete path costs and masks"
+  },
+  "independent_baseline_audit_script_sha256": "542af91664ae9641050c16adacea5ee61bbec34bbc2862f302d88b4631f7133b",
+  "independent_private_evaluation_sha256": "4a0fdfcc30523ef699d80feea1b5479357d07c8c0da5071ec4be4c534cc2fc18",
+  "independent_private_input_sha256": "c86809ca46b1ee87426bf205aff852b111cb7140fa12c0d0c22547f74f94f0f6",
+  "limitations": [
+    "Legacy authored generator reused; musical realism is not independently established.",
+    "Shares the previous independent audit baseline arithmetic, not the measured estimator.",
+    "Exact complete prediction hashes are checked separately from 1e-12 numeric comparisons.",
+    "Original report failed during evaluation; this receipt verifies the saved prediction files, and leaves accuracy, strata, pair and link-truth checks for an explicitly separate evaluation-recovery audit.",
+    "Verifies declared symbolic arithmetic and conditional source correspondence, not acoustic or perceptual quality."
+  ],
+  "maximum_absolute_numeric_error": null,
+  "measured_source_hashes_match": true,
+  "measured_source_sha256": {
+    ".github/workflows/cpu-repeat-context.yml": "510f84df0b847520a117eb10fbe43470c964e4eeae8dcbd321eae8b9dca63bdf",
+    ".github/workflows/cpu-same-score-expression.yml": "71d67983fd0526ad9be1df980ab99cde53322582ee28f9cf7e88d1f5e76930c3",
+    "docs/research/REPEAT_CONTEXT_PROTOCOL_2026-11-13.md": "b9ad51eddc45d08df679c446afadebf4e1d17fc0b286b2d06f2c2afc598137b3",
+    "docs/research/SAME_SCORE_EXPRESSION_PROTOCOL_2026-11-12.md": "d94b5f4a238f8534f20d9b998fffd97ec125ea84b1afce4d204c2fc9b6049472",
+    "docs/research/receipts/same-score-expression-43247249315.zip": "38107d18e89058ef4e870214e0ba5af0bb7b97eb92d1b7ef056e9096c30c7f17",
+    "scripts/audit_nasap_duration_source.py": "c63c44b2a6c5a391d972b22417cba21830b71c0bed2dd6996b38f9f93044244c",
+    "scripts/nasap_duration_probe.py": "881a0a7544745d5fe50317ca81bca8ea05adce510bbfb2facc46405c65ffa973",
+    "scripts/nasap_joint_rhythm.py": "e2f136d486c0ef14206469db1a4b1c7a5dfc5dfcd55de3c3a80df2f6f5263681",
+    "scripts/nasap_keyoff_paired.py": "97368c713177ac5537a6c22f57689d375260674a36efe5b92cbfbd64131a641a",
+    "scripts/nasap_repeat_context_manifest.json": "87544fc4e8774a54f63cf49075ddec077171745a12eb98efd43edaa7b97669ba",
+    "scripts/nasap_repeat_context_source.py": "bd16c2e7b0d67e98ff52b2d5db2b906b8708f026c8c9869b7e83638527488272",
+    "scripts/nasap_same_score_manifest.json": "27c576542fef26dbca605db4a9f938cc00451702b2c7f441aa84013fe3496239",
+    "scripts/nasap_same_score_source.py": "a1a60da73da4f25dad5ddd3b1576a2dbee42a5d750e7b212eea4b318042c1f0a",
+    "scripts/performed_rhythm_invariance.py": "7f42567f97a5b5b51053bcd9e9a5a9859701190971d33df4c308af5f0f11ab22",
+    "scripts/repeat_context_phase.py": "4380bfb2867cf3aa3902ee63205be8619fac75f524db01a6afdee02d038bda76",
+    "scripts/repeat_context_study.py": "17a1bd689a146e1de442b3b26c6fb74d46584ce155f872b363431f19702cbb28",
+    "scripts/research_test_manifest.json": "e064a35c1927fc6e1004186552312de896fd7e99828a1789d1465a929e00b19f",
+    "scripts/rhythm_invariance_study.py": "adcf66f68514c844f33e9f3b77cfd1a658d7a965bd4226fa6cc0a9532d503e45",
+    "scripts/run_repeat_context.py": "2e5361d8c1d63187ebd62868e12c9bc081d229beb1d8e368cdfd4830eb187445",
+    "scripts/run_same_score_expression.py": "de53182ca4072d8193bac834f802445b434675af079d44a16dde0fd9cf59d28c",
+    "scripts/same_score_expression_study.py": "3520016223c1655f5d5856631d831e714c7757c0b98642e48adf0c1cee8285c5",
+    "scripts/same_score_phase.py": "109985eeb81f8119c202927b1c6f9e7e285cec83c38f549908e36a15c3c69aa3",
+    "tests/test_nasap_repeat_context_source.py": "cfa4d7da4d180b20b76d47400d6e630a143b8aa8f003477f6a279b94292e2393",
+    "tests/test_nasap_same_score_source.py": "521a1fe7c8d4f2f0457d21363f42bf4afc2bb84dcfbab64b91c2bd649c4de7ce",
+    "tests/test_repeat_context_phase.py": "4294ae75722fa1d4e4f1649821f8de48ce1a85649de68bd3f9c13fe57eaf851d",
+    "tests/test_repeat_context_study.py": "64f413a3c82e4f8834fd70fa61b857d553414bcbae08d69614c688040efb3095",
+    "tests/test_run_repeat_context.py": "6bf2097dd00db00597d2d79c21cf36647270248072e0dfb88a98457f38650bf7",
+    "tests/test_run_same_score_expression.py": "44317b858fa537ed887a6c335ab5b6456feee3e08e87fd3ddece255f0ddfe6ef",
+    "tests/test_same_score_expression_study.py": "b924c45badffab8569cbe7fd7c018709d67c40ec81698c569aab2aa8f4a404a2",
+    "tests/test_same_score_phase.py": "db0c2cf6ad780ce2f6977fbe9eb87c34579e72f69ee2f90672aeadf643ee7389"
+  },
+  "mismatch_checks": [],
+  "mismatch_count": 0,
+  "numeric_comparisons": 0,
+  "observational_counterfactuals": [],
+  "original_report_status": "evaluation_failed",
+  "post_execution_metadata_clarification": "Verification-scope wording clarified after replay; no hash check, model output or measured source was changed.",
+  "report_bytes": 2842632,
+  "report_sha256": "568898b9c1f1fb6d5d2671e1805305eaa2939b2d1580175f0e2d6fc43e16c559",
+  "runtime": {
+    "audit_python": "3.12.14",
+    "reported_runtime": {
+      "analysis_standard_library_only": true,
+      "implementation": "CPython",
+      "model_inferences": 0,
+      "packages": {
+        "mido": "1.3.3",
+        "pytest": "8.4.2",
+        "ruff": "0.16.6"
+      },
+      "python": "3.12.16"
+    }
+  },
+  "schema_version": 1,
+  "source_head": "cbcf97e0dc7fbd56bc3052e3f8daa30475b36cad",
+  "status": "prediction_only_complete",
+  "verification_scope": "Exact input and complete private prediction file hashes only; original evaluation failed.",
+  "workflow_run_id": "43256776331"
+}

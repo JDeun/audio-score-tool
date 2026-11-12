@@ -43,6 +43,7 @@
   "tests/test_run_kraisler_gate.py",
   "tests/test_run_performed_rhythm_invariance.py",
   "tests/test_run_repeat_context.py",
+  "tests/test_run_repeat_context_recovery.py",
   "tests/test_run_same_score_expression.py",
   "tests/test_same_score_expression_study.py",
   "tests/test_same_score_phase.py",
