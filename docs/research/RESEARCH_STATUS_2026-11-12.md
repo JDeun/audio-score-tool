@@ -2,6 +2,12 @@
 
 This is the continuation snapshot taken with main at `7dd5c6ce0b18fda023403d92fba981867a1f0202`, after #266 and #270. It is navigation and task state, not a replacement for frozen protocols, result reports or execution receipts. The completed continuation #272 was subsequently merged; its results and later PR cleanup are distinct from the initial snapshot below.
 
+## Latest continuation: score correspondence
+
+Following the user's next-experiment instruction, [#275](https://github.com/JDeun/audio-score-tool/issues/275) implements the [metadata-only source-correspondence protocol](KRAISLER_ALIGNMENT_PROTOCOL_2026-11-12.md). The same six KRAISLER recordings and previous gate outcomes remain fixed. Thirty original annotation/score/alignment members support exact symbolic parsing, piano/global-beat clock checks, and conditional attribution only where correspondence is admitted. No model inference or gate tuning is planned. Actual results are pending; source consistency is not independent acoustic ground truth or written-rest accuracy.
+
+The preceding [#274](https://github.com/JDeun/audio-score-tool/pull/274) was merged into actual main `21705cdd3095dc816d5569b8d044807fcbed1918`. Its [main CI](https://github.com/JDeun/audio-score-tool/actions/runs/43185808879) passed with all five jobs including Tauri/verify, 2,119 product tests and 719 research tests. This is the baseline for the new continuation, not verification of its future changes. #236 remains a separate draft with a documented beat/vocal runtime-routing issue.
+
 ## Later update: integration and new-recording experiment
 
 The user explicitly requested merging ready work and clearing completed PRs. [#272](https://github.com/JDeun/audio-score-tool/pull/272) is merged at `1c9514e30e2aac92ba6857e67a940dc48b6a03e6`; [actual main CI](https://github.com/JDeun/audio-score-tool/actions/runs/43181970207) passed, including Tauri and required `verify`. Fourteen older research drafts were closed only after proving every current head was already a main ancestor. See the [cleanup record](PR_CLEANUP_2026-11-12.md), which also explains why product #236 remains open.

@@ -1,0 +1,113 @@
+name: CPU KRAISLER Source Correspondence
+
+on:
+  pull_request:
+    types: [opened, reopened]
+    branches: [main]
+    paths:
+      - '.github/workflows/cpu-kraisler-alignment.yml'
+      - 'scripts/run_kraisler_alignment.py'
+      - 'scripts/kraisler_alignment_source.py'
+      - 'scripts/kraisler_alignment_manifest.json'
+      - 'scripts/kraisler_score.py'
+      - 'scripts/kraisler_match.py'
+      - 'scripts/kraisler_correspondence.py'
+      - 'tests/test_run_kraisler_alignment.py'
+      - 'tests/test_kraisler_alignment_source.py'
+      - 'tests/test_kraisler_score.py'
+      - 'tests/test_kraisler_match.py'
+      - 'tests/test_kraisler_correspondence.py'
+      - 'docs/research/KRAISLER_ALIGNMENT_PROTOCOL_2026-11-12.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kraisler-alignment-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PYTHONPATH: ${{ github.workspace }}
+  PYTHONHASHSEED: '0'
+  CUDA_VISIBLE_DEVICES: ''
+  HF_TOKEN: ''
+  HUGGING_FACE_HUB_TOKEN: ''
+  HF_HUB_DISABLE_IMPLICIT_TOKEN: '1'
+  HF_HUB_DISABLE_TELEMETRY: '1'
+  OMP_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  EXPERIMENT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  source-correspondence:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.12'
+      - name: Install pinned contract tools for the standard-library study
+        run: |
+          python -m pip install --disable-pip-version-check --no-input \
+            pytest==8.4.2 ruff==0.16.6
+      - name: Validate source, parsing, correspondence, and execution contracts
+        run: |
+          python -m ruff check scripts/run_kraisler_alignment.py \
+            scripts/kraisler_alignment_source.py scripts/kraisler_score.py \
+            scripts/kraisler_match.py scripts/kraisler_correspondence.py \
+            tests/test_run_kraisler_alignment.py tests/test_kraisler_alignment_source.py \
+            tests/test_kraisler_score.py tests/test_kraisler_match.py \
+            tests/test_kraisler_correspondence.py
+          python -m compileall -q scripts/run_kraisler_alignment.py \
+            scripts/kraisler_alignment_source.py scripts/kraisler_score.py \
+            scripts/kraisler_match.py scripts/kraisler_correspondence.py
+          mkdir -p "$RUNNER_TEMP/kraisler-alignment-tests"
+          cp tests/test_run_kraisler_alignment.py tests/test_kraisler_alignment_source.py \
+            tests/test_kraisler_score.py tests/test_kraisler_match.py \
+            tests/test_kraisler_correspondence.py "$RUNNER_TEMP/kraisler-alignment-tests/"
+          python -m pytest -q -p no:cacheprovider -c /dev/null "$RUNNER_TEMP/kraisler-alignment-tests"
+      - name: Analyze six fixed sources before opening previous gate outcomes
+        run: |
+          python -m scripts.run_kraisler_alignment \
+            --work "$RUNNER_TEMP/private-kraisler-alignment" \
+            --output "$RUNNER_TEMP/kraisler-alignment-report/report.json"
+      - name: Preserve a receipt when preparation or contracts block execution
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          output = Path(os.environ['RUNNER_TEMP']) / 'kraisler-alignment-report/report.json'
+          if not output.exists():
+              output.parent.mkdir(parents=True, exist_ok=True)
+              report = {
+                  'schema_version': 1, 'status': 'execution_not_started',
+                  'failure_stage': 'workflow_preparation_or_contracts',
+                  'reason': 'A required workflow step failed before a study receipt was available.',
+                  'planned_ids': ['02', '19', '08', '12', '05', '06'],
+                  'planned_analyses': 6, 'completed_analyses': 0,
+                  'completed_attributions': 0, 'cases': [], 'summary': None,
+                  'previous_receipt_loaded': False,
+                  'source_head': os.environ.get('EXPERIMENT_HEAD'),
+                  'source_revision': os.environ.get('GITHUB_SHA'),
+                  'workflow_run_id': os.environ.get('GITHUB_RUN_ID'),
+                  'workflow_run_attempt': os.environ.get('GITHUB_RUN_ATTEMPT'),
+              }
+              output.write_text(json.dumps(report, indent=2, allow_nan=False) + '\n')
+          PY
+      - name: Upload derived correspondence metadata only
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: kraisler-alignment-${{ github.run_id }}
+          path: ${{ runner.temp }}/kraisler-alignment-report/report.json
+          retention-days: 14
+          if-no-files-found: warn
