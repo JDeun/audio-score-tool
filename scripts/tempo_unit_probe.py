@@ -10,6 +10,7 @@ from fractions import Fraction
 UNITS = (0.5, 1.0, 2.0)
 UNIT_NAMES = {0.5: 'eighth', 1.0: 'quarter', 2.0: 'half'}
 TOLERANCE = .04
+ROUNDING_EPS = 1e-12  # Inclusive numerical boundaries, not a musical tolerance increase.
 DIVISIONS = 96
 
 
@@ -35,9 +36,9 @@ def evaluate_rate(pulse_bpm, reference_qpm):
     candidates = hypotheses(pulse_bpm)
     best = min(candidates, key=lambda c: abs(c['quarter_bpm'] / truth - 1))
     error = abs(best['quarter_bpm'] / truth - 1)
-    return {'available': True, 'strict': abs(pulse_bpm / truth - 1) <= TOLERANCE,
-            'family': error <= TOLERANCE,
-            'reference_assisted_unit': best['quarter_per_pulse'] if error <= TOLERANCE else None,
+    return {'available': True, 'strict': abs(pulse_bpm / truth - 1) <= TOLERANCE + ROUNDING_EPS,
+            'family': error <= TOLERANCE + ROUNDING_EPS,
+            'reference_assisted_unit': best['quarter_per_pulse'] if error <= TOLERANCE + ROUNDING_EPS else None,
             'best_family_relative_error': error, 'automatic_unit_selection': False}
 
 
@@ -68,10 +69,10 @@ def sequence_diagnostics(beats, reference_qpm):
     errors = sorted(abs(x) for x in residual)
     answer['timeline'] = {
         'quarter_per_pulse': unit, 'expected_interval_seconds': period,
-        'intervals_within_4pct': sum(abs(dt / period - 1) <= .04 for dt in intervals),
-        'intervals_within_10pct': sum(abs(dt / period - 1) <= .10 for dt in intervals),
+        'intervals_within_4pct': sum(abs(dt / period - 1) <= .04 + ROUNDING_EPS for dt in intervals),
+        'intervals_within_10pct': sum(abs(dt / period - 1) <= .10 + ROUNDING_EPS for dt in intervals),
         'intervals_within_10pct_fraction': sum(
-            abs(dt / period - 1) <= .10 for dt in intervals) / len(intervals),
+            abs(dt / period - 1) <= .10 + ROUNDING_EPS for dt in intervals) / len(intervals),
         'intervals_over_1_5_expected': sum(dt > 1.5 * period for dt in intervals),
         'intervals_under_0_67_expected': sum(dt < .67 * period for dt in intervals),
         'max_relative_drift_seconds': max(errors),
