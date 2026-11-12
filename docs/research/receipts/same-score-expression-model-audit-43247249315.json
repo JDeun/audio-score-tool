@@ -1,0 +1,477 @@
+{
+  "artifact_zip_bytes": 319774,
+  "artifact_zip_sha256": "38107d18e89058ef4e870214e0ba5af0bb7b97eb92d1b7ef056e9096c30c7f17",
+  "audit_script_sha256": "542af91664ae9641050c16adacea5ee61bbec34bbc2862f302d88b4631f7133b",
+  "audited_cases": 488,
+  "audited_events": 14341,
+  "audited_model_arms": 2928,
+  "audited_phase_fits": 1952,
+  "audited_real_cases": 4,
+  "audited_synthetic_cases": 484,
+  "checkout_revision": "747bef7f53160fb1549b4725138ab67db7585aa8",
+  "checkout_tree": "969ad8bf5e408a28184be0d309f0573769be6398",
+  "comparison_checks": 244395,
+  "counterfactual_checks": [
+    {
+      "methods": {
+        "always_four_on_floor": {
+          "full_abstained": 0,
+          "full_correct": 1,
+          "full_wrong": 1,
+          "retained_joint_truth_available": 1
+        },
+        "global_phase": {
+          "full_abstained": 2,
+          "full_correct": 0,
+          "full_wrong": 0,
+          "retained_joint_truth_available": 2
+        },
+        "local_raw": {
+          "full_abstained": 2,
+          "full_correct": 0,
+          "full_wrong": 0,
+          "retained_joint_truth_available": 2
+        },
+        "local_switch005": {
+          "full_abstained": 2,
+          "full_correct": 0,
+          "full_wrong": 0,
+          "retained_joint_truth_available": 2
+        },
+        "local_switch010": {
+          "full_abstained": 2,
+          "full_correct": 0,
+          "full_wrong": 0,
+          "retained_joint_truth_available": 2
+        },
+        "straight_narrow": {
+          "full_abstained": 0,
+          "full_correct": 1,
+          "full_wrong": 1,
+          "retained_joint_truth_available": 1
+        },
+        "straight_wide": {
+          "full_abstained": 0,
+          "full_correct": 1,
+          "full_wrong": 1,
+          "retained_joint_truth_available": 1
+        }
+      },
+      "pair": "three_to_one"
+    },
+    {
+      "methods": {
+        "always_four_on_floor": {
+          "full_abstained": 0,
+          "full_correct": 1,
+          "full_wrong": 1,
+          "retained_joint_truth_available": 1
+        },
+        "global_phase": {
+          "full_abstained": 2,
+          "full_correct": 0,
+          "full_wrong": 0,
+          "retained_joint_truth_available": 2
+        },
+        "local_raw": {
+          "full_abstained": 2,
+          "full_correct": 0,
+          "full_wrong": 0,
+          "retained_joint_truth_available": 2
+        },
+        "local_switch005": {
+          "full_abstained": 2,
+          "full_correct": 0,
+          "full_wrong": 0,
+          "retained_joint_truth_available": 2
+        },
+        "local_switch010": {
+          "full_abstained": 2,
+          "full_correct": 0,
+          "full_wrong": 0,
+          "retained_joint_truth_available": 2
+        },
+        "straight_narrow": {
+          "full_abstained": 0,
+          "full_correct": 1,
+          "full_wrong": 1,
+          "retained_joint_truth_available": 1
+        },
+        "straight_wide": {
+          "full_abstained": 0,
+          "full_correct": 1,
+          "full_wrong": 1,
+          "retained_joint_truth_available": 1
+        }
+      },
+      "pair": "two_to_one"
+    }
+  ],
+  "elapsed_seconds": 6.12270363800053,
+  "exact_hash_checks": {
+    "complete_prediction_contents": {
+      "checked": 488,
+      "matched": 488
+    },
+    "complete_prediction_files": {
+      "checked": 488,
+      "matched": 488
+    },
+    "input_contents": {
+      "checked": 488,
+      "matched": 488
+    },
+    "input_files": {
+      "checked": 488,
+      "matched": 488
+    }
+  },
+  "independence": {
+    "local_paths": "all complete paths enumerated; prefix/suffix minima collected without dynamic programming",
+    "nearest_assignment": "full lattice enumeration with independently tabulated rational phase times",
+    "new_estimator_or_evaluator_imports": false,
+    "published_prediction_hashes": "complete reconstructed private prediction content/file hashes compared",
+    "real_inputs_and_targets": "separate source agent's original-byte stdlib reconstruction",
+    "synthetic_input_generation": "reused immutable legacy authored generator; not an independent generator reconstruction",
+    "truth_tests": "independent per-event checks and truth-constrained complete path enumeration"
+  },
+  "independent_private_evaluation_sha256": "12766fe1b69c5e9c7ea836fb995ed86fa7c507d887f30050ffc0c19f334d9985",
+  "independent_private_input_sha256": "a5dfbf1bd987f2fc7edc4228939379b0c074ca0b64f2197da6e6b61278a1e6ca",
+  "limitations": [
+    "Reuses the legacy authored source generator; does not independently establish its musical realism.",
+    "The source-agent parser is independent from measured code but remains a second implementation, not manual ground truth.",
+    "Numeric comparison tolerance is 1e-12; complete prediction hashes separately require exact byte-equivalent serialization.",
+    "Audit verifies declared arithmetic and conditional onset targets, not acoustic transcription, written durations or perceptual naturalness.",
+    "Profile/family aggregate tables are not separately recomputed here; case outcomes, main aggregates and all real pair masks are checked."
+  ],
+  "maximum_absolute_numeric_error": 0.0,
+  "measured_source_hashes_match": true,
+  "measured_source_sha256": {
+    ".github/workflows/cpu-same-score-expression.yml": "71d67983fd0526ad9be1df980ab99cde53322582ee28f9cf7e88d1f5e76930c3",
+    "docs/research/SAME_SCORE_EXPRESSION_PROTOCOL_2026-11-12.md": "d94b5f4a238f8534f20d9b998fffd97ec125ea84b1afce4d204c2fc9b6049472",
+    "scripts/audit_nasap_duration_source.py": "c63c44b2a6c5a391d972b22417cba21830b71c0bed2dd6996b38f9f93044244c",
+    "scripts/nasap_duration_probe.py": "881a0a7544745d5fe50317ca81bca8ea05adce510bbfb2facc46405c65ffa973",
+    "scripts/nasap_joint_rhythm.py": "e2f136d486c0ef14206469db1a4b1c7a5dfc5dfcd55de3c3a80df2f6f5263681",
+    "scripts/nasap_keyoff_paired.py": "97368c713177ac5537a6c22f57689d375260674a36efe5b92cbfbd64131a641a",
+    "scripts/nasap_same_score_manifest.json": "27c576542fef26dbca605db4a9f938cc00451702b2c7f441aa84013fe3496239",
+    "scripts/nasap_same_score_source.py": "a1a60da73da4f25dad5ddd3b1576a2dbee42a5d750e7b212eea4b318042c1f0a",
+    "scripts/performed_rhythm_invariance.py": "7f42567f97a5b5b51053bcd9e9a5a9859701190971d33df4c308af5f0f11ab22",
+    "scripts/research_test_manifest.json": "18fe7728c15a8bdb06da0ea32bce99f6b708f24514c80859e2a0bbc858f04a36",
+    "scripts/rhythm_invariance_study.py": "adcf66f68514c844f33e9f3b77cfd1a658d7a965bd4226fa6cc0a9532d503e45",
+    "scripts/run_same_score_expression.py": "de53182ca4072d8193bac834f802445b434675af079d44a16dde0fd9cf59d28c",
+    "scripts/same_score_expression_study.py": "3520016223c1655f5d5856631d831e714c7757c0b98642e48adf0c1cee8285c5",
+    "scripts/same_score_phase.py": "109985eeb81f8119c202927b1c6f9e7e285cec83c38f549908e36a15c3c69aa3",
+    "tests/test_nasap_same_score_source.py": "521a1fe7c8d4f2f0457d21363f42bf4afc2bb84dcfbab64b91c2bd649c4de7ce",
+    "tests/test_run_same_score_expression.py": "44317b858fa537ed887a6c335ab5b6456feee3e08e87fd3ddece255f0ddfe6ef",
+    "tests/test_same_score_expression_study.py": "b924c45badffab8569cbe7fd7c018709d67c40ec81698c569aab2aa8f4a404a2",
+    "tests/test_same_score_phase.py": "db0c2cf6ad780ce2f6977fbe9eb87c34579e72f69ee2f90672aeadf643ee7389"
+  },
+  "mismatch_checks": [],
+  "mismatch_count": 0,
+  "numeric_comparisons": 11553,
+  "report_bytes": 7260857,
+  "report_sha256": "0b5b2d14c7f49c75a18413d9876dd8960e224c06131b8e5c47e4f47657860a1a",
+  "runtime": {
+    "audit_implementation": "CPython",
+    "audit_python": "3.12.14",
+    "reported_runtime": {
+      "analysis_standard_library_only": true,
+      "implementation": "CPython",
+      "model_inferences": 0,
+      "packages": {
+        "mido": "1.3.3",
+        "pytest": "8.4.2",
+        "ruff": "0.16.6"
+      },
+      "python": "3.12.16"
+    }
+  },
+  "schema_version": 1,
+  "semantic_and_public_summary_mismatches": 0,
+  "source_head": "ce59cd16fe53072c5967cd8c1c555f8eb30ece79",
+  "status": "complete",
+  "verified_aggregate_subset": {
+    "real": {
+      "global_phase": {
+        "abstained": 1,
+        "correct": 751,
+        "correct_gained_vs_global_phase": 0,
+        "correct_gained_vs_straight_narrow": 0,
+        "correct_lost_vs_global_phase": 0,
+        "correct_lost_vs_straight_narrow": 0,
+        "diagnostic_collision_observations": 0,
+        "lattice_supported_targets": 782,
+        "observed": 777,
+        "onset_correct": 751,
+        "pitch_mismatched_observations": 0,
+        "targets": 782,
+        "truth_in_diagnostic_candidates": 751,
+        "unobserved": 5,
+        "wrong": 25
+      },
+      "local_raw": {
+        "abstained": 35,
+        "correct": 720,
+        "correct_gained_vs_global_phase": 0,
+        "correct_gained_vs_straight_narrow": 0,
+        "correct_lost_vs_global_phase": 31,
+        "correct_lost_vs_straight_narrow": 31,
+        "diagnostic_collision_observations": 0,
+        "lattice_supported_targets": 782,
+        "observed": 777,
+        "onset_correct": 720,
+        "pitch_mismatched_observations": 0,
+        "targets": 782,
+        "truth_in_diagnostic_candidates": 751,
+        "unobserved": 5,
+        "wrong": 22
+      },
+      "local_switch005": {
+        "abstained": 35,
+        "correct": 720,
+        "correct_gained_vs_global_phase": 0,
+        "correct_gained_vs_straight_narrow": 0,
+        "correct_lost_vs_global_phase": 31,
+        "correct_lost_vs_straight_narrow": 31,
+        "diagnostic_collision_observations": 0,
+        "lattice_supported_targets": 782,
+        "observed": 777,
+        "onset_correct": 720,
+        "pitch_mismatched_observations": 0,
+        "targets": 782,
+        "truth_in_diagnostic_candidates": 751,
+        "unobserved": 5,
+        "wrong": 22
+      },
+      "local_switch010": {
+        "abstained": 35,
+        "correct": 720,
+        "correct_gained_vs_global_phase": 0,
+        "correct_gained_vs_straight_narrow": 0,
+        "correct_lost_vs_global_phase": 31,
+        "correct_lost_vs_straight_narrow": 31,
+        "diagnostic_collision_observations": 0,
+        "lattice_supported_targets": 782,
+        "observed": 777,
+        "onset_correct": 720,
+        "pitch_mismatched_observations": 0,
+        "targets": 782,
+        "truth_in_diagnostic_candidates": 751,
+        "unobserved": 5,
+        "wrong": 22
+      },
+      "straight_narrow": {
+        "abstained": 1,
+        "correct": 751,
+        "correct_gained_vs_global_phase": 0,
+        "correct_gained_vs_straight_narrow": 0,
+        "correct_lost_vs_global_phase": 0,
+        "correct_lost_vs_straight_narrow": 0,
+        "diagnostic_collision_observations": 0,
+        "lattice_supported_targets": 782,
+        "observed": 777,
+        "onset_correct": 751,
+        "pitch_mismatched_observations": 0,
+        "targets": 782,
+        "truth_in_diagnostic_candidates": 751,
+        "unobserved": 5,
+        "wrong": 25
+      },
+      "straight_wide": {
+        "abstained": 0,
+        "correct": 752,
+        "correct_gained_vs_global_phase": 1,
+        "correct_gained_vs_straight_narrow": 1,
+        "correct_lost_vs_global_phase": 0,
+        "correct_lost_vs_straight_narrow": 0,
+        "diagnostic_collision_observations": 0,
+        "lattice_supported_targets": 782,
+        "observed": 777,
+        "onset_correct": 752,
+        "pitch_mismatched_observations": 0,
+        "targets": 782,
+        "truth_in_diagnostic_candidates": 752,
+        "unobserved": 5,
+        "wrong": 25
+      }
+    },
+    "synthetic": {
+      "always_four_on_floor": {
+        "cases": 480,
+        "diagnostic_joint_truth_available": 60,
+        "full_abstained": 0,
+        "full_correct": 60,
+        "full_correct_gained_vs_global_phase": 48,
+        "full_correct_gained_vs_straight_narrow": 48,
+        "full_correct_lost_vs_global_phase": 189,
+        "full_correct_lost_vs_straight_narrow": 93,
+        "full_wrong": 420,
+        "per_hit": {
+          "abstained": 0,
+          "correct": 10440,
+          "diagnostic_collision_observations": 0,
+          "lattice_supported_targets": 13440,
+          "observed": 13440,
+          "onset_correct": 10440,
+          "pitch_mismatched_observations": 0,
+          "targets": 13440,
+          "truth_in_diagnostic_candidates": 10440,
+          "unobserved": 0,
+          "wrong": 3000
+        },
+        "retained_joint_truth_available": 60
+      },
+      "global_phase": {
+        "cases": 480,
+        "diagnostic_joint_truth_available": 381,
+        "full_abstained": 195,
+        "full_correct": 201,
+        "full_correct_gained_vs_global_phase": 0,
+        "full_correct_gained_vs_straight_narrow": 171,
+        "full_correct_lost_vs_global_phase": 0,
+        "full_correct_lost_vs_straight_narrow": 75,
+        "full_wrong": 84,
+        "per_hit": {
+          "abstained": 1914,
+          "correct": 11109,
+          "diagnostic_collision_observations": 0,
+          "lattice_supported_targets": 13440,
+          "observed": 13440,
+          "onset_correct": 11109,
+          "pitch_mismatched_observations": 0,
+          "targets": 13440,
+          "truth_in_diagnostic_candidates": 13011,
+          "unobserved": 0,
+          "wrong": 417
+        },
+        "retained_joint_truth_available": 381
+      },
+      "local_raw": {
+        "cases": 480,
+        "diagnostic_joint_truth_available": 462,
+        "full_abstained": 285,
+        "full_correct": 195,
+        "full_correct_gained_vs_global_phase": 21,
+        "full_correct_gained_vs_straight_narrow": 174,
+        "full_correct_lost_vs_global_phase": 27,
+        "full_correct_lost_vs_straight_narrow": 84,
+        "full_wrong": 0,
+        "per_hit": {
+          "abstained": 2415,
+          "correct": 10992,
+          "diagnostic_collision_observations": 0,
+          "lattice_supported_targets": 13440,
+          "observed": 13440,
+          "onset_correct": 10992,
+          "pitch_mismatched_observations": 0,
+          "targets": 13440,
+          "truth_in_diagnostic_candidates": 13401,
+          "unobserved": 0,
+          "wrong": 33
+        },
+        "retained_joint_truth_available": 462
+      },
+      "local_switch005": {
+        "cases": 480,
+        "diagnostic_joint_truth_available": 441,
+        "full_abstained": 255,
+        "full_correct": 210,
+        "full_correct_gained_vs_global_phase": 9,
+        "full_correct_gained_vs_straight_narrow": 180,
+        "full_correct_lost_vs_global_phase": 0,
+        "full_correct_lost_vs_straight_narrow": 75,
+        "full_wrong": 15,
+        "per_hit": {
+          "abstained": 2205,
+          "correct": 11127,
+          "diagnostic_collision_observations": 0,
+          "lattice_supported_targets": 13440,
+          "observed": 13440,
+          "onset_correct": 11127,
+          "pitch_mismatched_observations": 0,
+          "targets": 13440,
+          "truth_in_diagnostic_candidates": 13314,
+          "unobserved": 0,
+          "wrong": 108
+        },
+        "retained_joint_truth_available": 441
+      },
+      "local_switch010": {
+        "cases": 480,
+        "diagnostic_joint_truth_available": 387,
+        "full_abstained": 195,
+        "full_correct": 201,
+        "full_correct_gained_vs_global_phase": 0,
+        "full_correct_gained_vs_straight_narrow": 171,
+        "full_correct_lost_vs_global_phase": 0,
+        "full_correct_lost_vs_straight_narrow": 75,
+        "full_wrong": 84,
+        "per_hit": {
+          "abstained": 1938,
+          "correct": 11097,
+          "diagnostic_collision_observations": 0,
+          "lattice_supported_targets": 13440,
+          "observed": 13440,
+          "onset_correct": 11097,
+          "pitch_mismatched_observations": 0,
+          "targets": 13440,
+          "truth_in_diagnostic_candidates": 13023,
+          "unobserved": 0,
+          "wrong": 405
+        },
+        "retained_joint_truth_available": 387
+      },
+      "straight_narrow": {
+        "cases": 480,
+        "diagnostic_joint_truth_available": 105,
+        "full_abstained": 141,
+        "full_correct": 105,
+        "full_correct_gained_vs_global_phase": 75,
+        "full_correct_gained_vs_straight_narrow": 0,
+        "full_correct_lost_vs_global_phase": 171,
+        "full_correct_lost_vs_straight_narrow": 0,
+        "full_wrong": 234,
+        "per_hit": {
+          "abstained": 528,
+          "correct": 10104,
+          "diagnostic_collision_observations": 0,
+          "lattice_supported_targets": 13440,
+          "observed": 13440,
+          "onset_correct": 10104,
+          "pitch_mismatched_observations": 0,
+          "targets": 13440,
+          "truth_in_diagnostic_candidates": 10104,
+          "unobserved": 0,
+          "wrong": 2808
+        },
+        "retained_joint_truth_available": 105
+      },
+      "straight_wide": {
+        "cases": 480,
+        "diagnostic_joint_truth_available": 135,
+        "full_abstained": 27,
+        "full_correct": 132,
+        "full_correct_gained_vs_global_phase": 102,
+        "full_correct_gained_vs_straight_narrow": 27,
+        "full_correct_lost_vs_global_phase": 171,
+        "full_correct_lost_vs_straight_narrow": 0,
+        "full_wrong": 321,
+        "per_hit": {
+          "abstained": 39,
+          "correct": 10362,
+          "diagnostic_collision_observations": 120,
+          "lattice_supported_targets": 13440,
+          "observed": 13440,
+          "onset_correct": 10362,
+          "pitch_mismatched_observations": 0,
+          "targets": 13440,
+          "truth_in_diagnostic_candidates": 10401,
+          "unobserved": 0,
+          "wrong": 3039
+        },
+        "retained_joint_truth_available": 135
+      }
+    }
+  },
+  "workflow_run_id": "43247249315"
+}
