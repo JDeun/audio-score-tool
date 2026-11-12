@@ -196,3 +196,37 @@ annotations, new gate outcomes or altered historical artifacts. The receipt's
 computed. No original XML/CSV/Match, note-event arrays, audio or weights are
 republished. The original two-receipt verifier above retains its frozen input
 set and does not claim to audit this later study.
+
+## Completed KRAISLER original-waveform boundary audit
+
+`kraisler-boundaries-43222529760.zip` preserves exact artifact **13944769055**
+from [CPU run 43222529760](https://github.com/JDeun/audio-score-tool/actions/runs/43222529760),
+attempt 1. The [completed result](../KRAISLER_BOUNDARY_RESULTS_2026-11-12.md)
+records all six original WAVs, 947 onset/offset/midpoint populations, frozen
+gate replay, unchanged rest projections and four selected historical watchlists.
+
+- Exact ZIP: **111,438 bytes**; SHA256
+  `ead70a5ea7d5826d24d3ac470b9e5d154004c332ffea678dbc9b82c8a9ff42fd`.
+- Sole member `report.json`: **813,260 bytes**; SHA256
+  `9177964bff5d848610a6ae93f2a509f0cb4a3608ca86df9ff53f35760668feba`.
+- Frozen head: `116a68599c9358dc0dc9d8590edbfb1f696307b4`; actual checkout:
+  `9a812a6262b4be398ab245af207890af6cf7f60c`; identical tree:
+  `a36f8b3ba364da6d9a7b3c31604a44f4cc516446`.
+- 36 unique original members, 14 HTTP206 ranges / 29,116,178 bytes, six original
+  PCM16/44.1kHz WAVs totaling 403.23381s. No new model inference. All six prior
+  gate scalars/masks and full expressive analyses reproduced exactly.
+
+Two derived audit JSON files accompany this exact eighth ZIP:
+
+| File | Scope | SHA256 |
+| --- | --- | --- |
+| [kraisler-boundaries-audit-43222529760.json](kraisler-boundaries-audit-43222529760.json) | Standard-library provenance/arithmetic, original annotation-context memberships, all case/cohort statistics, rest conservation and historical transitions | `f2b413b424964145bb840a7c828cc520fb05df004a9fe64bb9bbde5e0b029009` |
+| [kraisler-boundaries-source-audit-43222529760.json](kraisler-boundaries-source-audit-43222529760.json) | Independent PCM/RMS/gate/FFT and full-window/context reconstruction, rest support/interval/frame masks; frozen symbolic parsers reused explicitly | `ebc582dcc5b7e08ce7ba4edeb36695d980991159bc0d73544d4d02060d2f8116` |
+
+Both passed. The second audit independently checks all 2,841 source probes,
+5,682 side windows, 12,185 selected FFT frames and 40,324 gate cells. Numerical
+comparison tolerances and observed differences are explicit in its metadata;
+it does not claim bitwise equality of all floating probe hashes or acoustic
+ground truth. These are derived verification summaries, not original source
+event/waveform/spectrogram arrays. The original two-receipt verifier above
+retains its frozen input set and does not claim to audit this later study.

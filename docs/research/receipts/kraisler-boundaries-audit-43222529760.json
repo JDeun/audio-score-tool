@@ -1,0 +1,3483 @@
+{
+  "audit_script_sha256": "dd59029521f867362deef8c959f7921285c0b3d5af6d746fa399d85158ddca2f",
+  "audit_type": "independent standard-library receipt arithmetic and original-source identity; no study helper imports",
+  "checks": {
+    "assertions": 24723,
+    "cohort_rest_continuous_and_spectral_rows": 9,
+    "complete_context_partitions": 18,
+    "exact_historical_gate_and_expressive_cases": 6,
+    "exact_receipt_archives": 3,
+    "historical_watchlist_ledger_rows": 64,
+    "independent_context_membership_references": 2841,
+    "independent_watchlist_contexts_and_metrics": 12,
+    "measured_source_hashes": 11,
+    "per_case_context_groups": 90,
+    "per_case_continuous_region_rows": 54,
+    "per_case_rest_spectral_rows": 54,
+    "per_case_statistic_consistency_checks": 1080,
+    "pooled_statistic_rows": 180,
+    "retained_source_hashes": 37,
+    "source_member_sha_crc_identities": 36,
+    "stored_spectral_window_arithmetic": 34,
+    "synthetic_scenarios_arithmetic": 5
+  },
+  "execution_identity": {
+    "artifact_id": 13944769055,
+    "checkout": "9a812a6262b4be398ab245af207890af6cf7f60c",
+    "checkout_commit_api": "https://api.github.com/repos/JDeun/audio-score-tool/git/commits/9a812a6262b4be398ab245af207890af6cf7f60c",
+    "head": "116a68599c9358dc0dc9d8590edbfb1f696307b4",
+    "head_commit_api": "https://api.github.com/repos/JDeun/audio-score-tool/git/commits/116a68599c9358dc0dc9d8590edbfb1f696307b4",
+    "run_attempt": 1,
+    "run_id": 43222529760,
+    "run_url": "https://github.com/JDeun/audio-score-tool/actions/runs/43222529760",
+    "runtime": {
+      "contract_tools": {
+        "pytest": "8.4.2",
+        "ruff": "0.16.6"
+      },
+      "implementation": "CPython",
+      "inference_device": "none",
+      "numpy": "1.26.4",
+      "python": "3.12.16"
+    },
+    "same_git_tree": "a36f8b3ba364da6d9a7b3c31604a44f4cc516446"
+  },
+  "input_identity": {
+    "archive_bytes": 111438,
+    "archive_sha256": "ead70a5ea7d5826d24d3ac470b9e5d154004c332ffea678dbc9b82c8a9ff42fd",
+    "audio_manifest_sha256": "a18857a4b7a2025ea327f9a03855ca02dca0964110d973d5224b85dfbb258c60",
+    "central_directory_sha256": "44408b2f2544cf444a336ea33f8144202b66110befe501aa966764c5e31800ad",
+    "historical_receipts": {
+      "expressive": {
+        "archive_bytes": 72066,
+        "archive_sha256": "e51fae082cf3c97240a9746cf2ba2214923ce30555ae2f70130f6043cffd478f",
+        "case_count": 6,
+        "report_bytes": 1546689,
+        "report_sha256": "32005007594058ee941fd367aab5cd0ad093cef130fc38a23f47912e36f580bc",
+        "source_head": "18e358645fcec5c5314bb69f2725d9bc3be984f7",
+        "source_revision": "4a9f603d983eb0a576795bffd8e9f4fdb2254a77",
+        "status": "complete"
+      },
+      "gate": {
+        "archive_bytes": 16111,
+        "archive_sha256": "ba88b9bda70d4a560a3d05c85ea5301d2e8ff98ea81746d676a1c6695898e10e",
+        "case_count": 6,
+        "report_bytes": 155591,
+        "report_sha256": "e79ff94736b471da64638a93456ef4f1510750c843960ae924fc1f488ad2f754",
+        "source_head": "faac53d0b9b63d8b8420e8fdb788dd3ec4cf4cda",
+        "source_revision": "7491b822c2d0d8cfe82193dea9c7135b91ebec2a",
+        "status": "complete"
+      }
+    },
+    "metadata_manifest_sha256": "ba062dc673f0ebb64c12a95c096144b3efb0975ab7e7be34be645359c3d6503d",
+    "report_bytes": 813260,
+    "report_sha256": "9177964bff5d848610a6ae93f2a509f0cb4a3608ca86df9ff53f35760668feba",
+    "source_member_identities": {
+      "02": {
+        "audio": {
+          "bytes": 5577266,
+          "crc32": "2b61256e",
+          "sha256": "b1358c2d5d50ba71ae61c3ab3fe98412f1db25273360b22c5ba9d36d95e4f57d"
+        },
+        "beats": {
+          "bytes": 1312,
+          "crc32": "35ac2635",
+          "sha256": "30249f39cd6fa14216252c2c70cb56615551aca24eba04fa8809713eb1570b92"
+        },
+        "notes": {
+          "bytes": 1725,
+          "crc32": "42a23662",
+          "sha256": "d333804a5d73fa6f99974d2b4ae1b86801ea06e87f85881b7f25acb00450bd71"
+        },
+        "piano_match": {
+          "bytes": 77780,
+          "crc32": "81dc4c6a",
+          "sha256": "e8ae9fdde12257b35b06df6225cbf7d35916c0a26458623b82f433c230310606"
+        },
+        "piano_score": {
+          "bytes": 377183,
+          "crc32": "2331dbfb",
+          "sha256": "4d62f526d0281cf54100ac32fb9ba4cb9feed24807dda205b6429a8f935f7b82"
+        },
+        "score": {
+          "bytes": 46022,
+          "crc32": "24efd31d",
+          "sha256": "e593905740a24d87802d6a1549a8a5fd3da0419f74c82407aff9aa9b8d997166"
+        }
+      },
+      "05": {
+        "audio": {
+          "bytes": 6394544,
+          "crc32": "22adb28a",
+          "sha256": "45abd7854425b534faca695e7af3b7c8bee29def9bfd168295d4ff95c4f43d71"
+        },
+        "beats": {
+          "bytes": 1783,
+          "crc32": "f60e741b",
+          "sha256": "6825ef470e9c49dce55536067771bc8cc8086805ff45156e84251db2b2a12e30"
+        },
+        "notes": {
+          "bytes": 3559,
+          "crc32": "09e63861",
+          "sha256": "191b7b1e2f524637aa6e6a569b4e699af1bfe095a857b8abcd7db5cf71a57699"
+        },
+        "piano_match": {
+          "bytes": 83983,
+          "crc32": "a9a0eb9b",
+          "sha256": "121fa341e429b5448e41d5d8ea06b628a45c8250c7489882c99ce12f2ed5d7d5"
+        },
+        "piano_score": {
+          "bytes": 212182,
+          "crc32": "a1d26b88",
+          "sha256": "87bbb3ce203b9e909c2556d54bef58ae88384ec5b4f499ff10ab51a2d6edc77d"
+        },
+        "score": {
+          "bytes": 80947,
+          "crc32": "d180ce2f",
+          "sha256": "15fa4dd430361223900a22794a04ed665683bc29a3331001dde7a89671611cb0"
+        }
+      },
+      "06": {
+        "audio": {
+          "bytes": 6879644,
+          "crc32": "32bdcf6e",
+          "sha256": "9cf1a01d7e729ff6ac14be93cfa9ec866d63aa22fdded5de6dd1bfbe7d8f1ee1"
+        },
+        "beats": {
+          "bytes": 2712,
+          "crc32": "224f18c2",
+          "sha256": "cb1deed537cd3430aa29135297218f4df93ce2c7deedabddc665c31158b02722"
+        },
+        "notes": {
+          "bytes": 3771,
+          "crc32": "f7f0e072",
+          "sha256": "f86bd6889e26d828bb917a4a9f9a9e22e59286df60f2b779e6c327100966122e"
+        },
+        "piano_match": {
+          "bytes": 80905,
+          "crc32": "975b1b05",
+          "sha256": "eb4a38eb45d6a1e5df60860a2b707c7f025f30a56761b9ec35922969dbcc918a"
+        },
+        "piano_score": {
+          "bytes": 356794,
+          "crc32": "9a3e9483",
+          "sha256": "13299fff7e581427c66f3dd98847b079b118a638ab5d8bf69a9b194bf41ca566"
+        },
+        "score": {
+          "bytes": 78540,
+          "crc32": "756665fe",
+          "sha256": "6f3c14f3fce4c3f82a174a831fec27d4b8a454176a6795e5e2454e759140ad5f"
+        }
+      },
+      "08": {
+        "audio": {
+          "bytes": 6526844,
+          "crc32": "541af87b",
+          "sha256": "c57e4d58ac89ba02da8d35dca480c89283a895dd212ede8627760792e861ee96"
+        },
+        "beats": {
+          "bytes": 2472,
+          "crc32": "041d98fe",
+          "sha256": "b31e1415a52ea168d1dcc326ab703b390e11f8fe6033abfded2fbe8f00debc01"
+        },
+        "notes": {
+          "bytes": 4770,
+          "crc32": "40642564",
+          "sha256": "aec0d643aa6855663166213280345249be5716c34a6b2adc7d077de3278f12c6"
+        },
+        "piano_match": {
+          "bytes": 107211,
+          "crc32": "835c148f",
+          "sha256": "72c34f274fd5e5415d9eae465c08b64ad824cca345a9766fb694d28162cdb044"
+        },
+        "piano_score": {
+          "bytes": 357365,
+          "crc32": "ca68ee4e",
+          "sha256": "b2b0e53c544fcd151f70323cb0324f97344aa72577801755c08868b163549273"
+        },
+        "score": {
+          "bytes": 108632,
+          "crc32": "a68df713",
+          "sha256": "9b70336f0c8746af132a673f602098c60d608bd8963a7b924621697ff8e5406d"
+        }
+      },
+      "12": {
+        "audio": {
+          "bytes": 4233644,
+          "crc32": "47c29715",
+          "sha256": "0e88e6242167f4f3cc22a43d9caedd6c528e4d268dcc121dbe37a081413c2ed8"
+        },
+        "beats": {
+          "bytes": 975,
+          "crc32": "8b385a1d",
+          "sha256": "afdad01a566983e807a3b79e74d0c0349601637ee5fb3d0e53b11b1d61c85c0f"
+        },
+        "notes": {
+          "bytes": 1496,
+          "crc32": "f1b74227",
+          "sha256": "8da6d92567c8f8e42c0731e748d492d4b6a6e6a6ead48568be066280f324d3e0"
+        },
+        "piano_match": {
+          "bytes": 60203,
+          "crc32": "d8dcd0de",
+          "sha256": "2579488136ef113c132246d0995a1691855ae12ecf23c19383bc2d119888c549"
+        },
+        "piano_score": {
+          "bytes": 219406,
+          "crc32": "f91d718e",
+          "sha256": "34f0b2c3088a63822958cb884e0ad1d2bbc2c03d29eb86a69c391810ba0c5eef"
+        },
+        "score": {
+          "bytes": 32803,
+          "crc32": "cf25b9f1",
+          "sha256": "3aba1f872bf28f8746e9c796fc24cf52e415b8224236238c1cea839476d9381b"
+        }
+      },
+      "19": {
+        "audio": {
+          "bytes": 5953544,
+          "crc32": "76b6fee6",
+          "sha256": "27ba061f03e6a7befd0d7e73e52e04a5a7d1314202362ec02c6a93a2f94ca9a3"
+        },
+        "beats": {
+          "bytes": 4090,
+          "crc32": "95820cc0",
+          "sha256": "cd6dd9ca1eb16ae1c5c5ef794c226fc1fe6f22f5db9ff9d48dbb71b7e29e1b38"
+        },
+        "notes": {
+          "bytes": 6851,
+          "crc32": "bf4f7d2c",
+          "sha256": "37a4de9bc3024b9dc54dd6f946f1ffd3e9ea62a18749c1bc82bed442e89d62ef"
+        },
+        "piano_match": {
+          "bytes": 80540,
+          "crc32": "9e114fbb",
+          "sha256": "5d15fd4d98f3bc1e23ad29702e13e6c527ab68b85549f2879d291a4b74ec609f"
+        },
+        "piano_score": {
+          "bytes": 294495,
+          "crc32": "f34c77d6",
+          "sha256": "4d02aef4fc94495fe93653a53a46c7d322c80f505ba25ccb74fe9903c28c5e98"
+        },
+        "score": {
+          "bytes": 135510,
+          "crc32": "b7903778",
+          "sha256": "3f1b5bb0a4c9ba490437f6b5c065c8be07ba2f487338ce83a31c900a0dfdc7d8"
+        }
+      }
+    }
+  },
+  "limitations": [
+    "No original waveform descriptor, gate mask or FFT was recomputed. Source WAV bytes, SHA256, CRC and PCM headers were independently verified.",
+    "All 2,841 annotation context memberships and their side-window/full-frame availability were reconstructed directly from original note CSV and sample counts.",
+    "Stored per-recording statistic counts, sums, means, bounds and quantile consistency were checked. Raw descriptor samples and general per-recording quantiles were not reconstructed.",
+    "All cohort statistics were pooled from counts and sums; no per-recording medians were averaged into cohort quantiles.",
+    "Rest continuous-duration and spectral-count/power accounting was checked; private projected interval boundaries and full frame masks were not independently reconstructed from their hashes.",
+    "Stored watchlist and synthetic powers were checked through ratios, logarithms and differences, not treated as independently measured acoustic truth.",
+    "Historical reference-mask transitions do not recover prediction endpoints or prove the cause of any edit.",
+    "Source-before-historical-read ordering is supported by frozen runner inspection and receipt state, not by arithmetic alone."
+  ],
+  "numeric_comparison": {
+    "continuous_duration_absolute_tolerance_s": 1e-12,
+    "maximum_observed_absolute_roundoff": 1.8189894035458565e-12,
+    "other_numeric_tolerance": "max(1e-12, four representable units at compared values) for regrouped finite sums"
+  },
+  "reconstructed_summary": {
+    "boundaries": {
+      "midpoint": {
+        "by_context": {
+          "isolated_annotation_context": {
+            "energy_transition_counts": {
+              "target": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 431,
+                "both_zero": 0,
+                "unavailable": 0
+              },
+              "total": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 431,
+                "both_zero": 0,
+                "unavailable": 0
+              }
+            },
+            "reference_count": 431,
+            "spectral_availability": {
+              "after_only": 0,
+              "before_only": 0,
+              "both": 431,
+              "neither": 0
+            },
+            "statistics": {
+              "after_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 431,
+                "max": 0.14187500000000228,
+                "mean": 0.0003291763341067338,
+                "min": 0.0,
+                "sum": 0.14187500000000228,
+                "undefined": 0
+              },
+              "after_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 431,
+                "max": -18.293457500612725,
+                "mean": -28.30824208894163,
+                "min": -55.79484165747268,
+                "sum": -12200.852340333842,
+                "undefined": 0
+              },
+              "after_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 431,
+                "max": 0.999295460612272,
+                "mean": 0.8477372753195251,
+                "min": 0.03504134122711822,
+                "sum": 365.37476566271533,
+                "undefined": 0
+              },
+              "after_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 431,
+                "max": -17.25736392677957,
+                "mean": -27.399091954106886,
+                "min": -50.32324534853874,
+                "sum": -11809.008632220068,
+                "undefined": 0
+              },
+              "before_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 431,
+                "max": 0.0,
+                "mean": 0.0,
+                "min": 0.0,
+                "sum": 0.0,
+                "undefined": 0
+              },
+              "before_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 431,
+                "max": -17.902621394544052,
+                "mean": -29.874154325520564,
+                "min": -49.269012455007974,
+                "sum": -12875.760514299363,
+                "undefined": 0
+              },
+              "before_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 431,
+                "max": 0.9985835000738434,
+                "mean": 0.8381184403197441,
+                "min": 0.007230338250501019,
+                "sum": 361.22904777780974,
+                "undefined": 0
+              },
+              "before_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 431,
+                "max": -17.695369488890865,
+                "mean": -28.90874377746057,
+                "min": -47.86178232968485,
+                "sum": -12459.668568085504,
+                "undefined": 0
+              },
+              "gate_quiet_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 431,
+                "max": 0.14187500000000228,
+                "mean": 0.0003291763341067338,
+                "min": 0.0,
+                "sum": 0.14187500000000228,
+                "undefined": 0
+              },
+              "target_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 431,
+                "max": 14.323652022585954,
+                "mean": 1.5659122365789375,
+                "min": -24.51478100743174,
+                "sum": 674.9081739655221,
+                "undefined": 0
+              },
+              "target_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 431,
+                "max": 0.8466518938327838,
+                "mean": 0.009618834999780978,
+                "min": -0.8034302532992356,
+                "sum": 4.145717884905602,
+                "undefined": 0
+              },
+              "total_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 431,
+                "max": 12.064336494978626,
+                "mean": 1.50965182335368,
+                "min": -19.495055857623175,
+                "sum": 650.6599358654361,
+                "undefined": 0
+              }
+            }
+          },
+          "other_pitch_neighbor": {
+            "energy_transition_counts": {
+              "target": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 403,
+                "both_zero": 0,
+                "unavailable": 0
+              },
+              "total": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 403,
+                "both_zero": 0,
+                "unavailable": 0
+              }
+            },
+            "reference_count": 403,
+            "spectral_availability": {
+              "after_only": 0,
+              "before_only": 0,
+              "both": 403,
+              "neither": 0
+            },
+            "statistics": {
+              "after_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 403,
+                "max": 0.3518750000000378,
+                "mean": 0.0017292183622829407,
+                "min": 0.0,
+                "sum": 0.6968750000000251,
+                "undefined": 0
+              },
+              "after_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 403,
+                "max": -20.199404738816632,
+                "mean": -32.82824377441552,
+                "min": -69.20572851078093,
+                "sum": -13229.782241089453,
+                "undefined": 0
+              },
+              "after_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 403,
+                "max": 0.9964851780429514,
+                "mean": 0.5509635745911026,
+                "min": 0.0018059460107346542,
+                "sum": 222.03832056021432,
+                "undefined": 0
+              },
+              "after_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 403,
+                "max": -20.117613346826694,
+                "mean": -28.732611778502108,
+                "min": -52.455553418416685,
+                "sum": -11579.24254673635,
+                "undefined": 0
+              },
+              "before_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 403,
+                "max": 0.602500000000003,
+                "mean": 0.004953473945409676,
+                "min": 0.0,
+                "sum": 1.9962500000000993,
+                "undefined": 0
+              },
+              "before_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 403,
+                "max": -21.021257194638977,
+                "mean": -36.421429707635525,
+                "min": -71.94812833052465,
+                "sum": -14677.836172177118,
+                "undefined": 0
+              },
+              "before_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 403,
+                "max": 0.9872881951409125,
+                "mean": 0.37037216367772235,
+                "min": 5.4881434744478724e-05,
+                "sum": 149.2599819621221,
+                "undefined": 0
+              },
+              "before_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 403,
+                "max": -18.88242719708896,
+                "mean": -29.47902611874355,
+                "min": -52.75522932959072,
+                "sum": -11880.047525853652,
+                "undefined": 0
+              },
+              "gate_quiet_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 403,
+                "max": 0.3518750000000378,
+                "mean": -0.0032242555831267354,
+                "min": -0.602500000000003,
+                "sum": -1.2993750000000743,
+                "undefined": 0
+              },
+              "target_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 403,
+                "max": 41.17066157692064,
+                "mean": 3.5931859332200142,
+                "min": -36.57910991426138,
+                "sum": 1448.0539310876657,
+                "undefined": 0
+              },
+              "target_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 403,
+                "max": 0.9784190049545309,
+                "mean": 0.18059141091338016,
+                "min": -0.8259472713545781,
+                "sum": 72.7783385980922,
+                "undefined": 0
+              },
+              "total_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 403,
+                "max": 28.676758153166524,
+                "mean": 0.7464143402414427,
+                "min": -30.734693375971766,
+                "sum": 300.8049791173014,
+                "undefined": 0
+              }
+            }
+          },
+          "own_note_short_window": {
+            "energy_transition_counts": {
+              "target": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 45,
+                "both_zero": 0,
+                "unavailable": 0
+              },
+              "total": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 45,
+                "both_zero": 0,
+                "unavailable": 0
+              }
+            },
+            "reference_count": 45,
+            "spectral_availability": {
+              "after_only": 0,
+              "before_only": 0,
+              "both": 45,
+              "neither": 0
+            },
+            "statistics": {
+              "after_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 45,
+                "max": 1.0,
+                "mean": 0.022222222222222223,
+                "min": 0.0,
+                "sum": 1.0,
+                "undefined": 0
+              },
+              "after_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 45,
+                "max": -20.522326376507564,
+                "mean": -32.98244834974809,
+                "min": -74.39837286283067,
+                "sum": -1484.210175738664,
+                "undefined": 0
+              },
+              "after_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 45,
+                "max": 0.9939751180902167,
+                "mean": 0.7624171030579385,
+                "min": 0.2280742106975438,
+                "sum": 34.308769637607234,
+                "undefined": 0
+              },
+              "after_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 45,
+                "max": -18.344289969566375,
+                "mean": -31.534962703190498,
+                "min": -67.97913466847095,
+                "sum": -1419.0733216435724,
+                "undefined": 0
+              },
+              "before_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 45,
+                "max": 1.0,
+                "mean": 0.0280972222222232,
+                "min": 0.0,
+                "sum": 1.264375000000044,
+                "undefined": 0
+              },
+              "before_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 45,
+                "max": -27.800444995266204,
+                "mean": -44.551228576792994,
+                "min": -76.45067997341486,
+                "sum": -2004.8052859556847,
+                "undefined": 0
+              },
+              "before_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 45,
+                "max": 0.9209257305967118,
+                "mean": 0.3308813231695904,
+                "min": 0.0016426100828201625,
+                "sum": 14.889659542631568,
+                "undefined": 0
+              },
+              "before_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 45,
+                "max": -25.514105675946126,
+                "mean": -36.28595558613257,
+                "min": -68.0618530017924,
+                "sum": -1632.8680013759658,
+                "undefined": 0
+              },
+              "gate_quiet_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 45,
+                "max": 0.0,
+                "mean": -0.005875000000000977,
+                "min": -0.2525000000000053,
+                "sum": -0.26437500000004394,
+                "undefined": 0
+              },
+              "target_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 45,
+                "max": 37.724033357634916,
+                "mean": 11.5687802270449,
+                "min": -10.727037821246618,
+                "sum": 520.5951102170205,
+                "undefined": 0
+              },
+              "target_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 45,
+                "max": 0.9576455581102273,
+                "mean": 0.4315357798883482,
+                "min": -0.5084222704358637,
+                "sum": 19.419110094975668,
+                "undefined": 0
+              },
+              "total_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 45,
+                "max": 22.280224970849726,
+                "mean": 4.750992882942078,
+                "min": -8.690735724036124,
+                "sum": 213.7946797323935,
+                "undefined": 0
+              }
+            }
+          },
+          "same_pitch_neighbor": {
+            "energy_transition_counts": {
+              "target": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 68,
+                "both_zero": 0,
+                "unavailable": 0
+              },
+              "total": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 68,
+                "both_zero": 0,
+                "unavailable": 0
+              }
+            },
+            "reference_count": 68,
+            "spectral_availability": {
+              "after_only": 0,
+              "before_only": 0,
+              "both": 68,
+              "neither": 0
+            },
+            "statistics": {
+              "after_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 68,
+                "max": 0.0,
+                "mean": 0.0,
+                "min": 0.0,
+                "sum": 0.0,
+                "undefined": 0
+              },
+              "after_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 68,
+                "max": -20.86396159159635,
+                "mean": -36.927887432501265,
+                "min": -63.664969675500274,
+                "sum": -2511.096345410086,
+                "undefined": 0
+              },
+              "after_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 68,
+                "max": 0.9908869362889392,
+                "mean": 0.37956525729481416,
+                "min": 0.0016074277386510108,
+                "sum": 25.810437496047363,
+                "undefined": 0
+              },
+              "after_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 68,
+                "max": -20.65178323714152,
+                "mean": -29.504343427392964,
+                "min": -56.193258615309475,
+                "sum": -2006.2953530627215,
+                "undefined": 0
+              },
+              "before_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 68,
+                "max": 0.5156249999999969,
+                "mean": 0.007582720588235248,
+                "min": 0.0,
+                "sum": 0.5156249999999969,
+                "undefined": 0
+              },
+              "before_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 68,
+                "max": -23.506874335116343,
+                "mean": -37.93343657339439,
+                "min": -62.06232119284571,
+                "sum": -2579.4736869908184,
+                "undefined": 0
+              },
+              "before_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 68,
+                "max": 0.9986659507742225,
+                "mean": 0.36677010087243844,
+                "min": 0.0035500484526056315,
+                "sum": 24.940366859325813,
+                "undefined": 0
+              },
+              "before_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 68,
+                "max": -22.790997415183533,
+                "mean": -31.258836295222082,
+                "min": -52.75522932959072,
+                "sum": -2125.6008680751015,
+                "undefined": 0
+              },
+              "gate_quiet_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 68,
+                "max": 0.0,
+                "mean": -0.007582720588235248,
+                "min": -0.5156249999999969,
+                "sum": -0.5156249999999969,
+                "undefined": 0
+              },
+              "target_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 68,
+                "max": 36.613273418303976,
+                "mean": 1.005549140893116,
+                "min": -30.911174767015723,
+                "sum": 68.3773415807319,
+                "undefined": 0
+              },
+              "target_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 68,
+                "max": 0.8959307256769712,
+                "mean": 0.012795156422375735,
+                "min": -0.9468283820955818,
+                "sum": 0.87007063672155,
+                "undefined": 0
+              },
+              "total_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 68,
+                "max": 28.676758153166524,
+                "mean": 1.7544928678291223,
+                "min": -30.75144694440973,
+                "sum": 119.30551501238031,
+                "undefined": 0
+              }
+            }
+          }
+        },
+        "energy_transition_counts": {
+          "target": {
+            "before_positive_after_zero": 0,
+            "before_zero_after_positive": 0,
+            "both_positive": 947,
+            "both_zero": 0,
+            "unavailable": 0
+          },
+          "total": {
+            "before_positive_after_zero": 0,
+            "before_zero_after_positive": 0,
+            "both_positive": 947,
+            "both_zero": 0,
+            "unavailable": 0
+          }
+        },
+        "reference_count": 947,
+        "spectral_availability": {
+          "after_only": 0,
+          "before_only": 0,
+          "both": 947,
+          "neither": 0
+        },
+        "statistics": {
+          "after_gate_quiet_fraction": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": 1.0,
+            "mean": 0.0019416578669482867,
+            "min": 0.0,
+            "sum": 1.8387500000000274,
+            "undefined": 0
+          },
+          "after_target_dbfs": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": -18.293457500612725,
+            "mean": -31.072799474732886,
+            "min": -74.39837286283067,
+            "sum": -29425.941102572044,
+            "undefined": 0
+          },
+          "after_target_fraction": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": 0.999295460612272,
+            "mean": 0.6837722210734786,
+            "min": 0.0016074277386510108,
+            "sum": 647.5322933565842,
+            "undefined": 0
+          },
+          "after_total_dbfs": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": -17.25736392677957,
+            "mean": -28.31427650861955,
+            "min": -67.97913466847095,
+            "sum": -26813.619853662713,
+            "undefined": 0
+          },
+          "before_gate_quiet_fraction": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": 1.0,
+            "mean": 0.003987592397043443,
+            "min": 0.0,
+            "sum": 3.7762500000001404,
+            "undefined": 0
+          },
+          "before_target_dbfs": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": -17.902621394544052,
+            "mean": -33.93651072800738,
+            "min": -76.45067997341486,
+            "sum": -32137.875659422985,
+            "undefined": 0
+          },
+          "before_target_fraction": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": 0.9986659507742225,
+            "mean": 0.581118327499355,
+            "min": 5.4881434744478724e-05,
+            "sum": 550.3190561418892,
+            "undefined": 0
+          },
+          "before_total_dbfs": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": -17.695369488890865,
+            "mean": -29.670733857856625,
+            "min": -68.0618530017924,
+            "sum": -28098.184963390224,
+            "undefined": 0
+          },
+          "gate_quiet_fraction_change": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": 0.3518750000000378,
+            "mean": -0.0020459345300951563,
+            "min": -0.602500000000003,
+            "sum": -1.937500000000113,
+            "undefined": 0
+          },
+          "target_change_db": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": 41.17066157692064,
+            "mean": 2.863711253274488,
+            "min": -36.57910991426138,
+            "sum": 2711.93455685094,
+            "undefined": 0
+          },
+          "target_fraction_change": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": 0.9784190049545309,
+            "mean": 0.10265389357412358,
+            "min": -0.9468283820955818,
+            "sum": 97.21323721469503,
+            "undefined": 0
+          },
+          "total_change_db": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": 28.676758153166524,
+            "mean": 1.3564573492370764,
+            "min": -30.75144694440973,
+            "sum": 1284.5651097275113,
+            "undefined": 0
+          }
+        }
+      },
+      "offset": {
+        "by_context": {
+          "isolated_annotation_context": {
+            "energy_transition_counts": {
+              "target": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 48,
+                "both_zero": 0,
+                "unavailable": 1
+              },
+              "total": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 48,
+                "both_zero": 0,
+                "unavailable": 1
+              }
+            },
+            "reference_count": 49,
+            "spectral_availability": {
+              "after_only": 0,
+              "before_only": 1,
+              "both": 48,
+              "neither": 0
+            },
+            "statistics": {
+              "after_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 48,
+                "max": 1.0,
+                "mean": 0.13124999999999978,
+                "min": 0.0,
+                "sum": 6.299999999999989,
+                "undefined": 1
+              },
+              "after_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 48,
+                "max": -19.53916068548623,
+                "mean": -41.77286900678174,
+                "min": -97.24339262044482,
+                "sum": -2005.0977123255236,
+                "undefined": 1
+              },
+              "after_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 48,
+                "max": 0.9889494971505174,
+                "mean": 0.6897484942222429,
+                "min": 0.0002687166674540802,
+                "sum": 33.10792772266766,
+                "undefined": 1
+              },
+              "after_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 48,
+                "max": -19.27567901089881,
+                "mean": -38.32512248097587,
+                "min": -88.05736947992409,
+                "sum": -1839.6058790868417,
+                "undefined": 1
+              },
+              "before_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 49,
+                "max": 1.0,
+                "mean": 0.10178571428571365,
+                "min": 0.0,
+                "sum": 4.987499999999969,
+                "undefined": 0
+              },
+              "before_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 49,
+                "max": -21.116273479694666,
+                "mean": -37.351574194282335,
+                "min": -92.64261604574145,
+                "sum": -1830.2271355198343,
+                "undefined": 0
+              },
+              "before_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 49,
+                "max": 0.9897760250726529,
+                "mean": 0.7893173757723245,
+                "min": 0.028671379523170337,
+                "sum": 38.6765514128439,
+                "undefined": 0
+              },
+              "before_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 49,
+                "max": -20.937860167144482,
+                "mean": -35.75894409118442,
+                "min": -86.48652484524843,
+                "sum": -1752.1882604680363,
+                "undefined": 0
+              },
+              "gate_quiet_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 48,
+                "max": 1.0,
+                "mean": 0.048177083333333766,
+                "min": -0.8175000000000008,
+                "sum": 2.312500000000021,
+                "undefined": 1
+              },
+              "target_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 48,
+                "max": 40.37483914505333,
+                "mean": -5.414553547226653,
+                "min": -43.22153038731574,
+                "sum": -259.89857026687935,
+                "undefined": 1
+              },
+              "target_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 48,
+                "max": 0.6650559509836651,
+                "mean": -0.11042689699149594,
+                "min": -0.8773981684749198,
+                "sum": -5.300491055591805,
+                "undefined": 1
+              },
+              "total_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 48,
+                "max": 34.052757653739874,
+                "mean": -3.4735231007171508,
+                "min": -30.957946987967212,
+                "sum": -166.72910883442324,
+                "undefined": 1
+              }
+            }
+          },
+          "other_pitch_neighbor": {
+            "energy_transition_counts": {
+              "target": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 734,
+                "both_zero": 0,
+                "unavailable": 0
+              },
+              "total": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 734,
+                "both_zero": 0,
+                "unavailable": 0
+              }
+            },
+            "reference_count": 734,
+            "spectral_availability": {
+              "after_only": 0,
+              "before_only": 0,
+              "both": 734,
+              "neither": 0
+            },
+            "statistics": {
+              "after_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 734,
+                "max": 1.0,
+                "mean": 0.004346049046321481,
+                "min": 0.0,
+                "sum": 3.1899999999999666,
+                "undefined": 0
+              },
+              "after_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 734,
+                "max": -20.923937694336125,
+                "mean": -39.75977400018416,
+                "min": -87.09249293010016,
+                "sum": -29183.67411613517,
+                "undefined": 0
+              },
+              "after_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 734,
+                "max": 0.9737025323644996,
+                "mean": 0.22882091023549117,
+                "min": 0.00015242737592091363,
+                "sum": 167.95454811285052,
+                "undefined": 0
+              },
+              "after_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 734,
+                "max": -18.43334968682665,
+                "mean": -29.731973157539088,
+                "min": -70.36254803376713,
+                "sum": -21823.26829763369,
+                "undefined": 0
+              },
+              "before_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 734,
+                "max": 1.0,
+                "mean": 0.006435626702997314,
+                "min": 0.0,
+                "sum": 4.723750000000028,
+                "undefined": 0
+              },
+              "before_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 734,
+                "max": -17.66397856203772,
+                "mean": -32.34198209628958,
+                "min": -88.91614579047726,
+                "sum": -23739.01485867655,
+                "undefined": 0
+              },
+              "before_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 734,
+                "max": 0.9995228465638882,
+                "mean": 0.6556373650353448,
+                "min": 0.00013464414559364517,
+                "sum": 481.2378259359431,
+                "undefined": 0
+              },
+              "before_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 734,
+                "max": -16.99290009143209,
+                "mean": -29.138148536161044,
+                "min": -74.82311248158167,
+                "sum": -21387.401025542207,
+                "undefined": 0
+              },
+              "gate_quiet_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 734,
+                "max": 0.8749999999999833,
+                "mean": -0.002089577656675834,
+                "min": -1.0,
+                "sum": -1.5337500000000621,
+                "undefined": 0
+              },
+              "target_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 734,
+                "max": 55.710008427298376,
+                "mean": -7.4177919038945745,
+                "min": -39.16281874568694,
+                "sum": -5444.6592574586175,
+                "undefined": 0
+              },
+              "target_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 734,
+                "max": 0.9723315991101483,
+                "mean": -0.4268164547998536,
+                "min": -0.9932533863917413,
+                "sum": -313.28327782309253,
+                "undefined": 0
+              },
+              "total_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 734,
+                "max": 51.331258223008035,
+                "mean": -0.5938246213780449,
+                "min": -34.70482180930607,
+                "sum": -435.86727209148495,
+                "undefined": 0
+              }
+            }
+          },
+          "own_note_short_window": {
+            "energy_transition_counts": {
+              "target": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 9,
+                "both_zero": 0,
+                "unavailable": 0
+              },
+              "total": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 9,
+                "both_zero": 0,
+                "unavailable": 0
+              }
+            },
+            "reference_count": 9,
+            "spectral_availability": {
+              "after_only": 0,
+              "before_only": 0,
+              "both": 9,
+              "neither": 0
+            },
+            "statistics": {
+              "after_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 9,
+                "max": 0.0,
+                "mean": 0.0,
+                "min": 0.0,
+                "sum": 0.0,
+                "undefined": 0
+              },
+              "after_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 9,
+                "max": -22.554065810891384,
+                "mean": -29.744719568514668,
+                "min": -39.526475249347634,
+                "sum": -267.702476116632,
+                "undefined": 0
+              },
+              "after_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 9,
+                "max": 0.9982611885435958,
+                "mean": 0.6819310662699444,
+                "min": 0.32604064798727483,
+                "sum": 6.1373795964295,
+                "undefined": 0
+              },
+              "after_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 9,
+                "max": -20.637906853359947,
+                "mean": -27.821868233733028,
+                "min": -34.659192725367596,
+                "sum": -250.39681410359725,
+                "undefined": 0
+              },
+              "before_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 9,
+                "max": 0.0,
+                "mean": 0.0,
+                "min": 0.0,
+                "sum": 0.0,
+                "undefined": 0
+              },
+              "before_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 9,
+                "max": -23.559809519061993,
+                "mean": -41.91057869251832,
+                "min": -57.70766882634294,
+                "sum": -377.19520823266487,
+                "undefined": 0
+              },
+              "before_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 9,
+                "max": 0.975075293236999,
+                "mean": 0.4413369038243715,
+                "min": 0.09335451821367886,
+                "sum": 3.9720321344193437,
+                "undefined": 0
+              },
+              "before_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 9,
+                "max": -23.23027495767554,
+                "mean": -37.375323921368036,
+                "min": -47.40902224606412,
+                "sum": -336.3779152923123,
+                "undefined": 0
+              },
+              "gate_quiet_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 9,
+                "max": 0.0,
+                "mean": 0.0,
+                "min": 0.0,
+                "sum": 0.0,
+                "undefined": 0
+              },
+              "target_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 9,
+                "max": 26.858901285724095,
+                "mean": 12.165859124003653,
+                "min": -3.1591603874936034,
+                "sum": 109.49273211603288,
+                "undefined": 0
+              },
+              "target_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 9,
+                "max": 0.6168839962932541,
+                "mean": 0.2405941624455728,
+                "min": -0.12138877113133567,
+                "sum": 2.165347462010155,
+                "undefined": 0
+              },
+              "total_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 9,
+                "max": 21.855998695321947,
+                "mean": 9.553455687635005,
+                "min": -3.2204783165942743,
+                "sum": 85.98110118871504,
+                "undefined": 0
+              }
+            }
+          },
+          "same_pitch_neighbor": {
+            "energy_transition_counts": {
+              "target": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 155,
+                "both_zero": 0,
+                "unavailable": 0
+              },
+              "total": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 155,
+                "both_zero": 0,
+                "unavailable": 0
+              }
+            },
+            "reference_count": 155,
+            "spectral_availability": {
+              "after_only": 0,
+              "before_only": 0,
+              "both": 155,
+              "neither": 0
+            },
+            "statistics": {
+              "after_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 155,
+                "max": 0.031249999999993755,
+                "mean": 0.00020161290322576617,
+                "min": 0.0,
+                "sum": 0.031249999999993755,
+                "undefined": 0
+              },
+              "after_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 155,
+                "max": -19.202352371174424,
+                "mean": -32.52172720215396,
+                "min": -62.70528342885921,
+                "sum": -5040.867716333864,
+                "undefined": 0
+              },
+              "after_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 155,
+                "max": 0.9980921421663758,
+                "mean": 0.5858437357759898,
+                "min": 0.0007046213408324934,
+                "sum": 90.80577904527841,
+                "undefined": 0
+              },
+              "after_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 155,
+                "max": -18.516549664624883,
+                "mean": -27.86686172478089,
+                "min": -49.68286573406442,
+                "sum": -4319.363567341038,
+                "undefined": 0
+              },
+              "before_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 155,
+                "max": 1.0,
+                "mean": 0.02185483870967755,
+                "min": 0.0,
+                "sum": 3.3875000000000206,
+                "undefined": 0
+              },
+              "before_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 155,
+                "max": -18.135027641310405,
+                "mean": -33.28436888492465,
+                "min": -73.32405842439195,
+                "sum": -5159.077177163321,
+                "undefined": 0
+              },
+              "before_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 155,
+                "max": 0.9984037551608167,
+                "mean": 0.6108843334150491,
+                "min": 0.0004982682522170802,
+                "sum": 94.6870716793326,
+                "undefined": 0
+              },
+              "before_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 155,
+                "max": -17.85159675476682,
+                "mean": -29.52220164663136,
+                "min": -67.68798894442001,
+                "sum": -4575.941255227861,
+                "undefined": 0
+              },
+              "gate_quiet_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 155,
+                "max": 0.0,
+                "mean": -0.021653225806451785,
+                "min": -1.0,
+                "sum": -3.356250000000027,
+                "undefined": 0
+              },
+              "target_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 155,
+                "max": 48.20430613286805,
+                "mean": 0.7626416827706867,
+                "min": -32.20998184838595,
+                "sum": 118.20946082945643,
+                "undefined": 0
+              },
+              "target_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 155,
+                "max": 0.878667556103255,
+                "mean": -0.025040597639059307,
+                "min": -0.9811638336816071,
+                "sum": -3.8812926340541924,
+                "undefined": 0
+              },
+              "total_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 155,
+                "max": 34.026451908951934,
+                "mean": 1.6553399218504736,
+                "min": -20.703825961048963,
+                "sum": 256.5776878868234,
+                "undefined": 0
+              }
+            }
+          }
+        },
+        "energy_transition_counts": {
+          "target": {
+            "before_positive_after_zero": 0,
+            "before_zero_after_positive": 0,
+            "both_positive": 946,
+            "both_zero": 0,
+            "unavailable": 1
+          },
+          "total": {
+            "before_positive_after_zero": 0,
+            "before_zero_after_positive": 0,
+            "both_positive": 946,
+            "both_zero": 0,
+            "unavailable": 1
+          }
+        },
+        "reference_count": 947,
+        "spectral_availability": {
+          "after_only": 0,
+          "before_only": 1,
+          "both": 946,
+          "neither": 0
+        },
+        "statistics": {
+          "after_gate_quiet_fraction": {
+            "cohort_quantiles_computed": false,
+            "count": 946,
+            "max": 1.0,
+            "mean": 0.010064746300211364,
+            "min": 0.0,
+            "sum": 9.52124999999995,
+            "undefined": 1
+          },
+          "after_target_dbfs": {
+            "cohort_quantiles_computed": false,
+            "count": 946,
+            "max": -19.202352371174424,
+            "mean": -38.58069981068836,
+            "min": -97.24339262044482,
+            "sum": -36497.34202091119,
+            "undefined": 1
+          },
+          "after_target_fraction": {
+            "cohort_quantiles_computed": false,
+            "count": 946,
+            "max": 0.9982611885435958,
+            "mean": 0.3150165269315286,
+            "min": 0.00015242737592091363,
+            "sum": 298.00563447722607,
+            "undefined": 1
+          },
+          "after_total_dbfs": {
+            "cohort_quantiles_computed": false,
+            "count": 946,
+            "max": -18.43334968682665,
+            "mean": -29.84422257734161,
+            "min": -88.05736947992409,
+            "sum": -28232.634558165166,
+            "undefined": 1
+          },
+          "before_gate_quiet_fraction": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": 1.0,
+            "mean": 0.01383183738120382,
+            "min": 0.0,
+            "sum": 13.098750000000017,
+            "undefined": 0
+          },
+          "before_target_dbfs": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": -17.66397856203772,
+            "mean": -32.84637210094232,
+            "min": -92.64261604574145,
+            "sum": -31105.514379592372,
+            "undefined": 0
+          },
+          "before_target_fraction": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": 0.9995228465638882,
+            "mean": 0.653192693941435,
+            "min": 0.00013464414559364517,
+            "sum": 618.5734811625389,
+            "undefined": 0
+          },
+          "before_total_dbfs": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": -16.99290009143209,
+            "mean": -29.621867430338348,
+            "min": -86.48652484524843,
+            "sum": -28051.908456530415,
+            "undefined": 0
+          },
+          "gate_quiet_fraction_change": {
+            "cohort_quantiles_computed": false,
+            "count": 946,
+            "max": 1.0,
+            "mean": -0.002724630021141721,
+            "min": -1.0,
+            "sum": -2.577500000000068,
+            "undefined": 1
+          },
+          "target_change_db": {
+            "cohort_quantiles_computed": false,
+            "count": 946,
+            "max": 55.710008427298376,
+            "mean": -5.789487986025378,
+            "min": -43.22153038731574,
+            "sum": -5476.855634780008,
+            "undefined": 1
+          },
+          "target_fraction_change": {
+            "cohort_quantiles_computed": false,
+            "count": 946,
+            "max": 0.9723315991101483,
+            "mean": -0.33858320724178476,
+            "min": -0.9932533863917413,
+            "sum": -320.29971405072837,
+            "undefined": 1
+          },
+          "total_change_db": {
+            "cohort_quantiles_computed": false,
+            "count": 946,
+            "max": 51.331258223008035,
+            "mean": -0.27488117531751566,
+            "min": -34.70482180930607,
+            "sum": -260.03759185036984,
+            "undefined": 1
+          }
+        }
+      },
+      "onset": {
+        "by_context": {
+          "isolated_annotation_context": {
+            "energy_transition_counts": {
+              "target": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 53,
+                "both_zero": 0,
+                "unavailable": 0
+              },
+              "total": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 53,
+                "both_zero": 0,
+                "unavailable": 0
+              }
+            },
+            "reference_count": 53,
+            "spectral_availability": {
+              "after_only": 0,
+              "before_only": 0,
+              "both": 53,
+              "neither": 0
+            },
+            "statistics": {
+              "after_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 53,
+                "max": 1.0,
+                "mean": 0.06719339622641841,
+                "min": 0.0,
+                "sum": 3.5612500000001757,
+                "undefined": 0
+              },
+              "after_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 53,
+                "max": -22.0084134590512,
+                "mean": -34.91804900145929,
+                "min": -74.81168582294187,
+                "sum": -1850.6565970773422,
+                "undefined": 0
+              },
+              "after_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 53,
+                "max": 0.9945039699290276,
+                "mean": 0.7226706641538746,
+                "min": 0.08293093485729182,
+                "sum": 38.30154520015535,
+                "undefined": 0
+              },
+              "after_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 53,
+                "max": -19.97982173565133,
+                "mean": -33.05104571456748,
+                "min": -66.64561927555248,
+                "sum": -1751.7054228720763,
+                "undefined": 0
+              },
+              "before_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 53,
+                "max": 1.0,
+                "mean": 0.3189858490566052,
+                "min": 0.0,
+                "sum": 16.906250000000075,
+                "undefined": 0
+              },
+              "before_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 53,
+                "max": -23.12941613006619,
+                "mean": -55.58787553891994,
+                "min": -89.94262295816078,
+                "sum": -2946.157403562757,
+                "undefined": 0
+              },
+              "before_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 53,
+                "max": 0.9804883152302387,
+                "mean": 0.3012445988653135,
+                "min": 0.00033907511314997554,
+                "sum": 15.965963739861618,
+                "undefined": 0
+              },
+              "before_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 53,
+                "max": -19.595813049760093,
+                "mean": -44.7273279431611,
+                "min": -78.69308982493429,
+                "sum": -2370.548380987538,
+                "undefined": 0
+              },
+              "gate_quiet_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 53,
+                "max": 0.14500000000005842,
+                "mean": -0.25179245283018675,
+                "min": -1.0,
+                "sum": -13.344999999999898,
+                "undefined": 0
+              },
+              "target_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 53,
+                "max": 63.781272310399274,
+                "mean": 20.669826537460654,
+                "min": -10.348602885604834,
+                "sum": 1095.5008064854146,
+                "undefined": 0
+              },
+              "target_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 53,
+                "max": 0.9707461005921588,
+                "mean": 0.4214260652885611,
+                "min": -0.8489198512718686,
+                "sum": 22.33558146029374,
+                "undefined": 0
+              },
+              "total_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 53,
+                "max": 55.75041337837028,
+                "mean": 11.676282228593614,
+                "min": -10.251499297625124,
+                "sum": 618.8429581154616,
+                "undefined": 0
+              }
+            }
+          },
+          "other_pitch_neighbor": {
+            "energy_transition_counts": {
+              "target": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 729,
+                "both_zero": 0,
+                "unavailable": 0
+              },
+              "total": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 729,
+                "both_zero": 0,
+                "unavailable": 0
+              }
+            },
+            "reference_count": 729,
+            "spectral_availability": {
+              "after_only": 0,
+              "before_only": 0,
+              "both": 729,
+              "neither": 0
+            },
+            "statistics": {
+              "after_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 729,
+                "max": 0.0,
+                "mean": 0.0,
+                "min": 0.0,
+                "sum": 0.0,
+                "undefined": 0
+              },
+              "after_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 729,
+                "max": -18.913849581637127,
+                "mean": -31.084085802596885,
+                "min": -69.93831400133072,
+                "sum": -22660.298550093128,
+                "undefined": 0
+              },
+              "after_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 729,
+                "max": 0.9992587780414901,
+                "mean": 0.6749907877406812,
+                "min": 0.000497824278136282,
+                "sum": 492.06828426295664,
+                "undefined": 0
+              },
+              "after_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 729,
+                "max": -17.47159570585891,
+                "mean": -28.616662900393294,
+                "min": -52.92128674496972,
+                "sum": -20861.54725438671,
+                "undefined": 0
+              },
+              "before_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 729,
+                "max": 1.0,
+                "mean": 0.016344307270233446,
+                "min": 0.0,
+                "sum": 11.915000000000182,
+                "undefined": 0
+              },
+              "before_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 729,
+                "max": -19.105125703592982,
+                "mean": -44.07479062440737,
+                "min": -81.24445123769448,
+                "sum": -32130.522365192974,
+                "undefined": 0
+              },
+              "before_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 729,
+                "max": 0.9954822441612091,
+                "mean": 0.13516278237374857,
+                "min": 9.653081686032371e-06,
+                "sum": 98.5336683504627,
+                "undefined": 0
+              },
+              "before_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 729,
+                "max": -16.99290009143209,
+                "mean": -29.36683613137279,
+                "min": -66.5317643620409,
+                "sum": -21408.423539770763,
+                "undefined": 0
+              },
+              "gate_quiet_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 729,
+                "max": 0.0,
+                "mean": -0.016344307270233446,
+                "min": -1.0,
+                "sum": -11.915000000000182,
+                "undefined": 0
+              },
+              "target_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 729,
+                "max": 51.86815805526017,
+                "mean": 12.990704821810487,
+                "min": -24.36726244276184,
+                "sum": 9470.223815099846,
+                "undefined": 0
+              },
+              "target_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 729,
+                "max": 0.9910653111090549,
+                "mean": 0.5398280053669327,
+                "min": -0.8853905632087927,
+                "sum": 393.5346159124939,
+                "undefined": 0
+              },
+              "total_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 729,
+                "max": 44.795537554059294,
+                "mean": 0.7501732309794947,
+                "min": -21.665107384772384,
+                "sum": 546.8762853840517,
+                "undefined": 0
+              }
+            }
+          },
+          "own_note_short_window": {
+            "energy_transition_counts": {
+              "target": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 12,
+                "both_zero": 0,
+                "unavailable": 0
+              },
+              "total": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 12,
+                "both_zero": 0,
+                "unavailable": 0
+              }
+            },
+            "reference_count": 12,
+            "spectral_availability": {
+              "after_only": 0,
+              "before_only": 0,
+              "both": 12,
+              "neither": 0
+            },
+            "statistics": {
+              "after_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 12,
+                "max": 0.0,
+                "mean": 0.0,
+                "min": 0.0,
+                "sum": 0.0,
+                "undefined": 0
+              },
+              "after_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 12,
+                "max": -23.98996332159774,
+                "mean": -32.01365574273073,
+                "min": -51.2679172952288,
+                "sum": -384.16386891276875,
+                "undefined": 0
+              },
+              "after_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 12,
+                "max": 0.9778134446366936,
+                "mean": 0.6241195837532224,
+                "min": 0.004421159783236494,
+                "sum": 7.489435005038669,
+                "undefined": 0
+              },
+              "after_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 12,
+                "max": -22.668232654327575,
+                "mean": -28.334657291912407,
+                "min": -35.681837504311844,
+                "sum": -340.0158875029489,
+                "undefined": 0
+              },
+              "before_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 12,
+                "max": 0.5000000000000222,
+                "mean": 0.04166666666666852,
+                "min": 0.0,
+                "sum": 0.5000000000000222,
+                "undefined": 0
+              },
+              "before_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 12,
+                "max": -36.03121056483724,
+                "mean": -53.79007709971891,
+                "min": -69.60177903759069,
+                "sum": -645.4809251966269,
+                "undefined": 0
+              },
+              "before_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 12,
+                "max": 0.896571011917041,
+                "mean": 0.18681281933982685,
+                "min": 0.0003888972656826405,
+                "sum": 2.2417538320779222,
+                "undefined": 0
+              },
+              "before_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 12,
+                "max": -26.151838359741664,
+                "mean": -38.400321128510235,
+                "min": -57.32808156765788,
+                "sum": -460.8038535421228,
+                "undefined": 0
+              },
+              "gate_quiet_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 12,
+                "max": 0.0,
+                "mean": -0.04166666666666852,
+                "min": -0.5000000000000222,
+                "sum": -0.5000000000000222,
+                "undefined": 0
+              },
+              "target_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 12,
+                "max": 42.189006045021586,
+                "mean": 21.77642135698818,
+                "min": -15.23670673039156,
+                "sum": 261.31705628385816,
+                "undefined": 0
+              },
+              "target_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 12,
+                "max": 0.8625716261115678,
+                "mean": 0.43730676441339567,
+                "min": -0.36532922580108623,
+                "sum": 5.247681172960748,
+                "undefined": 0
+              },
+              "total_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 12,
+                "max": 21.64624406334604,
+                "mean": 10.065663836597826,
+                "min": -4.854773276796703,
+                "sum": 120.78796603917392,
+                "undefined": 0
+              }
+            }
+          },
+          "same_pitch_neighbor": {
+            "energy_transition_counts": {
+              "target": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 153,
+                "both_zero": 0,
+                "unavailable": 0
+              },
+              "total": {
+                "before_positive_after_zero": 0,
+                "before_zero_after_positive": 0,
+                "both_positive": 153,
+                "both_zero": 0,
+                "unavailable": 0
+              }
+            },
+            "reference_count": 153,
+            "spectral_availability": {
+              "after_only": 0,
+              "before_only": 0,
+              "both": 153,
+              "neither": 0
+            },
+            "statistics": {
+              "after_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 153,
+                "max": 0.031249999999993755,
+                "mean": 0.00020424836601303108,
+                "min": 0.0,
+                "sum": 0.031249999999993755,
+                "undefined": 0
+              },
+              "after_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 153,
+                "max": -19.6899747599533,
+                "mean": -30.87676514459639,
+                "min": -52.928781599875336,
+                "sum": -4724.145067123248,
+                "undefined": 0
+              },
+              "after_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 153,
+                "max": 0.9980158532876093,
+                "mean": 0.6286703371202605,
+                "min": 0.003193093108390299,
+                "sum": 96.18656157939986,
+                "undefined": 0
+              },
+              "after_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 153,
+                "max": -18.812672115765064,
+                "mean": -27.373437948912112,
+                "min": -40.89622118968914,
+                "sum": -4188.136006183553,
+                "undefined": 0
+              },
+              "before_gate_quiet_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 153,
+                "max": 1.0,
+                "mean": 0.0193627450980395,
+                "min": 0.0,
+                "sum": 2.962500000000044,
+                "undefined": 0
+              },
+              "before_target_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 153,
+                "max": -18.135027641310405,
+                "mean": -34.61313118830693,
+                "min": -73.32405842439195,
+                "sum": -5295.809071810961,
+                "undefined": 0
+              },
+              "before_target_fraction": {
+                "cohort_quantiles_computed": false,
+                "count": 153,
+                "max": 0.9984566790005767,
+                "mean": 0.5735702925492075,
+                "min": 0.0008289067570564306,
+                "sum": 87.75625476002875,
+                "undefined": 0
+              },
+              "before_total_dbfs": {
+                "cohort_quantiles_computed": false,
+                "count": 153,
+                "max": -17.85159675476682,
+                "mean": -30.085041161411443,
+                "min": -67.68798894442001,
+                "sum": -4603.011297695951,
+                "undefined": 0
+              },
+              "gate_quiet_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 153,
+                "max": 0.0,
+                "mean": -0.01915849673202647,
+                "min": -1.0,
+                "sum": -2.93125000000005,
+                "undefined": 0
+              },
+              "target_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 153,
+                "max": 39.595873584199055,
+                "mean": 3.7363660437105466,
+                "min": -21.273102809913674,
+                "sum": 571.6640046877136,
+                "undefined": 0
+              },
+              "target_fraction_change": {
+                "cohort_quantiles_computed": false,
+                "count": 153,
+                "max": 0.8851976944433088,
+                "mean": 0.055100044571053025,
+                "min": -0.984072582625872,
+                "sum": 8.430306819371113,
+                "undefined": 0
+              },
+              "total_change_db": {
+                "cohort_quantiles_computed": false,
+                "count": 153,
+                "max": 34.026451908951934,
+                "mean": 2.7116032124993317,
+                "min": -10.977473491127633,
+                "sum": 414.8752915123977,
+                "undefined": 0
+              }
+            }
+          }
+        },
+        "energy_transition_counts": {
+          "target": {
+            "before_positive_after_zero": 0,
+            "before_zero_after_positive": 0,
+            "both_positive": 947,
+            "both_zero": 0,
+            "unavailable": 0
+          },
+          "total": {
+            "before_positive_after_zero": 0,
+            "before_zero_after_positive": 0,
+            "both_positive": 947,
+            "both_zero": 0,
+            "unavailable": 0
+          }
+        },
+        "reference_count": 947,
+        "spectral_availability": {
+          "after_only": 0,
+          "before_only": 0,
+          "both": 947,
+          "neither": 0
+        },
+        "statistics": {
+          "after_gate_quiet_fraction": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": 1.0,
+            "mean": 0.003793558606124783,
+            "min": 0.0,
+            "sum": 3.5925000000001694,
+            "undefined": 0
+          },
+          "after_target_dbfs": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": -18.913849581637127,
+            "mean": -31.27694200972174,
+            "min": -74.81168582294187,
+            "sum": -29619.264083206486,
+            "undefined": 0
+          },
+          "after_target_fraction": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": 0.9992587780414901,
+            "mean": 0.6695309673152593,
+            "min": 0.000497824278136282,
+            "sum": 634.0458260475506,
+            "undefined": 0
+          },
+          "after_total_dbfs": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": -17.47159570585891,
+            "mean": -28.66040609392322,
+            "min": -66.64561927555248,
+            "sum": -27141.40457094529,
+            "undefined": 0
+          },
+          "before_gate_quiet_fraction": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": 1.0,
+            "mean": 0.03409054910242906,
+            "min": 0.0,
+            "sum": 32.283750000000325,
+            "undefined": 0
+          },
+          "before_target_dbfs": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": -18.135027641310405,
+            "mean": -43.31359003776486,
+            "min": -89.94262295816078,
+            "sum": -41017.96976576332,
+            "undefined": 0
+          },
+          "before_target_fraction": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": 0.9984566790005767,
+            "mean": 0.2159425983974984,
+            "min": 9.653081686032371e-06,
+            "sum": 204.49764068243098,
+            "undefined": 0
+          },
+          "before_total_dbfs": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": -16.99290009143209,
+            "mean": -30.457008523755412,
+            "min": -78.69308982493429,
+            "sum": -28842.787071996376,
+            "undefined": 0
+          },
+          "gate_quiet_fraction_change": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": 0.14500000000005842,
+            "mean": -0.030296990496304278,
+            "min": -1.0,
+            "sum": -28.691250000000153,
+            "undefined": 0
+          },
+          "target_change_db": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": 63.781272310399274,
+            "mean": 12.036648028043118,
+            "min": -24.36726244276184,
+            "sum": 11398.705682556832,
+            "undefined": 0
+          },
+          "target_fraction_change": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": 0.9910653111090549,
+            "mean": 0.4535883689177609,
+            "min": -0.984072582625872,
+            "sum": 429.54818536511954,
+            "undefined": 0
+          },
+          "total_change_db": {
+            "cohort_quantiles_computed": false,
+            "count": 947,
+            "max": 55.75041337837028,
+            "mean": 1.7966024298321912,
+            "min": -21.665107384772384,
+            "sum": 1701.382501051085,
+            "undefined": 0
+          }
+        }
+      }
+    },
+    "context_counts_from_original_annotations": {
+      "02": {
+        "midpoint": {
+          "isolated_annotation_context": 69,
+          "other_pitch_neighbor": 2,
+          "own_note_short_window": 0,
+          "same_pitch_neighbor": 2
+        },
+        "offset": {
+          "isolated_annotation_context": 4,
+          "other_pitch_neighbor": 53,
+          "own_note_short_window": 0,
+          "same_pitch_neighbor": 16
+        },
+        "onset": {
+          "isolated_annotation_context": 4,
+          "other_pitch_neighbor": 53,
+          "own_note_short_window": 0,
+          "same_pitch_neighbor": 16
+        }
+      },
+      "05": {
+        "midpoint": {
+          "isolated_annotation_context": 63,
+          "other_pitch_neighbor": 86,
+          "own_note_short_window": 0,
+          "same_pitch_neighbor": 2
+        },
+        "offset": {
+          "isolated_annotation_context": 5,
+          "other_pitch_neighbor": 144,
+          "own_note_short_window": 0,
+          "same_pitch_neighbor": 2
+        },
+        "onset": {
+          "isolated_annotation_context": 7,
+          "other_pitch_neighbor": 142,
+          "own_note_short_window": 0,
+          "same_pitch_neighbor": 2
+        }
+      },
+      "06": {
+        "midpoint": {
+          "isolated_annotation_context": 148,
+          "other_pitch_neighbor": 11,
+          "own_note_short_window": 0,
+          "same_pitch_neighbor": 1
+        },
+        "offset": {
+          "isolated_annotation_context": 3,
+          "other_pitch_neighbor": 129,
+          "own_note_short_window": 0,
+          "same_pitch_neighbor": 28
+        },
+        "onset": {
+          "isolated_annotation_context": 4,
+          "other_pitch_neighbor": 128,
+          "own_note_short_window": 0,
+          "same_pitch_neighbor": 28
+        }
+      },
+      "08": {
+        "midpoint": {
+          "isolated_annotation_context": 58,
+          "other_pitch_neighbor": 117,
+          "own_note_short_window": 1,
+          "same_pitch_neighbor": 27
+        },
+        "offset": {
+          "isolated_annotation_context": 10,
+          "other_pitch_neighbor": 148,
+          "own_note_short_window": 0,
+          "same_pitch_neighbor": 45
+        },
+        "onset": {
+          "isolated_annotation_context": 12,
+          "other_pitch_neighbor": 145,
+          "own_note_short_window": 2,
+          "same_pitch_neighbor": 44
+        }
+      },
+      "12": {
+        "midpoint": {
+          "isolated_annotation_context": 54,
+          "other_pitch_neighbor": 3,
+          "own_note_short_window": 2,
+          "same_pitch_neighbor": 6
+        },
+        "offset": {
+          "isolated_annotation_context": 4,
+          "other_pitch_neighbor": 38,
+          "own_note_short_window": 1,
+          "same_pitch_neighbor": 22
+        },
+        "onset": {
+          "isolated_annotation_context": 4,
+          "other_pitch_neighbor": 38,
+          "own_note_short_window": 1,
+          "same_pitch_neighbor": 22
+        }
+      },
+      "19": {
+        "midpoint": {
+          "isolated_annotation_context": 39,
+          "other_pitch_neighbor": 184,
+          "own_note_short_window": 42,
+          "same_pitch_neighbor": 30
+        },
+        "offset": {
+          "isolated_annotation_context": 23,
+          "other_pitch_neighbor": 222,
+          "own_note_short_window": 8,
+          "same_pitch_neighbor": 42
+        },
+        "onset": {
+          "isolated_annotation_context": 22,
+          "other_pitch_neighbor": 223,
+          "own_note_short_window": 9,
+          "same_pitch_neighbor": 41
+        }
+      }
+    },
+    "recordings": 6,
+    "references_per_boundary_kind": 947,
+    "rest_counts": {
+      "collapsed_core_intervals": 0,
+      "instrument_wide_rest_intervals": 36,
+      "projected_rest_intervals": 18,
+      "unprojectable_rest_intervals": 18
+    },
+    "rest_regions": {
+      "boundary_uncertain": {
+        "active_s": 6.35578916666665,
+        "annotated_note_overlap": {
+          "active_s": 3.5850227777777572,
+          "duration_s": 3.6574227777777604,
+          "quiet_fraction": 0.01979535984734944,
+          "quiet_s": 0.07240000000000313
+        },
+        "duration_s": 7.55970062499999,
+        "quiet_fraction": 0.1592538538301365,
+        "quiet_s": 1.20391145833334,
+        "uncovered_by_note_annotations": {
+          "active_s": 2.7707663888888927,
+          "duration_s": 3.90227784722223,
+          "quiet_fraction": 0.2899617870979597,
+          "quiet_s": 1.1315114583333368
+        }
+      },
+      "core": {
+        "active_s": 2.3877564583333335,
+        "annotated_note_overlap": {
+          "active_s": 0.04203722222222517,
+          "duration_s": 0.04203722222222517,
+          "quiet_fraction": 0.0,
+          "quiet_s": 0.0
+        },
+        "duration_s": 3.4038449999999996,
+        "quiet_fraction": 0.29851198913777394,
+        "quiet_s": 1.016088541666666,
+        "uncovered_by_note_annotations": {
+          "active_s": 2.3457192361111083,
+          "duration_s": 3.3618077777777744,
+          "quiet_fraction": 0.30224468763003515,
+          "quiet_s": 1.016088541666666
+        }
+      },
+      "envelope": {
+        "active_s": 8.743545624999983,
+        "annotated_note_overlap": {
+          "active_s": 3.6270599999999824,
+          "duration_s": 3.6994599999999855,
+          "quiet_fraction": 0.019570423791581314,
+          "quiet_s": 0.07240000000000313
+        },
+        "duration_s": 10.96354562499999,
+        "quiet_fraction": 0.20248923805614283,
+        "quiet_s": 2.220000000000006,
+        "uncovered_by_note_annotations": {
+          "active_s": 5.116485625000001,
+          "duration_s": 7.264085625000004,
+          "quiet_fraction": 0.2956462947805632,
+          "quiet_s": 2.147600000000003
+        }
+      }
+    },
+    "rest_spectra": {
+      "boundary_uncertain": {
+        "annotated_note_overlap": {
+          "full_frame_count": 234,
+          "interval_count": 29,
+          "intervals_without_full_spectral_frame": 2,
+          "mean_total_band_power": 0.003091572104876234,
+          "total_band_dbfs": -25.09820619977111,
+          "total_band_power_sum": 0.7234278725410387,
+          "zero_total_frames": 0
+        },
+        "full_frame_count": 587,
+        "interval_count": 36,
+        "intervals_without_full_spectral_frame": 0,
+        "mean_total_band_power": 0.0021503346367499534,
+        "total_band_dbfs": -26.674939495796938,
+        "total_band_power_sum": 1.2622464317722226,
+        "uncovered_by_note_annotations": {
+          "full_frame_count": 242,
+          "interval_count": 34,
+          "intervals_without_full_spectral_frame": 4,
+          "mean_total_band_power": 0.0012736965997413037,
+          "total_band_dbfs": -28.949340105802825,
+          "total_band_power_sum": 0.3082345771373955,
+          "zero_total_frames": 0
+        },
+        "zero_total_frames": 0
+      },
+      "core": {
+        "annotated_note_overlap": {
+          "full_frame_count": 0,
+          "interval_count": 2,
+          "intervals_without_full_spectral_frame": 2,
+          "mean_total_band_power": null,
+          "total_band_dbfs": null,
+          "total_band_power_sum": 0.0,
+          "zero_total_frames": 0
+        },
+        "full_frame_count": 258,
+        "interval_count": 18,
+        "intervals_without_full_spectral_frame": 0,
+        "mean_total_band_power": 0.0005316507797253951,
+        "total_band_dbfs": -32.74373544844987,
+        "total_band_power_sum": 0.13716590116915192,
+        "uncovered_by_note_annotations": {
+          "full_frame_count": 254,
+          "interval_count": 18,
+          "intervals_without_full_spectral_frame": 0,
+          "mean_total_band_power": 0.0005377346034270139,
+          "total_band_dbfs": -32.69432015607937,
+          "total_band_power_sum": 0.13658458927046152,
+          "zero_total_frames": 0
+        },
+        "zero_total_frames": 0
+      },
+      "envelope": {
+        "annotated_note_overlap": {
+          "full_frame_count": 238,
+          "interval_count": 29,
+          "intervals_without_full_spectral_frame": 2,
+          "mean_total_band_power": 0.0030732149548770263,
+          "total_band_dbfs": -25.124070621152196,
+          "total_band_power_sum": 0.7314251592607323,
+          "zero_total_frames": 0
+        },
+        "full_frame_count": 1012,
+        "interval_count": 18,
+        "intervals_without_full_spectral_frame": 0,
+        "mean_total_band_power": 0.0015251595399884226,
+        "total_band_dbfs": -28.166847243745252,
+        "total_band_power_sum": 1.5434614544682836,
+        "uncovered_by_note_annotations": {
+          "full_frame_count": 645,
+          "interval_count": 18,
+          "intervals_without_full_spectral_frame": 0,
+          "mean_total_band_power": 0.0008565488375779131,
+          "total_band_dbfs": -30.67247869959502,
+          "total_band_power_sum": 0.552474000237754,
+          "zero_total_frames": 0
+        },
+        "zero_total_frames": 0
+      }
+    },
+    "spectral_boundary_crossing_counts": {
+      "02": {
+        "boundary_uncertain_annotation_boundary_frames": 0,
+        "core_annotation_boundary_frames": 0,
+        "core_uncertain_boundary_frames": 0,
+        "envelope_annotation_boundary_frames": 0
+      },
+      "05": {
+        "boundary_uncertain_annotation_boundary_frames": 0,
+        "core_annotation_boundary_frames": 0,
+        "core_uncertain_boundary_frames": 0,
+        "envelope_annotation_boundary_frames": 0
+      },
+      "06": {
+        "boundary_uncertain_annotation_boundary_frames": 0,
+        "core_annotation_boundary_frames": 0,
+        "core_uncertain_boundary_frames": 0,
+        "envelope_annotation_boundary_frames": 0
+      },
+      "08": {
+        "boundary_uncertain_annotation_boundary_frames": 66,
+        "core_annotation_boundary_frames": 3,
+        "core_uncertain_boundary_frames": 76,
+        "envelope_annotation_boundary_frames": 71
+      },
+      "12": {
+        "boundary_uncertain_annotation_boundary_frames": 5,
+        "core_annotation_boundary_frames": 0,
+        "core_uncertain_boundary_frames": 9,
+        "envelope_annotation_boundary_frames": 8
+      },
+      "19": {
+        "boundary_uncertain_annotation_boundary_frames": 40,
+        "core_annotation_boundary_frames": 1,
+        "core_uncertain_boundary_frames": 82,
+        "envelope_annotation_boundary_frames": 50
+      }
+    },
+    "watchlist_descriptor_arithmetic": {
+      "02": {
+        "14": {
+          "midpoint": {
+            "context": "isolated_annotation_context",
+            "metrics": {
+              "after_gate_quiet_fraction": 0.0,
+              "after_target_dbfs": -27.19559297815133,
+              "after_target_fraction": 0.8790119744759571,
+              "after_total_dbfs": -26.635540891726475,
+              "before_gate_quiet_fraction": 0.0,
+              "before_target_dbfs": -27.35371940989902,
+              "before_target_fraction": 0.8507140252618881,
+              "before_total_dbfs": -26.65155533831991,
+              "gate_quiet_fraction_change": 0.0,
+              "target_change_db": 0.15812643174769292,
+              "target_fraction_change": 0.02829794921406903,
+              "total_change_db": 0.016014446593434428
+            }
+          },
+          "offset": {
+            "context": "isolated_annotation_context",
+            "metrics": {
+              "after_gate_quiet_fraction": 0.0,
+              "after_target_dbfs": -23.074286903120516,
+              "after_target_fraction": 0.9105381872655554,
+              "after_total_dbfs": -22.667268547987668,
+              "before_gate_quiet_fraction": 0.0,
+              "before_target_dbfs": -27.07141636520285,
+              "before_target_fraction": 0.9597270141692459,
+              "before_total_dbfs": -26.892893559145712,
+              "gate_quiet_fraction_change": 0.0,
+              "target_change_db": 3.9971294620823343,
+              "target_fraction_change": -0.04918882690369053,
+              "total_change_db": 4.225625011158044
+            }
+          },
+          "onset": {
+            "context": "isolated_annotation_context",
+            "metrics": {
+              "after_gate_quiet_fraction": 1.0,
+              "after_target_dbfs": -46.920347776109836,
+              "after_target_fraction": 0.9638631215480687,
+              "after_total_dbfs": -46.76050141620551,
+              "before_gate_quiet_fraction": 1.0,
+              "before_target_dbfs": -75.94323801031027,
+              "before_target_fraction": 0.05637897658524235,
+              "before_total_dbfs": -63.454409891431276,
+              "gate_quiet_fraction_change": 0.0,
+              "target_change_db": 29.022890234200432,
+              "target_fraction_change": 0.9074841449628264,
+              "total_change_db": 16.69390847522577
+            }
+          }
+        }
+      },
+      "05": {},
+      "06": {
+        "159": {
+          "midpoint": {
+            "context": "isolated_annotation_context",
+            "metrics": {
+              "after_gate_quiet_fraction": 0.0,
+              "after_target_dbfs": -38.45800268728365,
+              "after_target_fraction": 0.933673097435533,
+              "after_total_dbfs": -38.159951140901946,
+              "before_gate_quiet_fraction": 0.0,
+              "before_target_dbfs": -36.05225908433618,
+              "before_target_fraction": 0.9511884541581501,
+              "before_total_dbfs": -35.83492478465366,
+              "gate_quiet_fraction_change": 0.0,
+              "target_change_db": -2.4057436029474744,
+              "target_fraction_change": -0.01751535672261717,
+              "total_change_db": -2.325026356248287
+            }
+          },
+          "offset": {
+            "context": "isolated_annotation_context",
+            "metrics": {
+              "after_gate_quiet_fraction": 1.0,
+              "after_target_dbfs": -97.24339262044482,
+              "after_target_fraction": 0.12061399040695478,
+              "after_total_dbfs": -88.05736947992409,
+              "before_gate_quiet_fraction": 1.0,
+              "before_target_dbfs": -92.64261604574145,
+              "before_target_fraction": 0.2423209036920692,
+              "before_total_dbfs": -86.48652484524843,
+              "gate_quiet_fraction_change": 0.0,
+              "target_change_db": -4.600776574703374,
+              "target_fraction_change": -0.12170691328511443,
+              "total_change_db": -1.570844634675666
+            }
+          },
+          "onset": {
+            "context": "same_pitch_neighbor",
+            "metrics": {
+              "after_gate_quiet_fraction": 0.0,
+              "after_target_dbfs": -39.105673007193744,
+              "after_target_fraction": 0.8728152397084032,
+              "after_total_dbfs": -38.51489621323816,
+              "before_gate_quiet_fraction": 0.0,
+              "before_target_dbfs": -34.351078649550956,
+              "before_target_fraction": 0.9243092948712972,
+              "before_total_dbfs": -34.00925185286968,
+              "gate_quiet_fraction_change": 0.0,
+              "target_change_db": -4.754594357642787,
+              "target_fraction_change": -0.05149405516289396,
+              "total_change_db": -4.505644360368478
+            }
+          }
+        }
+      },
+      "08": {},
+      "12": {
+        "16": {
+          "midpoint": {
+            "context": "isolated_annotation_context",
+            "metrics": {
+              "after_gate_quiet_fraction": 0.0,
+              "after_target_dbfs": -36.84489590903137,
+              "after_target_fraction": 0.9921133639099955,
+              "after_total_dbfs": -36.81050890585165,
+              "before_gate_quiet_fraction": 0.0,
+              "before_target_dbfs": -35.90991779713591,
+              "before_target_fraction": 0.9814136038695892,
+              "before_total_dbfs": -35.828438533753484,
+              "gate_quiet_fraction_change": 0.0,
+              "target_change_db": -0.934978111895461,
+              "target_fraction_change": 0.010699760040406292,
+              "total_change_db": -0.9820703720981641
+            }
+          },
+          "offset": {
+            "context": "same_pitch_neighbor",
+            "metrics": {
+              "after_gate_quiet_fraction": 0.031249999999993755,
+              "after_target_dbfs": -33.728184840192895,
+              "after_target_fraction": 0.9847709290817616,
+              "after_total_dbfs": -33.66153703546808,
+              "before_gate_quiet_fraction": 1.0,
+              "before_target_dbfs": -73.32405842439195,
+              "before_target_fraction": 0.2731448723053937,
+              "before_total_dbfs": -67.68798894442001,
+              "gate_quiet_fraction_change": -0.9687500000000062,
+              "target_change_db": 39.595873584199055,
+              "target_fraction_change": 0.7116260567763679,
+              "total_change_db": 34.026451908951934
+            }
+          },
+          "onset": {
+            "context": "other_pitch_neighbor",
+            "metrics": {
+              "after_gate_quiet_fraction": 0.0,
+              "after_target_dbfs": -29.401309111931706,
+              "after_target_fraction": 0.9790106154040739,
+              "after_total_dbfs": -29.309183120733444,
+              "before_gate_quiet_fraction": 0.0,
+              "before_target_dbfs": -23.496205955258137,
+              "before_target_fraction": 0.22370176651294535,
+              "before_total_dbfs": -16.99290009143209,
+              "gate_quiet_fraction_change": 0.0,
+              "target_change_db": -5.905103156673569,
+              "target_fraction_change": 0.7553088488911285,
+              "total_change_db": -12.316283029301353
+            }
+          }
+        }
+      },
+      "19": {
+        "294": {
+          "midpoint": {
+            "context": "isolated_annotation_context",
+            "metrics": {
+              "after_gate_quiet_fraction": 0.0,
+              "after_target_dbfs": -31.678311242521595,
+              "after_target_fraction": 0.9061128728825121,
+              "after_total_dbfs": -31.25013424596448,
+              "before_gate_quiet_fraction": 0.0,
+              "before_target_dbfs": -29.344389186273037,
+              "before_target_fraction": 0.9730804411096609,
+              "before_total_dbfs": -29.22587661964538,
+              "gate_quiet_fraction_change": 0.0,
+              "target_change_db": -2.333922056248557,
+              "target_fraction_change": -0.06696756822714878,
+              "total_change_db": -2.024257626319102
+            }
+          },
+          "offset": {
+            "context": "isolated_annotation_context",
+            "metrics": {
+              "after_gate_quiet_fraction": 0.0,
+              "after_target_dbfs": -44.44062319405697,
+              "after_target_fraction": 0.887760549376411,
+              "after_total_dbfs": -43.923581611889716,
+              "before_gate_quiet_fraction": 0.0,
+              "before_target_dbfs": -43.27103017534106,
+              "before_target_fraction": 0.9762791462204956,
+              "before_total_dbfs": -43.16677030210785,
+              "gate_quiet_fraction_change": 0.0,
+              "target_change_db": -1.1695930187159078,
+              "target_fraction_change": -0.08851859684408458,
+              "total_change_db": -0.7568113097818667
+            }
+          },
+          "onset": {
+            "context": "isolated_annotation_context",
+            "metrics": {
+              "after_gate_quiet_fraction": 0.0,
+              "after_target_dbfs": -36.89822041532923,
+              "after_target_fraction": 0.8244211965085295,
+              "after_total_dbfs": -36.0597119083169,
+              "before_gate_quiet_fraction": 0.0,
+              "before_target_dbfs": -52.609781101686735,
+              "before_target_fraction": 0.018559372231572776,
+              "before_total_dbfs": -35.295413923438254,
+              "gate_quiet_fraction_change": 0.0,
+              "target_change_db": 15.711560686357508,
+              "target_fraction_change": 0.8058618242769567,
+              "total_change_db": -0.7642979848786453
+            }
+          }
+        }
+      }
+    },
+    "watchlist_transitions": {
+      "02": {
+        "causal_endpoint_attribution": false,
+        "changed_reference_indices": [
+          14
+        ],
+        "new_predictions_computed": false,
+        "references": {
+          "14": [
+            {
+              "arm": "raw",
+              "arm_matched": true,
+              "base": "default",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "raw",
+              "arm_matched": false,
+              "base": "default",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "relative_soft",
+              "arm_matched": false,
+              "base": "default",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "lost"
+            },
+            {
+              "arm": "relative_soft",
+              "arm_matched": false,
+              "base": "default",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "tail_only",
+              "arm_matched": true,
+              "base": "default",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "tail_only",
+              "arm_matched": false,
+              "base": "default",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "non_tail_only",
+              "arm_matched": false,
+              "base": "default",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "lost"
+            },
+            {
+              "arm": "non_tail_only",
+              "arm_matched": false,
+              "base": "default",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "raw",
+              "arm_matched": true,
+              "base": "onset065",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "raw",
+              "arm_matched": false,
+              "base": "onset065",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "relative_soft",
+              "arm_matched": false,
+              "base": "onset065",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "lost"
+            },
+            {
+              "arm": "relative_soft",
+              "arm_matched": false,
+              "base": "onset065",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "tail_only",
+              "arm_matched": true,
+              "base": "onset065",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "tail_only",
+              "arm_matched": false,
+              "base": "onset065",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "non_tail_only",
+              "arm_matched": false,
+              "base": "onset065",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "lost"
+            },
+            {
+              "arm": "non_tail_only",
+              "arm_matched": false,
+              "base": "onset065",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            }
+          ]
+        },
+        "source": "immutable prior reference match masks"
+      },
+      "05": {
+        "causal_endpoint_attribution": false,
+        "changed_reference_indices": [],
+        "new_predictions_computed": false,
+        "references": {},
+        "source": "immutable prior reference match masks"
+      },
+      "06": {
+        "causal_endpoint_attribution": false,
+        "changed_reference_indices": [
+          159
+        ],
+        "new_predictions_computed": false,
+        "references": {
+          "159": [
+            {
+              "arm": "raw",
+              "arm_matched": true,
+              "base": "default",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "raw",
+              "arm_matched": true,
+              "base": "default",
+              "metric": "onset_offset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "relative_soft",
+              "arm_matched": true,
+              "base": "default",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "relative_soft",
+              "arm_matched": false,
+              "base": "default",
+              "metric": "onset_offset",
+              "raw_matched": true,
+              "transition": "lost"
+            },
+            {
+              "arm": "tail_only",
+              "arm_matched": true,
+              "base": "default",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "tail_only",
+              "arm_matched": false,
+              "base": "default",
+              "metric": "onset_offset",
+              "raw_matched": true,
+              "transition": "lost"
+            },
+            {
+              "arm": "non_tail_only",
+              "arm_matched": true,
+              "base": "default",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "non_tail_only",
+              "arm_matched": true,
+              "base": "default",
+              "metric": "onset_offset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "raw",
+              "arm_matched": false,
+              "base": "onset065",
+              "metric": "onset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "raw",
+              "arm_matched": false,
+              "base": "onset065",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "relative_soft",
+              "arm_matched": false,
+              "base": "onset065",
+              "metric": "onset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "relative_soft",
+              "arm_matched": false,
+              "base": "onset065",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "tail_only",
+              "arm_matched": false,
+              "base": "onset065",
+              "metric": "onset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "tail_only",
+              "arm_matched": false,
+              "base": "onset065",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "non_tail_only",
+              "arm_matched": false,
+              "base": "onset065",
+              "metric": "onset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "non_tail_only",
+              "arm_matched": false,
+              "base": "onset065",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            }
+          ]
+        },
+        "source": "immutable prior reference match masks"
+      },
+      "08": {
+        "causal_endpoint_attribution": false,
+        "changed_reference_indices": [],
+        "new_predictions_computed": false,
+        "references": {},
+        "source": "immutable prior reference match masks"
+      },
+      "12": {
+        "causal_endpoint_attribution": false,
+        "changed_reference_indices": [
+          16
+        ],
+        "new_predictions_computed": false,
+        "references": {
+          "16": [
+            {
+              "arm": "raw",
+              "arm_matched": true,
+              "base": "default",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "raw",
+              "arm_matched": false,
+              "base": "default",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "relative_soft",
+              "arm_matched": true,
+              "base": "default",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "relative_soft",
+              "arm_matched": false,
+              "base": "default",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "tail_only",
+              "arm_matched": true,
+              "base": "default",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "tail_only",
+              "arm_matched": false,
+              "base": "default",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "non_tail_only",
+              "arm_matched": true,
+              "base": "default",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "non_tail_only",
+              "arm_matched": false,
+              "base": "default",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "raw",
+              "arm_matched": true,
+              "base": "onset065",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "raw",
+              "arm_matched": true,
+              "base": "onset065",
+              "metric": "onset_offset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "relative_soft",
+              "arm_matched": true,
+              "base": "onset065",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "relative_soft",
+              "arm_matched": false,
+              "base": "onset065",
+              "metric": "onset_offset",
+              "raw_matched": true,
+              "transition": "lost"
+            },
+            {
+              "arm": "tail_only",
+              "arm_matched": true,
+              "base": "onset065",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "tail_only",
+              "arm_matched": false,
+              "base": "onset065",
+              "metric": "onset_offset",
+              "raw_matched": true,
+              "transition": "lost"
+            },
+            {
+              "arm": "non_tail_only",
+              "arm_matched": true,
+              "base": "onset065",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "non_tail_only",
+              "arm_matched": true,
+              "base": "onset065",
+              "metric": "onset_offset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            }
+          ]
+        },
+        "source": "immutable prior reference match masks"
+      },
+      "19": {
+        "causal_endpoint_attribution": false,
+        "changed_reference_indices": [
+          294
+        ],
+        "new_predictions_computed": false,
+        "references": {
+          "294": [
+            {
+              "arm": "raw",
+              "arm_matched": true,
+              "base": "default",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "raw",
+              "arm_matched": false,
+              "base": "default",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "relative_soft",
+              "arm_matched": true,
+              "base": "default",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "relative_soft",
+              "arm_matched": true,
+              "base": "default",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "gained"
+            },
+            {
+              "arm": "tail_only",
+              "arm_matched": true,
+              "base": "default",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "tail_only",
+              "arm_matched": true,
+              "base": "default",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "gained"
+            },
+            {
+              "arm": "non_tail_only",
+              "arm_matched": true,
+              "base": "default",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "non_tail_only",
+              "arm_matched": false,
+              "base": "default",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "raw",
+              "arm_matched": true,
+              "base": "onset065",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "raw",
+              "arm_matched": false,
+              "base": "onset065",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "relative_soft",
+              "arm_matched": true,
+              "base": "onset065",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "relative_soft",
+              "arm_matched": true,
+              "base": "onset065",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "gained"
+            },
+            {
+              "arm": "tail_only",
+              "arm_matched": true,
+              "base": "onset065",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "tail_only",
+              "arm_matched": true,
+              "base": "onset065",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "gained"
+            },
+            {
+              "arm": "non_tail_only",
+              "arm_matched": true,
+              "base": "onset065",
+              "metric": "onset",
+              "raw_matched": true,
+              "transition": "unchanged"
+            },
+            {
+              "arm": "non_tail_only",
+              "arm_matched": false,
+              "base": "onset065",
+              "metric": "onset_offset",
+              "raw_matched": false,
+              "transition": "unchanged"
+            }
+          ]
+        },
+        "source": "immutable prior reference match masks"
+      }
+    }
+  },
+  "schema_version": 1,
+  "status": "passed",
+  "verified_source_sha256": {
+    "measured_11": {
+      ".github/workflows/cpu-kraisler-boundaries.yml": "94b859cedcd7b5446d0705917a6212c8ef767e7520c50580023bfb6f431da0b0",
+      "docs/research/KRAISLER_BOUNDARY_PROTOCOL_2026-11-12.md": "63b28f35a8b4fc09604dcf2dc677ab2d127ccadc2d98475a050f683226384026",
+      "scripts/kraisler_boundary_audit.py": "de697cb111fd85004381ed4674846cb9f73302436f8122e5e9dbbcab4a0dc007",
+      "scripts/kraisler_rest_acoustics.py": "83c8628526cff36f13f15434bad7cfb8e87be5547675b45219525173504d64d0",
+      "scripts/kraisler_waveform_features.py": "8c08f103dff579724925b02dd4e462eb04488ed4b75dbf6d8da823e0450f7419",
+      "scripts/research_test_manifest.json": "a3f64ac2e0c5d421654f29bba75ed6c339eb48c45d258db2338af6bef8460e4a",
+      "scripts/run_kraisler_boundaries.py": "c18187f4e95db9e35fc9c8490210e9aeb15197757116ec107704bab57b04570c",
+      "tests/test_kraisler_boundary_audit.py": "108a255d85baeac21957d766b9a34d28b9b1906410a0e5952a360ca50612cb7f",
+      "tests/test_kraisler_rest_acoustics.py": "7ba0c2a975e83ba31b84372422491aa2dd26f7d073a8e611d704cddef87f72f9",
+      "tests/test_kraisler_waveform_features.py": "18a0eae93571875547a0f8db51efdedd6f664e72d95b59acd39991a1120b6c5d",
+      "tests/test_run_kraisler_boundaries.py": "6fdf0cb35d76150f735420a446f5bea3ed3b3baf8cb3abed278d0e0132a3f8ba"
+    },
+    "retained_37": {
+      ".github/workflows/cpu-kraisler-alignment.yml": "d94b6841b12507491df7f58c595084d22b238de7a550e70328725b0353ce64f3",
+      ".github/workflows/cpu-kraisler-expressive.yml": "34d5212a28a3f6ee7ea2755f2adfc1a63a22051345aa49a52d6f4259d59151b2",
+      ".github/workflows/cpu-kraisler-gate.yml": "15a408d208567cb4c9ff272460ab2dfc0d937730741e61b8efb061ec12cec705",
+      "docs/research/KRAISLER_ALIGNMENT_PROTOCOL_2026-11-12.md": "49d9cc04e08b03afd22201a5a4541336f1fe294d57167ed968476b196d126a28",
+      "docs/research/KRAISLER_EXPRESSIVE_PROTOCOL_2026-11-12.md": "3ad6dc012ff934c92779bb4fc1c7a46cebb14d1b4821a8764b5f5b4271e4f94f",
+      "docs/research/KRAISLER_GATE_PROTOCOL_2026-11-12.md": "bfbe4bce2335f1b942f7f55a9c855c8f87657ba4ec8efa5f4ac040981b0e0c1d",
+      "scripts/audio_gate_attribution.py": "99b3c494b59fbb0725cc9dd4cd25665a777c93d1516ba6e5a13eb238ddf65cea",
+      "scripts/audio_gate_rest.py": "05f239835c2bee14e40cb059b68bad35c7c5a79f247c3d616677c501161fff73",
+      "scripts/kraisler_alignment_manifest.json": "ba062dc673f0ebb64c12a95c096144b3efb0975ab7e7be34be645359c3d6503d",
+      "scripts/kraisler_alignment_source.py": "25e0ed3327facffdd0f1dcf1a34134176673f9012f2c9f318d2b32ce288642f5",
+      "scripts/kraisler_correspondence.py": "c3046d387ba83c7a97c2eb2d16d7f609ecd71c6708ec45d25f5aec9238198efb",
+      "scripts/kraisler_expressive.py": "f34fdca98c388d3b4f7e27bacfce319f0cee91b289b37a6d2d17355b233b0b1f",
+      "scripts/kraisler_gate_eval.py": "ea664ad392d61a12a52b98dcb3987d4bad62ad8d2dbd2aa34301b669434695bf",
+      "scripts/kraisler_gate_manifest.json": "a18857a4b7a2025ea327f9a03855ca02dca0964110d973d5224b85dfbb258c60",
+      "scripts/kraisler_local_clock.py": "a3af99572ed39c87d1c64311a6c537d1275f8e47a8b8914286e7c8a3637ce2c0",
+      "scripts/kraisler_match.py": "3fbf1c07783bfa9205eb152e553032e5922018c3c1c7d673b524d2a7632a373c",
+      "scripts/kraisler_rhythm_ranges.py": "7083a1a4bde6195ef56662a4a62ddd95aaf944e6d723efeb1108d4f757f5cbeb",
+      "scripts/kraisler_score.py": "515f7f06579e9ee590f4a17147993d496d0b4040e9f60574eb82377c7ac3c431",
+      "scripts/kraisler_source.py": "94ba9c30adfd60dfc518a371a53b6fdaa722a44352a019311582b8125423e2bd",
+      "scripts/offset_tail_evidence.py": "5adb61edca4b68deac9a0f9f6f619009d8295f006a5913b9f14c6a30f6ce0b4c",
+      "scripts/run_cpu_vocadito_candidates.py": "0265be97c1f891816da30e75fa145a58a1972636a5729fcb1ccc761665c52465",
+      "scripts/run_kraisler_alignment.py": "fb5a1682ead8d5416143228a9ff845006ccfd1672d700b277f5f41a0eaea4847",
+      "scripts/run_kraisler_expressive.py": "774826f48f4abc430924db5f8593f6ed0ad68eb2d6095645aecaeb75221c3ab0",
+      "scripts/run_kraisler_gate.py": "57b23a975bb8f4a64858c8f034c8a66c50def91053a72004717b815114fe700a",
+      "scripts/run_offset_tail_probe.py": "44730f903b4e8eddc1755ff0ae89793052c43abc129f15028b91b0d16562939e",
+      "scripts/vocadito_reference.py": "2ee6f18518e0f4887b9f0c163fff6cfcb964a05d21da1eddd6fcf8e031259194",
+      "scripts/vocal_recovery.py": "9cbc4c1e635b78263c46473d357fa928350fabdf3efcab79ec44a42e00fa246b",
+      "src/audio_score_tool/metrics.py": "476fdb3dcebf8660a83b258263a2719193590eee5135d40f79b87ceab313df4f",
+      "tests/test_kraisler_alignment_source.py": "f53aab084da20bb60333e6a7205c74e0476806b9a2309fcc9c299dd76700167f",
+      "tests/test_kraisler_correspondence.py": "82f4f6226c2e1e3f9a21a30cfca7a58019f8853666d406fa5316882fa156cf7e",
+      "tests/test_kraisler_expressive.py": "20a68d1bb6ad48f7dbe2dcd1ce1886bef709afaedbd68d996df9814f1430d7ad",
+      "tests/test_kraisler_local_clock.py": "6e71e19a1d6798fcea9a63e51a750616bf264b3c8608fa3c4a8410a6a053b57c",
+      "tests/test_kraisler_match.py": "e630f244d1c526325954dba12a467eee6668a52dfa05a789105b57d93114b9ca",
+      "tests/test_kraisler_rhythm_ranges.py": "f2f6e4153cae65e0e67071f44f1db00d670767b738bdfc7b7bdf6568afd407e7",
+      "tests/test_kraisler_score.py": "e1e8f40144d37936bfe505b866a72326fbfb3709b1adb864482c1afaf31661c4",
+      "tests/test_run_kraisler_alignment.py": "3bfa6640ef4be15f4cd62bbc82c7fbe88801f35f26741d016ea46c5c84c00c48",
+      "tests/test_run_kraisler_expressive.py": "100d8b7bd8f582a3b09a67a0caebfa52d4e055002f30e4501f4a72278fd527af"
+    }
+  }
+}
