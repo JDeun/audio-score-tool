@@ -2,7 +2,11 @@
 
 This is the continuation snapshot taken with main at `7dd5c6ce0b18fda023403d92fba981867a1f0202`, after #266 and #270. It is navigation and task state, not a replacement for frozen protocols, result reports or execution receipts. The completed continuation #272 was subsequently merged; its results and later PR cleanup are distinct from the initial snapshot below.
 
-## Latest continuation: expressive timing and ranges
+## Latest continuation: original-waveform boundary context
+
+Following the user's continuation instruction, [#279](https://github.com/JDeun/audio-score-tool/issues/279) declares the [original-waveform boundary/rest protocol](KRAISLER_BOUNDARY_PROTOCOL_2026-11-12.md). All 947 reference onsets/offsets and all 947 midpoints remain in scope, together with all 36 written-rest intervals and four explicitly outcome-selected watchlist references. The unchanged six dry violin WAVs will supply frozen gate replay and fixed harmonic-vicinity descriptors, with unsupported/overlapping/same-pitch contexts preserved. No prediction events, new model inference or physical endpoint truth are available. New waveform results are pending; #278's exact correspondence/rest baseline and prior negative gate result remain unchanged.
+
+## Preceding continuation: expressive timing and ranges
 
 The user's next-experiment request adds a concrete hypothesis: performed note/rest lengths should allow timing variation and distinguish swing/articulation from exact symbolic duration. [#277](https://github.com/JDeun/audio-score-tool/issues/277) / [#278](https://github.com/JDeun/audio-score-tool/pull/278) completed the [local timing/range study](KRAISLER_EXPRESSIVE_RESULTS_2026-11-12.md) under its [frozen protocol](KRAISLER_EXPRESSIVE_PROTOCOL_2026-11-12.md), retaining the same six sources and unchanged global baseline. [Actual CPU run 43210425240](https://github.com/JDeun/audio-score-tool/actions/runs/43210425240) completed all six diagnostics, historical baseline checks and attributions, using 30 verified metadata members and no new audio/model inference.
 
