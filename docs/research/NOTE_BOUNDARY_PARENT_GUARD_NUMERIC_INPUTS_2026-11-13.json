@@ -1,0 +1,2491 @@
+{
+  "schema": "note-boundary-parent-guard-numeric-inputs-v1",
+  "baseline_zip_sha256": "f34e88d2b5023df5762fba46b4149167265efbd24a837d30500375b30cd5758f",
+  "legacy_numeric_manifest_sha256": "e5349cfb3a65e076fab607287b69e71c9e4298157614160439128e00b6b14428",
+  "timing_semantics": {
+    "frame_seconds": 0.01,
+    "leading_silence_frames": 10,
+    "trailing_silence_intervals": 10,
+    "sample_count": "voiced_frames + 21",
+    "voiced_frame_interval": "[10, 10 + voiced_frames)",
+    "duration_seconds": "(voiced_frames + 20) * 0.01",
+    "terminal_sample": "zero Hz at duration; no extra audio interval",
+    "modulation_time": "local voiced integer frame * 0.01; phase 0",
+    "adjacent_change_frame": "10 + voiced_frames // 2; continuous modulation phase",
+    "hz_conversion": "440 * 2 ** ((fractional_midi - 69) / 12)",
+    "audio_duration_clipping": "unchanged frozen readout"
+  },
+  "generation_environment": {
+    "python": "3.12.14",
+    "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "numpy_version": "1.26.4",
+    "numpy_file": "/workspace/scratch/9038739bf788/factor-audit-numpy/numpy/__init__.py",
+    "runtime": {
+      "librosa": null,
+      "numpy": "1.26.4",
+      "scipy": "1.13.1",
+      "mir-eval": "0.8.2",
+      "numba": null,
+      "soundfile": "0.13.1",
+      "resampy": null,
+      "soxr": null
+    },
+    "cpu_features": {
+      "ASIMD": false,
+      "ASIMDDP": false,
+      "ASIMDFHM": false,
+      "ASIMDHP": false,
+      "AVX": true,
+      "AVX2": true,
+      "AVX5124FMAPS": false,
+      "AVX5124VNNIW": false,
+      "AVX512BITALG": true,
+      "AVX512BW": true,
+      "AVX512CD": true,
+      "AVX512DQ": true,
+      "AVX512ER": false,
+      "AVX512F": true,
+      "AVX512FP16": true,
+      "AVX512IFMA": true,
+      "AVX512PF": false,
+      "AVX512VBMI": true,
+      "AVX512VBMI2": true,
+      "AVX512VL": true,
+      "AVX512VNNI": true,
+      "AVX512VPOPCNTDQ": true,
+      "AVX512_CLX": true,
+      "AVX512_CNL": true,
+      "AVX512_ICL": true,
+      "AVX512_KNL": false,
+      "AVX512_KNM": false,
+      "AVX512_SKX": true,
+      "AVX512_SPR": true,
+      "F16C": true,
+      "FMA3": true,
+      "FMA4": false,
+      "FPHP": false,
+      "MMX": true,
+      "NEON": false,
+      "NEON_FP16": false,
+      "NEON_VFPV4": false,
+      "POPCNT": true,
+      "SSE": true,
+      "SSE2": true,
+      "SSE3": true,
+      "SSE41": true,
+      "SSE42": true,
+      "SSSE3": true,
+      "VSX": false,
+      "VSX2": false,
+      "VSX3": false,
+      "VSX4": false,
+      "VX": false,
+      "VXE": false,
+      "VXE2": false,
+      "XOP": false
+    },
+    "cpu_baseline": [
+      "SSE",
+      "SSE2",
+      "SSE3"
+    ],
+    "cpu_dispatch": [
+      "SSSE3",
+      "SSE41",
+      "POPCNT",
+      "SSE42",
+      "AVX",
+      "F16C",
+      "FMA3",
+      "AVX2",
+      "AVX512F",
+      "AVX512CD",
+      "AVX512_KNL",
+      "AVX512_KNM",
+      "AVX512_SKX",
+      "AVX512_CLX",
+      "AVX512_CNL",
+      "AVX512_ICL"
+    ],
+    "numpy_disable_cpu_features": null
+  },
+  "cases": [
+    {
+      "id": "stress_single_expression_001",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "7e792e88e3c0355a8edab934836dea12c60410ca33f10b6ebddb7db703bea070"
+      }
+    },
+    {
+      "id": "stress_single_expression_002",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "70a18e41297dbdf2384650b1c85b64564f1b9ff09f602d28a9aa4eefb6122bea"
+      }
+    },
+    {
+      "id": "stress_single_expression_003",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "a4af711d738be3639a5173574a2fe8dd06700aa96210bf6c820ec1a1eeee9097"
+      }
+    },
+    {
+      "id": "stress_single_expression_004",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "293b8176af587c82718a701756d732294c795d52f1589fad639e42ff64f646af"
+      }
+    },
+    {
+      "id": "stress_single_expression_005",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "521ae460f3f145be4a3e7dd8eeda194fbb132a605c7cbf4e9944e8662fae4b85"
+      }
+    },
+    {
+      "id": "stress_single_expression_006",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "af6e676eb8f884752674da1ff3b0af259ce9abae33c88041f0dead9e4359721b"
+      }
+    },
+    {
+      "id": "stress_single_expression_007",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "6b8488dd3a322526e771a1cf648885a512621144219311c88d2e0edd9f03d517"
+      }
+    },
+    {
+      "id": "stress_single_expression_008",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "ea97123f43fd458436e0bffbe90ec4467e1c2e21292e62ea5b6baa4a7e05e360"
+      }
+    },
+    {
+      "id": "stress_single_expression_009",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "592712c45f6f2160972a956a04e77a7944dd37368a60c8c21a2524581c742fec"
+      }
+    },
+    {
+      "id": "stress_single_expression_010",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "e6dc049b5735f4c6bb149759b537c32ff0e53ebf6a080d120854b9803f46b96f"
+      }
+    },
+    {
+      "id": "stress_single_expression_011",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "5b96341bb256a60cd748dfbfd3e5826a4bf01f7cc6e1305b597b181137d3592a"
+      }
+    },
+    {
+      "id": "stress_single_expression_012",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "525aa0d2478949d4b7b7e90a71fd77cd6d5046569bfc2505738ee7950023c416"
+      }
+    },
+    {
+      "id": "stress_single_expression_013",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "e8440ef2c90fbfa7139823af80af321f79d16d508a3c520128d6733b52ec1258"
+      }
+    },
+    {
+      "id": "stress_single_expression_014",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "99f2fd55cdfd55ceb5e28e78f356554dd38ff9e4e111ac30f00854e1c3df2da9"
+      }
+    },
+    {
+      "id": "stress_single_expression_015",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "ba638577462d5ed4a3e121320f5ba948ea2e80773a1aa6efc830ec6cb6e00bfa"
+      }
+    },
+    {
+      "id": "stress_single_expression_016",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "7fd2063e1a4593f0858283e43808eea3e087caa06c11c9080ce4688dbd390603"
+      }
+    },
+    {
+      "id": "stress_single_expression_017",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "5faa7430eb241c4ad20c8951e5d63cdb496aac07928dac62be69eb0c9d2518bc"
+      }
+    },
+    {
+      "id": "stress_single_expression_018",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "c73de2dc1f9baf7b5c7a08daab785826cac7e6375e79af0bb99740c95bf784c9"
+      }
+    },
+    {
+      "id": "stress_single_expression_019",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "9c6b9971844ca8bbb9cf2a1c830807ddc4fe29fbd92e1436a77abf9d6cb2a22f"
+      }
+    },
+    {
+      "id": "stress_single_expression_020",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "94b21372c7c908a5a2516d5cbc4560edf658245d93fc65fd9ca15c80575b18f2"
+      }
+    },
+    {
+      "id": "stress_single_expression_021",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "ef7f12ff961348054972fd182fb159e6508e8d248b67a3a94181ad8f26d715f6"
+      }
+    },
+    {
+      "id": "stress_single_expression_022",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "10e21a3eb665a48f42f8660478fdfde676b18054842f801f75d2d13ba8a3bf37"
+      }
+    },
+    {
+      "id": "stress_single_expression_023",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "5b2a064195b6eeca9a96496259af332287b7f1c9cf258270f9d263a7efcc0daf"
+      }
+    },
+    {
+      "id": "stress_single_expression_024",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "228f894753c7ee919882c6f854d13916c44d00c4b71a2e9263cbc98d6fc7bbcd"
+      }
+    },
+    {
+      "id": "stress_single_expression_025",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "3693e727ad71f0d2df6bc5bfabdae0734a30cb6ce8b0e0358920e092aa26da48"
+      }
+    },
+    {
+      "id": "stress_single_expression_026",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "6f898f8295b73d9fe291147da3066b9d673c4d081e2932ac8c974a7910f14ce2"
+      }
+    },
+    {
+      "id": "stress_single_expression_027",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "7ff3061e48f443f5a320b4e55a7a01297a29c935570cf1ce758372e64dc45fe7"
+      }
+    },
+    {
+      "id": "stress_single_expression_028",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "bb4b7ed94e1b80375c569cea99e49443b6041e374c7735cef01312aeaacd2c04"
+      }
+    },
+    {
+      "id": "stress_single_expression_029",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "9b55c72e5df5e3c1a49f8db53bb06fc4dbb6da3a924159bad0262bf5e172659f"
+      }
+    },
+    {
+      "id": "stress_single_expression_030",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "6538aff9353fa20438d170ca25aa2de7e8dcf014a848c434787abe1333812ad9"
+      }
+    },
+    {
+      "id": "stress_single_expression_031",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "a8c368045b78217c32d3131286a48ee28032a277854ce307df9bca8798b4d704"
+      }
+    },
+    {
+      "id": "stress_single_expression_032",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "f70c70736b3ac3361e920715acd0155fe82234a1426c295785a04f1af5f12efc"
+      }
+    },
+    {
+      "id": "stress_single_expression_033",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "42efab4574c71e7b1a951941c20f1cdba8b65505a7e8d71575a2a0b8a67cddc3"
+      }
+    },
+    {
+      "id": "stress_single_expression_034",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "359cd3ae2a67acd282067b153a6f1e4412fa5f737c3bf336471693dfff57c314"
+      }
+    },
+    {
+      "id": "stress_single_expression_035",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "6b02dad6467e5a8b9f69a2c38ae8b36e635b313f27ecf201bbbb873d07063df4"
+      }
+    },
+    {
+      "id": "stress_single_expression_036",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "fcf92fa1fe275a4489fc085704763cc3d8fbf5ac674a1899bb1242abd6f41e67"
+      }
+    },
+    {
+      "id": "stress_single_expression_037",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "fbf76f37c26322fa1ce5c79bf430354993438c98b1e336b8a4b6767466d8d4c0"
+      }
+    },
+    {
+      "id": "stress_single_expression_038",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "7584d190f5e3b60e012143217ac268a13b1a75da384a9800af40b540ca48fa7d"
+      }
+    },
+    {
+      "id": "stress_single_expression_039",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "da0e4a37ba5c88c3524dc7cf7df4cc2947b92b89206e4d0fa6b6b84ec3674c6d"
+      }
+    },
+    {
+      "id": "stress_single_expression_040",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "86de43b48a5717e4bf22cd3fe397fd1b822c1bf7be1cf6c598dda2780f5fa19f"
+      }
+    },
+    {
+      "id": "stress_single_expression_041",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "80a32204e88e167b8033ba93035b7a63460be5d281819b8c960eb4e56487408c"
+      }
+    },
+    {
+      "id": "stress_single_expression_042",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "54b15ea5785d02576e6f1531227a2466fbfa5e683a20cc763aeccf1ad92f0e50"
+      }
+    },
+    {
+      "id": "stress_single_expression_043",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "76a4c7ce1c2d464727ba39510b3e5a78d8a1738a997c87218833bf5f58e740e5"
+      }
+    },
+    {
+      "id": "stress_single_expression_044",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "78a541505dd6a985fe49c6b78cae402aecba8d7fa24d40accdff3659637bcdf0"
+      }
+    },
+    {
+      "id": "stress_single_expression_045",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "da31aa93404d4833eed9f1aa76313bcd79c76ed2217f1145c29825feee5540e6"
+      }
+    },
+    {
+      "id": "stress_single_expression_046",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "021f1f22c0057ea3006948ae7fff945ee61396dca0e1a51ab4487bfd719f811d"
+      }
+    },
+    {
+      "id": "stress_single_expression_047",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "e73181a250ee670150af5bb7003c4be53edeafabe5dd48db98eeb129bba3109b"
+      }
+    },
+    {
+      "id": "stress_single_expression_048",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "13a721892e1fc2b90f8d87f9c7ce4eef479fb9ff09f8d1ad91155b11b417e3f2"
+      }
+    },
+    {
+      "id": "stress_single_expression_049",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "cb4f4a701e9432ac0c6b8f3119d0dcc45c712387a5cffba9711b1b45647dd271"
+      }
+    },
+    {
+      "id": "stress_single_expression_050",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "c2b534ddf5a06ebec9cb51089b326c202345e6ae1ff3a4a3f53db4ef5f3f4d33"
+      }
+    },
+    {
+      "id": "stress_single_expression_051",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "642ee38f807072768d9e1a0276a138e1b37190421e4d383d005081f56b1f5a55"
+      }
+    },
+    {
+      "id": "stress_single_expression_052",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "6761a9f5045d64a13e8e8f5bd5b278e3bf050088c4cc75a84731f9dff2e09fc9"
+      }
+    },
+    {
+      "id": "stress_single_expression_053",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "a170303d49241b9c901bb860a7197fe6a0659c439452371ad7cac3f1ed3051b0"
+      }
+    },
+    {
+      "id": "stress_single_expression_054",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "a425a02572be9ff9f966fa79bd0dbd8b577cb71f30c14bf3ea19d2cf7908288e"
+      }
+    },
+    {
+      "id": "stress_single_expression_055",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "2def293df5e995f5238fc071d1e6474637adb73fe0294b3190fed5929f7bd7bb"
+      }
+    },
+    {
+      "id": "stress_single_expression_056",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "61a210195d2934c91985e4927fa534fdc4f40935bc79e5ef7653e80cc789ab96"
+      }
+    },
+    {
+      "id": "stress_single_expression_057",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "64ed6a31f0bfd8d3794b125ec2ea7bfab443fa1049996afa38d4d8a63b1523e0"
+      }
+    },
+    {
+      "id": "stress_single_expression_058",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "f5bd12b5089edf6f968c0612e99d50a0f4be71162709754a0af6857976ab9811"
+      }
+    },
+    {
+      "id": "stress_single_expression_059",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "bd21eb097ce6a83f708a8e1bec51fdcc136fbfb8503c935eab77235c485e22c6"
+      }
+    },
+    {
+      "id": "stress_single_expression_060",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "cec289a87d07fdcb0ae5800b98935db3088dc82e7d120f43fe3e15d47330a730"
+      }
+    },
+    {
+      "id": "stress_single_expression_061",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "c001558d471b8845fbdcb8ba3852e793aeef1deb078fde87779aef47df560d74"
+      }
+    },
+    {
+      "id": "stress_single_expression_062",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "52571b01ce6d36496e5007f5778a46596a5ebbba396ab0d16bb39c369141b03f"
+      }
+    },
+    {
+      "id": "stress_single_expression_063",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "4799f0a4099ed25c50d41c29715ac23c40aa910a04bf14b4dd38e95b42b71b41"
+      }
+    },
+    {
+      "id": "stress_single_expression_064",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "8f282df184f52ab426c950e28a1b44a7797965ed1642886ff99d3539de321645"
+      }
+    },
+    {
+      "id": "stress_single_expression_065",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "a50c918428435bf0056b85eda5606a04f14e7e089819f985939a0202c639087d"
+      }
+    },
+    {
+      "id": "stress_single_expression_066",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "1625e1912a25536e2965fe48e9e1e89b145745f4e676976c00715344c5b9e708"
+      }
+    },
+    {
+      "id": "stress_single_expression_067",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "b38ced45cc9320a7adbec7ab4cb1d498efbc61c1add98dc07926e1146410d40e"
+      }
+    },
+    {
+      "id": "stress_single_expression_068",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "b01c32e01c05c2499cc87a7daf9904d3994d0ec1ef51e4b1e7254ada655e9db5"
+      }
+    },
+    {
+      "id": "stress_single_expression_069",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "8678f16e1c3b6a12e4a46879678df7335868e26c5728f8155c2a2c99eab48dca"
+      }
+    },
+    {
+      "id": "stress_single_expression_070",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "bbf7f96dd8ac2b88c367e4ff0935c066a6e785ee35379657cc017152a8d03b8f"
+      }
+    },
+    {
+      "id": "stress_single_expression_071",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "f143f56e6c71c36abfc15461e9d475a2333d24e819942669d0706ce10b0107b7"
+      }
+    },
+    {
+      "id": "stress_single_expression_072",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "9180135239ea577065897c8e979dc81b0d46648706a7933856148900c158598d"
+      }
+    },
+    {
+      "id": "stress_single_expression_073",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "88b12a52ff121e77f90f0395b3d1a5b5aaabf1d88e3562bfc590411545252f71"
+      }
+    },
+    {
+      "id": "stress_single_expression_074",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "5dec3c474465f7cfd0ed771835944a9520778624f14a6f913a407f741f4f287e"
+      }
+    },
+    {
+      "id": "stress_single_expression_075",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "2e7cb1a1a8a3c9ee6f88854770e543d11074d562593fec8613554932f1926539"
+      }
+    },
+    {
+      "id": "stress_single_expression_076",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "a9bf9674653245b6618fde2413c399adf437efa42edc3eed9795cb62d2f16c48"
+      }
+    },
+    {
+      "id": "stress_single_expression_077",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "2f342a463c91e1d5473986b4a6a1623280eb7284b94203ff0f5986245262ef77"
+      }
+    },
+    {
+      "id": "stress_single_expression_078",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "ded1d23d3ab57fd63bcac39751147316f2419bbc50c378ef5692124a889c6fec"
+      }
+    },
+    {
+      "id": "stress_single_expression_079",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "f60b85bfe93f311eb4181b190c8cfbaa72484582a72d7dadb36aa438779d3948"
+      }
+    },
+    {
+      "id": "stress_single_expression_080",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "a346d614beae0c9ffd604aa06d3bf95ae136bd52a82596c5219bd62238200f4d"
+      }
+    },
+    {
+      "id": "stress_single_expression_081",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "2c5be03a6884f56cc5192add3180c2f83d4e40ae4c86e132aa35ed47649af8e4"
+      }
+    },
+    {
+      "id": "stress_single_expression_082",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "1822b9d2f8564a2ba2ee63715d5dc94886b1ec6aa44fee48e5554fde10075874"
+      }
+    },
+    {
+      "id": "stress_single_expression_083",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "a463aa69eb59b9392c6da806be04327f7d0f3c6f0fdb2f3c38021527987a031b"
+      }
+    },
+    {
+      "id": "stress_single_expression_084",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "06af2b47c8e49c8d5fedc96afe8a3d6d81bc6c96f1cee2b732ffab7c8f356a5f"
+      }
+    },
+    {
+      "id": "stress_single_expression_085",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "8aaed5c767b91e92db5e7393e20299afcfea474c1ea221335df99f39d41b3464"
+      }
+    },
+    {
+      "id": "stress_single_expression_086",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "024bf93fea635258db24a087d928ff8eece78923fd406dce461f8409bffb3660"
+      }
+    },
+    {
+      "id": "stress_single_expression_087",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "f9eb06a2f728934bd0561bbac618a0a849e7cdb4a0091b5f637d09daebbf5987"
+      }
+    },
+    {
+      "id": "stress_single_expression_088",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "edbd84374670214d53476946a14d74b8dcc066a9289444c4f3be28ff6eec05e3"
+      }
+    },
+    {
+      "id": "stress_single_expression_089",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "3f1cdc4c73abd0e59a95e116ad115df3ec804d58420651c4ad4bd9872b05ff1d"
+      }
+    },
+    {
+      "id": "stress_single_expression_090",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "43f12930caa4eefa2e2c3a5459e80d1b28e358533e1a48fe663d41e637ecbeee"
+      }
+    },
+    {
+      "id": "stress_single_expression_091",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "28f83f507ed065937c816e56ea6e81a6581835c769e1790c99bbd6602aa274f6"
+      }
+    },
+    {
+      "id": "stress_single_expression_092",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "c009cb0f29bca3ac04d5e1e993056412b629fb18d6b83653e505bebb0fa561a3"
+      }
+    },
+    {
+      "id": "stress_single_expression_093",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "d610a04baacde6c606b6caa5af91ca172c667c3697a7af111cb2385906112de5"
+      }
+    },
+    {
+      "id": "stress_single_expression_094",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "c2a79c6f56aae26892adba51b2ebbf6bc388907f75e7a95f3058586c7b3a6354"
+      }
+    },
+    {
+      "id": "stress_single_expression_095",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "004afd62a9b9ec336f736510e8f40d69b7c8ce0f05fe40b4fa015834cd41adf3"
+      }
+    },
+    {
+      "id": "stress_single_expression_096",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "9b596157f60a4c18960cfbd256eaac963d0fe8e8bdf2b62e92a0c1597e9a6fe0"
+      }
+    },
+    {
+      "id": "stress_single_expression_097",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "564492097b35abb991f9678310b6ff2069ad16cf546023fd393ca8cdb8c8bbf4"
+      }
+    },
+    {
+      "id": "stress_single_expression_098",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "2a26cbff590a6764f395eaca25095694ce1da8aa2c1ff10d991d5ce5c49556ac"
+      }
+    },
+    {
+      "id": "stress_single_expression_099",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "71878fe8fc0686966aac574d9a577a3d3fb6783cacdfebe4a2c2962be749cabd"
+      }
+    },
+    {
+      "id": "stress_single_expression_100",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "c3d4af0cdfd475102783b8cee40cc9b0903961e0c9fc7606ba9243c146139898"
+      }
+    },
+    {
+      "id": "stress_single_expression_101",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "fd216802d4894c2c5da51edc45f4021b34682ce5e88be562f428f77601b6e9b8"
+      }
+    },
+    {
+      "id": "stress_single_expression_102",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "1cb37ceda872fc242fb2c3553c43ff08c0c37672773cb1ba52e3787b654255fe"
+      }
+    },
+    {
+      "id": "stress_single_expression_103",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "e50920dd482976d6a1119863ee762a8340f6a976d97ed1f487d67f0c00feb7c9"
+      }
+    },
+    {
+      "id": "stress_single_expression_104",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "588fb1d2a592c35584c1015590a5691b8e88ccc28bd4eb6d3274aa790f19ad6d"
+      }
+    },
+    {
+      "id": "stress_single_expression_105",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "8203da3791a80b9a35d3930e8add189d2771f94350b768c1fb08ab0c112463fa"
+      }
+    },
+    {
+      "id": "stress_single_expression_106",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "205b2b51b25c6bc65f0ca3e0da395cdd13501b8ac137427c9badd80a18b22c95"
+      }
+    },
+    {
+      "id": "stress_single_expression_107",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "e0e1f9ebd7d3ba1a6a86d1165293eb39857b5806b24d39ef8ac94b0de3506a4d"
+      }
+    },
+    {
+      "id": "stress_single_expression_108",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "4fdf69efa2fd49a6e798fa05ca39e6388174c56d0771b5c3f6491119f40af16c"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_001",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "e651843d26a3dda0db717f47efe98aa4250212563af508434297058e911065e8"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_002",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "b8efdb9396872ad6b713d5dfa5e54974e9e97cc31188637e4cba4f893615d6b6"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_003",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "3de2ff0e9b1518e11cc022a4b9709000f6f723537a0a685df0af24f6c068ee45"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_004",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "594d81c9b310eef409f8222f22c8866108686d6bfcac2ede13c0cc114e792dc2"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_005",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "c0d8c923e5173767adf60cf47ccd416e113bc27f9e115f22772ec54edac27846"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_006",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "bc66d6dd023b3ba7656f821dfb6f5cd51b2a11a5c12fbe411db9f81eb44b88a2"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_007",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "85264e6ab164139d436e431e70477d2700744510ee9d034ada31e3d73bfb2009"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_008",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "923829de2102d0bb4e0dbcebf3e5b0b174986e47dabf989c3af3df4b23cd6e4a"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_009",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "d3f06ae5ad854facd2cbe4b90f92f32febc272a98024b4762125653226ba544b"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_010",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "a244a575d78d3b0315535af5e984899fb61cee2ffaec7c84689c2e73cc5a9893"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_011",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "bae50745766474e12070fd5179a8e441ace662e41328c1993c21062978462bf5"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_012",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "c650b59258667e26d6bad7f1717a0650366df69812f825b44813593252517137"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_013",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "55afcf7d953ccf8684436b20d3f643fb1d6d6b025cb1581a1c8ce66cbe08c661"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_014",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "b2d77dbc3500cf77c982275242e05608af9384be500eb26dea802ecda50193f2"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_015",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "0907973c0f285004d8375a6811312ea1d8ad26b5f709138f14398ea4107c9d46"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_016",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "19de5ff1a845051ee036b04533789707fa4365b7b1e18e0d634452fbd24c3c01"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_017",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "458e83fe66907f4d733c284e1fc879e9963867055f056aa0980aed994bec8527"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_018",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "6e9d9ef8e496a51981e622428938233e154dc2ff3aff1ad21c7c7f9a4c9c280e"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_019",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "66ec1b902b700f2bef5030994f7e71c2dac7050a1f6b083bb46f80165b6a713a"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_020",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "62146d6f7bf345f22ac580a791b22e9cb767ee2f691f2fa2398f54c91b8416a9"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_021",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "14470c308ce2d9f0728106fe09f8a91a2771b17875a9bbbcecba8a5797e1f265"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_022",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "2ca22ea72ba27c0886537022370d1e3531ae093174ffbabe0d8176c083bfd581"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_023",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "a98ab95f2a94e091d0a4a82fd98e4e00c3c8f49e47a737014f34ef5cf4553dcc"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_024",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "392786037fad643ae2f2dd9c7656345c104f8dc8480abdc99512a385309eb2a7"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_025",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "5679c6820415745836b30019ca2c2b12f6a01793c0e4891c40847adea3715bbb"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_026",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "98eee52f4ab12cadc89eb9fe50e2a0510f08d3ed7001ccd13a6666688b594ab9"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_027",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "909921c9c442e45900a0f2a03ac5d6f502f372deb35673216883c25d3ffc105b"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_028",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "15f581b6e3f8e4de77480a6c0f4bef536bc33e9ea541ebdff9a7d7a2dc93a6ce"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_029",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "ec139dc665edd58d18123fddc6f3fb9f4f2fcce80cfed10e9fe9388773cf901c"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_030",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "16c6af7309ba2522dde29d77011d5d1aa6181655a743fcbadb5f547c4717157a"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_031",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "6ee12233cba1e0443bfe3fac048e1040ef2e10a8e3ff182e174eda976dcde7f2"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_032",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "82dbbb4883abf929bc40d6c9da84af695aef19b17b59e9730f92efbdb3b6ae84"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_033",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "ebb9a850f9761bc90e8dce500675891d63c6f59ecdbe31df15bb90c5fd5f8100"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_034",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "7c1db687f34acb97c8e013dcc28b42564b6de49e45be1e73d88a804fbdb78919"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_035",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "b160baf1fa9ae5c42c7a781993411d781616616e1628f10e9c55acaf537d4e11"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_036",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "ce689b5906bf3cb48103494076b12923cb56c51ebec6202c1a459f44cdb144ac"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_037",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "8bfd7e5594c8435348d5083b4e2e3f11b97c8d05187c00f349d6bd0dcea117b8"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_038",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "b2b490968d8dd2cb367f671f62889392f3e97a958cce09ad1322c7125237633b"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_039",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "75be0a1a56e3a26177a62ac6219d71e9a2ebfde868cfdb46dc2bee95740aab3c"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_040",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "4e77a98988b9fdd6f2636dc184dd0fca6567a9fceb8b19b510b5f705a9d81c9b"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_041",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "048615da68bd71ee392a84795b31ee939f0e11917e4a1be5da7f8a5c416135e7"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_042",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "e8ade7cb34d1d0a7ba49b41c75c3e483c9db629094f97199f5a0b389e6eea142"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_043",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "ecf2179e5a8606e38de5789a5b301fcd30687d03f4496437e93976e84eb538f7"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_044",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "c9ebeb29eef369b8778a4ddb1597afe934c5943a2edae43d1a5e64a16b085294"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_045",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "2ec349435405b317bb015b67764ff157285ddc1969cd4d568b9e410760dd33b3"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_046",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "83a7da3a96092f0a869a3eeb8ffd82fc6022c4cc096ae78ec3496432695b05e8"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_047",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "625e73084c66703739ae24125477a4fe8e7acd27f120dfe75fdcb9517507d185"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_048",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "df63dda7401c54e407ad093030aa647c0be6479d136f29e3e91d3a6532bdc422"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_049",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "9f17e6667ad0b708ce7467cc3cea390ba62e6ca517dfb4a8f4414b201a4e4838"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_050",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "7922b80ac46879348740483df1a0e6f69c9402bd3262a3a24144bdcf95b89bde"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_051",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "991e1dfa257619ddbab4b0aaf46c8a2efa4c2ae2ae25763f7c50505d9f713d59"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_052",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "1db8b73915a4bd0f8e6e6f19624de07a92828a5a8a795bc45deaafd75020ee32"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_053",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "14534e04b420dcd92fbd7b48e6be8428a8221898da7bf618bdf04747b2f9787b"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_054",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "c268459d3eaa7d526940e0b176dbeea3a676ce482f80ccc50ce9bda777c9e125"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_055",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "1627790f57dd6217f6af26cde1890a5dbe04073ad901fd51a889446444ca2a0a"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_056",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "aa9ada67d64c4a6ac9f5cc17987218ed3f7aa5e294332b2f5769ef3911441ba6"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_057",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "40161eb3639fd5368015c13c4071b0ea54c95713e3c853367d2d7ae8983a3f3e"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_058",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "65583f7ef821eb780e1b2283b475236f8a462549f8521b8d6b4fd394b75e7352"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_059",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "3a64bdaa416d2367565d67000e0b868148fd0a888d37d8a9acc5f0fab89411c5"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_060",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "7f85d60c3fb84c877a54bc9ffb581bec406473522070585b29a17471d02bdf7c"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_061",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "cd30037fac671c75828ce218a72a77914698d4f269e7520b55c80272931a3a1c"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_062",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "41c4749f95ad676e9e177f83a37530cddd45af54f0cd047a3e0eb190299fb1ba"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_063",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "e72b440039bf8b0ad14e5da7ae8802966d97d268b84fd4a6a6110f2b6abba866"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_064",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "9b3bfddd6364af5ccaf6259583066dc78205e29f783e715a101eceb084be1ac4"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_065",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "df8fa08b3bb0c7e08dd261137ef4305ddec3a02b6e51b62dc630484bcc0fad9d"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_066",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "4bb7b60581448554bcc6acfc7c6726fed9259e62567c6175f64234c3e34a5a51"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_067",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "cada017a420694573207a32b14701a3ba9baab05afde58499bb059309468d9ee"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_068",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "8593091161c7e910939f5bc8ae3e96ef4173f0b2ed04c533a46e521b3e605e70"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_069",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "e9d13a8f478683a5a3609a8a3b6018eb583c3076fb3b041e0dbcd4bf4378eae3"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_070",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "4d22e50bce7dfb027d524c1b59a4dffc4c4364787dbdff92c64fba1e6d680eb8"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_071",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "cc303e4e17b039d4c3347c2fd4c21ac8a90ea16298ece63a281eda5d8dacb48c"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_072",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "9273f957d8cd4a2a88938f519e82f78af7cb2132595aa29218fdc3a86fd40a54"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_073",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "94af0a7e18d72176e2a1dfc4d5ab78c6a10fbfcb1ff50aa67be184ae5350b36d"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_074",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "7dd6b0b5a9e1e99c32216fa7cb192c2273e399b88089fd7f783c5686c2e2d20b"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_075",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "26b3f2fa43721d64e42d9b13247e6180eb8f918841064099227f2eba0af4617c"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_076",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "2af1a9ec2dba2579ebcf661193fe0bdb656edc4bd142183088459f149857d98a"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_077",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "ca89a7d52d7445daeadce880b4227fe09de1e5da4d48a77255d72ae9b552c4d8"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_078",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "7ce4ecd8c6f9d003a50a3313778e06089f3f4fb9e863962aa3a94f110bc79735"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_079",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "97709d3099d0863803d316bda2f0353692c64e314d9d3535b1e35dc3c263d53a"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_080",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "f4f3cf93b5c6d0bdb0f3a1db18b4c29d0a0042f357b4e95cc126f61eea478de3"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_081",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "b52805d876d32ab336639c74b50be45713fa0d593ecabb8d6a5cb018f406ae95"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_082",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "8dc06de5f8fe83ff1ddbab25c42a1cc62bc2aea32d478ad49e4e301ce5a9f7a9"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_083",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "da58d58678d358df7ea7158b49305801d378b48fcc95f35e18bc3fb4d2c23cc5"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_084",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "6331cea01fb5bda69ebc7aceaeace33eb4b41af52f9dca6b078da48540ec5ce7"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_085",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "8e578c649f736e704b0198ed91fb43544126451f4eb1ae63f3ffbfb60e15abd2"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_086",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "73503c27c9348ba2ad18cca2cbe90b515db4da413d7d63de66d526f1f4d52c6b"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_087",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "f576b1832cb8a2242653ce939eab1f863259b7ca9aacaf91ed982e2063ec3427"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_088",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "a19ffa2e6e21fd88daeecb5e602040321409573ec640a5dacace771df9222675"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_089",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "1cbc930f95082c19864cd5ec8787305ec1934bf894ffed362edd75f84d02c50e"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_090",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "6ed8ce292251cf9751315fbac09485b3b19b82e2e6a4f9500d5b5b688cd5b567"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_091",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "678d4db7db172d5cb265e4c34893cde182e143dbe65a9f58544dce5b0b7588f5"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_092",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "db6150736ba0094fece4235cb5ced11b9422c6a99b6f7933192abd27901c4356"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_093",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "9e1d6b65dea2be222773deff9e36c0f42e73e44059f252b027a0de271459b6ca"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_094",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "87dbb90168bf235de5bc4d605d1605d7f200df0d2c37fbb13b89981805f9f59f"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_095",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "43cdb0b553dfe8eb58a2f05ddf830426256a60c47b060e0270bd8d56e76b94b9"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_096",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "80cdd7eaf7c3f1613ad024d04622f37850376a873b2525f35931c2b4a58cd3bb"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_097",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "a4d395278c455b736e798b4d6a813f6782507633680cae60dbe129044373f434"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_098",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "d0264bbe2e92257b7a060cc768e8527904f8404394da596e1ab6c3b01852993e"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_099",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "4302bda4ee2693b88eb3e9dd04674a1681b745d511a9cb4829f408b09af130c7"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_100",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "2e4c376123425a821856b7cf7a2ad31f8b5777a8bd4f8a75f3281f0d9fcc0f47"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_101",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "d779e0beab1c8f26e114ae929ccc96b5560a22af2f6fd3626785ce01b8728d0e"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_102",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "a28f9ea599f6dbf7b02d9cd8e3f9aa108c6c7b18ff992abeb84d98a62866b2a0"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_103",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "8f1e5ec19251da7cea5779cf16a4dd962a03f64b2215157a337310650eafb38e"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_104",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "c69cadf8db12cdee961748a90bbe17d3b7e2d534dfe3e71c5757c2b8aff8ffa5"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_105",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "0d5ad505e5c5acbf4d752a9544fe0629d100a202344b176f0625494ceddfb60b"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_106",
+      "duration_seconds": 0.44,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          45
+        ],
+        "sha256": "b26974286cb67275c6a326c5ff07f11a965aaa8b5143aa7ae7058a110cd956cf"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_107",
+      "duration_seconds": 0.68,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          69
+        ],
+        "sha256": "fdf4c567510cddd2e3f17c0d0160dad704d20d1b5fffc9838f95f5657d804240"
+      }
+    },
+    {
+      "id": "stress_adjacent_semitone_108",
+      "duration_seconds": 1.16,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          117
+        ],
+        "sha256": "cd20a1a9f84ec6c868b97f06d17eefa061dd70272780bb05c49b15b7796351d9"
+      }
+    }
+  ]
+}

@@ -1,0 +1,156 @@
+name: CPU Note Boundary Parent Guard
+
+on:
+  pull_request:
+    types: [opened, reopened]
+    branches: [main]
+    paths:
+      - '.github/workflows/cpu-note-boundary-parent-guard.yml'
+      - 'scripts/note_boundary_parent_guard.py'
+      - 'scripts/run_note_boundary_parent_guard.py'
+      - 'scripts/note_boundary_parent_guard_synthetic.py'
+      - 'scripts/audit_note_boundary_parent_guard.py'
+      - 'tests/test_note_boundary_parent_guard.py'
+      - 'tests/test_run_note_boundary_parent_guard.py'
+      - 'tests/test_note_boundary_parent_guard_synthetic.py'
+      - 'tests/test_audit_note_boundary_parent_guard.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: note-boundary-parent-guard-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PYTHONPATH: ${{ github.workspace }}
+  CUDA_VISIBLE_DEVICES: ''
+  HF_TOKEN: ''
+  HUGGING_FACE_HUB_TOKEN: ''
+  HF_HUB_DISABLE_IMPLICIT_TOKEN: '1'
+  PYTHONHASHSEED: '0'
+  OMP_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  NUMBA_NUM_THREADS: '2'
+  EXPERIMENT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  note-parent-guard:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: '3.11'
+      - name: Install isolated fixed CPU runtime
+        run: |
+          python -m venv "$RUNNER_TEMP/note-parent-guard-venv"
+          "$RUNNER_TEMP/note-parent-guard-venv/bin/python" -m pip install \
+            'numpy==1.26.4' 'scipy==1.13.1' 'librosa==0.10.2.post1' \
+            'numba==0.60.0' 'soundfile==0.13.1' 'resampy==0.4.2' 'soxr==1.1.0' \
+            'mir-eval==0.8.2' 'pytest==8.4.2' 'ruff==0.12.12'
+          "$RUNNER_TEMP/note-parent-guard-venv/bin/python" -m pip check
+      - name: Check parent preservation, prediction barriers and independent audit contracts
+        run: |
+          "$RUNNER_TEMP/note-parent-guard-venv/bin/python" -m ruff check \
+            scripts/note_boundary_parent_guard.py scripts/run_note_boundary_parent_guard.py \
+            scripts/note_boundary_parent_guard_synthetic.py scripts/audit_note_boundary_parent_guard.py \
+            tests/test_note_boundary_parent_guard.py tests/test_run_note_boundary_parent_guard.py \
+            tests/test_note_boundary_parent_guard_synthetic.py tests/test_audit_note_boundary_parent_guard.py
+          "$RUNNER_TEMP/note-parent-guard-venv/bin/python" -m pytest -q \
+            tests/test_note_state_hmm.py tests/test_run_note_state_experiment.py tests/test_audit_note_state_experiment.py \
+            tests/test_note_state_factors.py tests/test_run_note_state_factors.py \
+            tests/test_audit_note_state_factors.py tests/test_note_state_synthetic.py \
+            tests/test_note_boundary_diagnostics.py tests/test_note_boundary_synthetic.py \
+            tests/test_run_note_boundary_diagnostics.py tests/test_audit_note_boundary_diagnostics.py \
+            tests/test_note_boundary_readout.py tests/test_run_note_boundary_readout.py \
+            tests/test_note_boundary_readout_synthetic.py tests/test_audit_note_boundary_readout.py \
+            tests/test_note_boundary_parent_guard.py tests/test_run_note_boundary_parent_guard.py \
+            tests/test_note_boundary_parent_guard_synthetic.py tests/test_audit_note_boundary_parent_guard.py
+      - name: Check exact inputs and freeze all 4149 authored predictions before truth scoring
+        run: |
+          "$RUNNER_TEMP/note-parent-guard-venv/bin/python" -m scripts.note_boundary_parent_guard_synthetic \
+            --work "$RUNNER_TEMP/note-parent-guard-synthetic" \
+            --report "$RUNNER_TEMP/note-parent-guard-reports/synthetic.json" \
+            --legacy-report "$RUNNER_TEMP/note-parent-guard-reports/legacy-synthetic.json"
+      - name: Fetch unchanged original forty-recording development corpus
+        run: |
+          curl --fail --location --silent --show-error --proto '=https' --proto-redir '=https' \
+            --max-time 600 --retry 3 --max-filesize 60000000 \
+            'https://zenodo.org/records/5578807/files/vocadito.zip?download=1' \
+            --output "$RUNNER_TEMP/vocadito.zip"
+      - name: Freeze all 480 corpus predictions before human references
+        run: |
+          "$RUNNER_TEMP/note-parent-guard-venv/bin/python" -m scripts.run_note_boundary_parent_guard \
+            --archive "$RUNNER_TEMP/vocadito.zip" --work "$RUNNER_TEMP/note-parent-guard-private" \
+            --report "$RUNNER_TEMP/note-parent-guard-reports/vocadito.json" \
+            --legacy-report "$RUNNER_TEMP/note-parent-guard-reports/legacy-vocadito.json" \
+            --legacy-factor-report "$RUNNER_TEMP/note-parent-guard-reports/legacy-factor-vocadito.json" \
+            --baseline docs/research/receipts/dsp-note-baseline-42989661618.zip \
+            --previous docs/research/receipts/note-state-hmm-43336542480.zip
+      - name: Independently verify the unchanged ten-arm projection
+        run: |
+          "$RUNNER_TEMP/note-parent-guard-venv/bin/python" -m scripts.audit_note_state_factors \
+            --work "$RUNNER_TEMP/note-parent-guard-private" \
+            --report "$RUNNER_TEMP/note-parent-guard-reports/legacy-factor-vocadito.json" \
+            --audit "$RUNNER_TEMP/note-parent-guard-reports/legacy-factor-audit.json"
+      - name: Independently verify the unchanged eleven-arm split projection
+        run: |
+          "$RUNNER_TEMP/note-parent-guard-venv/bin/python" -m scripts.audit_note_boundary_readout \
+            --work "$RUNNER_TEMP/note-parent-guard-private" \
+            --report "$RUNNER_TEMP/note-parent-guard-reports/legacy-vocadito.json" \
+            --synthetic-work "$RUNNER_TEMP/note-parent-guard-synthetic" \
+            --synthetic "$RUNNER_TEMP/note-parent-guard-reports/legacy-synthetic.json" \
+            --legacy-report "$RUNNER_TEMP/note-parent-guard-reports/legacy-factor-vocadito.json" \
+            --legacy-audit "$RUNNER_TEMP/note-parent-guard-reports/legacy-factor-audit.json" \
+            --audit "$RUNNER_TEMP/note-parent-guard-reports/legacy-audit.json"
+      - name: Independently reconstruct every guarded decision and contrast
+        run: |
+          "$RUNNER_TEMP/note-parent-guard-venv/bin/python" -m scripts.audit_note_boundary_parent_guard \
+            --work "$RUNNER_TEMP/note-parent-guard-private" \
+            --report "$RUNNER_TEMP/note-parent-guard-reports/vocadito.json" \
+            --synthetic-work "$RUNNER_TEMP/note-parent-guard-synthetic" \
+            --synthetic "$RUNNER_TEMP/note-parent-guard-reports/synthetic.json" \
+            --legacy-report "$RUNNER_TEMP/note-parent-guard-reports/legacy-vocadito.json" \
+            --legacy-synthetic "$RUNNER_TEMP/note-parent-guard-reports/legacy-synthetic.json" \
+            --legacy-audit "$RUNNER_TEMP/note-parent-guard-reports/legacy-audit.json" \
+            --audit "$RUNNER_TEMP/note-parent-guard-reports/audit.json"
+      - name: Preserve incomplete runs without a quality score
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, os, pathlib
+          root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'note-parent-guard-reports'
+          root.mkdir(parents=True, exist_ok=True)
+          names = ('synthetic', 'legacy-synthetic', 'vocadito', 'legacy-vocadito',
+                   'legacy-factor-vocadito', 'legacy-factor-audit', 'legacy-audit', 'audit')
+          for name in names:
+              path = root / f'{name}.json'
+              if not path.exists():
+                  path.write_text(json.dumps({'status': 'not_completed',
+                      'source_revision': os.environ['GITHUB_SHA'],
+                      'protocol_head_revision': os.environ['EXPERIMENT_HEAD_SHA'],
+                      'all_cases_complete': False, 'quality_approved': False,
+                      'aggregate': None}) + '\n')
+          PY
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: note-boundary-parent-guard-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/note-parent-guard-reports/synthetic.json
+            ${{ runner.temp }}/note-parent-guard-reports/legacy-synthetic.json
+            ${{ runner.temp }}/note-parent-guard-reports/vocadito.json
+            ${{ runner.temp }}/note-parent-guard-reports/legacy-vocadito.json
+            ${{ runner.temp }}/note-parent-guard-reports/legacy-factor-vocadito.json
+            ${{ runner.temp }}/note-parent-guard-reports/legacy-factor-audit.json
+            ${{ runner.temp }}/note-parent-guard-reports/legacy-audit.json
+            ${{ runner.temp }}/note-parent-guard-reports/audit.json
+          if-no-files-found: error
+          retention-days: 14

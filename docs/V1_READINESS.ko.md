@@ -2,6 +2,8 @@
 
 이 문서는 v1 정식 배포까지 남은 작업을 P0~P3로 고정하고, 기능 추가보다 실제 품질·배포·운영 acceptance를 우선하도록 하는 실행 기준입니다.
 
+2026-11-13의 구현·실험 근거와 남은 인수는 [프로젝트 완성도 평가](PROJECT_COMPLETENESS_2026-11-13.ko.md), 실행 우산은 [#36](https://github.com/JDeun/audio-score-tool/issues/36)에서 관리합니다. 원음 동기 검수 [#299](https://github.com/JDeun/audio-score-tool/issues/299)와 분석 근거/편집 계약 [#300](https://github.com/JDeun/audio-score-tool/issues/300)을 P0에 연결했으며 기존 P0/P1/P2 stable 조건은 유지합니다.
+
 ## P0 — Real-world music quality
 
 목표: `audio -> publishable score`의 실제 품질을 수치화하고, 엔진 변경이 사람의 수정 비용을 줄이는지 판단합니다.
