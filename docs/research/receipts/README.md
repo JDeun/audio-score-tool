@@ -11,6 +11,16 @@ experiments and do not change a historical result or its protocol.
 
 ## Immutable identities
 
+The [completed note-state comparison](../NOTE_STATE_HMM_RESULTS_2026-11-13.md)
+preserves `note-state-hmm-43336542480.zip` from
+[run43336542480](https://github.com/JDeun/audio-score-tool/actions/runs/43336542480),
+artifact13996459905: 73,141 bytes, SHA256
+`46ea77a90750172a905750599db3b419f09d70d165ef0be221e0004b8cd61b26`.
+Its only members are `vocadito.json` (709,930 bytes) and `audit.json` (15,062 bytes).
+The separate `note-state-postrun-audit-43336542480.json` records independent
+metadata/provenance verification of the downloaded ZIP. The study is negative;
+successful execution and audit are not a quality approval.
+
 The note-state follow-up also preserves `dsp-note-baseline-42989661618.zip`
 from [run 42989661618](https://github.com/JDeun/audio-score-tool/actions/runs/42989661618),
 artifact13841810951: 27,672 bytes, SHA256

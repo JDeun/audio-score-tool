@@ -1,11 +1,19 @@
 # Melodyne, Flex Pitch and Tony: analysis contracts for note decoding
 
-Status: source review completed; the next experiment is ready for its frozen first execution. Real-corpus results are pending.
+Status: source review and first bounded experiment completed; the tested decoder is not adopted.
 Last reviewed: 2026-11-13 (Asia/Seoul).
 Repository inspection base: `441ff85f2383cf3e0b501f10ba0d1f1399acbffa`.
-Related: [design review #288](https://github.com/JDeun/audio-score-tool/issues/288), [next experiment #289](https://github.com/JDeun/audio-score-tool/issues/289), #245, #281, #200, and the [completed repeat-context study](REPEAT_CONTEXT_RESULTS_2026-11-13.md).
-Next protocol: [same-pYIN note-state decoder](NOTE_STATE_HMM_PROTOCOL_2026-11-13.md).
+Related: [design review #288](https://github.com/JDeun/audio-score-tool/issues/288), [completed experiment #289](https://github.com/JDeun/audio-score-tool/issues/289), #245, #281, #200, and the [completed repeat-context study](REPEAT_CONTEXT_RESULTS_2026-11-13.md).
+Experiment protocol: [same-pYIN note-state decoder](NOTE_STATE_HMM_PROTOCOL_2026-11-13.md).
 All external sources below were accessed on 2026-11-13.
+
+Execution update: [the completed result](NOTE_STATE_HMM_RESULTS_2026-11-13.md)
+records a negative primary comparison: HMM/RMS pitch+onset+offset F1 is 5.290052%
+versus 22.149227% for original pitch runs, with historical parity and independent
+saved-note audit passing. The design distinctions below remain useful hypotheses;
+this adaptation did not improve extraction. [#291](https://github.com/JDeun/audio-score-tool/issues/291)
+tracks its observation/transition diagnosis. The review's prospective design
+language is not a claim that proposed schema fields or product changes shipped.
 
 ## Decision
 
