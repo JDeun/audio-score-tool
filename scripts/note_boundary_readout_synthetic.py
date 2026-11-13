@@ -10,9 +10,12 @@ import argparse
 import copy
 import json
 import os
+import platform
+import sys
 import time
 import zipfile
 from dataclasses import asdict
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 import numpy as np
@@ -28,6 +31,13 @@ ARMS = (*frozen.ARMS, ARM)
 PATH_ARMS = frozen.ARMS[1:]
 PREVIOUS = 'docs/research/receipts/note-boundary-diagnostics-43370790419.zip'
 PREVIOUS_SHA256 = '43b439e665eb470ec1b24179697cc99d2733fecb6122d1da6a77125d8e3ccf31'
+NUMERIC_INPUTS = 'docs/research/NOTE_BOUNDARY_READOUT_NUMERIC_INPUTS_2026-11-13.json'
+NUMERIC_INPUTS_SHA256 = 'e5349cfb3a65e076fab607287b69e71c9e4298157614160439128e00b6b14428'
+EXPECTED_RUNTIME = {
+    'librosa': '0.10.2.post1', 'numpy': '1.26.4', 'scipy': '1.13.1',
+    'mir-eval': '0.8.2', 'numba': '0.60.0', 'soundfile': '0.13.1',
+    'resampy': '0.4.2', 'soxr': '1.1.0',
+}
 VOLATILE = frozenset(('source_revision', 'protocol_head_revision', 'elapsed_seconds'))
 LEGACY_FIELDS = (
     'status', 'source_revision', 'protocol_head_revision', 'planned_cases',
@@ -41,6 +51,104 @@ LEGACY_CASE_FIELDS = (
 SEMITONE_CONTROL_IDS = (
     'change_195', 'change_197', 'change_207', 'change_209', 'change_219', 'change_221',
 )
+
+
+def numerical_environment():
+    """Observe the actual process and NumPy dispatch without changing features."""
+    runtime = {}
+    for name in EXPECTED_RUNTIME:
+        try:
+            runtime[name] = version(name)
+        except PackageNotFoundError:
+            runtime[name] = None
+    backend = np.core._multiarray_umath
+    return {
+        'python': platform.python_version(), 'executable': sys.executable,
+        'platform': platform.platform(), 'numpy_version': np.__version__,
+        'numpy_file': np.__file__, 'runtime': runtime,
+        'cpu_features': {name: bool(enabled) for name, enabled
+                         in sorted(getattr(backend, '__cpu_features__', {}).items())},
+        'cpu_baseline': list(getattr(backend, '__cpu_baseline__', ())),
+        'cpu_dispatch': list(getattr(backend, '__cpu_dispatch__', ())),
+        'numpy_disable_cpu_features': os.getenv('NPY_DISABLE_CPU_FEATURES'),
+    }
+
+
+def require_numerical_runtime(environment):
+    if (environment.get('runtime') != EXPECTED_RUNTIME
+            or environment.get('numpy_version') != EXPECTED_RUNTIME['numpy']
+            or environment.get('python', '').split('.')[:2] != ['3', '11']):
+        raise ValueError('actual pinned Python 3.11 research runtime required')
+
+
+def read_numeric_manifest():
+    """Read only input identities and an analytic table, never truth or events."""
+    path = ROOT / NUMERIC_INPUTS
+    if path.is_symlink() or not path.is_file() or dsp.digest(path) != NUMERIC_INPUTS_SHA256:
+        raise ValueError('immutable numeric input manifest required')
+    manifest = json.loads(path.read_text())
+    analytic_fields = {
+        'pitch', 'gaussian_exponent', 'normalization', 'attack_mass', 'stable_mass',
+        'peak_stable_to_silent', 'legacy_same_pitch_silent_to_attack_log_cost',
+        'stable_vs_silent_log_gain_per_frame_with_legacy_self',
+    }
+    if (set(manifest) != {'schema', 'baseline_zip_sha256', 'cases', 'emission_analysis'}
+            or manifest['schema'] != 'note-boundary-readout-numeric-inputs-v1'
+            or manifest['baseline_zip_sha256'] != PREVIOUS_SHA256
+            or len(manifest['cases']) != 245 or len(manifest['emission_analysis']) != 20
+            or [row['id'] for row in manifest['cases']] != [case.id for case in frozen.cases()]
+            or any(set(row) != {'id', 'duration_seconds', 'observation'}
+                   or set(row['observation']) != {'dtype', 'shape', 'sha256'} for row in manifest['cases'])
+            or any(set(row) != analytic_fields for row in manifest['emission_analysis'])):
+        raise ValueError('exact input-only numeric manifest inventory required')
+    return manifest
+
+
+def numeric_difference_paths(actual, expected, path):
+    """Exact serialized comparisons; never relax identity to a numeric tolerance."""
+    if type(actual) is not type(expected):
+        return [path]
+    if isinstance(expected, dict):
+        differences = [path + '/' + str(key) for key in sorted(set(actual) ^ set(expected))]
+        for key in sorted(set(actual) & set(expected)):
+            differences.extend(numeric_difference_paths(actual[key], expected[key], path + '/' + str(key)))
+        return differences
+    if isinstance(expected, list):
+        if len(actual) != len(expected):
+            return [path]
+        return [difference for index, (left, right) in enumerate(zip(actual, expected, strict=True))
+                for difference in numeric_difference_paths(left, right, path + '/' + str(index))]
+    return [] if json.dumps(actual, allow_nan=False) == json.dumps(expected, allow_nan=False) else [path]
+
+
+def compare_numeric_inputs(prepared, analytic, manifest):
+    if [case.id for case, _hz, _duration in prepared] != [row['id'] for row in manifest['cases']]:
+        raise ValueError('exact ordered input manifest population required')
+    different = []
+    for (case, hz, duration), expected in zip(prepared, manifest['cases'], strict=True):
+        actual = {'id': case.id, 'duration_seconds': duration, 'observation': frozen.identity(hz)}
+        if numeric_difference_paths(actual, expected, case.id):
+            different.append(case.id)
+    analytic_differences = numeric_difference_paths(analytic, manifest['emission_analysis'], '/emission_analysis')
+    return {
+        'manifest_sha256': NUMERIC_INPUTS_SHA256,
+        'compared_input_arrays': len(prepared), 'compared_analytic_rows': len(analytic),
+        'all_equal': not different and not analytic_differences,
+        'input_differences': different, 'analytic_difference_paths': analytic_differences,
+        'model_calls_before_preflight': 0,
+    }
+
+
+def prepare_inputs(plan):
+    manifest = read_numeric_manifest()
+    if [case.id for case in plan] != [row['id'] for row in manifest['cases']]:
+        raise ValueError('original ordered synthetic inputs required')
+    prepared = []
+    for case in plan:
+        hz, duration = frozen.observations(case)
+        prepared.append((case, hz, duration))
+    analytic = frozen.emission_analysis()
+    return prepared, analytic, compare_numeric_inputs(prepared, analytic, manifest)
 
 
 def predict(hz, duration):
@@ -238,15 +346,21 @@ def run(work, report_path, legacy_report_path=None):
         'schema': 'note-boundary-readout-synthetic-v1', 'status': 'started', 'cases': [],
         'source_revision': os.getenv('GITHUB_SHA'), 'protocol_head_revision': os.getenv('EXPERIMENT_HEAD_SHA'),
         'source_sha256': {path: dsp.digest(ROOT / path) for path in SOURCE_PATHS},
+        'numerical_environment': numerical_environment(), 'preflight': None,
         'planned_cases': len(plan), 'planned_arms': list(ARMS), 'acoustic_extraction': False,
         'quality_approved': False, 'heldout_generalization': False, 'product_changes': False,
-        'emission_analysis': frozen.emission_analysis(), 'aggregate': None, 'comparisons': None,
+        'emission_analysis': None, 'aggregate': None, 'comparisons': None,
         'all_predictions_saved_before_scoring': False, 'historical_parity': None,
     }
     dsp.save(report_path, report)
     try:
-        for case in plan:
-            hz, duration = frozen.observations(case)
+        require_numerical_runtime(report['numerical_environment'])
+        prepared, analytic, report['preflight'] = prepare_inputs(plan)
+        report['emission_analysis'] = analytic
+        dsp.save(report_path, report)
+        if not report['preflight']['all_equal']:
+            raise ValueError('exact numeric input and analytic preflight failed before model inference')
+        for case, hz, duration in prepared:
             arms, paths, diagnostics, public, trace = predict(hz, duration)
             directory = work / case.id
             directory.mkdir()

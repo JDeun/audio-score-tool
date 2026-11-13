@@ -57,7 +57,7 @@ def test_arm_source_and_denominator_inventories_are_frozen():
     assert len(study.ARMS) == 11
     assert study.ARMS[:-1] == study.frozen.ARMS
     assert study.ARMS[-1] == study.ARM
-    assert len(study.SOURCE_PATHS) == len(set(study.SOURCE_PATHS)) == 47
+    assert len(study.SOURCE_PATHS) == len(set(study.SOURCE_PATHS)) == 51
     assert study.SOURCE_PATHS[:35] == study.prior.SOURCE_PATHS
     assert study.SETTINGS['bootstrap_seed'] == 296
     assert study.SETTINGS['bootstrap_resamples'] == 10000

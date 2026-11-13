@@ -220,12 +220,38 @@ def mini_run(monkeypatch, tmp_path):
     monkeypatch.setattr(subject, 'summarize', lambda rows: {'cases': len(rows)})
     monkeypatch.setattr(subject, 'comparison_summary', lambda rows: {'cases': len(rows)})
     monkeypatch.setattr(subject, 'historical_parity', lambda report: {'all_equal': True})
+    environment = {
+        'python': '3.11.18', 'executable': '/test/python', 'platform': 'owned-test-platform',
+        'numpy_version': '1.26.4', 'numpy_file': '/test/numpy/__init__.py',
+        'runtime': dict(subject.EXPECTED_RUNTIME), 'cpu_features': {'AVX512F': True},
+        'cpu_baseline': ['SSE2'], 'cpu_dispatch': ['AVX512F'], 'numpy_disable_cpu_features': None,
+    }
+    monkeypatch.setattr(subject, 'numerical_environment', lambda: environment)
     work, report_path = tmp_path / 'private', tmp_path / 'public.json'
     predictions = []
     truths = []
+    prepared = []
+    preparations = []
     original_truth = frozen.truth
 
+    def prepare(plan):
+        assert predictions == [] and truths == []
+        preparations.append(1)
+        for case in plan:
+            hz, duration = frozen.observations(case)
+            prepared.append((case, hz, duration))
+        return prepared, [], {
+            'manifest_sha256': subject.NUMERIC_INPUTS_SHA256, 'compared_input_arrays': len(plan),
+            'compared_analytic_rows': 0, 'all_equal': True, 'input_differences': [],
+            'analytic_difference_paths': [], 'model_calls_before_preflight': 0,
+        }
+
     def fake_predict(hz, duration):
+        saved = json.loads(report_path.read_text())
+        assert saved['preflight']['all_equal'] is True
+        assert saved['preflight']['model_calls_before_preflight'] == 0
+        assert hz is prepared[len(predictions)][1]
+        assert duration == prepared[len(predictions)][2]
         predictions.append(1)
         note = subject.dsp.Note(69, .3, .42)
         arms = {arm: [note] for arm in subject.ARMS}
@@ -243,9 +269,12 @@ def mini_run(monkeypatch, tmp_path):
         return original_truth(case)
 
     monkeypatch.setattr(subject, 'predict', fake_predict)
+    monkeypatch.setattr(subject, 'prepare_inputs', prepare)
     monkeypatch.setattr(frozen, 'truth', observed_truth)
     return {'work': work, 'report': report_path, 'plan': plan, 'predictions': predictions,
-            'truths': truths, 'predict': fake_predict, 'truth': observed_truth}
+            'truths': truths, 'predict': fake_predict, 'truth': observed_truth,
+            'prepared': prepared, 'preparations': preparations, 'prepare': prepare,
+            'environment': environment}
 
 
 def test_all_predictions_and_manifest_are_persisted_before_first_truth(mini_run):
@@ -334,3 +363,167 @@ def test_owned_input_values_are_not_case_metadata():
     assert hz.ndim == 1 and duration > 0
     assert set(asdict(case)) == {'id', 'kind', 'pitch', 'frames', 'context', 'gap', 'interval'}
     assert list(inspect.signature(subject.predict).parameters) == ['hz', 'duration']
+
+
+def test_numeric_manifest_contains_only_original_input_identities_and_analytic_table(historical_report):
+    manifest = subject.read_numeric_manifest()
+    assert set(manifest) == {'schema', 'baseline_zip_sha256', 'cases', 'emission_analysis'}
+    assert len(manifest['cases']) == 245
+    assert manifest['cases'] == [
+        {key: row[key] for key in ('id', 'duration_seconds', 'observation')}
+        for row in historical_report['cases']]
+    assert manifest['emission_analysis'] == historical_report['emission_analysis']
+    assert all(set(row) == {'id', 'duration_seconds', 'observation'} for row in manifest['cases'])
+
+
+@pytest.mark.parametrize('location', ['top', 'case', 'analytic'])
+def test_numeric_manifest_rejects_truth_or_event_fields_even_with_an_updated_hash(monkeypatch, tmp_path, location):
+    manifest = subject.read_numeric_manifest()
+    if location == 'top':
+        manifest['truth'] = []
+    elif location == 'case':
+        manifest['cases'][0]['truth'] = []
+    else:
+        manifest['emission_analysis'][0]['events'] = []
+    path = tmp_path / 'numeric.json'
+    subject.dsp.save(path, manifest)
+    monkeypatch.setattr(subject, 'ROOT', tmp_path)
+    monkeypatch.setattr(subject, 'NUMERIC_INPUTS', path.name)
+    monkeypatch.setattr(subject, 'NUMERIC_INPUTS_SHA256', subject.dsp.digest(path))
+    with pytest.raises(ValueError, match='input-only'):
+        subject.read_numeric_manifest()
+
+
+def test_numeric_manifest_requires_original_bytes(monkeypatch, tmp_path):
+    path = tmp_path / 'numeric.json'
+    path.write_text('{}\n')
+    monkeypatch.setattr(subject, 'ROOT', tmp_path)
+    monkeypatch.setattr(subject, 'NUMERIC_INPUTS', path.name)
+    with pytest.raises(ValueError, match='immutable numeric'):
+        subject.read_numeric_manifest()
+
+
+@pytest.fixture
+def tiny_preflight():
+    plan = (frozen.Case('owned_001', 'single', pitch=69, frames=8),
+            frozen.Case('owned_002', 'single', pitch=57, frames=12))
+    prepared = [(case, *frozen.observations(case)) for case in plan]
+    analytic = [{'value': .25}, {'value': .5}]
+    manifest = {
+        'cases': [{'id': case.id, 'duration_seconds': duration, 'observation': frozen.identity(hz)}
+                  for case, hz, duration in prepared], 'emission_analysis': copy.deepcopy(analytic),
+    }
+    return plan, prepared, analytic, manifest
+
+
+def test_numeric_preflight_is_exact_for_arrays_and_analytic_scalars(tiny_preflight):
+    _, prepared, analytic, manifest = tiny_preflight
+    result = subject.compare_numeric_inputs(prepared, analytic, manifest)
+    assert result == {
+        'manifest_sha256': subject.NUMERIC_INPUTS_SHA256, 'compared_input_arrays': 2,
+        'compared_analytic_rows': 2, 'all_equal': True, 'input_differences': [],
+        'analytic_difference_paths': [], 'model_calls_before_preflight': 0,
+    }
+    hz = prepared[0][1]
+    positive = int(np.flatnonzero(hz > 0)[0])
+    hz[positive] = np.nextafter(hz[positive], np.inf)
+    analytic[1]['value'] = float(np.nextafter(analytic[1]['value'], np.inf))
+    failed = subject.compare_numeric_inputs(prepared, analytic, manifest)
+    assert failed['all_equal'] is False
+    assert failed['input_differences'] == ['owned_001']
+    assert failed['analytic_difference_paths'] == ['/emission_analysis/1/value']
+    assert failed['model_calls_before_preflight'] == 0
+
+
+def test_numeric_preflight_rejects_reordered_population_and_numeric_type_drift(tiny_preflight):
+    _, prepared, analytic, manifest = tiny_preflight
+    with pytest.raises(ValueError, match='ordered input'):
+        subject.compare_numeric_inputs(prepared[::-1], analytic, manifest)
+    assert subject.numeric_difference_paths({'n': 1.}, {'n': 1}, '/analytic') == ['/analytic/n']
+    assert subject.numeric_difference_paths([1.], [1., 2.], '/analytic') == ['/analytic']
+
+
+def test_prepare_inputs_generates_once_and_never_calls_predictor_or_truth(monkeypatch, tiny_preflight):
+    plan, prepared, analytic, manifest = tiny_preflight
+    generated = []
+
+    def observation(case):
+        generated.append(case.id)
+        row = next(item for item in prepared if item[0].id == case.id)
+        return row[1], row[2]
+
+    def forbidden(*args):
+        raise AssertionError('numeric preflight cannot access predictions or truth')
+
+    monkeypatch.setattr(subject, 'read_numeric_manifest', lambda: manifest)
+    monkeypatch.setattr(frozen, 'observations', observation)
+    monkeypatch.setattr(frozen, 'emission_analysis', lambda: analytic)
+    monkeypatch.setattr(frozen, 'predict', forbidden)
+    monkeypatch.setattr(frozen, 'truth', forbidden)
+    actual, measured, receipt = subject.prepare_inputs(plan)
+    assert generated == [case.id for case in plan]
+    assert all(a[1] is b[1] for a, b in zip(actual, prepared, strict=True))
+    assert measured is analytic
+    assert receipt['all_equal'] is True
+
+
+def test_failed_numeric_preflight_stops_before_every_prediction_and_truth(monkeypatch, mini_run):
+    def mismatch(plan):
+        prepared, analytic, receipt = mini_run['prepare'](plan)
+        receipt.update(all_equal=False, input_differences=['tiny_001'])
+        return prepared, analytic, receipt
+
+    monkeypatch.setattr(subject, 'prepare_inputs', mismatch)
+    result = subject.run(mini_run['work'], mini_run['report'])
+    assert result['status'] == 'failed'
+    assert result['cases'] == []
+    assert result['aggregate'] is result['comparisons'] is None
+    assert result['all_predictions_saved_before_scoring'] is False
+    assert result['preflight']['input_differences'] == ['tiny_001']
+    assert result['numerical_environment'] == mini_run['environment']
+    assert mini_run['predictions'] == mini_run['truths'] == []
+
+
+def test_wrong_actual_runtime_is_recorded_and_stops_before_input_preflight(monkeypatch, mini_run):
+    environment = copy.deepcopy(mini_run['environment'])
+    environment['numpy_version'] = '2.3.5'
+    monkeypatch.setattr(subject, 'numerical_environment', lambda: environment)
+    result = subject.run(mini_run['work'], mini_run['report'])
+    assert result['status'] == 'failed'
+    assert result['preflight'] is result['aggregate'] is None
+    assert result['cases'] == []
+    assert result['numerical_environment']['numpy_version'] == '2.3.5'
+    assert mini_run['preparations'] == mini_run['predictions'] == mini_run['truths'] == []
+
+
+@pytest.mark.parametrize('field,value', [
+    ('python', '3.12.14'), ('numpy_version', '2.3.5'), ('runtime', {}),
+])
+def test_actual_runtime_requires_pinned_python_numpy_and_dependencies(field, value):
+    valid = {'python': '3.11.18', 'numpy_version': '1.26.4', 'runtime': dict(subject.EXPECTED_RUNTIME)}
+    subject.require_numerical_runtime(valid)
+    valid[field] = value
+    with pytest.raises(ValueError, match='actual pinned'):
+        subject.require_numerical_runtime(valid)
+
+
+def test_numerical_environment_records_dispatch_without_enabling_cpu_features(monkeypatch):
+    before = dict(np.core._multiarray_umath.__cpu_features__)
+    monkeypatch.setenv('NPY_DISABLE_CPU_FEATURES', 'owned-observation-only-test')
+    environment = subject.numerical_environment()
+    assert set(environment) == {
+        'python', 'executable', 'platform', 'numpy_version', 'numpy_file', 'runtime',
+        'cpu_features', 'cpu_baseline', 'cpu_dispatch', 'numpy_disable_cpu_features',
+    }
+    assert environment['numpy_version'] == np.__version__
+    assert environment['numpy_file'] == np.__file__
+    assert set(environment['runtime']) == set(subject.EXPECTED_RUNTIME)
+    assert environment['cpu_features'] == before
+    assert np.core._multiarray_umath.__cpu_features__ == before
+    assert environment['numpy_disable_cpu_features'] == 'owned-observation-only-test'
+
+
+def test_legacy_projection_strips_recovery_environment_and_preflight(unchanged_candidate, historical_report):
+    unchanged_candidate['numerical_environment'] = {'owned_test': True}
+    unchanged_candidate['preflight'] = {'owned_test': True}
+    assert subject.legacy_projection(unchanged_candidate) == historical_report

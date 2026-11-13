@@ -10,9 +10,12 @@ import argparse
 import io
 import json
 import math
+import os
+import platform
 import sys
 import time
 import zipfile
+from importlib.metadata import version
 from pathlib import Path
 
 import numpy as np
@@ -43,6 +46,7 @@ from scripts.audit_note_state_factors import (
     ARMS as OLD_ARMS,
 )
 from scripts.audit_note_state_factors import (
+    EXPECTED_RUNTIME,
     check_observations,
     reconstruct_readout,
 )
@@ -63,6 +67,8 @@ HARM_KEYS = ("lost_references", "lost_matched_parent_cut",
              "lost_matched_parent_with_short_children", "lost_matched_parent_all_children_pruned")
 PREVIOUS_RECEIPT = "docs/research/receipts/note-boundary-diagnostics-43370790419.zip"
 PREVIOUS_SHA256 = "43b439e665eb470ec1b24179697cc99d2733fecb6122d1da6a77125d8e3ccf31"
+NUMERIC_MANIFEST = "docs/research/NOTE_BOUNDARY_READOUT_NUMERIC_INPUTS_2026-11-13.json"
+NUMERIC_MANIFEST_SHA256 = "e5349cfb3a65e076fab607287b69e71c9e4298157614160439128e00b6b14428"
 NEW_SOURCE_PATHS = (
     "scripts/note_boundary_readout.py", "scripts/run_note_boundary_readout.py",
     "scripts/note_boundary_readout_synthetic.py", "scripts/audit_note_boundary_readout.py",
@@ -71,6 +77,9 @@ NEW_SOURCE_PATHS = (
     ".github/workflows/cpu-note-boundary-readout.yml",
     "docs/research/NOTE_BOUNDARY_READOUT_PROTOCOL_2026-11-13.md",
     "docs/research/NOTE_BOUNDARY_READOUT_EXECUTION_2026-11-13.md", PREVIOUS_RECEIPT,
+    NUMERIC_MANIFEST, "docs/research/NOTE_BOUNDARY_READOUT_RECOVERY_2026-11-13.md",
+    "docs/research/receipts/note-boundary-readout-43377739964.zip",
+    "docs/research/receipts/note-boundary-readout-numeric-diagnosis-2026-11-13.json",
 )
 SOURCE_PATHS = (*FROZEN_SOURCE_PATHS, *NEW_SOURCE_PATHS)
 PRIMARY = {"candidate": ARM, "baseline": BASE_ARM, "metric": "onset_offset_f1"}
@@ -365,13 +374,55 @@ def load_previous(checks, path=None):
 def check_sources(report, previous, checks):
     hashes = report.get("source_sha256")
     if not isinstance(hashes, dict) or set(hashes) != set(SOURCE_PATHS):
-        raise ValueError("exact forty-seven-source inventory required")
+        raise ValueError("exact fifty-one-source inventory required")
     if set(previous.get("source_sha256", {})) != set(FROZEN_SOURCE_PATHS):
         raise ValueError("previous thirty-five-source inventory differs")
     for name in SOURCE_PATHS:
         checks.equal(hashes[name], sha256(_read(REPOSITORY / name, 32_000_000)), "frozen_source_identity/" + name)
         if name in FROZEN_SOURCE_PATHS:
             checks.equal(hashes[name], previous["source_sha256"][name], "historical_source_preserved/" + name)
+
+
+def observed_numerical_environment():
+    """Read process facts without changing dispatch flags or importing a model."""
+    extension = np.core._multiarray_umath
+    return {"python": platform.python_version(), "executable": sys.executable,
+        "platform": platform.platform(), "numpy_version": np.__version__, "numpy_file": np.__file__,
+        "runtime": {name: version(name) for name in EXPECTED_RUNTIME},
+        "cpu_features": {name: bool(value) for name, value in sorted(extension.__cpu_features__.items())},
+        "cpu_baseline": list(extension.__cpu_baseline__), "cpu_dispatch": list(extension.__cpu_dispatch__),
+        "numpy_disable_cpu_features": os.getenv("NPY_DISABLE_CPU_FEATURES")}
+
+
+def check_numerical_environment(recorded, checks):
+    actual = observed_numerical_environment()
+    exact_equal(checks, recorded, actual, "observed_numeric_process_and_CPU_dispatch")
+    strict_equal(checks, actual["runtime"], EXPECTED_RUNTIME, "pinned_actual_numeric_runtime")
+    checks.equal(actual["numpy_version"], "1.26.4", "pinned_actual_numpy")
+    checks.equal(actual["python"].startswith("3.11."), True, "pinned_actual_python_minor")
+    return actual
+
+
+def check_numeric_preflight(report, previous_synthetic, checks, manifest_path=None):
+    """Check the input-only gate against original history after prediction/scoring."""
+    path = REPOSITORY / NUMERIC_MANIFEST if manifest_path is None else manifest_path
+    raw = _read(path, 4_000_000)
+    checks.equal(sha256(raw), NUMERIC_MANIFEST_SHA256, "input_only_manifest_file_identity")
+    manifest = _json(raw)
+    expected = {"schema": "note-boundary-readout-numeric-inputs-v1", "baseline_zip_sha256": PREVIOUS_SHA256,
+        "cases": [{key: row[key] for key in ("id", "duration_seconds", "observation")} for row in previous_synthetic["cases"]],
+        "emission_analysis": previous_synthetic["emission_analysis"]}
+    exact_equal(checks, manifest, expected, "input_only_manifest_exact_original_projection")
+    checks.equal(len(manifest["cases"]), 245, "input_only_manifest_population")
+    checks.equal(len(manifest["emission_analysis"]), 20, "input_only_analytic_population")
+    current = [{key: row[key] for key in ("id", "duration_seconds", "observation")} for row in report["cases"]]
+    exact_equal(checks, current, manifest["cases"], "same_preflight_inputs_used_by_predictions")
+    exact_equal(checks, report["emission_analysis"], manifest["emission_analysis"], "same_preflight_analytic_rows_used")
+    receipt = {"manifest_sha256": NUMERIC_MANIFEST_SHA256, "compared_input_arrays": 245,
+        "compared_analytic_rows": 20, "all_equal": True, "input_differences": [],
+        "analytic_difference_paths": [], "model_calls_before_preflight": 0}
+    strict_equal(checks, report.get("preflight"), receipt, "independent_input_only_preflight_receipt")
+    return receipt
 
 
 def require_legacy_audit(legacy, legacy_bytes, audit, checks):
@@ -559,7 +610,7 @@ def synthetic_from_private(work, report, previous, checks):
         "planned_cases", "planned_arms", "acoustic_extraction", "quality_approved", "heldout_generalization",
         "product_changes", "emission_analysis", "aggregate", "comparisons", "all_predictions_saved_before_scoring",
         "historical_parity", "predictions_manifest_sha256", "truth_access_started_after_prediction_files",
-        "post_evaluation_predictions_manifest_sha256", "elapsed_seconds"}
+        "post_evaluation_predictions_manifest_sha256", "elapsed_seconds", "numerical_environment", "preflight"}
     if not isinstance(report, dict) or set(report) != required:
         raise ValueError("exact completed synthetic report inventory required")
     for key, expected in {"schema": "note-boundary-readout-synthetic-v1", "status": "complete",
@@ -668,6 +719,7 @@ def audit_private(work, report_path, synthetic_work, synthetic_path, legacy_repo
         "all_predictions_frozen_before_references", "archive_sha256", "predictions_manifest_sha256",
         "reference_access_started_after_predicted_cases", "post_evaluation_predictions_manifest_sha256",
         "legacy_report_sha256", "historical_parity", "primary_result", "elapsed_seconds", "peak_rss_kib",
+        "numerical_environment",
     }
     if not isinstance(report, dict) or set(report) != expected_keys:
         raise ValueError("exact completed corpus report inventory required")
@@ -692,6 +744,9 @@ def audit_private(work, report_path, synthetic_work, synthetic_path, legacy_repo
     previous_corpus, previous_synthetic, previous_diagnostics = load_previous(checks)
     check_sources(report, previous_diagnostics, checks)
     exact_equal(checks, synthetic.get("source_sha256"), report["source_sha256"], "common_frozen_source_inventory")
+    numeric_environment = check_numerical_environment(report.get("numerical_environment"), checks)
+    exact_equal(checks, synthetic.get("numerical_environment"), numeric_environment, "common_observed_numerical_environment")
+    preflight = check_numeric_preflight(synthetic, previous_synthetic, checks)
     corpus_result = corpus_from_private(work, report, legacy, checks)
     synthetic_result, projected_synthetic = synthetic_from_private(synthetic_work, synthetic, previous_synthetic, checks)
     replay = verify_replay(legacy, projected_synthetic, previous_corpus, previous_synthetic, checks)
@@ -705,6 +760,7 @@ def audit_private(work, report_path, synthetic_work, synthetic_path, legacy_repo
         "report_sha256": sha256(raw_report), "synthetic_report_sha256": sha256(raw_synthetic),
         "legacy_report_sha256": sha256(raw_legacy), "legacy_audit_sha256": sha256(raw_legacy_audit),
         "script_sha256": sha256(_read(Path(__file__))), "source_sha256": report["source_sha256"],
+        "numerical_environment": numeric_environment, "preflight": preflight,
         "replay_parity": replay, "corpus_historical_parity": parity,
         "checks_passed": sum(checks.counts.values()), "checks_by_kind": dict(sorted(checks.counts.items())),
         "maximum_numeric_difference": checks.maximum_numeric_difference,
@@ -718,6 +774,8 @@ def audit_private(work, report_path, synthetic_work, synthetic_path, legacy_repo
         "heldout_generalization": False, "elapsed_seconds": time.monotonic() - started,
         "limitations": [
             "Independent split reconstruction walks maximal raw-pitch runs and original G parents without importing the new implementation, any runner, or a decoder.",
+            "Recorded Python, NumPy module path, pinned packages, CPU feature/dispatch lists and raw disable-feature environment are compared with this private audit process; no feature is forced or disabled.",
+            "The input-only preflight manifest is independently checked against the original245 input identities and20 analytic rows after prediction/scoring; saved input arrays and the reused analytic table must match exactly.",
             "Frozen auditor parsers and original path-readout checks are reused; direct mir_eval is another call to the same matching implementation, not independent human truth.",
             "All 440 corpus and 1960 synthetic event files, private split traces, reference CSVs, observation hashes, metric arithmetic, comparisons and fixed bootstrap are checked.",
             "The prior private factor audit is bound to the exact legacy projection and auditor hashes; it covers WAV metadata and original F0 scores not re-extracted by this auditor.",

@@ -213,7 +213,7 @@ def test_original_receipt_and_source_inventory_are_fixed():
     corpus, synthetic, diagnostics = audit.load_previous(audit.Checks())
     assert len(corpus["cases"]) == 40 and len(synthetic["cases"]) == 245
     assert len(diagnostics["source_sha256"]) == len(audit.FROZEN_SOURCE_PATHS) == 35
-    assert len(audit.SOURCE_PATHS) == len(set(audit.SOURCE_PATHS)) == 47
+    assert len(audit.SOURCE_PATHS) == len(set(audit.SOURCE_PATHS)) == 51
 
 
 def test_legacy_audit_is_bound_to_exact_report_bytes_and_script():
@@ -318,3 +318,72 @@ def test_private_adapter_rejects_mutated_diagnostics_trace_or_event(tmp_path, mo
         row["annotation_diagnostics"]["A3"] = row["annotation_diagnostics"]["A1"]
     with pytest.raises(ValueError):
         audit.corpus_from_private(work, report, legacy, audit.Checks())
+
+
+def preflight_fixture():
+    _, previous, _ = audit.load_previous(audit.Checks())
+    report = copy.deepcopy(previous)
+    report["preflight"] = {"manifest_sha256": audit.NUMERIC_MANIFEST_SHA256,
+        "compared_input_arrays": 245, "compared_analytic_rows": 20, "all_equal": True,
+        "input_differences": [], "analytic_difference_paths": [], "model_calls_before_preflight": 0}
+    return report, previous
+
+
+def test_input_only_manifest_is_exact_original_metadata_and_preflight_is_bound():
+    report, previous = preflight_fixture()
+    result = audit.check_numeric_preflight(report, previous, audit.Checks())
+    assert result["compared_input_arrays"] == 245
+    assert result["compared_analytic_rows"] == 20
+    assert result["model_calls_before_preflight"] == 0
+    manifest = json.loads((audit.REPOSITORY / audit.NUMERIC_MANIFEST).read_text())
+    assert set(manifest) == {"schema", "baseline_zip_sha256", "cases", "emission_analysis"}
+    assert all(set(row) == {"id", "duration_seconds", "observation"} for row in manifest["cases"])
+
+
+@pytest.mark.parametrize("mutation", ["input", "analytic", "missing_case", "models", "extra_gate", "hash", "failed_gate"])
+def test_numeric_preflight_rejects_input_or_analytic_drift_and_gate_forgery(mutation):
+    report, previous = preflight_fixture()
+    if mutation == "input":
+        report["cases"][0]["observation"]["sha256"] = "0" * 64
+    elif mutation == "analytic":
+        report["emission_analysis"][0]["attack_mass"] += 1e-15
+    elif mutation == "missing_case":
+        report["cases"].pop()
+    elif mutation == "models":
+        report["preflight"]["model_calls_before_preflight"] = 1
+    elif mutation == "extra_gate":
+        report["preflight"]["extra"] = True
+    elif mutation == "hash":
+        report["preflight"]["manifest_sha256"] = "0" * 64
+    else:
+        report["preflight"]["all_equal"] = False
+    with pytest.raises(ValueError):
+        audit.check_numeric_preflight(report, previous, audit.Checks())
+
+
+def numeric_environment_fixture(monkeypatch):
+    monkeypatch.setattr(audit, "version", lambda name: audit.EXPECTED_RUNTIME[name])
+    actual = audit.observed_numerical_environment()
+    actual["python"] = "3.11.99"
+    actual["numpy_version"] = "1.26.4"
+    monkeypatch.setattr(audit, "observed_numerical_environment", lambda: copy.deepcopy(actual))
+    return actual
+
+
+def test_private_numeric_environment_checks_actual_cpu_dispatch_and_module(monkeypatch):
+    actual = numeric_environment_fixture(monkeypatch)
+    assert audit.check_numerical_environment(actual, audit.Checks()) == actual
+
+
+@pytest.mark.parametrize("field", ["python", "executable", "numpy_file", "numpy_version", "cpu_features", "cpu_dispatch", "numpy_disable_cpu_features", "runtime"])
+def test_private_numeric_environment_rejects_declared_actual_mismatch(monkeypatch, field):
+    actual = numeric_environment_fixture(monkeypatch)
+    recorded = copy.deepcopy(actual)
+    if field in ("cpu_features", "runtime"):
+        recorded[field]["OWNED_EXTRA"] = True
+    elif field == "cpu_dispatch":
+        recorded[field] = []
+    else:
+        recorded[field] = "different_owned_value"
+    with pytest.raises(ValueError):
+        audit.check_numerical_environment(recorded, audit.Checks())

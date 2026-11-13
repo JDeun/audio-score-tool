@@ -38,6 +38,10 @@ NEW_SOURCE_PATHS = (
     '.github/workflows/cpu-note-boundary-readout.yml',
     'docs/research/NOTE_BOUNDARY_READOUT_PROTOCOL_2026-11-13.md',
     'docs/research/NOTE_BOUNDARY_READOUT_EXECUTION_2026-11-13.md', PREVIOUS,
+    'docs/research/NOTE_BOUNDARY_READOUT_NUMERIC_INPUTS_2026-11-13.json',
+    'docs/research/NOTE_BOUNDARY_READOUT_RECOVERY_2026-11-13.md',
+    'docs/research/receipts/note-boundary-readout-43377739964.zip',
+    'docs/research/receipts/note-boundary-readout-numeric-diagnosis-2026-11-13.json',
 )
 SOURCE_PATHS = (*prior.SOURCE_PATHS, *NEW_SOURCE_PATHS)
 ROW_ADDITIONS = frozenset(('readout', 'readout_private_sha256',
@@ -382,6 +386,8 @@ def finalize_results(report, work, baseline, previous, legacy_report_path):
 
 
 def run(archive, work, report_path, baseline, previous, legacy_report_path):
+    from scripts.note_boundary_readout_synthetic import numerical_environment
+
     started = time.monotonic()
     work.mkdir(mode=0o700)
     report = {'schema': 'note-boundary-readout-v1', 'status': 'started', 'cases': [],
@@ -390,6 +396,7 @@ def run(archive, work, report_path, baseline, previous, legacy_report_path):
         'source_sha256': {p: dsp.digest(ROOT / p) for p in SOURCE_PATHS},
         'python': platform.python_version(), 'platform': platform.platform(),
         'runtime': {d.metadata['Name']: d.version for d in distributions() if d.metadata['Name']},
+        'numerical_environment': numerical_environment(),
         'f0_settings': dsp.SETTINGS, 'hmm_settings': frozen.HMM_SETTINGS,
         'factor_settings': frozen.FACTOR_SETTINGS, 'readout_settings': SETTINGS,
         'primary_comparison': {'candidate': ARM, 'baseline': BASE_ARM, 'metric': 'onset_offset_f1'},
