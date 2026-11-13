@@ -4,6 +4,14 @@ This is the continuation snapshot taken with main at `7dd5c6ce0b18fda023403d92fb
 
 ## Current priority: common rhythm across expressive performances
 
+### Preparing the next acoustic note-decoding comparison
+
+Continuation dated 2026-11-13 Asia/Seoul: [design review #288](https://github.com/JDeun/audio-score-tool/issues/288) records the [Melodyne, Flex Pitch and Tony source review](MELODYNE_FLEX_PITCH_DESIGN_REVIEW_2026-11-13.md). The authorized next execution [#289](https://github.com/JDeun/audio-score-tool/issues/289) is preparing its code and [protocol](NOTE_STATE_HMM_PROTOCOL_2026-11-13.md) for freeze. Execution and results are **pending**; this preparation is not a completed experiment or evidence of an accuracy gain.
+
+The planned five arms share the same pYIN observations: existing pitch runs, hysteresis, and hysteresis plus reattack; a new note-state HMM; and that HMM plus RMS reattack. The primary comparison is **HMM plus RMS reattack versus pitch runs on pitch/onset/offset F1**. This is an original Tony-inspired adaptation, not an exact Tony reproduction or a claim about either commercial detector. The comparison concerns performed-note extraction; written rhythm, rest spelling and common-score recovery remain separate. The completed results below are unchanged, and #281 remains open.
+
+### Completed repeat-context experiment
+
 Continuation dated 2026-11-13 Asia/Seoul: [#286](https://github.com/JDeun/audio-score-tool/issues/286) / [#287](https://github.com/JDeun/audio-score-tool/pull/287) completed the [repeat-context experiment](REPEAT_CONTEXT_RESULTS_2026-11-13.md) under its [frozen protocol](REPEAT_CONTEXT_PROTOCOL_2026-11-13.md). All 1,520 planned cases completed. [Original run 43256776331](https://github.com/JDeun/audio-score-tool/actions/runs/43256776331) failed at the combined report-size guard after predictions; [official recovery 43261359821](https://github.com/JDeun/audio-score-tool/actions/runs/43261359821) reproduced all 1,520 input/prediction file hashes and published the unchanged evaluation using compact public JSON. Both exact artifacts and the original failure are retained.
 
 **Repeat context does not establish better common-score recovery.** On the 480 reused authored cases, primary repeat versus local changes full-score correct/wrong/abstained from 210/15/255 to 219/15/246. On the 1,024 new factorial cases it changes 79/12/933 to 83/20/921: four new correct decisions, eight new wrong decisions, and 26 lost true joint candidates. Of 748 factorial repeat links, 435 connect different canonical rhythms. None of the eight actual performances receives a repeat link; their 782 reused and 596 additional ordinary targets remain respectively 720/22/35/5 and 492/41/38/25 correct/wrong/abstained/unobserved, exactly the local baseline. Same-score both-correct pairs stay 350/391 and 229/298. Do not pool these four cohort denominators.

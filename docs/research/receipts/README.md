@@ -11,6 +11,15 @@ experiments and do not change a historical result or its protocol.
 
 ## Immutable identities
 
+The note-state follow-up also preserves `dsp-note-baseline-42989661618.zip`
+from [run 42989661618](https://github.com/JDeun/audio-score-tool/actions/runs/42989661618),
+artifact13841810951: 27,672 bytes, SHA256
+`6bc477457a89403c7bb18f331d862555f4d963db4a227472bb19d63644d39541`.
+Its only members are `synthetic.json` (12,284 bytes) and `vocadito.json`
+(162,070 bytes). They contain the original metadata, not raw F0 or note arrays.
+The [note-state protocol](../NOTE_STATE_HMM_PROTOCOL_2026-11-13.md) uses this
+unchanged archive for historical baseline parity before accepting its comparison.
+
 Baseline ZIP SHA-256:
 `6dc61e728c749ebfe8a51b3d4eea94026d18ca2cb6ec59c4e4ff734894cda3b0`.
 Baseline JSON SHA-256:
