@@ -6,6 +6,7 @@ import json
 import xml.etree.ElementTree as ET
 from dataclasses import replace
 
+from .beat_clock import fixed_beat_track
 from .demucs_runtime import prepare_demucs_audio
 from .fixed_lead_recipe import (
     DEMUCS_SHA256,
@@ -34,7 +35,7 @@ def transcribe_fixed_vocal_lead(audio_path, output_dir, *, settings, cancel_even
     with audio_path.open("rb") as handle:
         source_sha = hashlib.file_digest(handle, "sha256").hexdigest()
     output_dir.mkdir(parents=True, exist_ok=True)
-    recipe = {"recipe_version": 2, "engine": ENGINE, "source_audio_sha256": source_sha,
+    recipe = {"recipe_version": 3, "engine": ENGINE, "source_audio_sha256": source_sha,
               "melody": {"model": "yourmt3", "model_revision": YOUR_REVISION,
                          "checkpoint_sha256": YOUR_SHA256},
               "structure": {"model": "sheetsage2", "model_revision": MODEL_REVISION,
@@ -53,6 +54,8 @@ def transcribe_fixed_vocal_lead(audio_path, output_dir, *, settings, cancel_even
     with model_audio.open("rb") as handle:
         recipe["model_audio_sha256"] = hashlib.file_digest(handle, "sha256").hexdigest()
     recipe["model_audio_normalized"] = model_audio != audio_path
+    beat_file = output_dir / "beat.npz"
+    recipe["beat_clock"] = fixed_beat_track(model_audio, beat_file, settings=settings, cancel_event=cancel_event)
     structure_dir = output_dir / "structure"
     # Whole-mix structure is a separate, immutable observation from vocal inference.
     SheetSage2Engine(replace(settings, sheetsage2_snapshot=root / "sheetsage2")).analyze(
@@ -80,18 +83,26 @@ def transcribe_fixed_vocal_lead(audio_path, output_dir, *, settings, cancel_even
     selected_midi = musicxml_to_midi(selected_xml, raw / "selected.mid")
     run_command(settings.sheetsage2_cmd, [model_audio, output_dir / "interpretation.json",
                 "--model-dir", root / "sheetsage2/model", "--vocal-midi", selected_midi,
-                "--context-dir", structure_dir / "native"], cancel_event=cancel_event,
+                "--context-dir", structure_dir / "native", "--beat-track", beat_file], cancel_event=cancel_event,
                 timeout_seconds=1800, env={"AST_USAGE_MODE": "personal", "AST_FIXED_LEAD_V1": "1"})
     xml = output_dir / "score.musicxml"
     report = import_native_lead_sheet(output_dir / "native", xml)
-    report["clock_model_revision"] = report.pop("model_revision")
-    report["clock_checkpoint_sha256"] = report.pop("checkpoint_sha256")
+    report["notation_model_revision"] = report.pop("model_revision")
+    report["notation_checkpoint_sha256"] = report.pop("checkpoint_sha256")
+    report["clock_provider"] = "beat-this"
+    report["clock_model_revision"] = recipe["beat_clock"]["source_revision"]
+    report["clock_checkpoint_sha256"] = recipe["beat_clock"]["checkpoint_sha256"]
     report.update(melody_provider="yourmt3", melody_checkpoint_sha256=YOUR_SHA256)
     (output_dir / "notation-report.json").write_text(json.dumps(report, indent=2) + "\n")
     midi = musicxml_to_midi(xml, output_dir / "score.mid")
     interpretation = json.loads((output_dir / "interpretation.json").read_text())
     recipe["notation_fidelity"] = verify_notated_midi(selected_midi, midi, interpretation)
     analysis = json.loads((structure_dir / "analysis.json").read_text())
+    clock = interpretation["beat_clock"]
+    analysis["beats"] = clock["observed_beat_rows"]
+    analysis["downbeats"] = clock["phase_compatible_downbeat_rows"]
+    analysis["clock_provider"] = "beat-this"
+    analysis["nominal_tempo_bpm"] = clock["nominal_tempo_bpm"]
     analysis["structure_model_revision"] = analysis.pop("model_revision")
     analysis["structure_checkpoint_sha256"] = analysis.pop("checkpoint_sha256")
     analysis.update(provider=ENGINE, model="yourmt3+sheetsage2", melody_checkpoint_sha256=YOUR_SHA256)

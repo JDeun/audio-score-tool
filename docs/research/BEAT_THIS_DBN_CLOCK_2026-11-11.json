@@ -1,0 +1,111 @@
+{
+  "source_report_sha256": "b4df197abf834e0fc769e88288914d812447be8c800a3321b7a9e584426c4947",
+  "cached_adapter_report_sha256": "fa3989cee6f410a7620a9e3ff7f010d0245b541a8e7c4a6dfbc73633f98fd197",
+  "checkpoint_sha256": "8c328b45f59d8dd3dff219253ff6a8d6482be57d0133a29140e2febbf8eb8331",
+  "source_tree_sha256": "3f8d310da05e5b26fb455645dfcad5b835570b23a511003e351ce0f33b45fd04",
+  "cases": [
+    {
+      "id": "tinashe-me-so-bad",
+      "raw_notes": 564,
+      "represented_notes": 550,
+      "omitted_notes": 14,
+      "phase_votes_mod4": [
+        0,
+        0,
+        0,
+        84
+      ],
+      "observed_beats": 338,
+      "observed_downbeats": 84,
+      "nominal_tempo_bpm": 100.0,
+      "midi_guard_max_seconds": 1.8758328224066645e-12
+    },
+    {
+      "id": "twice-fancy",
+      "raw_notes": 710,
+      "represented_notes": 693,
+      "omitted_notes": 17,
+      "phase_votes_mod4": [
+        119,
+        0,
+        0,
+        0
+      ],
+      "observed_beats": 474,
+      "observed_downbeats": 119,
+      "nominal_tempo_bpm": 130.43,
+      "midi_guard_max_seconds": 3.0000000101892965e-06
+    },
+    {
+      "id": "green-day-american-idiot",
+      "raw_notes": 311,
+      "represented_notes": 308,
+      "omitted_notes": 3,
+      "phase_votes_mod4": [
+        135,
+        0,
+        0,
+        0
+      ],
+      "observed_beats": 538,
+      "observed_downbeats": 135,
+      "nominal_tempo_bpm": 187.5,
+      "midi_guard_max_seconds": 3.0000000101892965e-06
+    },
+    {
+      "id": "ham-boo-young-my-song",
+      "raw_notes": 605,
+      "represented_notes": 558,
+      "omitted_notes": 47,
+      "phase_votes_mod4": [
+        0,
+        83,
+        0,
+        0
+      ],
+      "observed_beats": 330,
+      "observed_downbeats": 83,
+      "nominal_tempo_bpm": 63.83,
+      "midi_guard_max_seconds": 2.0000023823740776e-06
+    },
+    {
+      "id": "younha-event-horizon",
+      "raw_notes": 623,
+      "represented_notes": 614,
+      "omitted_notes": 9,
+      "phase_votes_mod4": [
+        122,
+        0,
+        0,
+        0
+      ],
+      "observed_beats": 487,
+      "observed_downbeats": 122,
+      "nominal_tempo_bpm": 96.77,
+      "midi_guard_max_seconds": 3.0000019251019694e-06
+    }
+  ],
+  "new_inference_in_adapter_check": false,
+  "quality_approved": false,
+  "accuracy_established": false,
+  "single_case_cli_smoke": {
+    "status": "passed",
+    "case": "tinashe-me-so-bad",
+    "report_sha256": "ec2868149db0fd212dda763e4a33605902d13eacd614daf17a781b447d09aa52",
+    "source_frames": 9283815,
+    "sample_rate": 44100,
+    "source_sha256": "f39788b3075e9117661481470289c6e79ce25171f7a256936a2167bdae49fd65",
+    "prediction_sha256": "9e4934ad0ae4845a5b847f0192bae1b89b6330ba03a83859098ed7adc155399a",
+    "source_checkpoint_adapter_unchanged": true,
+    "native_platform": "macOS-26.6.2-arm64-arm-64bit",
+    "native_build_sha256": {
+      "audio/comb_filters.cpython-311-darwin.so": "84f726cd07df363d42dd25fb5801e8d254b016f9c30d61b20d75266c54a2cd7a",
+      "features/beats_crf.cpython-311-darwin.so": "951ab6c0ee9441e1eed7436e47d9738c83f26dc5a06333a92e3a31805a1c8b23",
+      "ml/hmm.cpython-311-darwin.so": "f9599156bbfb0b6bb553f21a2ce77d1722890aee29a781ae4b9e36963941ce92",
+      "ml/nn/layers.cpython-311-darwin.so": "d4ca0137b6370e1a87d05f5b3585107e4188bbc72ea2985c49f623b5bd151e07"
+    },
+    "madmom_python_sha256": "28255419eddab6a2c801b240df2e8f418e4e8d2704d6caaa1146d41661f8167e",
+    "madmom_pyx_sha256": {},
+    "scope": "single BeatThis CLI inference; no full transcription job"
+  }
+}

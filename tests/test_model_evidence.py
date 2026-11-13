@@ -352,3 +352,28 @@ def test_fixed_v2_requires_pitch_observation_and_preserves_after_job_removal(cas
     shutil.rmtree(jobs / 'test-song')
     assert store.preserve_job_evidence(job)
     assert (store.asset_root / 'test-song/model-evidence/vocal/pitch.npz').read_bytes() == b'owned observation'
+
+
+def test_fixed_v3_preserves_beat_observation_after_job_removal(case):
+    store, jobs, score, job = case
+    job['transcription_engine'] = 'vocal_lead_v1'
+    (score / 'structure').mkdir()
+    shutil.copytree(score / 'native', score / 'structure/native')
+    (score / 'structure/analysis.json').write_text('{}')
+    (score / 'recipe.json').write_text('{"recipe_version":3}')
+    (score / 'interpretation.json').write_text('{}')
+    (score / 'vocal').mkdir()
+    for name in ('score.mid', 'selected.mid', 'score.runtime.json'):
+        (score / 'vocal' / name).write_bytes(b'fixture')
+    pitch = score / 'vocal/pitch.npz'
+    pitch.write_bytes(b'pitch')
+    (score / 'vocal/pitch.runtime.json').write_text(json.dumps({'prediction_sha256': hashlib.sha256(pitch.read_bytes()).hexdigest()}))
+    beat = score / 'beat.npz'
+    beat.write_bytes(b'beat')
+    (score / 'beat.runtime.json').write_text(json.dumps({'prediction_sha256': 'wrong'}))
+    assert not store.preserve_job_evidence(job)
+    (score / 'beat.runtime.json').write_text(json.dumps({'prediction_sha256': hashlib.sha256(beat.read_bytes()).hexdigest()}))
+    assert store.sync_completed_jobs([job]) == 1
+    shutil.rmtree(jobs / 'test-song')
+    assert store.preserve_job_evidence(job)
+    assert (store.asset_root / 'test-song/model-evidence/beat.npz').read_bytes() == b'beat'

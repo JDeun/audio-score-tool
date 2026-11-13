@@ -1,0 +1,11 @@
+# Beat clock experiment — 2026-11-11
+
+This branch is an unapproved development experiment, not a default model recommendation or a quality claim. BeatThis final0 supplies whole-audio beat/downbeat observations; SheetSage2 supplies notation, meter, key and chord context, and YourMT3 supplies the vocal notes. Original observations remain separate from derived leading/trailing beat boundaries. The existing sixteenth-note vocal grid remains in use.
+
+Only constant 2/4, 3/4 and 4/4 are supported. Changing, compound and other meters, unmatched downbeats, excessive grid sizes and ambiguous global downbeat phase fail explicitly; no SheetSage2 clock fallback is used. The phase guard requires a strict majority and a top vote at least twice the runner-up. This conservative development guard was chosen after inspecting a conflicting recording; it is not an independently calibrated quality threshold. Even a passing global phase does not establish that every bar is correct. BeatThis evidence and its receipt are preserved when a Job is removed.
+
+Five cached recordings were reconstructed without new model inference. Four passed the notation-to-MIDI 2 ms interpretation guard; Me So Bad was explicitly rejected because its downbeat phase votes were 42 versus 37. Earlier global-phase reconstructions of all five are not evidence that their bars are correct. Private diagnostic evidence and full per-case input hashes remain in the local QA workspace. The clock experiment must not be merged as the default on these results.
+
+Owned synthetic checks cover simple meter, pickup and terminal boundaries, phase ambiguity, bounded expansion, receipt tampering, visible tempo provenance and Job-deletion evidence retention. The focused suite passed 45 tests with one FFmpeg-dependent test skipped in the local environment. These tests do not establish whole-song transcription accuracy or commercial readiness.
+
+The later [DBN clock experiment](BEAT_THIS_DBN_CLOCK_2026-11-11.md) preserves this minimal-decoder history and reports a separate cached five-recording adapter check.
