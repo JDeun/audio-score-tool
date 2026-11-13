@@ -11,6 +11,68 @@ experiments and do not change a historical result or its protocol.
 
 ## Immutable identities
 
+### Completed parent guard and preserved original artifact
+
+The [completed #298/#301 result](../NOTE_BOUNDARY_PARENT_GUARD_RESULTS_2026-11-13.md)
+preserves the exact eight-member ZIP from
+[run 43389159299](https://github.com/JDeun/audio-score-tool/actions/runs/43389159299),
+attempt 1, artifact **14019768510**. The first full trial and all three private
+audits passed; no runtime placement retry or recovery was needed. Execution
+completion does not mean the candidate passed its scientific acceptance gate.
+
+- [Original ZIP](note-boundary-parent-guard-43389159299-attempt-1.zip):
+  **1,799,913 bytes**, SHA256
+  `9a00239e386a4cb0517d7b0fd203d140383bb6552df5956ba65670094665c0c5`.
+- Frozen scientific head: `950756cae05fad902548112fef99de85f6ff3b65`;
+  actual PR checkout: `5c63786a10dfd0422fb9fbbe7abfdea81862d876`.
+- All 480 corpus predictions preceded reference access; all 4,149 owned
+  predictions preceded truth scoring. Every previous scientific prediction,
+  input and state-path identity is preserved.
+- All 66 frozen files verified; the separately retained
+  [source map](../NOTE_BOUNDARY_PARENT_GUARD_FROZEN_SOURCES_2026-11-13.json)
+  is **7,894 bytes**, SHA256
+  `57de939e6c1e6fba22495d0b4c2885dc7a05d6032027b3b4fc468cf50a587805`.
+
+| Exact member | Uncompressed bytes | SHA256 |
+| --- | ---: | --- |
+| `synthetic.json` | 14,942,834 | `d88dd270ea84b4bb13b84608705d2e3b443e012807444b640d96b80533c51441` |
+| `legacy-synthetic.json` | 4,141,312 | `b0b4570d31db0358b1ffd35326e1312f4fef8b64add5676f03ba1c76e84399b6` |
+| `vocadito.json` | 4,200,801 | `33eac375e0e9e4973d75c9a4e84be28bc39ed99ef72faf3ad26de661a8751554` |
+| `legacy-vocadito.json` | 2,717,206 | `443c80daa9a2fe21c551c97ae1a0c5466c024da8e97f1b75e00f31306e96a150` |
+| `legacy-factor-vocadito.json` | 1,625,640 | `7649d2ed14ce86fb976f3c29e74b3217ebccfb83e54e6cd89d10a446de31931e` |
+| `legacy-factor-audit.json` | 282,759 | `aa240571a02297b46857d30b3396e910de0dcd7d045d59e9116850b966d88bd1` |
+| `legacy-audit.json` | 83,763 | `82bfc1a45deced67f885d7a2c36124eca78735de9e2e5bbb34c2dfd044d557a6` |
+| `audit.json` | 124,690 | `07ce35db2a9ddb66e41ab02393199b50b9a2a5c48871e597b01ca5a933ae1c9a` |
+
+Original factor, original readout and new private guard auditors passed
+**42,867 / 325,886 / 904,539 checks**. The separate
+[public postrun audit](note-boundary-parent-guard-postrun-audit-43389159299.json)
+passes **506,631 checks** with maximum numeric difference
+`1.1102230246251565e-16`. Its **66,412 bytes** have SHA256
+`5b3fa0d8eddf5dae7ecd6d0526a333be4cdfb4f2151cdf6ea512022cf7b67083`.
+It checks the original archive bytes, all 66 sources, historical projections,
+960 corpus score rows, both fixed recording bootstraps, public parent/match
+arithmetic and all 4,149 owned event hashes; it directly rescores 3,987 eligible
+owned pairs without new inference. Private real event/path arrays, parent links
+and pooled residual quantiles remain covered by the exact bound private audits.
+The public checker records its own source hash and helper dependency outside
+the frozen inference inventory.
+
+Guard exactly preserves G's output interval union but fails both minimum
+review conditions: onset **57.225361%→53.469785%**, offset-inclusive F1
+**24.270837%→23.113588%**, paired offset change **−1.157250 pp** with 95%
+interval **[−2.437908, +0.085429] pp**. The secondary improvement over the
+rejected unconditional split is not approval against G. The old six/221
+controls survive, while new single-expression/adjacent-semitone cohorts retain
+false splits, merged notes and inherited pitch errors. Cohort denominators and
+match populations remain separate in the result report.
+
+Only metadata and owned synthetic inputs/truth/events are public. No real WAV,
+human reference contents, real note events, parent/child traces, pitch curves,
+model weights or private arrays are republished. Original older successes and
+failures remain byte-identical. Final-head and actual-main integration evidence
+is tracked separately on [PR #301](https://github.com/JDeun/audio-score-tool/pull/301).
+
 ### Completed raw-pitch split result and both preserved failures
 
 The [completed #296/#297 result](../NOTE_BOUNDARY_READOUT_RESULTS_2026-11-13.md)
@@ -72,9 +134,9 @@ semitone controls and 221 unchanged synthetic successes. Public contents remain
 metadata and owned synthetic truth/events; actual WAVs, human reference contents,
 actual event/parent/child arrays and full raw F0/path arrays are private.
 
-The proposed [parent guard #298](https://github.com/JDeun/audio-score-tool/issues/298)
-and its [design protocol](../NOTE_BOUNDARY_PARENT_GUARD_PROTOCOL_2026-11-13.md) have
-not run. No success receipt or performance claim is implied for that follow-up.
+The later [parent guard #298 result](../NOTE_BOUNDARY_PARENT_GUARD_RESULTS_2026-11-13.md)
+and its original artifact are recorded above. The #297 receipt retains only its
+original scope; it is not evidence that the later guard was evaluated then.
 
 ### Earlier immutable identities
 
