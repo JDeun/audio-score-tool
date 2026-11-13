@@ -4,7 +4,15 @@ This is the continuation snapshot taken with main at `7dd5c6ce0b18fda023403d92fb
 
 ## Current priority: common rhythm across expressive performances
 
-### Completed acoustic note-state comparison
+### Completed note-state factor diagnosis and next boundary investigation
+
+Continuation dated 2026-11-13 Asia/Seoul: [#291](https://github.com/JDeun/audio-score-tool/issues/291) / [PR #292](https://github.com/JDeun/audio-score-tool/pull/292) completed the [one-factor diagnosis](NOTE_STATE_FACTORS_RESULTS_2026-11-13.md) under its [fixed protocol](NOTE_STATE_FACTORS_PROTOCOL_2026-11-13.md). [Run 43344373779](https://github.com/JDeun/audio-score-tool/actions/runs/43344373779) succeeded on attempt 1 with all 245 authored contours and all 40 original recordings × ten arms × A1/A2. The [source audit](TONY_NOTE_HMM_SOURCE_AUDIT_2026-11-13.md) distinguishes the 2015 paper's Gaussian exponent from both historical and pinned public pYIN code; the prior result remains preserved.
+
+**The primary Gaussian exponent change improves the failed HMM, but does not authorize product replacement.** Offset-inclusive F1 rises 3.528561%→24.270837%, all 40 recordings improve, and the fixed paired interval is +17.968746 to +23.611651 pp. Compared with runs, onset F1 rises 36.353202%→57.225361% and offset F1 22.149227%→24.270837%; however offset is 20 improved / 20 worsened and matched judgments fall 980→807 (557 gained / 730 lost). Raw-voiced dropout falls 48.951970%→1.860407%, but six no-gap +1-semitone synthetic pairs remain merged despite full voiced coverage. Readout/boundary quality is separate from retaining voiced support.
+
+The unchanged previous five arms reproduce all 200 prediction objects and 240 array identities. The run passes 42,867 private-file checks; the downloaded metadata and owned synthetic predictions pass 125,891 independent assertions. Original ZIP bytes and the postrun receipt are preserved. [#293](https://github.com/JDeun/audio-score-tool/issues/293) fixes the next scope: diagnose offset losses and adjacent-pitch merges using unchanged predictions and all recording/annotator outcomes before changing boundary/readout rules. No automatic correction, product dependency or default changes; #281 remains open. Final-head and actual-main integration evidence is recorded on #292.
+
+### Preceding acoustic note-state comparison
 
 Continuation dated 2026-11-13 Asia/Seoul: [design review #288](https://github.com/JDeun/audio-score-tool/issues/288) records the [Melodyne, Flex Pitch and Tony source review](MELODYNE_FLEX_PITCH_DESIGN_REVIEW_2026-11-13.md). Execution [#289](https://github.com/JDeun/audio-score-tool/issues/289) / [PR #290](https://github.com/JDeun/audio-score-tool/pull/290) completed the [note-state experiment](NOTE_STATE_HMM_RESULTS_2026-11-13.md) under its [frozen protocol](NOTE_STATE_HMM_PROTOCOL_2026-11-13.md). [CPU run43336542480](https://github.com/JDeun/audio-score-tool/actions/runs/43336542480) passed on its first attempt with all 40 original vocadito recordings, five arms and both annotators. All 200 predictions were saved before reference access; historical baseline parity and 13,538 private-file audit checks passed.
 

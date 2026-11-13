@@ -11,6 +11,19 @@ experiments and do not change a historical result or its protocol.
 
 ## Immutable identities
 
+The [completed factor diagnosis](../NOTE_STATE_FACTORS_RESULTS_2026-11-13.md) preserves
+`note-state-factors-43344373779.zip` from [run 43344373779](https://github.com/JDeun/audio-score-tool/actions/runs/43344373779),
+artifact 14001615849: **272,995 bytes**, SHA256
+`b20495c8936f8b4263daf2660fb57ba282264904d6b30dda076463cc6e3881f6`.
+Its only members are `synthetic.json` (2,847,165 bytes), `vocadito.json` (1,625,637 bytes)
+and `audit.json` (282,759 bytes). The original private-file audit passes 42,867 checks.
+`note-state-factor-postrun-audit-43344373779.json` (180,997 bytes; SHA256
+`8b58d7d5b40c6c52630842cbb14d46ed0b10df99b6732a0a8233909315fd9399`)
+records 125,891 independent metadata and owned-synthetic assertions. This ZIP includes
+**owned authored synthetic truth/prediction events**, but no actual recording events,
+WAVs, annotation contents or full private F0/path arrays. The primary improvement does
+not approve a product default; offset match losses and six merged controls remain visible.
+
 The [completed note-state comparison](../NOTE_STATE_HMM_RESULTS_2026-11-13.md)
 preserves `note-state-hmm-43336542480.zip` from
 [run43336542480](https://github.com/JDeun/audio-score-tool/actions/runs/43336542480),
@@ -50,7 +63,7 @@ must receive its own receipt and identity.
 
 The archives contain only JSON metadata: dataset/model/source fingerprints,
 runtime settings, source IDs, scalar metrics and counts, per-reference binary
-matching masks, edit counts, timing aggregates and provenance. They contain no
+matching masks, edit counts, timing aggregates and provenance. Except for the explicitly owned synthetic events in the factor study above, they contain no
 original WAV, MIDI, lyrics, score, event arrays, neural output arrays or model
 weights. A model `weights` object records byte count and hashes, not weights.
 Matching masks reveal which indexed reference outcomes matched; they do not
