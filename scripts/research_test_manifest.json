@@ -1,6 +1,7 @@
 [
   "tests/test_audio_gate_attribution.py",
   "tests/test_audio_gate_replay.py",
+  "tests/test_audit_note_state_experiment.py",
   "tests/test_bar_sum_articulation.py",
   "tests/test_bar_sum_rhythm.py",
   "tests/test_drum_meter_probe.py",
@@ -30,6 +31,7 @@
   "tests/test_nasap_rest_evidence.py",
   "tests/test_nasap_same_score_source.py",
   "tests/test_note_candidate_diagnostics.py",
+  "tests/test_note_state_hmm.py",
   "tests/test_offset_tail_evidence.py",
   "tests/test_performed_rhythm_invariance.py",
   "tests/test_qwen_constraint_ablation.py",
@@ -41,6 +43,7 @@
   "tests/test_run_kraisler_boundaries.py",
   "tests/test_run_kraisler_expressive.py",
   "tests/test_run_kraisler_gate.py",
+  "tests/test_run_note_state_experiment.py",
   "tests/test_run_performed_rhythm_invariance.py",
   "tests/test_run_repeat_context.py",
   "tests/test_run_repeat_context_recovery.py",

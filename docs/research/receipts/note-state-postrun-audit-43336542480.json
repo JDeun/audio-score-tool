@@ -1,0 +1,491 @@
+{
+  "aggregate_recomputed": {
+    "note_state_hmm": {
+      "offset_precision": 0.10767991693978536,
+      "offset_recall": 0.021806696034411342,
+      "onset_f1": {
+        "A1_macro": 0.121212032,
+        "A2_macro": 0.13542906,
+        "delta_vs_runs": -0.2352114775,
+        "macro": 0.128320546,
+        "recordings_improved": 0,
+        "recordings_tied": 0,
+        "recordings_worse": 40
+      },
+      "onset_gained_reference_count": 149,
+      "onset_lost_reference_count": 1492,
+      "onset_offset_f1": {
+        "A1_macro": 0.030875620250000003,
+        "A2_macro": 0.03969559675,
+        "delta_vs_runs": -0.18620666487499998,
+        "macro": 0.035285608499999996,
+        "recordings_improved": 1,
+        "recordings_tied": 0,
+        "recordings_worse": 39
+      },
+      "onset_offset_gained_reference_count": 62,
+      "onset_offset_lost_reference_count": 957,
+      "onset_precision": 0.49119306862727913,
+      "onset_recall": 0.0760733249695575,
+      "predicted_notes": 292
+    },
+    "note_state_hmm_rms": {
+      "offset_precision": 0.15629209332334332,
+      "offset_recall": 0.032937101693126164,
+      "onset_f1": {
+        "A1_macro": 0.13283081925,
+        "A2_macro": 0.1514764825,
+        "delta_vs_runs": -0.221378372625,
+        "macro": 0.142153650875,
+        "recordings_improved": 1,
+        "recordings_tied": 0,
+        "recordings_worse": 39
+      },
+      "onset_gained_reference_count": 165,
+      "onset_lost_reference_count": 1472,
+      "onset_offset_f1": {
+        "A1_macro": 0.046614223999999996,
+        "A2_macro": 0.059186825750000005,
+        "delta_vs_runs": -0.1685917485,
+        "macro": 0.052900524875,
+        "recordings_improved": 1,
+        "recordings_tied": 0,
+        "recordings_worse": 39
+      },
+      "onset_offset_gained_reference_count": 91,
+      "onset_offset_lost_reference_count": 947,
+      "onset_precision": 0.4921880723443223,
+      "onset_recall": 0.08599436794995653,
+      "predicted_notes": 332
+    },
+    "pitch_hysteresis": {
+      "offset_precision": 0.12306753079604871,
+      "offset_recall": 0.16420035496493376,
+      "onset_f1": {
+        "A1_macro": 0.36634010424999996,
+        "A2_macro": 0.336148986,
+        "delta_vs_runs": -0.01228747837499999,
+        "macro": 0.35124454512500003,
+        "recordings_improved": 14,
+        "recordings_tied": 0,
+        "recordings_worse": 26
+      },
+      "onset_gained_reference_count": 97,
+      "onset_lost_reference_count": 66,
+      "onset_offset_f1": {
+        "A1_macro": 0.14636699775,
+        "A2_macro": 0.13177003025,
+        "delta_vs_runs": -0.082423759375,
+        "macro": 0.139068514,
+        "recordings_improved": 1,
+        "recordings_tied": 0,
+        "recordings_worse": 39
+      },
+      "onset_offset_gained_reference_count": 89,
+      "onset_offset_lost_reference_count": 425,
+      "onset_precision": 0.311738401410897,
+      "onset_recall": 0.4127863205825636,
+      "predicted_notes": 2757
+    },
+    "pitch_hysteresis_reattack": {
+      "offset_precision": 0.12474161575087506,
+      "offset_recall": 0.16837047751112194,
+      "onset_f1": {
+        "A1_macro": 0.36594950449999997,
+        "A2_macro": 0.34097352575,
+        "delta_vs_runs": -0.010070508374999995,
+        "macro": 0.353461515125,
+        "recordings_improved": 17,
+        "recordings_tied": 0,
+        "recordings_worse": 23
+      },
+      "onset_gained_reference_count": 114,
+      "onset_lost_reference_count": 63,
+      "onset_offset_f1": {
+        "A1_macro": 0.14586100200000002,
+        "A2_macro": 0.1375417975,
+        "delta_vs_runs": -0.07979087362500001,
+        "macro": 0.14170139975,
+        "recordings_improved": 1,
+        "recordings_tied": 0,
+        "recordings_worse": 39
+      },
+      "onset_offset_gained_reference_count": 105,
+      "onset_offset_lost_reference_count": 425,
+      "onset_precision": 0.3121647361276424,
+      "onset_recall": 0.41783115951206307,
+      "predicted_notes": 2785
+    },
+    "pitch_runs": {
+      "offset_precision": 0.2070270269377322,
+      "offset_recall": 0.2451794351819029,
+      "onset_f1": {
+        "A1_macro": 0.37230025525,
+        "A2_macro": 0.35476379175,
+        "delta_vs_runs": 0.0,
+        "macro": 0.3635320235,
+        "recordings_improved": 0,
+        "recordings_tied": 40,
+        "recordings_worse": 0
+      },
+      "onset_gained_reference_count": 0,
+      "onset_lost_reference_count": 0,
+      "onset_offset_f1": {
+        "A1_macro": 0.2263767675,
+        "A2_macro": 0.21660777925,
+        "delta_vs_runs": 0.0,
+        "macro": 0.221492273375,
+        "recordings_improved": 0,
+        "recordings_tied": 40,
+        "recordings_worse": 0
+      },
+      "onset_offset_gained_reference_count": 0,
+      "onset_offset_lost_reference_count": 0,
+      "onset_precision": 0.33789839735082755,
+      "onset_recall": 0.4048184046986877,
+      "predicted_notes": 2497
+    }
+  },
+  "checks_by_kind": {
+    "aggregate_gain_loss": 20,
+    "aggregate_macro": 70,
+    "aggregate_note_counts": 5,
+    "aggregate_rates": 20,
+    "allowed_members": 1,
+    "annotator_population": 200,
+    "arm_plan": 1,
+    "audit_case_inventory": 1,
+    "audit_case_status": 1,
+    "audit_check_count": 1,
+    "audit_coverage": 5,
+    "audit_macro": 70,
+    "audit_manifest_receipt": 1,
+    "audit_report_hash": 1,
+    "audit_script_hash": 1,
+    "baseline_audio_sha256": 40,
+    "baseline_code_identity": 3,
+    "baseline_count": 120,
+    "baseline_event_sha256": 120,
+    "baseline_f0_metric": 360,
+    "baseline_f0_reference_sha256": 40,
+    "baseline_note_metric": 1440,
+    "baseline_reference_hash": 80,
+    "baseline_unmatched": 480,
+    "case_complete": 40,
+    "case_inventory": 1,
+    "case_plan": 1,
+    "corpus_archive_identity": 1,
+    "current_frozen_source": 12,
+    "diagnostic_note_count": 80,
+    "f1_from_counts": 800,
+    "five_arms": 40,
+    "frozen_receipt_identity": 1,
+    "gain_loss_count_conservation": 800,
+    "gain_loss_disjoint": 800,
+    "gained_ids_order": 800,
+    "lost_ids_order": 800,
+    "manifest_receipt": 2,
+    "old_zip_identity": 1,
+    "phase_partition": 80,
+    "precision_from_counts": 800,
+    "recall_from_counts": 800,
+    "rms_candidate_partition": 40,
+    "rms_frame_change": 40,
+    "same_reference_population": 400,
+    "segment_partition": 80,
+    "unmatched_prediction": 800,
+    "unmatched_reference": 800,
+    "voiced_phase_partition": 80,
+    "voicing_partition": 80,
+    "zip_bytes": 1,
+    "zip_crc": 1,
+    "zip_identity": 1
+  },
+  "checks_passed": 11263,
+  "comparison_numeric_tolerance": 1e-12,
+  "diagnostic_interpretation": {
+    "hmm_raw_voiced_decoded_silent_fraction": 0.48951970481535456,
+    "rms_deleted_decoded_frame_seconds": 3.35,
+    "rms_emitted_note_seconds_reduction": 4.97,
+    "rms_short_fragment_seconds_discarded": 1.62,
+    "time_deletion_scope": "Predicted note support, not independently annotated true-note damage."
+  },
+  "diagnostic_totals": {
+    "note_state_hmm": {
+      "attack_frames": 331,
+      "attack_only_segments": 0,
+      "decoded_voiced_frames": 32927,
+      "decoded_voiced_over_raw_unvoiced_frames": 0,
+      "emitted_note_seconds": 329.24325000000005,
+      "emitted_notes": 292,
+      "emitted_notes_with_raw_unvoiced_frames": 0,
+      "emitted_raw_unvoiced_frames": 0,
+      "frames": 81734,
+      "raw_voiced_decoded_silent_frames": 31575,
+      "raw_voiced_frames": 64502,
+      "segments_before_filter": 292,
+      "segments_touching_audio_end": 5,
+      "segments_touching_audio_start": 0,
+      "segments_without_raw_voiced_support": 0,
+      "short_segments_discarded": 0,
+      "short_segments_discarded_seconds": 0.0,
+      "silent_frames": 48807,
+      "stable_frames": 32596,
+      "zero_duration_segments": 0
+    },
+    "note_state_hmm_rms": {
+      "attack_frames": 327,
+      "attack_only_segments": 0,
+      "decoded_voiced_frames": 32592,
+      "decoded_voiced_over_raw_unvoiced_frames": 0,
+      "emitted_note_seconds": 324.27324999999996,
+      "emitted_notes": 332,
+      "emitted_notes_with_raw_unvoiced_frames": 0,
+      "emitted_raw_unvoiced_frames": 0,
+      "frames": 81734,
+      "raw_voiced_decoded_silent_frames": 31910,
+      "raw_voiced_frames": 64502,
+      "segments_before_filter": 388,
+      "segments_touching_audio_end": 5,
+      "segments_touching_audio_start": 0,
+      "segments_without_raw_voiced_support": 0,
+      "short_segments_discarded": 56,
+      "short_segments_discarded_seconds": 1.6199999999999997,
+      "silent_frames": 49142,
+      "stable_frames": 32265,
+      "zero_duration_segments": 0
+    }
+  },
+  "embedded_runner_audit": {
+    "aggregate_arithmetic_rechecked": true,
+    "checks_passed": 13538,
+    "maximum_numeric_difference": 1.1102230246251565e-16,
+    "report_hash_matches": true,
+    "reported_coverage": {
+      "complete_prediction_files_verified": 200,
+      "f0_reference_files_hash_verified": 40,
+      "human_reference_files_verified": 80,
+      "observation_arrays_verified": 240,
+      "source_files_verified": 40
+    },
+    "scope": "Its direct saved-file rescoring happened inside Actions. This postrun validation checks the preserved audit receipt and independently recomputes published arithmetic; it does not repeat private-file rescoring.",
+    "script_hash_matches_frozen_file": true,
+    "status": "pass"
+  },
+  "execution_method": "Read-only in-session Python validation, repeated unchanged when writing this derived receipt. No standalone replay script is included in this receipt.",
+  "generated_at_utc": "2026-11-13T00:32:33+00:00",
+  "input_artifact": {
+    "allowed_members": [
+      "vocadito.json",
+      "audit.json"
+    ],
+    "crc_valid": true,
+    "filename": "note-state-hmm-43336542480.zip",
+    "members": {
+      "audit.json": {
+        "bytes": 15062,
+        "sha256": "552804d253a3b33fae46f63da88921a20592890416f27823ed173056522b1c4b"
+      },
+      "vocadito.json": {
+        "bytes": 709930,
+        "sha256": "18a623ab0d8e62ff2a0be84d980cad21a0bdec5a8f2d05c66aaa353b450136e5"
+      }
+    },
+    "protocol_head_revision": "bad2eb20a7124395699cd4fe7eaa320334ebda35",
+    "run_id": 43336542480,
+    "source_revision": "e08cc06e9f7f0838887dd6442248fabf05449773",
+    "zip_bytes": 73141,
+    "zip_sha256": "46ea77a90750172a905750599db3b419f09d70d165ef0be221e0004b8cd61b26"
+  },
+  "limitations": [
+    "Published hash receipts, counts and diagnostics were compared; the original musical source files, F0 arrays and predicted notes are absent from this public artifact and were not independently reread in this postrun validation.",
+    "All twelve current scientific files were actually rehashed and matched both the external freeze snapshot and the original official report.",
+    "No pYIN, HMM or RMS decoder was rerun, and no independent model or annotation was created. Direct mir_eval rescoring of private notes belongs to the separately preserved in-run audit.",
+    "Equal historical event hashes and metrics establish receipt parity for the three baseline arms; original historical F0 array bytes were not available.",
+    "Before-reference inference order is a frozen-runner contract supported by its tests and recorded barrier. These posthoc receipts alone cannot prove historical file-access timing.",
+    "Gain/loss uses deterministic maximum-matching reference identities. It is not a human causal error or normal-note-damage label; A1 and A2 decisions remain distinct.",
+    "Scalar HMM/RMS diagnostic partitions and totals are arithmetically checked. Their event-level truth and complete decoded paths are not independently reconstructed here.",
+    "The forty recordings are repeatedly used development data. This is a negative result for the frozen Tony-inspired adaptation, not a faithful Tony replication or a general limitation of all HMM/DSP systems.",
+    "No holdout, polyphony, written-rest, MusicXML/PDF, human-edit-cost, or product activation conclusion follows."
+  ],
+  "matched_count_totals": [
+    {
+      "annotator": "A1",
+      "arm": "pitch_runs",
+      "onset_matched": 867,
+      "onset_offset_matched": 521,
+      "reference_notes": 2237
+    },
+    {
+      "annotator": "A2",
+      "arm": "pitch_runs",
+      "onset_matched": 769,
+      "onset_offset_matched": 459,
+      "reference_notes": 1876
+    },
+    {
+      "annotator": "A1",
+      "arm": "pitch_hysteresis",
+      "onset_matched": 897,
+      "onset_offset_matched": 352,
+      "reference_notes": 2237
+    },
+    {
+      "annotator": "A2",
+      "arm": "pitch_hysteresis",
+      "onset_matched": 770,
+      "onset_offset_matched": 292,
+      "reference_notes": 1876
+    },
+    {
+      "annotator": "A1",
+      "arm": "pitch_hysteresis_reattack",
+      "onset_matched": 901,
+      "onset_offset_matched": 352,
+      "reference_notes": 2237
+    },
+    {
+      "annotator": "A2",
+      "arm": "pitch_hysteresis_reattack",
+      "onset_matched": 786,
+      "onset_offset_matched": 308,
+      "reference_notes": 1876
+    },
+    {
+      "annotator": "A1",
+      "arm": "note_state_hmm",
+      "onset_matched": 149,
+      "onset_offset_matched": 41,
+      "reference_notes": 2237
+    },
+    {
+      "annotator": "A2",
+      "arm": "note_state_hmm",
+      "onset_matched": 144,
+      "onset_offset_matched": 44,
+      "reference_notes": 1876
+    },
+    {
+      "annotator": "A1",
+      "arm": "note_state_hmm_rms",
+      "onset_matched": 166,
+      "onset_offset_matched": 60,
+      "reference_notes": 2237
+    },
+    {
+      "annotator": "A2",
+      "arm": "note_state_hmm_rms",
+      "onset_matched": 163,
+      "onset_offset_matched": 64,
+      "reference_notes": 1876
+    }
+  ],
+  "maximum_numeric_difference": 1.1102230246251565e-16,
+  "network_downloads": 0,
+  "original_baseline": {
+    "all_compared_fields_equal": true,
+    "extractor_and_scorer_hashes_compared": 3,
+    "f0_metric_fields_compared": 360,
+    "f0_reference_hash_receipts_compared": 40,
+    "filename": "dsp-note-baseline-42989661618.zip",
+    "note_metric_fields_compared": 1440,
+    "note_reference_hash_receipts_compared": 80,
+    "prediction_counts_compared": 120,
+    "prediction_hash_receipts_compared": 120,
+    "raw_historical_f0_bytes_available": false,
+    "report_sha256": "468edd43aa2a99cc0ee7786fc933ed0180dedcb368ea091fc188611b94195e33",
+    "unmatched_count_fields_compared": 480,
+    "wav_hash_receipts_compared": 40,
+    "zip_bytes": 27672,
+    "zip_sha256": "6bc477457a89403c7bb18f331d862555f4d963db4a227472bb19d63644d39541"
+  },
+  "original_zip_and_json_members_preserved": true,
+  "population": {
+    "all_cases_scored": true,
+    "annotators": [
+      "A1",
+      "A2"
+    ],
+    "arm_count": 5,
+    "arms": [
+      "pitch_runs",
+      "pitch_hysteresis",
+      "pitch_hysteresis_reattack",
+      "note_state_hmm",
+      "note_state_hmm_rms"
+    ],
+    "empty_predictions": {
+      "note_state_hmm": 0,
+      "note_state_hmm_rms": 0,
+      "pitch_hysteresis": 0,
+      "pitch_hysteresis_reattack": 0,
+      "pitch_runs": 0
+    },
+    "failed_cases": 0,
+    "recording_annotator_arm_combinations": 400,
+    "recordings": 40
+  },
+  "postrun_model_calls": {
+    "hmm": 0,
+    "neural_models": 0,
+    "pyin": 0,
+    "rms_decoder": 0
+  },
+  "predictions_manifest_sha256": "bfc2837050459776329b71750bc58e5d130d5a973c3bc2e051e603b9b04cd7d3",
+  "raw_musical_arrays_published": false,
+  "raw_note_predictions_rescored": 0,
+  "raw_source_files_rehashed": 0,
+  "rms_ablation_vs_hmm": {
+    "onset_f1": {
+      "delta": 0.013833104874999998,
+      "improved": 13,
+      "tied": 18,
+      "worse": 9
+    },
+    "onset_offset_f1": {
+      "delta": 0.017614916375,
+      "improved": 14,
+      "tied": 22,
+      "worse": 4
+    },
+    "onset_offset_reference_transitions": {
+      "gained": 39,
+      "lost": 0,
+      "unit": "sum of separate A1/A2 reference decisions"
+    },
+    "onset_reference_transitions": {
+      "gained": 40,
+      "lost": 4,
+      "unit": "sum of separate A1/A2 reference decisions"
+    }
+  },
+  "rms_diagnostic_totals": {
+    "rms_candidates_already_silent": 3297,
+    "rms_frames_changed_to_silent": 335,
+    "rms_rise_candidates": 3632
+  },
+  "schema_version": 1,
+  "scope": "Independent standalone standard-library validation of original published receipts; no estimator, runner, shared scorer or repository audit implementation imported.",
+  "source_freeze": {
+    "all_current_files_match": true,
+    "external_pre_run_snapshot_filename": "note-scientific-freeze-sha256.json",
+    "paths_checked": 12,
+    "sha256_by_path": {
+      ".github/workflows/cpu-note-state-hmm.yml": "c55cd50b10a7547a2688d73bc3b81ce175bdc9ca7f6da70fac6331da031232eb",
+      "docs/research/NOTE_STATE_HMM_PROTOCOL_2026-11-13.md": "e25de6036477d42f0443b50d7e8e373c9326e8293a4d951f42eb722186e45d01",
+      "docs/research/receipts/dsp-note-baseline-42989661618.zip": "6bc477457a89403c7bb18f331d862555f4d963db4a227472bb19d63644d39541",
+      "scripts/audit_note_state_experiment.py": "7835e8b3405583fea7261aacfb538d39029f7df22eaca99cf0327ee9b876fad4",
+      "scripts/dsp_note_probe.py": "c5f0f77ec5dc7276f84e8d4938847cf2984f72230198088aa104e30fed770752",
+      "scripts/note_state_hmm.py": "0e8a58affcf328ed156779483bf70613c1a5226542446fb3b00becf1d56bc46d",
+      "scripts/run_cpu_vocadito_candidates.py": "0265be97c1f891816da30e75fa145a58a1972636a5729fcb1ccc761665c52465",
+      "scripts/run_note_state_experiment.py": "8dcb718ce1017d1094303dba679e1536e5d8dfc860bf7a3099662f20cb6992c6",
+      "scripts/vocadito_reference.py": "2ee6f18518e0f4887b9f0c163fff6cfcb964a05d21da1eddd6fcf8e031259194",
+      "tests/test_audit_note_state_experiment.py": "1d5533a13cf3f801d6b01dbf155db33992207cd4824e22332f2b2e73efe62d0f",
+      "tests/test_note_state_hmm.py": "08391755b6aa48cde7b420484172000ee87d26ef44860ec115c0b9c9fd430f2a",
+      "tests/test_run_note_state_experiment.py": "c332e621e576e0a09e6e33af5d5bfa13618f071ee35e71aafcd6b1f58749c9cb"
+    },
+    "snapshot_equals_artifact_inventory": true,
+    "snapshot_sha256": "e7da59ba36e5b33dab0deeb15b71b3f0de7ce5f306c88284552e7649af9b18ab"
+  },
+  "status": "pass_for_postrun_metadata_arithmetic_and_provenance"
+}
