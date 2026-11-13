@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "forty_solo_vocals_complete_five_song_validation_pending",
+  "status": "corpus_and_five_song_inference_publication_complete_not_adopted",
   "model": "GAME-1.0-large",
   "source_repository": "https://github.com/openvpi/GAME",
   "source_revision": "69ba01ded0ddda5495e51ba373685f1be1a67ea2",
@@ -7500,5 +7500,1474 @@
       "yarl": "1.25.1"
     }
   },
-  "vocadito_archive_sha256": "e0d6b99d3f9c594afe5ae5c4d7bdacebe569e53b809e90b89d1c771c4f9990e3"
+  "vocadito_archive_sha256": "e0d6b99d3f9c594afe5ae5c4d7bdacebe569e53b809e90b89d1c771c4f9990e3",
+  "decision": "Retain frozen YourMT3 development baseline. GAME gains on solo development vocals do not establish superior five-song publication quality; do not add a product option or change defaults.",
+  "five_case_inference": [
+    {
+      "id": "tinashe-me-so-bad",
+      "source_sha256": "b53738cad53e5d673c32cb718b6e1c37a5ef42340dc65311f7c048810530548c",
+      "duration_seconds": 210.51734693877552,
+      "chunk_count": 13,
+      "max_chunk_seconds": 46.74,
+      "exit_code": 0,
+      "seconds": 125.188
+    },
+    {
+      "id": "twice-fancy",
+      "source_sha256": "645eb299d5e6807ca6bcf9b9a71b2d19bf5e88574f52e7a59cb8531fe19c658a",
+      "duration_seconds": 218.63911564625852,
+      "chunk_count": 4,
+      "max_chunk_seconds": 118.08,
+      "exit_code": 0,
+      "seconds": 240.89
+    },
+    {
+      "id": "green-day-american-idiot",
+      "source_sha256": "211993d2c985756402e418cfe6905a1107c665927ac483eb543d3e13a8316735",
+      "duration_seconds": 174.32,
+      "chunk_count": 16,
+      "max_chunk_seconds": 19.68,
+      "exit_code": 0,
+      "seconds": 68.403
+    },
+    {
+      "id": "ham-boo-young-my-song",
+      "source_sha256": "0000cde2d65daf30716ed12fc97ef16ab0fcf848e1f8d6f3581d3bff01ae3678",
+      "duration_seconds": 309.7309977324263,
+      "chunk_count": 57,
+      "max_chunk_seconds": 14.9,
+      "exit_code": 0,
+      "seconds": 189.686
+    },
+    {
+      "id": "younha-event-horizon",
+      "source_sha256": "512ca500d2cb2d0e6fe01c0d7cfefdddfe72b98f73d501f72eba299b91e933a9",
+      "duration_seconds": 300.7866666666667,
+      "chunk_count": 7,
+      "max_chunk_seconds": 54.7,
+      "exit_code": 0,
+      "seconds": 158.493
+    }
+  ],
+  "five_reference_comparison": {
+    "protocol": "One GAME-large checkpoint; same frozen full-length Demucs vocals; no pitch shift, time alignment or threshold tuning. Float CSV, official integer MIDI and actual Song publisher MIDI with frozen S2 context scored alongside the unchanged Your baseline.",
+    "limits": "Community references have approximate sync and arrangement uncertainty. Full American reference uses independently fitted chart drums. Other excerpts are partial. No expert editing KPI, full five-song accuracy or commercial admission claim.",
+    "reference_sha256": {
+      "community_metadata": "e68db5d7765c8e55044a741cd59c15e715ba51cae31c0bfb1433e87d83673c08",
+      "american_chart": "e9f825d2b94213b9799ec858419281b3c0a0e6bc7cf8bba3d9662129fcfd0995",
+      "game_publication_report": "135bcd3b065ca459f820ceee437b6515957c94d861436cd20cde139d38b23649",
+      "your_publication_report": "715b8d35d009c2961d3455ee26834f9a158c1f6acf967894569d3cd5342e54c6"
+    },
+    "quality_approved": false,
+    "cases": {
+      "tinashe-me-so-bad": {
+        "prediction_sha256": {
+          "game_float": "0f506fd02db293cf6d657832258aeac80797afc5339ea6f8637841a5281144de",
+          "game_midi": "a66929bbce256156fda7876fc39c5d16bcebb806f61c7fbd864c1228022731ba",
+          "your_raw": "7a10754b9ea56d27c4247c3036006e87e0fdd0942779512695f9fc77ca921085",
+          "game_published": "faa1bc1da8809941a360031fc4dae60292333cb85d4a56fa0ee01692d08b0521",
+          "your_published": "101bbbedfdf2427e147d169f7e5b37cecf88f4a8f3029ee797a08a795feda806"
+        },
+        "counts": {
+          "game_float": 550,
+          "game_midi": 550,
+          "your_raw": 564,
+          "game_published": 535,
+          "your_published": 545
+        },
+        "source_audio_sha256": "f39788b3075e9117661481470289c6e79ce25171f7a256936a2167bdae49fd65",
+        "frozen_vocal_sha256": "b53738cad53e5d673c32cb718b6e1c37a5ef42340dc65311f7c048810530548c",
+        "excerpts": {
+          "affine": {
+            "game_float": {
+              "50ms_onset": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 3,
+                "f1": 0.06315789473684211
+              },
+              "50ms_onoff": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 2,
+                "f1": 0.042105263157894736
+              },
+              "100ms_onset": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 13,
+                "f1": 0.2736842105263158
+              },
+              "100ms_onoff": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 3,
+                "f1": 0.06315789473684211
+              }
+            },
+            "game_midi": {
+              "50ms_onset": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 3,
+                "f1": 0.06315789473684211
+              },
+              "50ms_onoff": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 2,
+                "f1": 0.042105263157894736
+              },
+              "100ms_onset": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 13,
+                "f1": 0.2736842105263158
+              },
+              "100ms_onoff": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 3,
+                "f1": 0.06315789473684211
+              }
+            },
+            "your_raw": {
+              "50ms_onset": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 6,
+                "f1": 0.12631578947368421
+              },
+              "50ms_onoff": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 4,
+                "f1": 0.08421052631578947
+              },
+              "100ms_onset": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 13,
+                "f1": 0.2736842105263158
+              },
+              "100ms_onoff": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 5,
+                "f1": 0.10526315789473684
+              }
+            },
+            "game_published": {
+              "50ms_onset": {
+                "reference": 48,
+                "predicted": 44,
+                "matches": 4,
+                "f1": 0.08695652173913043
+              },
+              "50ms_onoff": {
+                "reference": 48,
+                "predicted": 44,
+                "matches": 2,
+                "f1": 0.043478260869565216
+              },
+              "100ms_onset": {
+                "reference": 48,
+                "predicted": 44,
+                "matches": 8,
+                "f1": 0.17391304347826086
+              },
+              "100ms_onoff": {
+                "reference": 48,
+                "predicted": 44,
+                "matches": 2,
+                "f1": 0.043478260869565216
+              }
+            },
+            "your_published": {
+              "50ms_onset": {
+                "reference": 48,
+                "predicted": 46,
+                "matches": 5,
+                "f1": 0.10638297872340426
+              },
+              "50ms_onoff": {
+                "reference": 48,
+                "predicted": 46,
+                "matches": 2,
+                "f1": 0.0425531914893617
+              },
+              "100ms_onset": {
+                "reference": 48,
+                "predicted": 46,
+                "matches": 9,
+                "f1": 0.19148936170212766
+              },
+              "100ms_onoff": {
+                "reference": 48,
+                "predicted": 46,
+                "matches": 2,
+                "f1": 0.0425531914893617
+              }
+            }
+          },
+          "nominal": {
+            "game_float": {
+              "50ms_onset": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 10,
+                "f1": 0.21052631578947367
+              },
+              "50ms_onoff": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 5,
+                "f1": 0.10526315789473684
+              },
+              "100ms_onset": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 29,
+                "f1": 0.6105263157894737
+              },
+              "100ms_onoff": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 12,
+                "f1": 0.25263157894736843
+              }
+            },
+            "game_midi": {
+              "50ms_onset": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 10,
+                "f1": 0.21052631578947367
+              },
+              "50ms_onoff": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 5,
+                "f1": 0.10526315789473684
+              },
+              "100ms_onset": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 29,
+                "f1": 0.6105263157894737
+              },
+              "100ms_onoff": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 12,
+                "f1": 0.25263157894736843
+              }
+            },
+            "your_raw": {
+              "50ms_onset": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 12,
+                "f1": 0.25263157894736843
+              },
+              "50ms_onoff": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 5,
+                "f1": 0.10526315789473684
+              },
+              "100ms_onset": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 26,
+                "f1": 0.5473684210526316
+              },
+              "100ms_onoff": {
+                "reference": 48,
+                "predicted": 47,
+                "matches": 10,
+                "f1": 0.21052631578947367
+              }
+            },
+            "game_published": {
+              "50ms_onset": {
+                "reference": 48,
+                "predicted": 44,
+                "matches": 7,
+                "f1": 0.15217391304347827
+              },
+              "50ms_onoff": {
+                "reference": 48,
+                "predicted": 44,
+                "matches": 3,
+                "f1": 0.06521739130434782
+              },
+              "100ms_onset": {
+                "reference": 48,
+                "predicted": 44,
+                "matches": 20,
+                "f1": 0.43478260869565216
+              },
+              "100ms_onoff": {
+                "reference": 48,
+                "predicted": 44,
+                "matches": 7,
+                "f1": 0.15217391304347827
+              }
+            },
+            "your_published": {
+              "50ms_onset": {
+                "reference": 48,
+                "predicted": 46,
+                "matches": 9,
+                "f1": 0.19148936170212766
+              },
+              "50ms_onoff": {
+                "reference": 48,
+                "predicted": 46,
+                "matches": 4,
+                "f1": 0.0851063829787234
+              },
+              "100ms_onset": {
+                "reference": 48,
+                "predicted": 46,
+                "matches": 23,
+                "f1": 0.48936170212765956
+              },
+              "100ms_onoff": {
+                "reference": 48,
+                "predicted": 46,
+                "matches": 8,
+                "f1": 0.1702127659574468
+              }
+            }
+          }
+        }
+      },
+      "twice-fancy": {
+        "prediction_sha256": {
+          "game_float": "a741f865044db343eea363685ffd1ee3ff40a0321338e31f8e7ff4a12f1a58b6",
+          "game_midi": "c0cc3beb5a061efa3ec6175e73d340789790236384b488b432a06c66641f91e0",
+          "your_raw": "23c94429600851d71371a29e1c66834b20a3158feb9cef55bd0909566f9e8e23",
+          "game_published": "25739299f8b4e6a48abc1437e126f1dd98d006fd781eafe55ad9467bbeca8681",
+          "your_published": "22e3e992b56b7e27a53bf93591d737bfcdefee22c796df2543a96f75c7fb5f16"
+        },
+        "counts": {
+          "game_float": 616,
+          "game_midi": 616,
+          "your_raw": 710,
+          "game_published": 612,
+          "your_published": 695
+        },
+        "source_audio_sha256": "5e1b5613b3863ea3babd2dc22bc9fa8ba62deb2ae44d48c8885f832ab56f01ec",
+        "frozen_vocal_sha256": "645eb299d5e6807ca6bcf9b9a71b2d19bf5e88574f52e7a59cb8531fe19c658a",
+        "excerpts": {
+          "affine": {
+            "game_float": {
+              "50ms_onset": {
+                "reference": 250,
+                "predicted": 271,
+                "matches": 12,
+                "f1": 0.046065259117082535
+              },
+              "50ms_onoff": {
+                "reference": 250,
+                "predicted": 271,
+                "matches": 2,
+                "f1": 0.007677543186180422
+              },
+              "100ms_onset": {
+                "reference": 250,
+                "predicted": 271,
+                "matches": 80,
+                "f1": 0.30710172744721687
+              },
+              "100ms_onoff": {
+                "reference": 250,
+                "predicted": 271,
+                "matches": 11,
+                "f1": 0.04222648752399232
+              }
+            },
+            "game_midi": {
+              "50ms_onset": {
+                "reference": 250,
+                "predicted": 271,
+                "matches": 12,
+                "f1": 0.046065259117082535
+              },
+              "50ms_onoff": {
+                "reference": 250,
+                "predicted": 271,
+                "matches": 2,
+                "f1": 0.007677543186180422
+              },
+              "100ms_onset": {
+                "reference": 250,
+                "predicted": 271,
+                "matches": 80,
+                "f1": 0.30710172744721687
+              },
+              "100ms_onoff": {
+                "reference": 250,
+                "predicted": 271,
+                "matches": 11,
+                "f1": 0.04222648752399232
+              }
+            },
+            "your_raw": {
+              "50ms_onset": {
+                "reference": 250,
+                "predicted": 311,
+                "matches": 30,
+                "f1": 0.10695187165775401
+              },
+              "50ms_onoff": {
+                "reference": 250,
+                "predicted": 311,
+                "matches": 16,
+                "f1": 0.0570409982174688
+              },
+              "100ms_onset": {
+                "reference": 250,
+                "predicted": 311,
+                "matches": 94,
+                "f1": 0.33511586452762926
+              },
+              "100ms_onoff": {
+                "reference": 250,
+                "predicted": 311,
+                "matches": 27,
+                "f1": 0.0962566844919786
+              }
+            },
+            "game_published": {
+              "50ms_onset": {
+                "reference": 250,
+                "predicted": 269,
+                "matches": 21,
+                "f1": 0.08092485549132948
+              },
+              "50ms_onoff": {
+                "reference": 250,
+                "predicted": 269,
+                "matches": 7,
+                "f1": 0.02697495183044316
+              },
+              "100ms_onset": {
+                "reference": 250,
+                "predicted": 269,
+                "matches": 92,
+                "f1": 0.35452793834296725
+              },
+              "100ms_onoff": {
+                "reference": 250,
+                "predicted": 269,
+                "matches": 24,
+                "f1": 0.09248554913294797
+              }
+            },
+            "your_published": {
+              "50ms_onset": {
+                "reference": 250,
+                "predicted": 302,
+                "matches": 27,
+                "f1": 0.09782608695652174
+              },
+              "50ms_onoff": {
+                "reference": 250,
+                "predicted": 302,
+                "matches": 8,
+                "f1": 0.028985507246376812
+              },
+              "100ms_onset": {
+                "reference": 250,
+                "predicted": 302,
+                "matches": 99,
+                "f1": 0.358695652173913
+              },
+              "100ms_onoff": {
+                "reference": 250,
+                "predicted": 302,
+                "matches": 26,
+                "f1": 0.09420289855072464
+              }
+            }
+          },
+          "nominal": {
+            "game_float": {
+              "50ms_onset": {
+                "reference": 250,
+                "predicted": 271,
+                "matches": 40,
+                "f1": 0.15355086372360843
+              },
+              "50ms_onoff": {
+                "reference": 250,
+                "predicted": 271,
+                "matches": 22,
+                "f1": 0.08445297504798464
+              },
+              "100ms_onset": {
+                "reference": 250,
+                "predicted": 271,
+                "matches": 137,
+                "f1": 0.525911708253359
+              },
+              "100ms_onoff": {
+                "reference": 250,
+                "predicted": 271,
+                "matches": 47,
+                "f1": 0.18042226487523993
+              }
+            },
+            "game_midi": {
+              "50ms_onset": {
+                "reference": 250,
+                "predicted": 271,
+                "matches": 42,
+                "f1": 0.16122840690978887
+              },
+              "50ms_onoff": {
+                "reference": 250,
+                "predicted": 271,
+                "matches": 25,
+                "f1": 0.09596928982725528
+              },
+              "100ms_onset": {
+                "reference": 250,
+                "predicted": 271,
+                "matches": 137,
+                "f1": 0.525911708253359
+              },
+              "100ms_onoff": {
+                "reference": 250,
+                "predicted": 271,
+                "matches": 48,
+                "f1": 0.18426103646833014
+              }
+            },
+            "your_raw": {
+              "50ms_onset": {
+                "reference": 250,
+                "predicted": 311,
+                "matches": 68,
+                "f1": 0.24242424242424243
+              },
+              "50ms_onoff": {
+                "reference": 250,
+                "predicted": 311,
+                "matches": 40,
+                "f1": 0.14260249554367202
+              },
+              "100ms_onset": {
+                "reference": 250,
+                "predicted": 311,
+                "matches": 134,
+                "f1": 0.47771836007130125
+              },
+              "100ms_onoff": {
+                "reference": 250,
+                "predicted": 311,
+                "matches": 61,
+                "f1": 0.21746880570409982
+              }
+            },
+            "game_published": {
+              "50ms_onset": {
+                "reference": 250,
+                "predicted": 269,
+                "matches": 45,
+                "f1": 0.17341040462427745
+              },
+              "50ms_onoff": {
+                "reference": 250,
+                "predicted": 269,
+                "matches": 22,
+                "f1": 0.08477842003853564
+              },
+              "100ms_onset": {
+                "reference": 250,
+                "predicted": 269,
+                "matches": 140,
+                "f1": 0.5394990366088632
+              },
+              "100ms_onoff": {
+                "reference": 250,
+                "predicted": 269,
+                "matches": 51,
+                "f1": 0.19653179190751446
+              }
+            },
+            "your_published": {
+              "50ms_onset": {
+                "reference": 250,
+                "predicted": 302,
+                "matches": 52,
+                "f1": 0.18840579710144928
+              },
+              "50ms_onoff": {
+                "reference": 250,
+                "predicted": 302,
+                "matches": 26,
+                "f1": 0.09420289855072464
+              },
+              "100ms_onset": {
+                "reference": 250,
+                "predicted": 302,
+                "matches": 127,
+                "f1": 0.4601449275362319
+              },
+              "100ms_onoff": {
+                "reference": 250,
+                "predicted": 302,
+                "matches": 50,
+                "f1": 0.18115942028985507
+              }
+            }
+          }
+        }
+      },
+      "green-day-american-idiot": {
+        "prediction_sha256": {
+          "game_float": "24752e757db68065fc8ed785fe2ae779966725bdc22516b830bc03bbeb656ce9",
+          "game_midi": "aad8f065db8de914babf1ab49ebc317915ff8252d940de440ac81361f8161441",
+          "your_raw": "8742eed2010dbeb2eb7828f08fb8edbcd4ad4721c348af4ea9926dfca5d6c64d",
+          "game_published": "50c38abc75b19a2e0e42772a65d48141ac7839a94a72a6090dbfa02b2a7f4965",
+          "your_published": "c38523502aec4d5fcd1acc8324efc088acbb5c2f3e58c73661e3ce196165c1a7"
+        },
+        "counts": {
+          "game_float": 297,
+          "game_midi": 297,
+          "your_raw": 311,
+          "game_published": 295,
+          "your_published": 308
+        },
+        "source_audio_sha256": "aedb875ba145c1f5cd21a0a86713d11dff1de9701512b8f1c7e4a40fa4fdf680",
+        "frozen_vocal_sha256": "211993d2c985756402e418cfe6905a1107c665927ac483eb543d3e13a8316735",
+        "excerpts": {
+          "affine": {
+            "game_float": {
+              "50ms_onset": {
+                "reference": 82,
+                "predicted": 86,
+                "matches": 35,
+                "f1": 0.4166666666666667
+              },
+              "50ms_onoff": {
+                "reference": 82,
+                "predicted": 86,
+                "matches": 22,
+                "f1": 0.2619047619047619
+              },
+              "100ms_onset": {
+                "reference": 82,
+                "predicted": 86,
+                "matches": 63,
+                "f1": 0.75
+              },
+              "100ms_onoff": {
+                "reference": 82,
+                "predicted": 86,
+                "matches": 38,
+                "f1": 0.4523809523809524
+              }
+            },
+            "game_midi": {
+              "50ms_onset": {
+                "reference": 82,
+                "predicted": 86,
+                "matches": 33,
+                "f1": 0.39285714285714285
+              },
+              "50ms_onoff": {
+                "reference": 82,
+                "predicted": 86,
+                "matches": 21,
+                "f1": 0.25
+              },
+              "100ms_onset": {
+                "reference": 82,
+                "predicted": 86,
+                "matches": 63,
+                "f1": 0.75
+              },
+              "100ms_onoff": {
+                "reference": 82,
+                "predicted": 86,
+                "matches": 36,
+                "f1": 0.42857142857142855
+              }
+            },
+            "your_raw": {
+              "50ms_onset": {
+                "reference": 82,
+                "predicted": 80,
+                "matches": 41,
+                "f1": 0.5061728395061729
+              },
+              "50ms_onoff": {
+                "reference": 82,
+                "predicted": 80,
+                "matches": 28,
+                "f1": 0.345679012345679
+              },
+              "100ms_onset": {
+                "reference": 82,
+                "predicted": 80,
+                "matches": 61,
+                "f1": 0.7530864197530864
+              },
+              "100ms_onoff": {
+                "reference": 82,
+                "predicted": 80,
+                "matches": 43,
+                "f1": 0.5308641975308642
+              }
+            },
+            "game_published": {
+              "50ms_onset": {
+                "reference": 82,
+                "predicted": 85,
+                "matches": 31,
+                "f1": 0.3712574850299401
+              },
+              "50ms_onoff": {
+                "reference": 82,
+                "predicted": 85,
+                "matches": 17,
+                "f1": 0.20359281437125748
+              },
+              "100ms_onset": {
+                "reference": 82,
+                "predicted": 85,
+                "matches": 62,
+                "f1": 0.7425149700598802
+              },
+              "100ms_onoff": {
+                "reference": 82,
+                "predicted": 85,
+                "matches": 31,
+                "f1": 0.3712574850299401
+              }
+            },
+            "your_published": {
+              "50ms_onset": {
+                "reference": 82,
+                "predicted": 80,
+                "matches": 35,
+                "f1": 0.43209876543209874
+              },
+              "50ms_onoff": {
+                "reference": 82,
+                "predicted": 80,
+                "matches": 26,
+                "f1": 0.32098765432098764
+              },
+              "100ms_onset": {
+                "reference": 82,
+                "predicted": 80,
+                "matches": 63,
+                "f1": 0.7777777777777778
+              },
+              "100ms_onoff": {
+                "reference": 82,
+                "predicted": 80,
+                "matches": 39,
+                "f1": 0.48148148148148145
+              }
+            }
+          },
+          "nominal": {
+            "game_float": {
+              "50ms_onset": {
+                "reference": 82,
+                "predicted": 86,
+                "matches": 35,
+                "f1": 0.4166666666666667
+              },
+              "50ms_onoff": {
+                "reference": 82,
+                "predicted": 86,
+                "matches": 22,
+                "f1": 0.2619047619047619
+              },
+              "100ms_onset": {
+                "reference": 82,
+                "predicted": 86,
+                "matches": 65,
+                "f1": 0.7738095238095238
+              },
+              "100ms_onoff": {
+                "reference": 82,
+                "predicted": 86,
+                "matches": 36,
+                "f1": 0.42857142857142855
+              }
+            },
+            "game_midi": {
+              "50ms_onset": {
+                "reference": 82,
+                "predicted": 86,
+                "matches": 33,
+                "f1": 0.39285714285714285
+              },
+              "50ms_onoff": {
+                "reference": 82,
+                "predicted": 86,
+                "matches": 20,
+                "f1": 0.23809523809523808
+              },
+              "100ms_onset": {
+                "reference": 82,
+                "predicted": 86,
+                "matches": 65,
+                "f1": 0.7738095238095238
+              },
+              "100ms_onoff": {
+                "reference": 82,
+                "predicted": 86,
+                "matches": 35,
+                "f1": 0.4166666666666667
+              }
+            },
+            "your_raw": {
+              "50ms_onset": {
+                "reference": 82,
+                "predicted": 80,
+                "matches": 43,
+                "f1": 0.5308641975308642
+              },
+              "50ms_onoff": {
+                "reference": 82,
+                "predicted": 80,
+                "matches": 29,
+                "f1": 0.35802469135802467
+              },
+              "100ms_onset": {
+                "reference": 82,
+                "predicted": 80,
+                "matches": 61,
+                "f1": 0.7530864197530864
+              },
+              "100ms_onoff": {
+                "reference": 82,
+                "predicted": 80,
+                "matches": 43,
+                "f1": 0.5308641975308642
+              }
+            },
+            "game_published": {
+              "50ms_onset": {
+                "reference": 82,
+                "predicted": 85,
+                "matches": 34,
+                "f1": 0.40718562874251496
+              },
+              "50ms_onoff": {
+                "reference": 82,
+                "predicted": 85,
+                "matches": 18,
+                "f1": 0.2155688622754491
+              },
+              "100ms_onset": {
+                "reference": 82,
+                "predicted": 85,
+                "matches": 62,
+                "f1": 0.7425149700598802
+              },
+              "100ms_onoff": {
+                "reference": 82,
+                "predicted": 85,
+                "matches": 32,
+                "f1": 0.38323353293413176
+              }
+            },
+            "your_published": {
+              "50ms_onset": {
+                "reference": 82,
+                "predicted": 80,
+                "matches": 40,
+                "f1": 0.49382716049382713
+              },
+              "50ms_onoff": {
+                "reference": 82,
+                "predicted": 80,
+                "matches": 29,
+                "f1": 0.35802469135802467
+              },
+              "100ms_onset": {
+                "reference": 82,
+                "predicted": 80,
+                "matches": 63,
+                "f1": 0.7777777777777778
+              },
+              "100ms_onoff": {
+                "reference": 82,
+                "predicted": 80,
+                "matches": 42,
+                "f1": 0.5185185185185185
+              }
+            }
+          }
+        },
+        "full_chart": {
+          "game_float": {
+            "50ms_onset": {
+              "reference": 310,
+              "predicted": 297,
+              "matches": 208,
+              "f1": 0.685337726523888
+            },
+            "50ms_onoff": {
+              "reference": 310,
+              "predicted": 297,
+              "matches": 162,
+              "f1": 0.5337726523887973
+            },
+            "100ms_onset": {
+              "reference": 310,
+              "predicted": 297,
+              "matches": 221,
+              "f1": 0.728171334431631
+            },
+            "100ms_onoff": {
+              "reference": 310,
+              "predicted": 297,
+              "matches": 172,
+              "f1": 0.5667215815485996
+            }
+          },
+          "game_midi": {
+            "50ms_onset": {
+              "reference": 310,
+              "predicted": 297,
+              "matches": 208,
+              "f1": 0.685337726523888
+            },
+            "50ms_onoff": {
+              "reference": 310,
+              "predicted": 297,
+              "matches": 162,
+              "f1": 0.5337726523887973
+            },
+            "100ms_onset": {
+              "reference": 310,
+              "predicted": 297,
+              "matches": 221,
+              "f1": 0.728171334431631
+            },
+            "100ms_onoff": {
+              "reference": 310,
+              "predicted": 297,
+              "matches": 172,
+              "f1": 0.5667215815485996
+            }
+          },
+          "your_raw": {
+            "50ms_onset": {
+              "reference": 310,
+              "predicted": 311,
+              "matches": 213,
+              "f1": 0.6859903381642513
+            },
+            "50ms_onoff": {
+              "reference": 310,
+              "predicted": 311,
+              "matches": 176,
+              "f1": 0.5668276972624798
+            },
+            "100ms_onset": {
+              "reference": 310,
+              "predicted": 311,
+              "matches": 226,
+              "f1": 0.7278582930756844
+            },
+            "100ms_onoff": {
+              "reference": 310,
+              "predicted": 311,
+              "matches": 186,
+              "f1": 0.5990338164251208
+            }
+          },
+          "game_published": {
+            "50ms_onset": {
+              "reference": 310,
+              "predicted": 295,
+              "matches": 192,
+              "f1": 0.6347107438016529
+            },
+            "50ms_onoff": {
+              "reference": 310,
+              "predicted": 295,
+              "matches": 137,
+              "f1": 0.45289256198347105
+            },
+            "100ms_onset": {
+              "reference": 310,
+              "predicted": 295,
+              "matches": 222,
+              "f1": 0.7338842975206612
+            },
+            "100ms_onoff": {
+              "reference": 310,
+              "predicted": 295,
+              "matches": 162,
+              "f1": 0.5355371900826447
+            }
+          },
+          "your_published": {
+            "50ms_onset": {
+              "reference": 310,
+              "predicted": 308,
+              "matches": 196,
+              "f1": 0.6343042071197411
+            },
+            "50ms_onoff": {
+              "reference": 310,
+              "predicted": 308,
+              "matches": 147,
+              "f1": 0.47572815533980584
+            },
+            "100ms_onset": {
+              "reference": 310,
+              "predicted": 308,
+              "matches": 229,
+              "f1": 0.7411003236245954
+            },
+            "100ms_onoff": {
+              "reference": 310,
+              "predicted": 308,
+              "matches": 174,
+              "f1": 0.5631067961165048
+            }
+          }
+        }
+      },
+      "ham-boo-young-my-song": {
+        "prediction_sha256": {
+          "game_float": "431243bb8a2b0e00201f323e2dacb86539e474fe51f58c32efadd855c856aab2",
+          "game_midi": "2e7b6e68a28c2f843fac915411087d794693da4e3a03f24d8ebb1ed7b50ad9df",
+          "your_raw": "b377400654fc797627dc9aaee294180c81df7f1f312afb984d1b45cab3cffac5",
+          "game_published": "b4596e83d4dd584d463f8877d291510f657c34daa4f72ecf5f6a5bb50fbc0134",
+          "your_published": "4077450e23910160ecdb1cdb20b67331e1f65a3ed57eb037e261ebd3eb5332f1"
+        },
+        "counts": {
+          "game_float": 613,
+          "game_midi": 613,
+          "your_raw": 605,
+          "game_published": 570,
+          "your_published": 551
+        },
+        "source_audio_sha256": "871118a06f5021b94f6e56c9066fca50670582f5e530bcee9290e2db270d8ac7",
+        "frozen_vocal_sha256": "0000cde2d65daf30716ed12fc97ef16ab0fcf848e1f8d6f3581d3bff01ae3678",
+        "publisher_pitch_order_only": {
+          "limits": "Manual preview reading, existing model-assisted windows, approximate arrangement; no independent timing or full-song accuracy.",
+          "reference_sha256": "343029f5605868305870fe50913ea86cc6bd4b404620a04e091a4114456970d9",
+          "windows": [
+            {
+              "start": 16.1,
+              "end": 19.9,
+              "scores": {
+                "game_float": {
+                  "reference_attacks": 7,
+                  "predicted_attacks": 10,
+                  "exact_pitch_order_lcs": 6
+                },
+                "game_midi": {
+                  "reference_attacks": 7,
+                  "predicted_attacks": 10,
+                  "exact_pitch_order_lcs": 6
+                },
+                "your_raw": {
+                  "reference_attacks": 7,
+                  "predicted_attacks": 10,
+                  "exact_pitch_order_lcs": 5
+                },
+                "game_published": {
+                  "reference_attacks": 7,
+                  "predicted_attacks": 9,
+                  "exact_pitch_order_lcs": 5
+                },
+                "your_published": {
+                  "reference_attacks": 7,
+                  "predicted_attacks": 9,
+                  "exact_pitch_order_lcs": 5
+                }
+              }
+            }
+          ]
+        }
+      },
+      "younha-event-horizon": {
+        "prediction_sha256": {
+          "game_float": "332a9fd4f41306f3989c1059eee4ad1ea8fe4d27abaa9eb002452b7526041f6f",
+          "game_midi": "2c1d2261d8617acb148a0afc4433279e00dd4189e8a12be024e07d069f267f51",
+          "your_raw": "e34cfc781c5a73e4a5d76425a7545e033f1ef6e2731757eb24eacd0dbc4d03b3",
+          "game_published": "b3b0882088e33ab4df27f9fbf94c692f7d3ba359a8473888cfbf449bd12326fc",
+          "your_published": "562f7a7f1fbf9ea94b78fa6799e5c999817a892e1a5f214a27a48c4289ae4472"
+        },
+        "counts": {
+          "game_float": 568,
+          "game_midi": 568,
+          "your_raw": 623,
+          "game_published": 551,
+          "your_published": 594
+        },
+        "source_audio_sha256": "2d84bd77253c96851db8bde4cd76de0b7bf7101cf07f79ff8dbf2d03f1d23dce",
+        "frozen_vocal_sha256": "512ca500d2cb2d0e6fe01c0d7cfefdddfe72b98f73d501f72eba299b91e933a9",
+        "publisher_pitch_order_only": {
+          "limits": "Manual preview reading, existing model-assisted windows, approximate arrangement; no independent timing or full-song accuracy.",
+          "reference_sha256": "e39139a892ee9f000caf61600e8e90ffb8054820ef8bcb8d7fd172fadabe253c",
+          "windows": [
+            {
+              "start": 24.66,
+              "end": 27.08,
+              "scores": {
+                "game_float": {
+                  "reference_attacks": 9,
+                  "predicted_attacks": 7,
+                  "exact_pitch_order_lcs": 7
+                },
+                "game_midi": {
+                  "reference_attacks": 9,
+                  "predicted_attacks": 7,
+                  "exact_pitch_order_lcs": 7
+                },
+                "your_raw": {
+                  "reference_attacks": 9,
+                  "predicted_attacks": 10,
+                  "exact_pitch_order_lcs": 8
+                },
+                "game_published": {
+                  "reference_attacks": 9,
+                  "predicted_attacks": 7,
+                  "exact_pitch_order_lcs": 7
+                },
+                "your_published": {
+                  "reference_attacks": 9,
+                  "predicted_attacks": 10,
+                  "exact_pitch_order_lcs": 8
+                }
+              }
+            },
+            {
+              "start": 27.08,
+              "end": 29.57,
+              "scores": {
+                "game_float": {
+                  "reference_attacks": 9,
+                  "predicted_attacks": 8,
+                  "exact_pitch_order_lcs": 8
+                },
+                "game_midi": {
+                  "reference_attacks": 9,
+                  "predicted_attacks": 9,
+                  "exact_pitch_order_lcs": 8
+                },
+                "your_raw": {
+                  "reference_attacks": 9,
+                  "predicted_attacks": 8,
+                  "exact_pitch_order_lcs": 8
+                },
+                "game_published": {
+                  "reference_attacks": 9,
+                  "predicted_attacks": 8,
+                  "exact_pitch_order_lcs": 8
+                },
+                "your_published": {
+                  "reference_attacks": 9,
+                  "predicted_attacks": 7,
+                  "exact_pitch_order_lcs": 7
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "five_reference_comparison_sha256": "9acd0d78c3984d1d8588a46748db0119bbe3b687bc298b3bdc9d1dac4afc73d2",
+  "publication": {
+    "method": "Research-recipe GAME predictions converted with frozen SheetSage2 clock, chords and keys; synthetic notation-import Song published by build_exports_v3 in an isolated store.",
+    "source_main_commit": "ddcbf4e6dc7df7c089c26efb3ef68bc156647978",
+    "complete": true,
+    "common_inputs_unchanged": true,
+    "private_report_sha256": "135bcd3b065ca459f820ceee437b6515957c94d861436cd20cde139d38b23649",
+    "dependency_versions": {
+      "pretty_midi": "0.2.11.post0",
+      "importlib_resources": "7.1.0",
+      "numpy": "2.5.3",
+      "scipy": "1.18.1",
+      "mido": "1.3.3",
+      "music21": "10.5.0",
+      "verovio": "6.3.0",
+      "mir_eval": "0.8.2"
+    },
+    "case_metrics": [
+      {
+        "id": "tinashe-me-so-bad",
+        "raw_notes": 550,
+        "represented_notes": 535,
+        "canonical_fidelity": {
+          "performed_notes": 535,
+          "max_time_difference_seconds": 8.928571531896523e-06,
+          "tolerance_seconds": 0.002,
+          "pitch_adjustments": 0,
+          "matched_interpretation": true,
+          "original_song_accuracy": null
+        },
+        "published_fidelity": {
+          "performed_notes": 535,
+          "max_time_difference_seconds": 8.928571531896523e-06,
+          "tolerance_seconds": 0.002,
+          "pitch_adjustments": 0,
+          "matched_interpretation": true,
+          "original_song_accuracy": null
+        },
+        "notation": {
+          "printed_notes": 585,
+          "rests": 93,
+          "ties_start": 50,
+          "ties_stop": 50,
+          "tuplet_notes": 0
+        },
+        "pdf_pages": 5,
+        "omitted_count": 15,
+        "output_sha256": {
+          "canonical.mid": "faa1bc1da8809941a360031fc4dae60292333cb85d4a56fa0ee01692d08b0521",
+          "canonical.musicxml": "97704642d5e4fb67654bad5084bafc80b30d05de6c73efded865edc18ed27440",
+          "score.mid": "faa1bc1da8809941a360031fc4dae60292333cb85d4a56fa0ee01692d08b0521",
+          "score.musicxml": "bf5c3b93ab55ae0901f03c7552d0a0b9ead6259b85d5f3e3c35d364aae5634c0",
+          "score.pdf": "545e2de9fb494e3716a5c0c9d6ad9a31a5151ceeba1014fd8c925668628a239c"
+        }
+      },
+      {
+        "id": "twice-fancy",
+        "raw_notes": 616,
+        "represented_notes": 612,
+        "canonical_fidelity": {
+          "performed_notes": 612,
+          "max_time_difference_seconds": 2.083333347968619e-05,
+          "tolerance_seconds": 0.002,
+          "pitch_adjustments": 0,
+          "matched_interpretation": true,
+          "original_song_accuracy": null
+        },
+        "published_fidelity": {
+          "performed_notes": 612,
+          "max_time_difference_seconds": 2.083333347968619e-05,
+          "tolerance_seconds": 0.002,
+          "pitch_adjustments": 0,
+          "matched_interpretation": true,
+          "original_song_accuracy": null
+        },
+        "notation": {
+          "printed_notes": 726,
+          "rests": 98,
+          "ties_start": 114,
+          "ties_stop": 114,
+          "tuplet_notes": 0
+        },
+        "pdf_pages": 7,
+        "omitted_count": 4,
+        "output_sha256": {
+          "canonical.mid": "25739299f8b4e6a48abc1437e126f1dd98d006fd781eafe55ad9467bbeca8681",
+          "canonical.musicxml": "179ead04d2940b53370270c07b58ac0e6e9bbb31cb9811acaa52ce7736a483b6",
+          "score.mid": "25739299f8b4e6a48abc1437e126f1dd98d006fd781eafe55ad9467bbeca8681",
+          "score.musicxml": "8072ec1ba57b90870c4ae9e241ab7ab361ca8d7975f39fbd85ee7ee3df2a3e6e",
+          "score.pdf": "7a9836775f6a2a149ece9948004b0aafd07a184a6d549f7e605fb51afbc50db1"
+        }
+      },
+      {
+        "id": "green-day-american-idiot",
+        "raw_notes": 297,
+        "represented_notes": 295,
+        "canonical_fidelity": {
+          "performed_notes": 295,
+          "max_time_difference_seconds": 3.0000004755947884e-06,
+          "tolerance_seconds": 0.002,
+          "pitch_adjustments": 0,
+          "matched_interpretation": true,
+          "original_song_accuracy": null
+        },
+        "published_fidelity": {
+          "performed_notes": 295,
+          "max_time_difference_seconds": 3.0000004755947884e-06,
+          "tolerance_seconds": 0.002,
+          "pitch_adjustments": 0,
+          "matched_interpretation": true,
+          "original_song_accuracy": null
+        },
+        "notation": {
+          "printed_notes": 379,
+          "rests": 255,
+          "ties_start": 84,
+          "ties_stop": 84,
+          "tuplet_notes": 0
+        },
+        "pdf_pages": 9,
+        "omitted_count": 2,
+        "output_sha256": {
+          "canonical.mid": "50c38abc75b19a2e0e42772a65d48141ac7839a94a72a6090dbfa02b2a7f4965",
+          "canonical.musicxml": "1561bdcda436ead50056d245342b90fc7081f3a2c7ccb13969e1cf1fdd862d66",
+          "score.mid": "50c38abc75b19a2e0e42772a65d48141ac7839a94a72a6090dbfa02b2a7f4965",
+          "score.musicxml": "efb061f85e39784b873f2e6a4e11d7a55bbc8bb1529a7f9581b3c1d906ba17de",
+          "score.pdf": "68d364847b33590ffdea518a3443eb9ab409e7fba83385a309011fc84b89d6b7"
+        }
+      },
+      {
+        "id": "ham-boo-young-my-song",
+        "raw_notes": 613,
+        "represented_notes": 570,
+        "canonical_fidelity": {
+          "performed_notes": 570,
+          "max_time_difference_seconds": 1.0000013617172954e-06,
+          "tolerance_seconds": 0.002,
+          "pitch_adjustments": 0,
+          "matched_interpretation": true,
+          "original_song_accuracy": null
+        },
+        "published_fidelity": {
+          "performed_notes": 570,
+          "max_time_difference_seconds": 1.0000013617172954e-06,
+          "tolerance_seconds": 0.002,
+          "pitch_adjustments": 0,
+          "matched_interpretation": true,
+          "original_song_accuracy": null
+        },
+        "notation": {
+          "printed_notes": 640,
+          "rests": 120,
+          "ties_start": 70,
+          "ties_stop": 70,
+          "tuplet_notes": 0
+        },
+        "pdf_pages": 5,
+        "omitted_count": 43,
+        "output_sha256": {
+          "canonical.mid": "b4596e83d4dd584d463f8877d291510f657c34daa4f72ecf5f6a5bb50fbc0134",
+          "canonical.musicxml": "3f5f6d4f729b5f98409321d46858418cd12b31b33f7e1e28288872780ce06548",
+          "score.mid": "b4596e83d4dd584d463f8877d291510f657c34daa4f72ecf5f6a5bb50fbc0134",
+          "score.musicxml": "a3fe3652eb3e46a7671d2b18915cfa88bd6c8e63449d6a78d64689611efdddc8",
+          "score.pdf": "c4c9a249ddaf3d6c2e1a7914e60fa8cdcaf7af7bc95824474a50afc4e7ba736a"
+        }
+      },
+      {
+        "id": "younha-event-horizon",
+        "raw_notes": 568,
+        "represented_notes": 551,
+        "canonical_fidelity": {
+          "performed_notes": 551,
+          "max_time_difference_seconds": 3.333334149147049e-06,
+          "tolerance_seconds": 0.002,
+          "pitch_adjustments": 0,
+          "matched_interpretation": true,
+          "original_song_accuracy": null
+        },
+        "published_fidelity": {
+          "performed_notes": 551,
+          "max_time_difference_seconds": 3.333334149147049e-06,
+          "tolerance_seconds": 0.002,
+          "pitch_adjustments": 0,
+          "matched_interpretation": true,
+          "original_song_accuracy": null
+        },
+        "notation": {
+          "printed_notes": 621,
+          "rests": 126,
+          "ties_start": 70,
+          "ties_stop": 70,
+          "tuplet_notes": 0
+        },
+        "pdf_pages": 7,
+        "omitted_count": 17,
+        "output_sha256": {
+          "canonical.mid": "b3b0882088e33ab4df27f9fbf94c692f7d3ba359a8473888cfbf449bd12326fc",
+          "canonical.musicxml": "8a7bc25a3fb31f2f09aed4e9274301af4b530cf61de127167fde7a8f34ded413",
+          "score.mid": "b3b0882088e33ab4df27f9fbf94c692f7d3ba359a8473888cfbf449bd12326fc",
+          "score.musicxml": "fcd07edfe9b0017d745c365b91840ffc4b2631793238368274f4ca031a583a5a",
+          "score.pdf": "eae9f5b4f88bb24a55e7aeb1d5e804e852bd752a5efbf330e41a418c0fda819e"
+        }
+      }
+    ]
+  },
+  "american_structure_diagnostic": {
+    "method": "Diagnostic constraint probes on full approximate community American reference; pitch LCS ignores time and may align repeated phrases. Counts do not form mutually exclusive error classes. Same frozen drum-only time fit; no corrections.",
+    "quality_approved": false,
+    "cases": {
+      "your_raw": {
+        "notes": 311,
+        "pitch_lcs": 253,
+        "onset_only_50_matches": 259,
+        "pitch_and_onset_50": {
+          "reference": 310,
+          "predicted": 311,
+          "matches": 213,
+          "f1": 0.6859903381642513
+        },
+        "pitch_and_onset_100": {
+          "reference": 310,
+          "predicted": 311,
+          "matches": 226,
+          "f1": 0.7278582930756844
+        },
+        "midi_sha256": "8742eed2010dbeb2eb7828f08fb8edbcd4ad4721c348af4ea9926dfca5d6c64d"
+      },
+      "game_raw": {
+        "notes": 297,
+        "pitch_lcs": 240,
+        "onset_only_50_matches": 243,
+        "pitch_and_onset_50": {
+          "reference": 310,
+          "predicted": 297,
+          "matches": 208,
+          "f1": 0.685337726523888
+        },
+        "pitch_and_onset_100": {
+          "reference": 310,
+          "predicted": 297,
+          "matches": 221,
+          "f1": 0.728171334431631
+        },
+        "midi_sha256": "aad8f065db8de914babf1ab49ebc317915ff8252d940de440ac81361f8161441"
+      },
+      "your_published": {
+        "notes": 308,
+        "pitch_lcs": 252,
+        "onset_only_50_matches": 235,
+        "pitch_and_onset_50": {
+          "reference": 310,
+          "predicted": 308,
+          "matches": 196,
+          "f1": 0.6343042071197411
+        },
+        "pitch_and_onset_100": {
+          "reference": 310,
+          "predicted": 308,
+          "matches": 229,
+          "f1": 0.7411003236245954
+        },
+        "midi_sha256": "c38523502aec4d5fcd1acc8324efc088acbb5c2f3e58c73661e3ce196165c1a7"
+      },
+      "game_published": {
+        "notes": 295,
+        "pitch_lcs": 240,
+        "onset_only_50_matches": 226,
+        "pitch_and_onset_50": {
+          "reference": 310,
+          "predicted": 295,
+          "matches": 192,
+          "f1": 0.6347107438016529
+        },
+        "pitch_and_onset_100": {
+          "reference": 310,
+          "predicted": 295,
+          "matches": 222,
+          "f1": 0.7338842975206612
+        },
+        "midi_sha256": "50c38abc75b19a2e0e42772a65d48141ac7839a94a72a6090dbfa02b2a7f4965"
+      }
+    }
+  }
 }

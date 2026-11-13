@@ -1,13 +1,16 @@
 # GAME-large CPU vocal evaluation
 
-Related: #172, #214, #200. All 40 solo-vocal recordings completed; the five
-acceptance-song inference and notation comparison remain in progress.
+Related: #172, #214, #200. All 40 solo-vocal recordings and all five full-length
+acceptance-song inferences, Song publications and bounded reference comparisons
+completed.
 
 GAME improves pitch-and-onset matching over the frozen local YourMT3 baseline
 on this development corpus. Its official integer MIDI loses much of the gain
 seen with fractional-pitch CSV. Offset-inclusive quality remains substantially
-lower, with losses on previously matched reference notes. This admits the model
-to the separate mixed-song comparison; it does not select a final recipe.
+lower, with losses on previously matched reference notes. The subsequent
+mixed-song comparison does not establish a publication-quality improvement.
+Retain the frozen YourMT3 development baseline; do not promote GAME or add a
+product option from these results. Final publishing quality remains unapproved.
 
 ## Fixed candidate and protocol
 
@@ -90,10 +93,71 @@ the macro and paired matching diagnostics. It agrees with the producer's shared
 scorer. The metadata includes per-case/annotator scores, counts and identities;
 raw audio, annotations, prediction events and weights remain private.
 
-Five full-length frozen Demucs vocal stems are the next input population. Their
-same-setting raw outputs still require reference comparison and existing Song
-publisher/PDF validation. The declared default slicer produces a 118.08-second
-chunk for FANCY; it is retained without cropping or a special preset. Final model,
-commercial use of weights, whole-song musical accuracy, readable notation and
-human correction cost remain unapproved. Product defaults and dependencies are
-unchanged.
+## Five full-length songs and actual publication
+
+All five frozen Demucs vocal stems completed with the same checkpoint/settings,
+including FANCY's full 118.08-second default slice. No fresh separation, source
+download or SheetSage2 inference was performed. The existing frozen SheetSage2
+beat/chord/key context was rebuilt around each GAME MIDI, imported, saved as a
+notation-import Song in an isolated store, and exported through `build_exports_v3`.
+This is a cached-context conversion test, not a new Job/API integration test.
+
+| Song | Raw GAME notes | Represented / omitted | PDF pages |
+| --- | ---: | ---: | ---: |
+| Me So Bad | 550 | 535 / 15 | 5 |
+| FANCY | 616 | 612 / 4 | 7 |
+| American Idiot | 297 | 295 / 2 | 9 |
+| 나의 노래 | 613 | 570 / 43 | 5 |
+| 사건의 지평선 | 568 | 551 / 17 | 7 |
+
+All canonical/published interpreted-note MIDI guards passed: 2,563 represented
+events from 2,644 source events, maximum published timing error 0.02084 ms against
+the declared interpretation. This is conversion fidelity, not original-song
+accuracy. All inputs remained unchanged. First-page images for all five were
+inspected; every PDF page was not visually reviewed. Korean titles, tempo/key
+display and chord symbols render. The American first page still displays the
+frozen context's approximately 219 BPM and long N.C. regions; changing the vocal
+model does not repair that structure/harmony evidence.
+
+An initial publication launcher exited before processing because its preflight
+had created the guarded output store. That attempt was preserved. The successful
+fresh run isolated all product/model import preflight work in a subprocess and
+used hash-verified pure-Python dependencies privately, without changing the main
+environment.
+
+### Whole American chart
+
+The existing 310-note community vocal chart and its independently frozen
+drum-only source-time fit were reused, with no GAME-based alignment.
+
+| Output | Pitch + onset F1, 50 ms | Pitch + onset + offset F1 |
+| --- | ---: | ---: |
+| YourMT3 raw | 68.599034% | 56.682770% |
+| GAME raw MIDI | 68.533773% | 53.377265% |
+| YourMT3 published | 63.430421% | 47.572816% |
+| GAME published | 63.471074% | 45.289256% |
+
+GAME raw matches 208 onset / 162 onset+offset reference judgments, versus
+YourMT3's 213 / 176. The very small published onset-F1 difference accompanies
+fewer predictions and fewer matches (192 versus 196); it does not establish
+better melody recovery. At 100 ms the raw onset F1s are similar, while GAME's
+raw and published offset-inclusive scores remain lower.
+
+### Partial arrangements
+
+On the existing Me So Bad chorus, four FANCY sections, and two American excerpts,
+GAME MIDI's 50 ms onset result is lower than YourMT3 under both the authored-endpoint
+and nominal-BPM projections. At 100 ms some nominal-projection comparisons improve;
+all projections/tolerances remain in the metadata. Approximate community sync and
+arrangement differences prevent treating these low excerpt scores as full-song
+accuracy.
+
+For the publisher-preview pitch-order diagnostic, 나의 노래 improves raw LCS from
+5/7 to 6/7, but its published output returns to 5/7. 사건의 지평선 raw GAME matches
+7/9 and 8/9, versus the frozen raw YourMT3's 8/9 and 8/9; published results are
+7/9 and 8/9 versus 8/9 and 7/9. These short, model-window-assisted comparisons
+provide no independent timing or whole-song quality approval.
+
+Final model selection, commercial use of weights, whole-song chord/note accuracy,
+readable written rhythm and human correction cost remain unapproved. Product
+defaults and dependencies are unchanged.

@@ -1,46 +1,4 @@
 {
-  "power_capability_admitted": false,
-  "reason": "Full template generates all 12 power chords, but their triad indices 73\u201384 exceed the model triad head index range 0\u201372; get_chord_tag_obs excludes them.",
-  "power_labels": [
-    "C:5",
-    "C#:5",
-    "D:5",
-    "Eb:5",
-    "E:5",
-    "F:5",
-    "F#:5",
-    "G:5",
-    "Ab:5",
-    "A:5",
-    "Bb:5",
-    "B:5"
-  ],
-  "triad_indices": [
-    73,
-    74,
-    75,
-    76,
-    77,
-    78,
-    79,
-    80,
-    81,
-    82,
-    83,
-    84
-  ],
-  "head_sizes": [
-    73,
-    13,
-    4,
-    4,
-    3,
-    3
-  ],
-  "synthetic_decoder_test": "passed",
-  "model_inference": false,
-  "quality_measured": false,
-  "checkpoint_loaded": false,
   "source_repository": "https://github.com/openmirlab/lv-chordia",
   "source_revision": "d8ab9ac99bce081bb79065d717f96e2c3b2099c8",
   "source_sha256": {
@@ -103,5 +61,322 @@
       "idna": "3.20"
     }
   },
-  "check_script_sha256": "41607b7ff8945cf1bef4e04a23de693e4833c54afd478f503dd960186af80b6e"
+  "power_capability_check": {
+    "power_capability_admitted": false,
+    "reason": "Full template generates all 12 power chords, but their triad indices 73\u201384 exceed the model triad head index range 0\u201372; get_chord_tag_obs excludes them.",
+    "power_labels": [
+      "C:5",
+      "C#:5",
+      "D:5",
+      "Eb:5",
+      "E:5",
+      "F:5",
+      "F#:5",
+      "G:5",
+      "Ab:5",
+      "A:5",
+      "Bb:5",
+      "B:5"
+    ],
+    "triad_indices": [
+      73,
+      74,
+      75,
+      76,
+      77,
+      78,
+      79,
+      80,
+      81,
+      82,
+      83,
+      84
+    ],
+    "head_sizes": [
+      73,
+      13,
+      4,
+      4,
+      3,
+      3
+    ],
+    "synthetic_decoder_test": "passed",
+    "model_inference": false,
+    "quality_measured": false,
+    "checkpoint_loaded": false,
+    "check_script_sha256": "41607b7ff8945cf1bef4e04a23de693e4833c54afd478f503dd960186af80b6e"
+  },
+  "general_harmony_experiment": {
+    "protocol": "General harmony benchmark protocol, set before inference\nPinned LV-Chordia ISMIR 2019 five-model ensemble, full vocabulary; CPU, two threads, seed 0. Process all five complete original frozen mixed input WAV files verified against producer hashes. No stems, crop, beat retiming, alternative vocabulary or tuning. Official recognize_with_ensemble returns chord segments only; save JSON and LAB without changing decoder or adding postprocessing. This comparison covers general harmony, roots, bass and no-chord behavior, not a power-chord capability fix. The separately recorded decoder admission shows all 12 :5 labels excluded by model head dimensions. Inference is not quality approval and partial references cannot establish full-song expert WCSR. Preserve failures and runtimes; no scope-changing retry.\n",
+    "model_inference": true,
+    "quality_approved": false,
+    "raw_chord_events_included": false,
+    "receipt": {
+      "admission_sha256": "58340434bd52211fb1cd367390c781cd8e2eafef45709f7460a40d58cdb690b9",
+      "cases": [
+        {
+          "id": "tinashe-me-so-bad",
+          "seconds": 50.88321650028229,
+          "segments": 93,
+          "exit": "success",
+          "audio_sha256": "f39788b3075e9117661481470289c6e79ce25171f7a256936a2167bdae49fd65",
+          "input_duration_seconds": 210.51734693877552,
+          "json_sha256": "b20d08126fcdb81a42d65ae478a116de0a531491435f8adea7d8f8aaae9b4da6",
+          "lab_sha256": "2754e31f60434bbee3e355c020d450b0d7aa9a3a15c34d2fdb3ff3cb42b45695",
+          "last_end_seconds": 210.54
+        },
+        {
+          "id": "twice-fancy",
+          "seconds": 14.689517292194068,
+          "segments": 154,
+          "exit": "success",
+          "audio_sha256": "5e1b5613b3863ea3babd2dc22bc9fa8ba62deb2ae44d48c8885f832ab56f01ec",
+          "input_duration_seconds": 218.63911564625852,
+          "json_sha256": "c392702e32da411ef5964061328b41b509f8138ff9c93d6253ad6d2dfba3c4d7",
+          "lab_sha256": "4129557c164513e4c6b7952970a5f3f2747b6b65899465fee6e725d8713a9d14",
+          "last_end_seconds": 218.66
+        },
+        {
+          "id": "green-day-american-idiot",
+          "seconds": 9.873756958171725,
+          "segments": 77,
+          "exit": "success",
+          "audio_sha256": "aedb875ba145c1f5cd21a0a86713d11dff1de9701512b8f1c7e4a40fa4fdf680",
+          "input_duration_seconds": 174.32,
+          "json_sha256": "82f074530e44390d3397866d509fc70c914973c1f9881807777ce40941eaff05",
+          "lab_sha256": "0e06e0c514263ee0d10cec0ee5a54242e8f9d7d0d65f3d2e3367212f0c3e8ec5",
+          "last_end_seconds": 174.34
+        },
+        {
+          "id": "ham-boo-young-my-song",
+          "seconds": 19.82111974991858,
+          "segments": 153,
+          "exit": "success",
+          "audio_sha256": "871118a06f5021b94f6e56c9066fca50670582f5e530bcee9290e2db270d8ac7",
+          "input_duration_seconds": 309.7309977324263,
+          "json_sha256": "585e233d5f7382c562cca534bdaa4055a90d72c24780029819aa0e674390d3e6",
+          "lab_sha256": "83e2b527caaf16438a9a50c79a8ce6144e30ae3cce01ffb3cf371bc83beab237",
+          "last_end_seconds": 309.75
+        },
+        {
+          "id": "younha-event-horizon",
+          "seconds": 18.513316207565367,
+          "segments": 136,
+          "exit": "success",
+          "audio_sha256": "2d84bd77253c96851db8bde4cd76de0b7bf7101cf07f79ff8dbf2d03f1d23dce",
+          "input_duration_seconds": 300.7866666666667,
+          "json_sha256": "bd89b0eba6b2ec466c15e373af37ce1fb1a3b6b25c455d48d1770cb26dbe3aeb",
+          "lab_sha256": "9c64cbc8bfd9460927e6c486fb1238593ec17157675b1c56ac99f699f504f1f5",
+          "last_end_seconds": 300.79
+        }
+      ],
+      "exit": "success",
+      "load_seconds": 0.06635262537747622,
+      "total_seconds": 113.85471445973963,
+      "protocol_sha256": "38641a81d93d0cf85955ab02cdc467cdab9a7afa2761271ac278143787ae1070",
+      "power_admission_sha256": "eb4dc0cac9ab1f9a2599d3daecb365cde45a06a5c581d0c8acf03be10fc2015b",
+      "run_log_sha256": "6d21fe0203620063b6b5ea050a4bab7c8e7d09f19fe22d2b9d1aafa7fa87f1c9",
+      "post_run_input_hashes_verified": true
+    },
+    "receipt_sha256": "eaaecbfe2dcdbc9a6d3b19a00b65ecc2fd64f63f93d723de14c8b5c4dec165a1",
+    "american_reference_identity": {
+      "gp5": "6bd02952e0324e4290825a7f98685563447696cb115c695a122f33a8ea82099e",
+      "extracted": "e9f825d2b94213b9799ec858419281b3c0a0e6bc7cf8bba3d9662129fcfd0995",
+      "alignment": "c913430ce704f1b0922ee3ac57c718f04c965a9e127fa12c2b1c8fe69ec4d4f4",
+      "audio": "aedb875ba145c1f5cd21a0a86713d11dff1de9701512b8f1c7e4a40fa4fdf680",
+      "s2_chords": "e303f5c981ea493c9f68a08227536fc9107996433fd9435746e52813a7e35eff"
+    },
+    "american_written_power_root_subset": {
+      "method": "Same full American source and frozen chart-drum alignment; only authored simultaneous two-rhythm-guitar power set plus same-root bass subset. Matching roots is not exact chord-quality accuracy or whole-song WCSR.",
+      "quality_approved": false,
+      "arms": {
+        "sheetsage2": {
+          "reference_power_seconds": 42.73885245901639,
+          "seconds_covered_by_a_label": 42.73885245901639,
+          "matching_root_seconds": 26.67219672131144,
+          "matching_root_but_triad_label_seconds": 26.67219672131144,
+          "no_chord_on_reference_subset_seconds": 1.1493114754097995,
+          "output_sha256": "e303f5c981ea493c9f68a08227536fc9107996433fd9435746e52813a7e35eff"
+        },
+        "lv_chordia": {
+          "reference_power_seconds": 42.73885245901639,
+          "seconds_covered_by_a_label": 42.738852459016385,
+          "matching_root_seconds": 30.04137704918042,
+          "matching_root_but_triad_label_seconds": 30.04137704918042,
+          "no_chord_on_reference_subset_seconds": 0.42081967213114524,
+          "output_sha256": "0e06e0c514263ee0d10cec0ee5a54242e8f9d7d0d65f3d2e3367212f0c3e8ec5"
+        }
+      }
+    },
+    "community_excerpt_root_comparison": {
+      "scope": "Same frozen partial community chords and approximate source sync. Root-only duration agreement, no chord quality, exact voicing or full five-song WCSR claim.",
+      "quality_approved": false,
+      "cases": {
+        "twice-fancy": {
+          "output_sha256": {
+            "sheetsage2": "a1943d8c1b05e7f94d64462ed8cc647cdbd5bca36f345d960a8b3e69a589470c",
+            "lv_chordia": "4129557c164513e4c6b7952970a5f3f2747b6b65899465fee6e725d8713a9d14"
+          },
+          "reference_sha256": [
+            "683622890e2379749da21ac3d171cc5ed6a6d039a50c75141b80be48098b7b1c",
+            "b5bb6d29d5799e19c3b24fd457da1be7e357cf6747e9bd43eadc706c4c1e1a83",
+            "f614cc12df7d7b34bc4c6cc1efc60da97b82e98edd95f8f881bdaa618a75d0b6",
+            "035d12107ba10780cd5db5f9085ebcc7b33a38585bb1001cec52c0268bdfc7df"
+          ],
+          "projections": {
+            "affine": {
+              "skipped_unsupported_reference_chords": 0,
+              "adjacent_reference_overlap_seconds": 0.015623041023786755,
+              "duration_unit": "Sum of separate authored excerpt observations; overlapping windows are retained for both arms, not unique source-audio coverage.",
+              "arms": {
+                "sheetsage2": {
+                  "reference_seconds": 85.67946102301354,
+                  "known_root_covered_seconds": 85.67946102301354,
+                  "no_chord_seconds": 0.0,
+                  "matching_root_seconds": 65.70303880217426,
+                  "root_agreement_on_total_reference_seconds": 0.7668470134811701
+                },
+                "lv_chordia": {
+                  "reference_seconds": 85.67946102301354,
+                  "known_root_covered_seconds": 85.67946102301354,
+                  "no_chord_seconds": 0.0,
+                  "matching_root_seconds": 76.29514155389707,
+                  "root_agreement_on_total_reference_seconds": 0.8904717728488529
+                }
+              }
+            },
+            "nominal": {
+              "skipped_unsupported_reference_chords": 0,
+              "adjacent_reference_overlap_seconds": 0.015623041023786755,
+              "duration_unit": "Sum of separate authored excerpt observations; overlapping windows are retained for both arms, not unique source-audio coverage.",
+              "arms": {
+                "sheetsage2": {
+                  "reference_seconds": 85.74191392417376,
+                  "known_root_covered_seconds": 85.74191392417376,
+                  "no_chord_seconds": 0.0,
+                  "matching_root_seconds": 65.89779068829822,
+                  "root_agreement_on_total_reference_seconds": 0.7685598288204205
+                },
+                "lv_chordia": {
+                  "reference_seconds": 85.74191392417376,
+                  "known_root_covered_seconds": 85.74191392417376,
+                  "no_chord_seconds": 0.0,
+                  "matching_root_seconds": 77.66180840472407,
+                  "root_agreement_on_total_reference_seconds": 0.9057624777702611
+                }
+              }
+            }
+          }
+        },
+        "tinashe-me-so-bad": {
+          "output_sha256": {
+            "sheetsage2": "1e5913a47336463fabb5f91ad085456a33c41684a3990732a18f8d121bc18bae",
+            "lv_chordia": "2754e31f60434bbee3e355c020d450b0d7aa9a3a15c34d2fdb3ff3cb42b45695"
+          },
+          "reference_sha256": [
+            "6fa946d00531274adfdf118ac56abcd7a14973e322f187a8680706c1dae95533"
+          ],
+          "projections": {
+            "affine": {
+              "skipped_unsupported_reference_chords": 1,
+              "adjacent_reference_overlap_seconds": 0.0,
+              "duration_unit": "Sum of separate authored excerpt observations; overlapping windows are retained for both arms, not unique source-audio coverage.",
+              "arms": {
+                "sheetsage2": {
+                  "reference_seconds": 16.712911664889496,
+                  "known_root_covered_seconds": 16.48258697614714,
+                  "no_chord_seconds": 0.2303246887423569,
+                  "matching_root_seconds": 13.764764725592194,
+                  "root_agreement_on_total_reference_seconds": 0.8236006389305118
+                },
+                "lv_chordia": {
+                  "reference_seconds": 16.712911664889496,
+                  "known_root_covered_seconds": 16.712911664889496,
+                  "no_chord_seconds": 0.0,
+                  "matching_root_seconds": 14.360733915444442,
+                  "root_agreement_on_total_reference_seconds": 0.8592598467215912
+                }
+              }
+            },
+            "nominal": {
+              "skipped_unsupported_reference_chords": 1,
+              "adjacent_reference_overlap_seconds": 0.0,
+              "duration_unit": "Sum of separate authored excerpt observations; overlapping windows are retained for both arms, not unique source-audio coverage.",
+              "arms": {
+                "sheetsage2": {
+                  "reference_seconds": 16.800000000000004,
+                  "known_root_covered_seconds": 16.48258697614714,
+                  "no_chord_seconds": 0.31741302385286474,
+                  "matching_root_seconds": 13.483282785324299,
+                  "root_agreement_on_total_reference_seconds": 0.8025763562693033
+                },
+                "lv_chordia": {
+                  "reference_seconds": 16.800000000000004,
+                  "known_root_covered_seconds": 16.800000000000004,
+                  "no_chord_seconds": 0.0,
+                  "matching_root_seconds": 14.729304190822845,
+                  "root_agreement_on_total_reference_seconds": 0.8767442970727881
+                }
+              }
+            }
+          }
+        },
+        "green-day-american-idiot": {
+          "output_sha256": {
+            "sheetsage2": "e303f5c981ea493c9f68a08227536fc9107996433fd9435746e52813a7e35eff",
+            "lv_chordia": "0e06e0c514263ee0d10cec0ee5a54242e8f9d7d0d65f3d2e3367212f0c3e8ec5"
+          },
+          "reference_sha256": [
+            "7b3809055cee7bb4bc88e3915c6b1a0daaf086cdfc1c3a0e549c6335948376c4",
+            "ac942e71c697791cfdc0965e743d4c5f87945141343b15c38dce8e4c918163a0"
+          ],
+          "projections": {
+            "affine": {
+              "skipped_unsupported_reference_chords": 2,
+              "adjacent_reference_overlap_seconds": 0.0,
+              "duration_unit": "Sum of separate authored excerpt observations; overlapping windows are retained for both arms, not unique source-audio coverage.",
+              "arms": {
+                "sheetsage2": {
+                  "reference_seconds": 23.217485794980064,
+                  "known_root_covered_seconds": 22.94278188456024,
+                  "no_chord_seconds": 0.27470391041982367,
+                  "matching_root_seconds": 21.360923837333807,
+                  "root_agreement_on_total_reference_seconds": 0.9200360463643453
+                },
+                "lv_chordia": {
+                  "reference_seconds": 23.217485794980064,
+                  "known_root_covered_seconds": 23.217485794980064,
+                  "no_chord_seconds": 0.0,
+                  "matching_root_seconds": 21.389855578170938,
+                  "root_agreement_on_total_reference_seconds": 0.9212821649618804
+                }
+              }
+            },
+            "nominal": {
+              "skipped_unsupported_reference_chords": 2,
+              "adjacent_reference_overlap_seconds": 0.0,
+              "duration_unit": "Sum of separate authored excerpt observations; overlapping windows are retained for both arms, not unique source-audio coverage.",
+              "arms": {
+                "sheetsage2": {
+                  "reference_seconds": 23.213454902405296,
+                  "known_root_covered_seconds": 22.94895765916404,
+                  "no_chord_seconds": 0.26449724324125334,
+                  "matching_root_seconds": 21.3848906190999,
+                  "root_agreement_on_total_reference_seconds": 0.9212282578791868
+                },
+                "lv_chordia": {
+                  "reference_seconds": 23.213454902405296,
+                  "known_root_covered_seconds": 23.213454902405296,
+                  "no_chord_seconds": 0.0,
+                  "matching_root_seconds": 21.430722544686,
+                  "root_agreement_on_total_reference_seconds": 0.9232026268724619
+                }
+              }
+            }
+          }
+        }
+      },
+      "script_sha256": "2014de07744511edd66a9bed80acc4f4a03eb87b7da5b06046c5907b94425c71"
+    }
+  }
 }
