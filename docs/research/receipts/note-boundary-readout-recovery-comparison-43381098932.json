@@ -1,0 +1,155 @@
+{
+  "schema": "note-boundary-readout-recovery-comparison-v1",
+  "status": "pass",
+  "comparison_scope": "exact public receipt identities and provisional-summary arithmetic; no new inference",
+  "before": {
+    "run_id": 43379624835,
+    "attempt": 1,
+    "archive_sha256": "1c62896a6e6f3408d12fb82ddc42ec844bf8e5827dbe27fb5757e2db7d41383a",
+    "archive_bytes": 579798,
+    "corpus_status": "failed",
+    "error_type": "TypeError",
+    "source_files": 51
+  },
+  "after": {
+    "run_id": 43381098932,
+    "attempt": 1,
+    "archive_sha256": "f34e88d2b5023df5762fba46b4149167265efbd24a837d30500375b30cd5758f",
+    "archive_bytes": 775843,
+    "corpus_status": "complete",
+    "synthetic_status": "complete",
+    "source_files": 53
+  },
+  "exact_corpus_identities_verified": {
+    "event_files": 440,
+    "observation_arrays": 440,
+    "old_annotation_metric_payloads": 800,
+    "candidate_annotation_metric_payloads": 80,
+    "audio_hashes": 40,
+    "human_reference_hashes": 80,
+    "f0_reference_hashes": 40,
+    "f0_metric_payloads": 40,
+    "readout_diagnostics": 40,
+    "readout_private_hashes": 40,
+    "annotation_diagnostics": 80,
+    "annotation_private_hashes": 40
+  },
+  "exact_synthetic_identities_verified": {
+    "event_files": 1960,
+    "input_arrays": 245,
+    "old_state_paths": 1470,
+    "candidate_shared_path_identities": 245,
+    "all_metric_payloads": 1960,
+    "eligible_metric_payloads": 1816,
+    "excluded_metric_payloads": 144,
+    "original_truth_rows": 245,
+    "alternative_truth_rows": 245,
+    "private_readout_hashes": 245
+  },
+  "corpus_case_scientific_payloads_equal": true,
+  "synthetic_full_scientific_payload_equal": true,
+  "corpus_top_level_scientific_contracts_equal": true,
+  "corpus_and_synthetic_pre_post_prediction_manifests_equal": true,
+  "numerical_environments_identical_across_both_runs_and_cohorts": true,
+  "allowed_case_metadata_variations": {
+    "recordings_with_changed_inference_seconds": 40,
+    "recordings_with_changed_npz_container_sha256": 0,
+    "npz_array_dtype_shape_raw_byte_hashes_still_exact": true
+  },
+  "allowed_top_level_variations": {
+    "source_revision": {
+      "before": "d455fea9bf67c1c9960d4e4a13eb2508469a7c40",
+      "after": "3b14f5692ac527ed3c31c8a0ebefc0d379e4f6bb"
+    },
+    "protocol_head_revision": {
+      "before": "86c18a9eb3a1b2ba617a5daaa14a8c74a088fe82",
+      "after": "f1c1e2acafadedcea4578f732130f8a2d60ce21b"
+    },
+    "corpus_elapsed_seconds": {
+      "before": 131.115654097,
+      "after": 168.55876376600003
+    },
+    "synthetic_elapsed_seconds": {
+      "before": 8.83313736000001,
+      "after": 11.838219987999992
+    },
+    "corpus_peak_rss_kib": {
+      "before": 718876,
+      "after": 738012
+    },
+    "finalization_fields": [
+      "status",
+      "all_cases_complete",
+      "aggregate",
+      "primary_result",
+      "boundary_summary",
+      "legacy_report_sha256",
+      "historical_parity",
+      "error_type"
+    ],
+    "finalization_explanation": "The second run failed while copying a live immutable settings object. The final run serializes a JSON snapshot and completes projections, aggregate reports and audits."
+  },
+  "source_inventory_changes": {
+    "added": {
+      "docs/research/NOTE_BOUNDARY_READOUT_REPORT_RECOVERY_2026-11-13.md": "8e0a45130c7401eab5a04c3b38a9b4739bb84d78281bc8fe0c0c2498b9bfb62f",
+      "docs/research/receipts/note-boundary-readout-43379624835-attempt-1.zip": "1c62896a6e6f3408d12fb82ddc42ec844bf8e5827dbe27fb5757e2db7d41383a"
+    },
+    "removed": [],
+    "modified": {
+      "scripts/audit_note_boundary_readout.py": {
+        "before": "b6754e7ab53ef3846bfd9a474039cd22b4e61f683ab14ddd4eee5bb3ac6ebc3e",
+        "after": "472359815e917792817b135bba15038249d68a62071c429eb5a4a276ecfc8048"
+      },
+      "scripts/run_note_boundary_readout.py": {
+        "before": "f4e5edb518dec727c49c17140b54bebc9dafd770979caf1deb7b53305d94b790",
+        "after": "252dfd771abc417dadf5b66ee45647a32d31d8466b2adfacbc53bd4ce7a819b4"
+      },
+      "tests/test_audit_note_boundary_readout.py": {
+        "before": "3c1d55e81b707bee46b385125cda0b04a4d1576818e12472260744a3b22ae2d8",
+        "after": "39962c55ea4a4bea2c7f346325e664c39c7f9050d0c1e24efa803c2da5cff55f"
+      },
+      "tests/test_run_note_boundary_readout.py": {
+        "before": "0760a49394b95452837d87aa1081b061e8d3c4b62be6869e0ffdd5360b8b903d",
+        "after": "daef85cbcb1bcb4e4b9187348c289b457a7ab8f9608bae4a564104fe0975cd00"
+      }
+    },
+    "unchanged_numeric_prediction_and_scoring_sources": [
+      "scripts/dsp_note_probe.py",
+      "scripts/note_state_hmm.py",
+      "scripts/note_state_factors.py",
+      "scripts/note_state_synthetic.py",
+      "scripts/note_boundary_readout.py",
+      "scripts/note_boundary_readout_synthetic.py",
+      "scripts/run_note_state_factors.py",
+      "scripts/vocadito_reference.py",
+      "scripts/run_cpu_vocadito_candidates.py"
+    ]
+  },
+  "final_private_audit_binding": {
+    "status": "pass",
+    "audit_sha256": "25a61553f0fe88129c7cb2d4e2e724e8a8495dbe8d9735cff450e2a42467bbf3",
+    "checks_passed": 325886,
+    "maximum_numeric_difference": 7.105427357601002e-15,
+    "source_files_verified": 53,
+    "report_bindings_verified": true
+  },
+  "provisional_summary_confirmed": {
+    "all_comparable_counts_scores_rates_deltas_partitions_costs_per_file_and_synthetic_values_equal": true,
+    "scalar_checks": 1993,
+    "arithmetic_absolute_tolerance": 1e-12,
+    "maximum_numeric_difference": 1.1102230246251565e-16,
+    "prediction_input_path_metric_payload_identity_comparisons_allow_no_tolerance": true,
+    "final_pooled_quantiles_available_from_completed_private_audited_boundary_summary": true
+  },
+  "prediction_calls": 0,
+  "decoder_calls": 0,
+  "private_audio_or_reference_reads": 0,
+  "raw_corpus_musical_arrays_published": false,
+  "quality_approved": false,
+  "limitations": [
+    "This comparison checks archived public identities and statistics; original private event/path/reference bytes were checked by the bound Actions private audit.",
+    "Different elapsed times, peak RSS, execution revisions and NPZ container hashes do not relax raw-array or event identity checks.",
+    "Pooled endpoint quantiles are copied from the final private-audited report, not reconstructed from per-recording medians.",
+    "Exact reproduction of the negative development result does not establish heldout generalization or product approval."
+  ]
+}
