@@ -11,6 +11,73 @@ experiments and do not change a historical result or its protocol.
 
 ## Immutable identities
 
+### Completed raw-pitch split result and both preserved failures
+
+The [completed #296/#297 result](../NOTE_BOUNDARY_READOUT_RESULTS_2026-11-13.md)
+retains the original six-member ZIP from
+[run 43381098932](https://github.com/JDeun/audio-score-tool/actions/runs/43381098932),
+attempt 1. Scientific execution is complete and the actual-corpus result is
+negative. Final-head and actual-main integration evidence is tracked separately
+on [PR #297](https://github.com/JDeun/audio-score-tool/pull/297).
+
+| Receipt | Run / attempt | ZIP bytes | Outcome |
+| --- | --- | ---: | --- |
+| [note-boundary-readout-43377739964.zip](note-boundary-readout-43377739964.zip) | [43377739964](https://github.com/JDeun/audio-score-tool/actions/runs/43377739964) / 1 | 173,771 | Failed exact synthetic input/analytic parity; corpus and private audits not run |
+| [note-boundary-readout-43379624835-attempt-1.zip](note-boundary-readout-43379624835-attempt-1.zip) | [43379624835](https://github.com/JDeun/audio-score-tool/actions/runs/43379624835) / 1 | 579,798 | All predictions/scoring saved; legacy report projection failed; null corpus aggregate and no private audit |
+| [note-boundary-readout-43381098932-attempt-1.zip](note-boundary-readout-43381098932-attempt-1.zip) | [43381098932](https://github.com/JDeun/audio-score-tool/actions/runs/43381098932) / 1 | 775,843 | Complete 440 corpus / 1,960 synthetic predictions and both private audits |
+
+The corresponding exact ZIP SHA256 values, in the same order, are:
+
+- First failed run: `522db7f66bea3dc6b05774c6dd1a82d450b6edfc076a4f7d79230de026f9e7bc`.
+- Second failed run: `1c62896a6e6f3408d12fb82ddc42ec844bf8e5827dbe27fb5757e2db7d41383a`.
+- Successful run: `f34e88d2b5023df5762fba46b4149167265efbd24a837d30500375b30cd5758f`.
+
+The successful ZIP has exactly these members:
+
+| Member | Bytes |
+| --- | ---: |
+| `legacy-synthetic.json` | 2,847,165 |
+| `synthetic.json` | 4,141,302 |
+| `vocadito.json` | 2,717,191 |
+| `legacy-vocadito.json` | 1,625,568 |
+| `legacy-audit.json` | 282,759 |
+| `audit.json` | 83,753 |
+
+The final frozen protocol head is
+`f1c1e2acafadedcea4578f732130f8a2d60ce21b`, actual execution checkout
+`3b14f5692ac527ed3c31c8a0ebefc0d379e4f6bb`. The private run verifies **53 frozen
+source files**, all previous 400 corpus prediction files/440 arrays and 1,715
+synthetic prediction files/245 inputs/1,470 paths. The unchanged legacy audit passes **42,867 checks**;
+the new independent private audit passes **325,886**, with maximum observed
+numeric difference `7.105427357601002e-15`.
+
+The separate [note-boundary-readout-postrun-audit-43381098932.json](note-boundary-readout-postrun-audit-43381098932.json)
+is **32,804 bytes**, SHA256
+`b30d758b13627e7354207ade925aae56c2f7a931313a210c99286c51458b6f51`.
+It passes **116,060 checks**, with maximum observed numeric difference
+`1.1102230246251565e-16`. It verifies the exact ZIP/member bytes, all frozen
+sources, public corpus arithmetic and paired bootstrap, and all 1,960 owned
+synthetic event hashes and 227×8 eligible score pairs. It does not independently
+recover private actual-event arrays, full state paths, parent/child damage links
+or pooled residual quantiles from public summaries; those checks remain bound to
+the private Actions audit.
+
+[Numerical recovery](../NOTE_BOUNDARY_READOUT_RECOVERY_2026-11-13.md) preserves the
+AVX512F dispatch diagnosis and adds a 245-input/20-analytic-row exact preflight
+before any decoder call. [Report recovery](../NOTE_BOUNDARY_READOUT_REPORT_RECOVERY_2026-11-13.md)
+preserves the later immutable-settings projection failure and its JSON snapshot
+fix. Both failed original ZIPs remain failed and byte-identical. The final result
+retains the negative actual-corpus finding alongside the six repaired synthetic
+semitone controls and 221 unchanged synthetic successes. Public contents remain
+metadata and owned synthetic truth/events; actual WAVs, human reference contents,
+actual event/parent/child arrays and full raw F0/path arrays are private.
+
+The proposed [parent guard #298](https://github.com/JDeun/audio-score-tool/issues/298)
+and its [design protocol](../NOTE_BOUNDARY_PARENT_GUARD_PROTOCOL_2026-11-13.md) have
+not run. No success receipt or performance claim is implied for that follow-up.
+
+### Earlier immutable identities
+
 The [completed frozen-boundary diagnosis](../NOTE_BOUNDARY_DIAGNOSTICS_RESULTS_2026-11-13.md)
 preserves `note-boundary-diagnostics-43370790419.zip` from
 [run 43370790419](https://github.com/JDeun/audio-score-tool/actions/runs/43370790419),
