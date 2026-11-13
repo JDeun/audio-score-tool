@@ -11,6 +11,23 @@ experiments and do not change a historical result or its protocol.
 
 ## Immutable identities
 
+The [completed frozen-boundary diagnosis](../NOTE_BOUNDARY_DIAGNOSTICS_RESULTS_2026-11-13.md)
+preserves `note-boundary-diagnostics-43370790419.zip` from
+[run 43370790419](https://github.com/JDeun/audio-score-tool/actions/runs/43370790419),
+artifact 14012856593: **631,149 bytes**, SHA256
+`43b439e665eb470ec1b24179697cc99d2733fecb6122d1da6a77125d8e3ccf31`.
+Its exact five members are `synthetic.json` (2,847,165 bytes), `vocadito.json`
+(1,625,622 bytes), `replay-audit.json` (282,759 bytes), `diagnostics.json`
+(8,483,795 bytes), and `audit.json` (765,544 bytes). The old private replay audit
+passes 42,867 checks and the new independent private boundary audit 208,855.
+The separate `note-boundary-postrun-audit-43370790419.json` is 9,145 bytes,
+SHA256 `02e5f32a52118fda64f0bc937c8d73d6d4908684dba82e4e5f41f09b1a921c86`,
+with 209,349 public metadata/owned synthetic checks. It does not reconstruct
+unpublished actual-event residuals, pooled quartiles or full synthetic paths.
+The ZIP retains unchanged scientific outputs and new endpoint/overlap summaries,
+including owned synthetic truth/events and local boundary-state samples; no
+actual WAV/reference/event arrays or full private F0/path arrays are published.
+
 The [completed factor diagnosis](../NOTE_STATE_FACTORS_RESULTS_2026-11-13.md) preserves
 `note-state-factors-43344373779.zip` from [run 43344373779](https://github.com/JDeun/audio-score-tool/actions/runs/43344373779),
 artifact 14001615849: **272,995 bytes**, SHA256
@@ -63,7 +80,7 @@ must receive its own receipt and identity.
 
 The archives contain only JSON metadata: dataset/model/source fingerprints,
 runtime settings, source IDs, scalar metrics and counts, per-reference binary
-matching masks, edit counts, timing aggregates and provenance. Except for the explicitly owned synthetic events in the factor study above, they contain no
+matching masks, edit counts, timing aggregates and provenance. Except for the explicitly owned synthetic events and boundary samples in the factor/boundary studies above, they contain no
 original WAV, MIDI, lyrics, score, event arrays, neural output arrays or model
 weights. A model `weights` object records byte count and hashes, not weights.
 Matching masks reveal which indexed reference outcomes matched; they do not
