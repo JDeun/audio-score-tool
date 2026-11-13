@@ -213,7 +213,7 @@ def test_original_receipt_and_source_inventory_are_fixed():
     corpus, synthetic, diagnostics = audit.load_previous(audit.Checks())
     assert len(corpus["cases"]) == 40 and len(synthetic["cases"]) == 245
     assert len(diagnostics["source_sha256"]) == len(audit.FROZEN_SOURCE_PATHS) == 35
-    assert len(audit.SOURCE_PATHS) == len(set(audit.SOURCE_PATHS)) == 51
+    assert len(audit.SOURCE_PATHS) == len(set(audit.SOURCE_PATHS)) == 53
 
 
 def test_legacy_audit_is_bound_to_exact_report_bytes_and_script():

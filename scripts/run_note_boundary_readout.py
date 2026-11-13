@@ -42,6 +42,8 @@ NEW_SOURCE_PATHS = (
     'docs/research/NOTE_BOUNDARY_READOUT_RECOVERY_2026-11-13.md',
     'docs/research/receipts/note-boundary-readout-43377739964.zip',
     'docs/research/receipts/note-boundary-readout-numeric-diagnosis-2026-11-13.json',
+    'docs/research/NOTE_BOUNDARY_READOUT_REPORT_RECOVERY_2026-11-13.md',
+    'docs/research/receipts/note-boundary-readout-43379624835-attempt-1.zip',
 )
 SOURCE_PATHS = (*prior.SOURCE_PATHS, *NEW_SOURCE_PATHS)
 ROW_ADDITIONS = frozenset(('readout', 'readout_private_sha256',
@@ -315,7 +317,9 @@ def primary_summary(rows):
 def legacy_projection(report, baseline, previous):
     keys = (*prior.CORPUS_FIELDS, 'source_revision', 'protocol_head_revision', 'python', 'platform',
             'runtime', 'source_sha256', 'cases', 'elapsed_seconds', 'peak_rss_kib')
-    result = {k: copy.deepcopy(report[k]) for k in keys if k in report}
+    # Frozen settings deliberately reject mutation during deepcopy reconstruction.
+    # Snapshot their already-persisted JSON values without weakening that guard.
+    result = json.loads(json.dumps({k: report[k] for k in keys if k in report}, allow_nan=False))
     result.update(schema='note-state-factors-v1', planned_arms=list(frozen.ARMS),
                   source_sha256={p: report['source_sha256'][p] for p in frozen.SOURCE_PATHS},
                   cases=legacy_rows(report['cases']),

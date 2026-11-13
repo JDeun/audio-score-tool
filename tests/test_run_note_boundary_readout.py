@@ -57,7 +57,7 @@ def test_arm_source_and_denominator_inventories_are_frozen():
     assert len(study.ARMS) == 11
     assert study.ARMS[:-1] == study.frozen.ARMS
     assert study.ARMS[-1] == study.ARM
-    assert len(study.SOURCE_PATHS) == len(set(study.SOURCE_PATHS)) == 51
+    assert len(study.SOURCE_PATHS) == len(set(study.SOURCE_PATHS)) == 53
     assert study.SOURCE_PATHS[:35] == study.prior.SOURCE_PATHS
     assert study.SETTINGS['bootstrap_seed'] == 296
     assert study.SETTINGS['bootstrap_resamples'] == 10000
@@ -268,6 +268,34 @@ def test_legacy_projection_reproduces_entire_archived_old_ten_arm_scientific_pay
     # The projection is a copy: later receipt annotation must not modify source evidence.
     result['cases'][0]['observations']['hz']['sha256'] = '0' * 64
     assert report['cases'][0]['observations']['hz']['sha256'] != '0' * 64
+
+
+def test_legacy_projection_accepts_live_frozen_settings_without_mutation():
+    report, old = archived_reports()
+    live_settings = study.frozen.FACTOR_SETTINGS
+    report['factor_settings'] = live_settings
+    original_settings_sha256 = fingerprint(live_settings)
+    # A real run retains this immutable dict subclass, unlike a JSON fixture.
+    assert type(live_settings) is not dict
+    with pytest.raises(TypeError, match='experiment settings are immutable'):
+        live_settings['owned_test_marker'] = True
+    result = study.legacy_projection(
+        report, study.ROOT / 'docs/research/receipts/dsp-note-baseline-42989661618.zip',
+        study.ROOT / study.frozen.HMM_RECEIPT)
+    assert result['status'] == 'complete'
+    assert type(result['factor_settings']) is dict
+    assert type(result['factor_settings']['factor_configs'][study.BASE_ARM]) is dict
+    assert isinstance(result['factor_settings']['factor_arms'], list)
+    assert result['factor_settings'] == json.loads(json.dumps(live_settings, allow_nan=False))
+    assert all(study.prior.exact_equal(result[key], old[key]) for key in study.prior.CORPUS_FIELDS)
+    assert study.prior.exact_equal(result['cases'], old['cases'])
+    parity = study.historical_parity(report, result)
+    assert parity['all_equal'] is True
+    assert parity['compared_prediction_files'] == 400
+    assert parity['compared_observation_arrays'] == 440
+    result['factor_settings']['factor_configs'][study.BASE_ARM]['owned_test_marker'] = True
+    assert report['factor_settings'] is live_settings
+    assert fingerprint(live_settings) == original_settings_sha256
 
 
 @pytest.mark.parametrize('damage', [None, 'event', 'array', 'array_dtype', 'score',

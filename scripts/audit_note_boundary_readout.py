@@ -80,6 +80,8 @@ NEW_SOURCE_PATHS = (
     NUMERIC_MANIFEST, "docs/research/NOTE_BOUNDARY_READOUT_RECOVERY_2026-11-13.md",
     "docs/research/receipts/note-boundary-readout-43377739964.zip",
     "docs/research/receipts/note-boundary-readout-numeric-diagnosis-2026-11-13.json",
+    "docs/research/NOTE_BOUNDARY_READOUT_REPORT_RECOVERY_2026-11-13.md",
+    "docs/research/receipts/note-boundary-readout-43379624835-attempt-1.zip",
 )
 SOURCE_PATHS = (*FROZEN_SOURCE_PATHS, *NEW_SOURCE_PATHS)
 PRIMARY = {"candidate": ARM, "baseline": BASE_ARM, "metric": "onset_offset_f1"}
@@ -374,7 +376,7 @@ def load_previous(checks, path=None):
 def check_sources(report, previous, checks):
     hashes = report.get("source_sha256")
     if not isinstance(hashes, dict) or set(hashes) != set(SOURCE_PATHS):
-        raise ValueError("exact fifty-one-source inventory required")
+        raise ValueError("exact fifty-three-source inventory required")
     if set(previous.get("source_sha256", {})) != set(FROZEN_SOURCE_PATHS):
         raise ValueError("previous thirty-five-source inventory differs")
     for name in SOURCE_PATHS:
