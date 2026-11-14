@@ -120,6 +120,15 @@ jobs:
       - name: All research regressions in isolated numerical environment
         run: python scripts/run_ci_test_scope.py --scope research
 
+      - name: Preserve research numerical qualification even on failure
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: research-numeric-qualification-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/research-numeric-qualification-v2.json
+          if-no-files-found: warn
+          retention-days: 30
+
   frontend:
     name: frontend
     runs-on: ubuntu-24.04

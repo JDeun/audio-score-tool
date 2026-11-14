@@ -42,7 +42,9 @@ def command(scope: str, paths: list[str]) -> list[str]:
         args += ['--python', '3.11', '--with', 'numpy==1.26.4',
                  '--with', 'scipy==1.13.1', '--with', 'librosa==0.10.2.post1',
                  '--with', 'pytest==8.4.2', '--with', 'mir_eval==0.8.2']
-        warning_args = ['-W', RESEARCH_WARNING]
+        # The plugin observes the *same* imported overlay used by pytest before
+        # tests run. It preserves every test and exact historical assertion.
+        warning_args = ['-p', 'scripts.research_numeric_pytest_plugin', '-W', RESEARCH_WARNING]
     return args + ['pytest', '-q', *warning_args, *paths]
 
 

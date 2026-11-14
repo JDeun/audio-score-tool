@@ -6,6 +6,7 @@ import types
 from pathlib import Path
 from types import SimpleNamespace
 
+import mido
 import numpy as np
 import pytest
 
@@ -87,6 +88,8 @@ def test_drum_channel_is_reserved_and_not_given_to_melodic_instruments(tmp_path:
     (lambda items: items + [_note(onset=-1)], "Invalid"),
     (lambda items: items + [_note(onset=0.8, offset=0.5)], "Invalid"),
     (lambda items: items + [_note(onset=float("nan"))], "Invalid"),
+    (lambda items: items + [_note(velocity=0)], "Invalid"),
+    (lambda items: items + [_note(36, program=0, drum=True, velocity=0)], "Invalid"),
     (lambda items: items + [_note(velocity=128)], "Invalid"),
     (
         lambda items: [_note(program=i) for i in range(16)],
@@ -96,6 +99,68 @@ def test_drum_channel_is_reserved_and_not_given_to_melodic_instruments(tmp_path:
 def test_bad_model_notes_and_channel_overflow_fail_closed(change, error):
     with pytest.raises(ValueError, match=error):
         bridge.midi_from_program_notes(change([_note()]))
+
+
+def _saved_note_messages(path: Path):
+    elapsed = 0.0
+    events = []
+    for message in mido.MidiFile(path):
+        elapsed += message.time
+        if message.type in {"note_on", "note_off"}:
+            events.append((elapsed, message))
+    return events
+
+
+@pytest.mark.parametrize("drum", [False, True], ids=["pitched", "drum"])
+@pytest.mark.parametrize("velocity", [1, 127], ids=["quietest", "loudest"])
+def test_audible_velocity_boundaries_survive_midi_save_and_reload(tmp_path, drum, velocity):
+    path = tmp_path / "velocity-boundary.mid"
+    bridge.midi_from_program_notes([
+        _note(38 if drum else 60, onset=2.0, offset=2.25, drum=drum, velocity=velocity),
+    ]).save(path)
+
+    events = _saved_note_messages(path)
+    assert [message.type for _, message in events] == ["note_on", "note_off"]
+    assert [time for time, _ in events] == pytest.approx([2.0, 2.25])
+    assert events[0][1].velocity == velocity
+    assert events[1][1].velocity == 0
+    assert {message.note for _, message in events} == {38 if drum else 60}
+    assert {message.channel for _, message in events} == {9 if drum else 0}
+
+
+def test_drum_simultaneous_hits_flam_velocities_and_leading_silence_survive(tmp_path):
+    notes = [
+        _note(36, program=0, onset=1.25, offset=1.31, drum=True, velocity=100),
+        _note(42, program=0, onset=1.25, offset=1.29, drum=True, velocity=1),
+        _note(38, program=0, onset=1.50, offset=1.505, drum=True, velocity=35),
+        _note(38, program=0, onset=1.515, offset=1.55, drum=True, velocity=127),
+        _note(46, program=0, onset=1.75, offset=2.25, drum=True, velocity=72),
+    ]
+    path = tmp_path / "performed-drums.mid"
+    midi = bridge.midi_from_program_notes(notes)
+    midi.save(path)
+    events = _saved_note_messages(path)
+    onsets = [(time, message) for time, message in events if message.type == "note_on"]
+    offsets = [(time, message) for time, message in events if message.type == "note_off"]
+    assert len(onsets) == len(offsets) == len(notes)
+    assert {message.channel for _, message in events} == {9}
+    assert [message.note for _, message in onsets] == [note.pitch for note in notes]
+    assert [message.velocity for _, message in onsets] == [note.velocity for note in notes]
+    assert all(message.velocity == 0 for _, message in offsets)
+
+    # Check decoded seconds, not the serializer's event construction. The
+    # default 220 PPQ permits at most half a tick of rounding per boundary.
+    half_tick = .5 * bridge.MIDI_TEMPO / midi.ticks_per_beat / 1_000_000
+    assert [time for time, _ in onsets] == pytest.approx(
+        [note.start_time for note in notes], abs=half_tick,
+    )
+    expected_ends = sorted(notes, key=lambda note: (note.end_time, note.pitch))
+    assert [message.note for _, message in offsets] == [note.pitch for note in expected_ends]
+    assert [time for time, _ in offsets] == pytest.approx(
+        [note.end_time for note in expected_ends], abs=half_tick,
+    )
+    assert onsets[0][0] == onsets[1][0] == pytest.approx(1.25)
+    assert .01 < onsets[3][0] - onsets[2][0] < .02
 
 
 def test_same_tick_note_off_ordered_before_retrigger_and_empty_note_sequence():

@@ -71,6 +71,14 @@ def test_research_scorer_is_pinned_without_changing_product_command():
     assert '-W' not in product
 
 
+def test_numeric_qualification_uses_the_research_overlay_and_does_not_filter_tests():
+    paths = ['tests/test_research1.py', 'tests/test_research2.py']
+    research = command('research', paths)
+    assert research[research.index('-p') + 1] == 'scripts.research_numeric_pytest_plugin'
+    assert research[-2:] == paths
+    assert '-p' not in command('product', paths)
+
+
 @pytest.mark.parametrize(
     ('scope', 'module', 'message', 'expected_code'),
     [
@@ -94,6 +102,11 @@ def test_research_warning_filter_is_exact_and_other_warnings_still_fail(
     )
     planned = command(scope, [str(probe)])
     pytest_args = planned[planned.index('pytest') + 1:]
+    # This one-warning fixture isolates the warning policy, not the full
+    # research numerical environment. Production orchestration keeps the plugin.
+    if '-p' in pytest_args:
+        plugin_index = pytest_args.index('-p')
+        del pytest_args[plugin_index:plugin_index + 2]
     environment = dict(os.environ)
     environment['PYTEST_DISABLE_PLUGIN_AUTOLOAD'] = '1'
     environment.pop('PYTEST_ADDOPTS', None)
