@@ -10,6 +10,7 @@
   "tests/test_bar_sum_articulation.py",
   "tests/test_bar_sum_rhythm.py",
   "tests/test_drum_event_lanes.py",
+  "tests/test_drum_event_lanes_receipt.py",
   "tests/test_drum_event_metrics.py",
   "tests/test_drum_lane_controls.py",
   "tests/test_drum_meter_probe.py",

@@ -11,6 +11,53 @@ experiments and do not change a historical result or its protocol.
 
 ## Immutable identities
 
+### Completed drum lane experiment and separate incompatible-host CI
+
+The [#305/#306 result](../DRUM_EVENT_LANES_RESULTS_2026-11-14.md) preserves the
+exact six-member artifact from [run 43601526575](https://github.com/JDeun/audio-score-tool/actions/runs/43601526575),
+attempt 1, artifact **14116835699**. All 110 cases / 440 arm results and the
+independent private-input audit completed. The nominated candidate was rejected:
+new-waveform supported F1 **65.14% → 40.71%**, false positives **64 → 325**.
+
+- [Original ZIP](drum-event-lanes-43601526575-attempt-1.zip): **543,266 bytes**,
+  SHA256 `a6ab844ed5cfb6cd4ac74ddf5dc7002fc8409ba738c8f84765d9c590aba79a45`.
+- Frozen head: `68e7a65fe7ff7a92b5e8806faa74cd51cf66ac7f`; actual checkout:
+  `367154c38fa15ca41898a7b33768dd3e6350cd91`.
+- [Public-event audit](drum-event-lanes-public-audit-43601526575.json):
+  **2,366 bytes**, SHA256
+  `ec02ca655973557901325e811ecae658012608782915618903032d781a7bb8b4`.
+  It rechecks frozen sources, all raw events, matching and arithmetic without
+  rerunning inference. Only the original runner audit reopened all 110 private
+  waveform arrays.
+
+| Exact member | Bytes | SHA256 |
+| --- | ---: | --- |
+| `audit.json` | 2,367 | `a03097ef052462a33c0ffd5764612b72676640054438efba1532fdf75cb3d1ff` |
+| `preflight.json` | 70,716 | `a1ce6dc3f4973817b00e09ddd9f36e6dfb0cfe4657a4a145b8216c6206ff061a` |
+| `predictions.json` | 581,495 | `707dc92bfcde8baa60548432511d537f30232539778153b4e6389c17e7ddc042` |
+| `qualification.json` | 211,412 | `942a3fbf1c601c3c60b80255bc5a11b7ec5b6d64f3fdf69af487096544d490e5` |
+| `references.json` | 132,336 | `9cf279c885e3660be0538b34ee4c8de301c361e1afd8420bd9152581e1c2c3cc` |
+| `report.json` | 13,089,455 | `f2c04248861968d1e12a9b2dca733dac5bbeb6625be193e6bb15888b739762e4` |
+
+These particular derived reference-event ledgers retain **Google LLC / Groove
+MIDI Dataset / CC BY 4.0** attribution. They contain no original WAV/MIDI files.
+See the [official dataset](https://magenta.tensorflow.org/datasets/groove) and
+the protocol for source exposure and domain limits. The older vocal receipts
+below retain their own, different data-disclosure scopes.
+
+The same source-head general CI [43601526551](https://github.com/JDeun/audio-score-tool/actions/runs/43601526551)
+failed the existing #302 exact-input regeneration test on AMD EPYC 7763 without
+AVX512F. Preserve its [original qualification ZIP](research-numeric-qualification-43601526551-attempt-1.zip):
+**73,860 bytes**, artifact **14116881438**, SHA256
+`50d5dec4617571f57d4ddc4ccfc71290d29de24f22de211be0c6cc1500d5b631`.
+Its JSON is **564,996 bytes**, SHA256
+`23e639e07a694b505eb273c7ef7745357d72ab025601454a075b2363f3053665`.
+The [derived observation](../RESEARCH_NUMERIC_CI_V2_HOST_OBSERVATION_2026-11-14.json)
+records 18/207/207 input mismatches, ten analytic differences, unchanged original
+sources and the correctly withheld positive mutation contract. No retry or CPU
+override was used. This integration failure is separate from the completed
+drum trial on its recorded compatible Intel host.
+
 ### Completed parent guard and preserved original artifact
 
 The [completed #298/#301 result](../NOTE_BOUNDARY_PARENT_GUARD_RESULTS_2026-11-13.md)

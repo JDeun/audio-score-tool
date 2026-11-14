@@ -1,0 +1,87 @@
+{
+  "run_id": 43601526551,
+  "attempt": 1,
+  "head_sha": "68e7a65fe7ff7a92b5e8806faa74cd51cf66ac7f",
+  "actual_checkout": "367154c38fa15ca41898a7b33768dd3e6350cd91",
+  "status": "incompatible",
+  "zip_sha256": "50d5dec4617571f57d4ddc4ccfc71290d29de24f22de211be0c6cc1500d5b631",
+  "json_sha256": "23e639e07a694b505eb273c7ef7745357d72ab025601454a075b2363f3053665",
+  "zip_bytes": 73860,
+  "json_bytes": 564996,
+  "environment": {
+    "python": "3.11.16",
+    "numpy_version": "1.26.4",
+    "cpu_models": [
+      "AMD EPYC 7763 64-Core Processor"
+    ],
+    "numpy_extension_sha256": "a735e4e8355b75c800112af8a5b1731b891b2016ed57067352eea6cab0aa00bc",
+    "numpy_disable_cpu_features": null
+  },
+  "cpu_AVX512F": false,
+  "mismatch_counts": {
+    "legacy": 18,
+    "stress": 207,
+    "independent_stress": 207
+  },
+  "analytic_difference_count": 10,
+  "analytic_difference_paths": [
+    "/emission_analysis/2/attack_mass",
+    "/emission_analysis/2/stable_mass",
+    "/emission_analysis/3/peak_stable_to_silent",
+    "/emission_analysis/3/stable_mass",
+    "/emission_analysis/7/stable_mass",
+    "/emission_analysis/8/attack_mass",
+    "/emission_analysis/8/peak_stable_to_silent",
+    "/emission_analysis/8/stable_mass",
+    "/emission_analysis/8/stable_vs_silent_log_gain_per_frame_with_legacy_self",
+    "/emission_analysis/11/attack_mass"
+  ],
+  "first_input_difference": {
+    "id": "change_195",
+    "difference_paths": [
+      "change_195/observation/sha256"
+    ],
+    "expected": {
+      "id": "change_195",
+      "duration_seconds": 0.84,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          85
+        ],
+        "sha256": "a1b895acb69c79734bdb0e77569fabd367c6637d3d5d04c9c8f2e0c1411011b6"
+      }
+    },
+    "actual": {
+      "id": "change_195",
+      "duration_seconds": 0.84,
+      "observation": {
+        "dtype": "<f8",
+        "shape": [
+          85
+        ],
+        "sha256": "4c81de60efeff5a3896700bcbf2a2075e61e3596ad6ad2930d065421cbb30778"
+      }
+    }
+  },
+  "mutation_contract": {
+    "status": "not_run",
+    "reason": "positive_environment_qualification_failed"
+  },
+  "frozen_sources": {
+    "manifest_sha256": "f2a02900899ce62d10a010104e28948c5afb75478ba310636c241000b77f2ee2",
+    "source_files_compared": 66,
+    "original_receipt_verified": true,
+    "all_equal": true,
+    "differences": []
+  },
+  "test_results": {
+    "product_passed": 2127,
+    "product_skipped": 9,
+    "research_passed": 2571,
+    "research_failed": 1,
+    "research_warnings": 1,
+    "frontend_passed": 69
+  },
+  "same_numpy_extension_as_successful_scientific_run": true
+}

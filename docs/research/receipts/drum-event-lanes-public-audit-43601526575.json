@@ -1,0 +1,63 @@
+{
+  "schema": "drum-event-lanes-independent-audit-v1",
+  "status": "audited",
+  "report_status": "complete",
+  "report_sha256": "f2c04248861968d1e12a9b2dca733dac5bbeb6625be193e6bb15888b739762e4",
+  "evidence_sha256": {
+    "preflight.json": "a1ce6dc3f4973817b00e09ddd9f36e6dfb0cfe4657a4a145b8216c6206ff061a",
+    "predictions.json": "707dc92bfcde8baa60548432511d537f30232539778153b4e6389c17e7ddc042",
+    "references.json": "9cf279c885e3660be0538b34ee4c8de301c361e1afd8420bd9152581e1c2c3cc",
+    "report.json": "f2c04248861968d1e12a9b2dca733dac5bbeb6625be193e6bb15888b739762e4",
+    "qualification.json": "942a3fbf1c601c3c60b80255bc5a11b7ec5b6d64f3fdf69af487096544d490e5"
+  },
+  "planned_cases": 110,
+  "scored_cases": 110,
+  "frozen_source_files_verified": 87,
+  "original_scientific_sources_verified": 66,
+  "input_arrays_reopened": false,
+  "input_arrays_verified": 0,
+  "cohorts": {
+    "new_waveform": {
+      "planned": 6,
+      "scored": 6,
+      "conditional_on_admitted_cases": false
+    },
+    "development_replay": {
+      "planned": 4,
+      "scored": 4,
+      "conditional_on_admitted_cases": false
+    },
+    "authored_controls": {
+      "planned": 100,
+      "scored": 100,
+      "conditional_on_admitted_cases": false
+    }
+  },
+  "independent_matching": "residual-network maximum reward; no experiment scorer imports",
+  "candidate_decision": {
+    "candidate": "independent10",
+    "baseline": "global85",
+    "conditions": {
+      "all_110_cases_complete": true,
+      "primary_improves_at_least_3pp": false,
+      "no_supported_class_loses_more_than_2pp": false,
+      "all_kit_f1_not_lower": false,
+      "at_least_four_of_six_new_clips_nonworse": false,
+      "all_kit_edit_proxy_not_higher": false,
+      "supported_singleton_extra_events_not_higher": false,
+      "strict_authored_flam_recovery_not_lower": true,
+      "strict_authored_simultaneous_recovery_not_lower": true
+    },
+    "outcome": "reject_candidate",
+    "primary_f1_delta": -0.24437728937728942,
+    "new_clips_nonworse": 0,
+    "supported_singleton_false_positives": {
+      "global85": 6,
+      "independent10": 12
+    },
+    "product_default_changed": false,
+    "release_quality_approved": false
+  },
+  "quality_approved": false,
+  "limitation": "Verifies receipt bindings and event-derived calculations; does not re-infer audio or independently annotate source MIDI."
+}
