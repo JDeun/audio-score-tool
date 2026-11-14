@@ -52,7 +52,9 @@ def midi_from_program_notes(
         end = getattr(note, "end_time", None)
         if (
             type(pitch) is not int or not 0 <= pitch <= 127
-            or type(velocity) is not int or not 0 <= velocity <= 127
+            # MIDI note-on velocity 0 means note-off, not a quiet performed
+            # note. Reject it instead of silently losing a decoded onset.
+            or type(velocity) is not int or not 1 <= velocity <= 127
             or type(program) is not int or not 0 <= program <= 127
             or type(drum) is not bool
             or type(start) not in {int, float}

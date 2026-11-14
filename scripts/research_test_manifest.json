@@ -49,6 +49,7 @@
   "tests/test_qwen_constraint_ablation.py",
   "tests/test_repeat_context_phase.py",
   "tests/test_repeat_context_study.py",
+  "tests/test_research_numeric_qualification.py",
   "tests/test_rhythm_invariance_study.py",
   "tests/test_run_audio_gate_attribution.py",
   "tests/test_run_kraisler_alignment.py",
