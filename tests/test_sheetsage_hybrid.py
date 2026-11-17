@@ -202,7 +202,7 @@ def test_sheetsage_merge_accepts_augmented_chord_from_real_model(tmp_path):
     assert len([item for item in parsed.recurse().notes if isinstance(item, note.Note)]) == 1
 
 
-@pytest.mark.parametrize("label", ["C:unrecognized", "Q:maj", "C:aug/3"])
+@pytest.mark.parametrize("label", ["C:unrecognized", "Q:maj", "C:aug/banana", "C:maj(b)", "C:maj()"])
 def test_sheetsage_rejects_unmappable_harte_chords(label):
     from audio_score_tool.sheetsage_hybrid import _parse_chord_symbol
 
@@ -216,6 +216,13 @@ def test_sheetsage_rejects_unmappable_harte_chords(label):
     ("G:7/b7", 7, 5, {7, 11, 2, 5}),
     ("F#:maj7/7", 6, 5, {6, 10, 1, 5}),
     ("C:sus4(b7)", 0, 0, {0, 5, 7, 10}),
+    ("Eb:maj/b7", 3, 1, {1, 3, 7, 10}),
+    ("C:min/4", 0, 5, {0, 3, 5, 7}),
+    ("C:aug/3", 0, 4, {0, 4, 8}),
+    ("Eb:sus4(b7,9)", 3, 3, {1, 3, 5, 8, 10}),
+    ("C:maj(*3,9)", 0, 0, {0, 2, 7}),
+    ("C:maj(*b3)", 0, 0, {0, 4, 7}),
+    ("C:maj/bb6", 0, 7, {0, 4, 7}),
 ])
 def test_native_sheetsage2_full_chord_vocabulary_preserves_inversions(label, root, bass, classes):
     from audio_score_tool.sheetsage_hybrid import _parse_chord_symbol
@@ -481,7 +488,60 @@ def test_unchanged_half_diminished_keeps_additional_degree(tmp_path):
     score.write('musicxml', fp=str(target))
     before = target.read_bytes()
     listed = list_chords(target)[0]
-    assert listed['symbol'] == 'Cm7b5'
+    assert listed['symbol'] == 'Cm7b5(add9)'
     set_chord_at_note(target, listed['note_id'], listed['symbol'])
     assert target.read_bytes() == before
     assert len(ET.parse(target).findall('.//harmony/degree')) == 2
+    set_chord_at_note(target, listed['note_id'], 'Dm7b5(add9)')
+    chord = list(converter.parse(target).recurse().getElementsByClass(harmony.ChordSymbol))[0]
+    assert {p.pitchClass for p in chord.pitches} == {2, 4, 5, 8, 0}
+
+@pytest.mark.parametrize(('label', 'expected'), [
+    ('F#:maj7/7', 'E#'), ('C:maj/b3', 'E-'), ('C:maj/##4', 'F##'),
+])
+def test_harte_bass_preserves_degree_spelling(label, expected):
+    from audio_score_tool.sheetsage_hybrid import _parse_chord_symbol
+
+    assert _parse_chord_symbol(label).bass().name == expected
+
+
+def test_ninth_suspension_import_list_and_edit(tmp_path):
+    from audio_score_tool.chord_editor import set_chord_at_note
+    from audio_score_tool.chord_listing import list_chords
+    from audio_score_tool.sheetsage_hybrid import _parse_chord_symbol
+
+    score = stream.Score()
+    part = stream.Part()
+    part.insert(0, _parse_chord_symbol('Eb:sus4(b7,9)/5'))
+    part.insert(0, note.Note('C4', quarterLength=4))
+    score.append(part)
+    target = tmp_path / 'score.musicxml'
+    score.write('musicxml', fp=str(target))
+    listed = list_chords(target)[0]
+    assert listed['symbol'] == 'E♭9sus4/B♭'
+    assert not set_chord_at_note(target, listed['note_id'], listed['symbol'])
+    assert set_chord_at_note(target, listed['note_id'], 'F9sus4/C')
+    chord = list(converter.parse(target).recurse().getElementsByClass(harmony.ChordSymbol))[0]
+    assert chord.root().pitchClass == 5
+    assert chord.bass().pitchClass == 0
+    assert {p.pitchClass for p in chord.pitches} == {0, 3, 5, 7, 10}
+    assert list_chords(target)[0]['symbol'] == 'F9sus4/C'
+
+@pytest.mark.parametrize('suffix', ['(add9,)', '(add0)', '(add14)', '(add999999)'])
+def test_invalid_degree_suffix_remains_custom(suffix):
+    from audio_score_tool.chord_editor import _build_harmony, harmony_symbol
+
+    chord = _build_harmony('', 'C' + suffix)
+    assert chord.findtext('kind') == 'other'
+    assert harmony_symbol(chord, '') == 'C' + suffix
+    assert chord.find('degree') is None
+
+
+def test_unicode_degree_accidental_matches_ascii():
+    from audio_score_tool.chord_editor import _build_harmony
+
+    for spelling in ('C(add♭9)', 'C(addb9)'):
+        chord = _build_harmony('', spelling)
+        assert chord.findtext('kind') == 'major'
+        assert chord.findtext('degree/degree-value') == '9'
+        assert chord.findtext('degree/degree-alter') == '-1'

@@ -790,3 +790,50 @@ def test_timed_initial_chord_covering_audio_origin_is_inherited(tmp_path):
     assert first['score_quarters'] == 0 and first['residual_seconds'] == pytest.approx(1)
     symbols = list(converter.parse(target).recurse().getElementsByClass(harmony.ChordSymbol))
     assert [c.root().pitchClass for c in symbols] == [0, 7]
+
+
+def test_bare_vocal_scaffold_restores_extended_chords_and_reminders(tmp_path):
+    (tmp_path / 'score.abc').write_text('X:1\nM:4/4\nL:1/4\nK:C\nV: Vocal\nC4|C4|C4|C4|]\n')
+    (tmp_path / 'playback.json').write_text(json.dumps({'measures': [
+        dict(start=2*i, end=2*i+2, score_start=i, score_end=i+1) for i in range(4)]}))
+    folder = tmp_path / 'notation'
+    folder.mkdir()
+    (folder / 'song_chords.txt').write_text('0\t4\tEb:sus4(b7,9)\n4\t6\tN\n6\t8\tEb:maj/b7\n')
+    target = tmp_path / 'score.musicxml'
+    report = import_native_lead_sheet(tmp_path, target)
+    part = converter.parse(target).parts[0]
+    chords = list(part.recurse().getElementsByClass(harmony.Harmony))
+    assert [float(c.getOffsetInHierarchy(part)) for c in chords] == [0, 4, 8, 12]
+    assert [{p.pitchClass for p in c.pitches} for c in chords[:2]] == [{1, 3, 5, 8, 10}] * 2
+    assert isinstance(chords[2], harmony.NoChord)
+    assert chords[3].root().pitchClass == 3 and chords[3].bass().pitchClass == 1
+    assert {p.pitchClass for p in chords[3].pitches} == {1, 3, 7, 10}
+    assert report['timed_metadata']['restored_bar_chord_labels'] == 1
+
+@pytest.mark.parametrize('rows', [
+    [['0', '1']], [['0', '1', '']], [['nan', '1', 'C:maj']],
+    [['0', 'inf', 'C:maj']], [['-1', '1', 'C:maj']],
+    [['0', '1', 'C:maj'], ['0.5', '2', 'C:maj']],
+    [['0', '3', 'C:maj']], [['0', '0', 'C:maj']],
+])
+def test_rebuilt_chord_rows_reject_invalid_timing_and_format(rows):
+    from scripts.sheetsage2_infer_adapter import _validate_chord_rows
+
+    with pytest.raises(ValueError):
+        _validate_chord_rows(rows, 2)
+
+
+def test_rebuilt_chord_rows_accept_harte_extended_harmony():
+    from scripts.sheetsage2_infer_adapter import _validate_chord_rows
+
+    _validate_chord_rows([['0', '1', 'Eb:sus4(b7,9)'], ['1', '2', 'N']], 2)
+
+
+def test_rebuilt_chord_row_serialization_tolerance():
+    from scripts.sheetsage2_infer_adapter import _validate_chord_rows
+
+    _validate_chord_rows([['0', '1', 'C:maj'], ['0.9999999998', '2.0000000002', 'N']], 2)
+    for rows in ([], [['0', '2.000002', 'C:maj']],
+                 [['0', '1', 'C:maj'], ['0.999998', '2', 'C:maj']]):
+        with pytest.raises(ValueError):
+            _validate_chord_rows(rows, 2)
