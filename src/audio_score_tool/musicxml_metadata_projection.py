@@ -32,25 +32,42 @@ def _text(node: ET.Element, name: str, fallback: str = "") -> str:
     return found.text if found is not None and found.text is not None else fallback
 
 
-def normalize_suspended_seventh(root: ET.Element) -> None:
-    """Replace music21's nonstandard chord kind with MusicXML 4 harmony degrees."""
+def normalize_suspended_seventh(root: ET.Element, *, generated: bool = False) -> None:
+    """Convert generated music21 suspensions to standard MusicXML harmony."""
     for harmony in root.iter():
         if _name(harmony) != "harmony":
             continue
         kind = _child(harmony, "kind")
-        if kind is None or kind.text != "suspended-fourth-seventh":
+        if kind is None:
             continue
-        kind.text = "suspended-fourth"
-        kind.set("text", kind.get("text") or "sus4")
+        degrees = [d for d in harmony if _name(d) == "degree"]
+        seventh = next((d for d in degrees if _text(d, "degree-value") == "7"
+                        and _text(d, "degree-alter") == "-1"
+                        and _text(d, "degree-type") == "add"), None)
+        if kind.text != "suspended-fourth-seventh" and not (
+                generated and kind.text == "suspended-fourth" and seventh is not None):
+            continue
+        ninth = next((d for d in degrees if _text(d, "degree-value") == "9"
+                      and _text(d, "degree-alter") == "0"
+                      and _text(d, "degree-type") == "add"), None)
+        if seventh is not None:
+            harmony.remove(seventh)
+        if ninth is not None:
+            harmony.remove(ninth)
+        kind.text = "dominant-ninth" if ninth is not None else "dominant"
+        if kind.get("text") in {None, "", "sus4", "7sus4", "9sus4"}:
+            kind.set("text", "9sus4" if ninth is not None else "7sus4")
         namespace = kind.tag[:-len("kind")]
-        degree = ET.Element(namespace + "degree")
-        ET.SubElement(degree, namespace + "degree-value").text = "7"
-        ET.SubElement(degree, namespace + "degree-alter").text = "-1"
-        ET.SubElement(degree, namespace + "degree-type").text = "add"
         children = list(harmony)
         position = next((i for i, child in enumerate(children)
                          if _name(child) in {"degree", "frame", "offset", "footnote", "level", "staff"}), len(children))
-        harmony.insert(position, degree)
+        for value, action in (("3", "subtract"), ("4", "add")):
+            degree = ET.Element(namespace + "degree", {"print-object": "no"})
+            ET.SubElement(degree, namespace + "degree-value").text = value
+            ET.SubElement(degree, namespace + "degree-alter").text = "0"
+            ET.SubElement(degree, namespace + "degree-type").text = action
+            harmony.insert(position, degree)
+            position += 1
 
 
 def _score(path: Path) -> ET.Element:
@@ -111,7 +128,7 @@ def project_musicxml_annotations(
     """Project staged harmony/key/time, preserving source performance XML."""
     original = _score(source)
     added = _score(augmented)
-    normalize_suspended_seventh(added)
+    normalize_suspended_seventh(added, generated=True)
     source_parts = [part for part in original if _name(part) == "part"]
     added_parts = [part for part in added if _name(part) == "part"]
     # Annotation overlay intentionally contains only the first source Part.

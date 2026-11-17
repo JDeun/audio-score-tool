@@ -477,7 +477,11 @@ def test_minor_major_alias_with_slash_bass_and_quoted_annotation(symbol, root, b
 
 
 def test_suspended_seventh_is_visible_in_verovio_and_pdf(tmp_path):
-    from audio_score_tool.notation_backend import _verovio_toolkit, render_pdf
+    from audio_score_tool.notation_backend import (
+        _no_chord_render_copy,
+        _verovio_toolkit,
+        render_pdf,
+    )
 
     (tmp_path / 'score.abc').write_text('X:1\nM:4/4\nL:1/4\nK:C\nV: Vocal\n"E7sus4"C4|]\n')
     (tmp_path / 'playback.json').write_text(json.dumps({'measures': [
@@ -485,11 +489,11 @@ def test_suspended_seventh_is_visible_in_verovio_and_pdf(tmp_path):
     target = tmp_path / 'score.musicxml'
     import_native_lead_sheet(tmp_path, target)
     toolkit = _verovio_toolkit()
-    assert toolkit.loadFile(str(target))
+    assert toolkit.loadData(_no_chord_render_copy(target))
     svg = ET.fromstring(toolkit.renderToSVG(1))
     harmony_text = ["".join("".join(element.itertext()).split()).replace("\uea64", "♭")
                     for element in svg.iter() if "harm" in element.get("class", "").split()]
-    assert harmony_text == ["Esus4(♭7)"]
+    assert harmony_text == ["E7sus4"]
     output = tmp_path / 'score.pdf'
     render_pdf(target, output)
     assert output.read_bytes().startswith(b'%PDF')
@@ -853,3 +857,20 @@ def test_consecutive_harte_degrees_remain_distinct_through_musicxml(tmp_path):
     chords = list(converter.parse(target).recurse().getElementsByClass(harmony.ChordSymbol))
     assert [{p.pitchClass for p in chord.pitches} for chord in chords] == [
         {3, 8, 10}, {1, 3, 8, 10}, {1, 3, 5, 8, 10}, {3, 8, 10}]
+
+
+@pytest.mark.parametrize("label", ["Cm7b5", "Cmin7b5"])
+def test_plain_half_diminished_row_uses_standard_kind(tmp_path, label):
+    (tmp_path / 'score.abc').write_text('X:1\nM:4/4\nL:1/4\nK:C\nV: Vocal\nC4|]\n')
+    (tmp_path / 'playback.json').write_text(json.dumps({'measures': [
+        dict(start=0, end=2, score_start=0, score_end=1)]}))
+    folder = tmp_path / 'notation'
+    folder.mkdir()
+    (folder / 'song_chords.txt').write_text(f'0\t2\t{label}\n')
+    target = tmp_path / 'score.musicxml'
+    import_native_lead_sheet(tmp_path, target)
+    h = ET.parse(target).find('.//harmony')
+    assert h.findtext('kind') == 'half-diminished'
+    assert h.findall('degree') == []
+    chord = list(converter.parse(target).recurse().getElementsByClass(harmony.ChordSymbol))[0]
+    assert {p.pitchClass for p in chord.pitches} == {0, 3, 6, 10}

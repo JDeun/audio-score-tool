@@ -350,3 +350,28 @@ def test_no_chord_render_copy_supports_utf16_and_custom_visibility(tmp_path):
     assert not copy.findall('.//harmony') and source.read_bytes() == before
     compressed = tmp_path / 'legacy.mxl'
     assert _no_chord_render_copy(compressed) is None
+
+
+def test_hidden_suspension_degrees_are_suppressed_only_for_rendering(tmp_path):
+    from audio_score_tool.chord_editor import _build_harmony
+    from audio_score_tool.notation_backend import _no_chord_render_copy, _verovio_toolkit
+
+    source = tmp_path / 'suspension.musicxml'
+    source.write_text('''<score-partwise version="4.0"><part-list><score-part id="P1">
+        <part-name>Vocal</part-name></score-part></part-list><part id="P1"><measure number="1">
+        <attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef></attributes>'''
+        + ET.tostring(_build_harmony('', 'Eb9sus4'), encoding='unicode') + '''
+        <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note>
+        </measure></part></score-partwise>''')
+    before = source.read_bytes()
+    render = _no_chord_render_copy(source)
+    assert len(ET.parse(source).findall('.//degree')) == 2
+    assert not ET.fromstring(render).findall('.//degree')
+    toolkit = _verovio_toolkit()
+    assert toolkit.loadData(render)
+    svg = ET.fromstring(toolkit.renderToSVG(1))
+    text = [''.join(''.join(e.itertext()).split()).replace('\uea64', '♭')
+            for e in svg.iter() if 'harm' in e.get('class', '').split()]
+    assert text == ['E♭9sus4']
+    assert source.read_bytes() == before

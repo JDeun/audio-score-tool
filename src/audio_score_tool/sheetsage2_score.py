@@ -372,7 +372,7 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
     score.write("musicxml", fp=str(target))
     # music21 omits this flag on tempo marks; serialize MusicXML's print-object.
     tree = ET.parse(target)
-    normalize_suspended_seventh(tree.getroot())
+    normalize_suspended_seventh(tree.getroot(), generated=True)
     xml_measures = tree.getroot().findall("./part/measure")
     for xml_measure in xml_measures:
         for direction in xml_measure.findall("direction"):

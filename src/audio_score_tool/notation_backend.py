@@ -366,6 +366,10 @@ def _no_chord_render_copy(source: Path) -> str | None:
             if element.tag.rsplit("}", 1)[-1] != "harmony":
                 continue
             namespace = element.tag[:-len("harmony")]
+            for degree in element.findall(f"{namespace}degree"):
+                if degree.get("print-object") == "no":
+                    element.remove(degree)
+                    changed = True
             chord_kind = element.find(f"{namespace}kind")
             if chord_kind is None or chord_kind.text != "none":
                 continue

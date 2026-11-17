@@ -123,7 +123,7 @@ _HARTE_QUALITY_TO_MUSIC21 = {
     "minmin7": "m7",
     "maj7": "M7",
     "dim7": "dim7",
-    "hdim7": "m7b5",
+    "hdim7": "ø7",
     "minmaj7": "mM7",
     "aug7": "7+",
     "9": "9",
@@ -146,6 +146,8 @@ def _normalize_native_chord_figure(label: str) -> str:
     root, quality, bass = match.groups()
     if quality == "m(maj7)":
         quality = "mM7"
+    elif quality in {"m7b5", "min7b5"}:
+        quality = "ø7"
     return root.replace("b", "-") + quality + ("/" + bass.replace("b", "-") if bass else "")
 
 
@@ -182,6 +184,8 @@ def _parse_chord_symbol(label: str) -> harmony.ChordSymbol:
             if not degree_match:
                 raise SheetSageError(f"unsupported chord label: {label}")
             omit, accidental, number = degree_match.groups()
+            if not omit and number == "7" and not (base == "sus4" and accidental == "b"):
+                raise SheetSageError(f"unsupported chord label: {label}")
             modifications.append((bool(omit), int(number), {"": 0, "b": -1, "#": 1, "bb": -2, "##": 2}[accidental]))
         base_pitches = {p.pitchClass for p in harmony.ChordSymbol(
             root.replace("b", "-") + _HARTE_QUALITY_TO_MUSIC21[base]).pitches}

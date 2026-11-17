@@ -164,6 +164,13 @@ def harmony_symbol(harmony: ET.Element, ns: str) -> str:
             suffix = _SUFFIX_BY_KIND.get(kind.text or "", "")
 
     degrees = list(harmony.findall(f"{ns}degree"))
+    if kind is not None and kind.text in {"dominant", "dominant-ninth"} and suffix in {"7sus4", "9sus4"}:
+        structural = [d for d in degrees if d.get("print-object") == "no" and (
+            (d.findtext(f"{ns}degree-value"), d.findtext(f"{ns}degree-alter"), d.findtext(f"{ns}degree-type"))
+            in {("3", "0", "subtract"), ("4", "0", "add")})]
+        if len(structural) == 2 and {d.findtext(f"{ns}degree-value") for d in structural} == {"3", "4"}:
+            for degree in structural:
+                degrees.remove(degree)
     if (kind is not None and kind.text == "minor-seventh" and suffix in {"m7", "min7", ""}):
         for degree in degrees:
             if (degree.findtext(f"{ns}degree-value") == "5"
@@ -261,11 +268,11 @@ def _build_harmony(ns: str, symbol: str) -> ET.Element:
     sus_ninth = suffix == "9sus4"
     sus_seventh = suffix.replace("♭", "b") in {"7sus4", "9sus4", "sus4(b7)"}
     if sus_seventh:
-        suffix = "sus4"
+        suffix = "9sus4" if sus_ninth else "7sus4"
     if suffix:
         kind_attributes["text"] = suffix
     kind = ET.SubElement(harmony, f"{ns}kind", kind_attributes)
-    kind.text = str(parsed["kind"])
+    kind.text = ("dominant-ninth" if sus_ninth else "dominant") if sus_seventh else str(parsed["kind"])
 
     if parsed["bass_step"]:
         bass = ET.SubElement(harmony, f"{ns}bass")
@@ -273,12 +280,11 @@ def _build_harmony(ns: str, symbol: str) -> ET.Element:
         if parsed["bass_alter"]:
             ET.SubElement(bass, f"{ns}bass-alter").text = str(parsed["bass_alter"])
     if sus_seventh:
-        degree = ET.SubElement(harmony, f"{ns}degree")
-        ET.SubElement(degree, f"{ns}degree-value").text = "7"
-        ET.SubElement(degree, f"{ns}degree-alter").text = "-1"
-        ET.SubElement(degree, f"{ns}degree-type").text = "add"
-    if sus_ninth:
-        extras.insert(0, "add9")
+        for value, action in (("3", "subtract"), ("4", "add")):
+            degree = ET.SubElement(harmony, f"{ns}degree", {"print-object": "no"})
+            ET.SubElement(degree, f"{ns}degree-value").text = value
+            ET.SubElement(degree, f"{ns}degree-alter").text = "0"
+            ET.SubElement(degree, f"{ns}degree-type").text = action
     for extra in extras:
         match = re.fullmatch(r"(add|alter|subtract)(bb|##|b|#)?(\d+)", extra)
         action, accidental, value = match.groups()
