@@ -150,7 +150,7 @@ def _normalize_native_chord_figure(label: str) -> str:
 
 
 def _parse_chord_symbol(label: str) -> harmony.ChordSymbol:
-    """Convert recognized Harte triad/seventh labels into music21 notation."""
+    """Convert supported Harte labels without dropping chord tones."""
     if ":" not in label:
         return harmony.ChordSymbol(_normalize_native_chord_figure(label))
     root, suffix = label.split(":", 1)
@@ -185,12 +185,22 @@ def _parse_chord_symbol(label: str) -> harmony.ChordSymbol:
             modifications.append((bool(omit), int(number), {"": 0, "b": -1, "#": 1, "bb": -2, "##": 2}[accidental]))
         base_pitches = {p.pitchClass for p in harmony.ChordSymbol(
             root.replace("b", "-") + _HARTE_QUALITY_TO_MUSIC21[base]).pitches}
+        expected = set(base_pitches)
         for omit, number, alteration in sorted(modifications, key=lambda item: not item[0]):
             semitones = (0, 2, 4, 5, 7, 9, 11)[(number - 1) % 7] + alteration
-            if omit and (symbol.root().pitchClass + semitones) % 12 not in base_pitches:
-                continue
+            target = (symbol.root().pitchClass + semitones) % 12
+            if omit:
+                expected.discard(target)
+                if target not in base_pitches:
+                    continue
+            else:
+                expected.add(target)
             symbol.addChordStepModification(harmony.ChordStepModification(
                 "subtract" if omit else "add", number, alteration))
+        if slash:
+            expected.add(bass_pitch.pitchClass)
+        if expected != {p.pitchClass for p in symbol.pitches}:
+            raise SheetSageError(f"unsupported chord label: {label}")
     return symbol
 
 

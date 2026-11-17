@@ -837,3 +837,19 @@ def test_rebuilt_chord_row_serialization_tolerance():
                  [['0', '1', 'C:maj'], ['0.999998', '2', 'C:maj']]):
         with pytest.raises(ValueError):
             _validate_chord_rows(rows, 2)
+
+
+def test_consecutive_harte_degrees_remain_distinct_through_musicxml(tmp_path):
+    (tmp_path / 'score.abc').write_text('X:1\nM:4/4\nL:1/4\nK:C\nV: Vocal\nC4|]\n')
+    (tmp_path / 'playback.json').write_text(json.dumps({'measures': [
+        dict(start=0, end=2, score_start=0, score_end=1)]}))
+    folder = tmp_path / 'notation'
+    folder.mkdir()
+    (folder / 'song_chords.txt').write_text(
+        '0\t0.5\tEb:sus4\n0.5\t1\tEb:sus4(b7)\n'
+        '1\t1.5\tEb:sus4(b7,9)\n1.5\t2\tEb:sus4\n')
+    target = tmp_path / 'score.musicxml'
+    import_native_lead_sheet(tmp_path, target)
+    chords = list(converter.parse(target).recurse().getElementsByClass(harmony.ChordSymbol))
+    assert [{p.pitchClass for p in chord.pitches} for chord in chords] == [
+        {3, 8, 10}, {1, 3, 8, 10}, {1, 3, 5, 8, 10}, {3, 8, 10}]

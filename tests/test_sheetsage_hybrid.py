@@ -545,3 +545,10 @@ def test_unicode_degree_accidental_matches_ascii():
         assert chord.findtext('kind') == 'major'
         assert chord.findtext('degree/degree-value') == '9'
         assert chord.findtext('degree/degree-alter') == '-1'
+
+@pytest.mark.parametrize('label', ['C:11(b9)', 'C:11(b9,b13)', 'C:maj7(b7)/3', 'C:13(#11)'])
+def test_harte_rejects_lossy_degree_modifications(label):
+    from audio_score_tool.sheetsage_hybrid import _parse_chord_symbol
+
+    with pytest.raises(SheetSageError, match='unsupported chord label'):
+        _parse_chord_symbol(label)

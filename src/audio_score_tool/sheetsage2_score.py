@@ -186,7 +186,9 @@ def _restore_timed_metadata(score, part, root: Path, duration: float) -> dict:
             if start > last_end + 1e-6 and previous is not None:
                 changes.append((last_end, None))
                 previous = None
-            identity = None if value is None else value.figure
+            identity = None if value is None else (value.figure, tuple(sorted(
+                (m.modType, m.degree, m.interval.chromatic.semitones)
+                for m in value.getChordStepModifications())))
             if identity != previous:
                 changes.append((start, value))
                 previous = identity
