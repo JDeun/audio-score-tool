@@ -36,6 +36,7 @@ class EngineSettingsPayload(BaseModel):
     sheetsage2_snapshot: str | None = None
     fixed_lead_snapshot: str | None = None
     fixed_vocal_cmd: str | None = None
+    fixed_beat_cmd: str | None = None
 
     @field_validator("usage_mode")
     @classmethod
@@ -135,6 +136,7 @@ def get_engines() -> dict:
         "sheetsage2_snapshot": str(settings.sheetsage2_snapshot) if settings.sheetsage2_snapshot else None,
         "fixed_lead_snapshot": str(settings.fixed_lead_snapshot) if settings.fixed_lead_snapshot else None,
         "fixed_vocal_cmd": settings.fixed_vocal_cmd,
+        "fixed_beat_cmd": settings.fixed_beat_cmd,
         "engines": available_engines(settings),
         "release_policy": release_policy_summary(),
         "optional_feature_policy": optional_feature_summary(),
@@ -159,7 +161,7 @@ def update_engine(payload: EngineSettingsPayload) -> dict:
         if any((
             payload.mt3_infer_cmd, payload.muscriptor_cmd, payload.native_engine_cmd,
             payload.sheetsage2_cmd, payload.sheetsage2_snapshot,
-            payload.fixed_lead_snapshot, payload.fixed_vocal_cmd,
+            payload.fixed_lead_snapshot, payload.fixed_vocal_cmd, payload.fixed_beat_cmd,
         )):
             raise HTTPException(
                 409, "배포 앱에서는 사용자 지정 실행 명령을 사용할 수 없습니다."
@@ -168,6 +170,7 @@ def update_engine(payload: EngineSettingsPayload) -> dict:
     if payload.transcription_engine == "vocal_lead_v1":
         candidate = replace(current,
                             fixed_vocal_cmd=payload.fixed_vocal_cmd or current.fixed_vocal_cmd,
+                            fixed_beat_cmd=payload.fixed_beat_cmd or current.fixed_beat_cmd,
                             sheetsage2_cmd=payload.sheetsage2_cmd or current.sheetsage2_cmd,
                             fixed_lead_snapshot=Path(payload.fixed_lead_snapshot).expanduser()
                             if payload.fixed_lead_snapshot else current.fixed_lead_snapshot)
@@ -235,6 +238,7 @@ def update_engine(payload: EngineSettingsPayload) -> dict:
             "sheetsage2_snapshot": payload.sheetsage2_snapshot or (
                 str(current.sheetsage2_snapshot) if current.sheetsage2_snapshot else None),
             "fixed_vocal_cmd": payload.fixed_vocal_cmd or current.fixed_vocal_cmd,
+            "fixed_beat_cmd": payload.fixed_beat_cmd or current.fixed_beat_cmd,
             "fixed_lead_snapshot": payload.fixed_lead_snapshot or (
                 str(current.fixed_lead_snapshot) if current.fixed_lead_snapshot else None),
         }

@@ -38,7 +38,7 @@ MAPPING = {"duration": 1.5, "measures": [
 def snapshot(tmp_path):
     root = tmp_path / "snapshot"
     for name in ["sheetsage2/model/model.safetensors", "sheetsage2/mert/model.safetensors",
-                 Path("checkpoints") / YOUR_CHECKPOINT, Path("demucs") / DEMUCS_WEIGHT]:
+                 Path("checkpoints") / YOUR_CHECKPOINT, Path("demucs") / DEMUCS_WEIGHT, "beat-this/final0.ckpt"]:
         target = root / name
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(b"owned fixture, not model weights")
@@ -60,7 +60,7 @@ def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path,
     else:
         audio.write_bytes(b"owned source waveform")
     settings = Settings(transcription_engine=ENGINE, fixed_lead_snapshot=root,
-                        fixed_vocal_cmd="vocal-fixture", demucs_cmd="separator-fixture",
+                        fixed_vocal_cmd="vocal-fixture", fixed_beat_cmd="beat-fixture", demucs_cmd="separator-fixture",
                         sheetsage2_cmd="structure-fixture")
     observed = []
     monkeypatch.setattr(lead, "verify_weight", lambda path, expected: observed.append((path.name, expected)))
@@ -89,9 +89,16 @@ def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path,
     if not container:
         monkeypatch.setattr(lead, "prepare_demucs_audio", lambda source, target, **kw: shutil.copy2(source, target) and target)
 
+    from audio_score_tool.beat_clock import beat_rows
+
+    _, mixed_clock = beat_rows([i * .5 for i in range(17)], [.5, 2., 4., 6., 8.], 8., [[0, 1, 4, 4]])
+    assert mixed_clock['phase_votes'] == [4, 1, 0, 0]
+
     def command(command, args, **kwargs):
         if command == "vocal-fixture" and args[0] == "pitch-preflight":
             observed.append("pitch preflight")
+        elif command == "beat-fixture" and args[0] == "beat-preflight":
+            observed.append("beat preflight")
         elif command == "vocal-fixture" and args[0] == "separate":
             assert args[1] == tmp_path / "result/demucs-input.wav"
             assert args[3:] == ["--snapshot", root]
@@ -121,22 +128,24 @@ def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path,
             (native / "playback.json").write_text(json.dumps(MAPPING))
             shutil.copytree(args[args.index("--context-dir")+1] / "notation", native / "notation")
             args[1].write_text(json.dumps({"unrepresented_note_indices": [],
-                "grid_audio_seconds": [0,.5,1,1.5], "source_note_indices": [0,1,2]}))
+                "grid_audio_seconds": [0,.5,1,1.5], "source_note_indices": [0,1,2],
+                "beat_clock": mixed_clock}))
             observed.append("vocal notation")
 
+    monkeypatch.setattr(lead, "fixed_beat_track", lambda *a, **k: {"source_revision": "fixture", "checkpoint_sha256": "fixture"})
     monkeypatch.setattr(lead, "fixed_tiny_pitch_track", lambda *a, **k: (([], []), {"model": "tiny"}))
     monkeypatch.setattr(lead, "run_command", command)
     output = tmp_path / "result"
     result = lead.transcribe_fixed_vocal_lead(audio, output, settings=settings)
     assert [x for x in observed if isinstance(x, str)] == [
-        "pitch preflight", "whole-mix structure", "separate", "vocal inference", "vocal notation"]
+        "pitch preflight", "beat preflight", "whole-mix structure", "separate", "vocal inference", "vocal notation"]
     assert [(n.pitch, n.onset, n.offset) for n in midi_notes(result.midi_path)] == [
         (60,0,.5),(62,.5,1),(64,1,1.5)]
     assert (output / "structure/native/score.abc").read_text() == ABC.replace("C D E", "z3")
     assert len(midi_notes(output / "vocal/score.mid")) == 3
     receipt = json.loads((output / "recipe.json").read_text())
     assert receipt["status"] == "completed" and receipt["quality_approved"] is False
-    assert receipt["recipe_version"] == 2 and receipt["pitch_verifier"]["model"] == "tiny"
+    assert receipt["recipe_version"] == 3 and receipt["pitch_verifier"]["model"] == "tiny"
     assert receipt["notation_fidelity"]["matched_interpretation"] is True
     assert receipt["source_audio_sha256"] == hashlib.sha256(audio.read_bytes()).hexdigest()
     assert receipt["model_audio_sha256"] == next(item[1] for item in observed if isinstance(item, tuple) and item[0] == "model audio hash")
@@ -145,6 +154,20 @@ def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path,
     assert report["melody_provider"] == "yourmt3" and "model_revision" not in report
     analysis = json.loads((output / "analysis.json").read_text())
     assert analysis["provider"] == ENGINE and analysis["structure_model_revision"] == MODEL_REVISION
+    assert analysis["clock_provider"] == "beat-this" and analysis["beats"][1]["time_seconds"] == .5
+    assert analysis['nominal_tempo_bpm'] == mixed_clock['nominal_tempo_bpm']
+    assert analysis['downbeats'] == mixed_clock['phase_compatible_downbeat_rows']
+    assert [row['time_seconds'] for row in mixed_clock['observed_downbeat_rows']] == [.5, 2., 4., 6., 8.]
+    assert mixed_clock['observed_downbeat_rows'][0]['beat'] == 2
+    assert mixed_clock['phase_incompatible_downbeats'] == 1
+    assert all(row['beat'] == 1 for row in analysis['downbeats'])
+    from types import SimpleNamespace
+
+    from audio_score_tool.pipeline_v2 import _apply_audio_clock
+    structure = SimpleNamespace(trimmed=False, music_start_seconds=0)
+    analysis['meter'] = '4/4'
+    _apply_audio_clock(structure, analysis, ENGINE)
+    assert structure.first_downbeat_seconds == 2.0
 
 
 def test_changed_checkpoint_is_rejected_before_any_model_runs(tmp_path, monkeypatch):
@@ -178,10 +201,11 @@ def test_saved_fixed_selection_cannot_drift_to_global_mt3_model(tmp_path, monkey
 
 def test_fixed_readiness_requires_all_components_and_is_never_packaged(tmp_path, monkeypatch):
     monkeypatch.setenv("AST_PACKAGED", "0")
-    settings = Settings(fixed_lead_snapshot=snapshot(tmp_path), fixed_vocal_cmd=sys.executable,
+    settings = Settings(fixed_lead_snapshot=snapshot(tmp_path), fixed_vocal_cmd=sys.executable, fixed_beat_cmd=sys.executable,
                         sheetsage2_cmd=sys.executable, demucs_cmd=sys.executable, ffmpeg_cmd=sys.executable)
     assert FixedVocalLeadEngine(settings).ready()
     assert not FixedVocalLeadEngine(replace(settings, fixed_vocal_cmd="missing-fixed-vocal-runtime")).ready()
+    assert not FixedVocalLeadEngine(replace(settings, fixed_beat_cmd="missing-beat-runtime")).ready()
     monkeypatch.setenv("AST_PACKAGED", "1")
     assert not FixedVocalLeadEngine(settings).ready()
 
@@ -201,3 +225,24 @@ def test_tiny_preflight_checks_pinned_runtime_and_weights_before_inference(tmp_p
     assert calls[0]['torchcrepe'] == '0.0.24' and calls[0]['resampy'] == '0.4.3'
     assert calls[0]['librosa'] == '0.11.0'
     assert calls[1][0].name == 'tiny.pth' and calls[1][1].startswith('d4993eea')
+
+
+def test_beat_preflight_failure_stops_before_expensive_work(tmp_path, monkeypatch):
+    root = snapshot(tmp_path)
+    audio = tmp_path / "input.wav"
+    audio.write_bytes(b"audio")
+    settings = Settings(fixed_lead_snapshot=root, fixed_vocal_cmd="vocal", fixed_beat_cmd="beat")
+    monkeypatch.setattr(lead, "verify_weight", lambda *args: None)
+    monkeypatch.setattr(lead, "verify_separator", lambda *args: None)
+    calls = []
+
+    def command(cmd, args, **kwargs):
+        calls.append((cmd, args[0]))
+        if args[0] == "beat-preflight":
+            raise ValueError("invalid beat runtime")
+
+    monkeypatch.setattr(lead, "run_command", command)
+    monkeypatch.setattr(lead, "prepare_demucs_audio", lambda *a, **kw: pytest.fail("preflight must run first"))
+    with pytest.raises(ValueError, match="invalid beat runtime"):
+        lead.transcribe_fixed_vocal_lead(audio, tmp_path / "out", settings=settings)
+    assert calls == [("vocal", "pitch-preflight"), ("beat", "beat-preflight")]

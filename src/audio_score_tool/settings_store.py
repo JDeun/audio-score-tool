@@ -22,6 +22,7 @@ _ALLOWED = {
     "sheetsage2_snapshot",
     "fixed_lead_snapshot",
     "fixed_vocal_cmd",
+    "fixed_beat_cmd",
     "demucs_cmd",
     "whisperx_cmd",
     "yt_dlp_cmd",

@@ -222,6 +222,7 @@ class Settings:
     sheetsage2_snapshot: Path | None = field(default_factory=lambda: _optional_path("sheetsage2_snapshot", "AST_SHEETSAGE2_SNAPSHOT"))
     fixed_lead_snapshot: Path | None = field(default_factory=lambda: _optional_path("fixed_lead_snapshot", "AST_FIXED_LEAD_SNAPSHOT"))
     fixed_vocal_cmd: str = field(default_factory=lambda: _saved_or_env("fixed_vocal_cmd", "AST_FIXED_VOCAL_CMD", "") or "")
+    fixed_beat_cmd: str = field(default_factory=lambda: _saved_or_env("fixed_beat_cmd", "AST_FIXED_BEAT_CMD", "") or "")
     demucs_cmd: str = field(default_factory=lambda: _command_setting("demucs_cmd", "AST_DEMUCS_CMD", "demucs"))
     whisperx_cmd: str = field(default_factory=lambda: _command_setting("whisperx_cmd", "AST_WHISPERX_CMD", "whisperx"))
     yt_dlp_cmd: str = field(default_factory=lambda: _command_setting("yt_dlp_cmd", "AST_YT_DLP_CMD", "yt-dlp"))

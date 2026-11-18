@@ -10,7 +10,7 @@ from pathlib import Path
 MAX_FILE_BYTES = 16 * 1024 * 1024
 MAX_TOTAL_BYTES = 128 * 1024 * 1024
 SCORE_FILES = {"score.mid", "score.musicxml", "analysis.json", "notation-report.json",
-               "recipe.json", "interpretation.json"}
+               "recipe.json", "interpretation.json", "beat.npz", "beat.runtime.json"}
 NATIVE_FILES = {
     "score.abc", "playback.json", "result.json", "events.json", "events.tsv",
     "tokens.json", "tokens.txt", "transcription.mid", "melody.mid", "chords.mid",
@@ -123,14 +123,20 @@ def preserve_model_evidence(job: dict, *, jobs_root: Path, asset_root: Path) -> 
     if job.get("transcription_engine") == "vocal_lead_v1":
         recipe_path = score_dir / "recipe.json"
         recipe = json.loads(recipe_path.read_text())
-        if not isinstance(recipe, dict) or type(recipe.get("recipe_version", 1)) is not int or recipe.get("recipe_version", 1) not in (1, 2):
+        if not isinstance(recipe, dict) or type(recipe.get("recipe_version", 1)) is not int or recipe.get("recipe_version", 1) not in (1, 2, 3):
             raise ValueError("Invalid fixed vocal recipe version")
-        if recipe.get("recipe_version", 1) == 2:
+        if recipe.get("recipe_version", 1) in (2, 3):
             if not {score_dir / "vocal/pitch.npz", score_dir / "vocal/pitch.runtime.json"}.issubset(files):
                 raise ValueError("Incomplete fixed vocal pitch evidence")
             pitch_receipt = json.loads((score_dir / "vocal/pitch.runtime.json").read_text())
             if not isinstance(pitch_receipt, dict) or pitch_receipt.get("prediction_sha256") != _digest(score_dir / "vocal/pitch.npz"):
                 raise ValueError("Fixed vocal pitch evidence SHA mismatch")
+        if recipe.get("recipe_version", 1) == 3:
+            if not {score_dir / "beat.npz", score_dir / "beat.runtime.json"}.issubset(files):
+                raise ValueError("Incomplete fixed vocal beat evidence")
+            beat_receipt = json.loads((score_dir / "beat.runtime.json").read_text())
+            if not isinstance(beat_receipt, dict) or beat_receipt.get("prediction_sha256") != _digest(score_dir / "beat.npz"):
+                raise ValueError("Fixed vocal beat evidence SHA mismatch")
     inputs = [p for p in job_root.glob("input.*") if p.is_file() and _owned(p, job_root)]
     manifest = {
         "schema_version": 1, "status": "preserved", "job_id": song_id,
