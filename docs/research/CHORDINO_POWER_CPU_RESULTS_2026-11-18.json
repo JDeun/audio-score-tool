@@ -1,0 +1,527 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-18",
+  "decision": "Reject this frozen Chordino plus power-profile recipe for final harmony adoption.",
+  "quality_approved": false,
+  "source": {
+    "repository": "https://github.com/c4dm/nnls-chroma",
+    "revision": "4c5f214a75cb354f8d8c933e161377c5b4d83713",
+    "license": "GPL-2.0-or-later"
+  },
+  "recipe": {
+    "dictionary": "Original 18 profiles unchanged, plus one root/fifth profile; 229 states including N.",
+    "power_profile_nonzero_weights": {
+      "bass_root": 1,
+      "treble_root": 1,
+      "treble_fifth": 1
+    },
+    "loader": "Upstream derives bass fifth 0.5 and normalizes.",
+    "dictionary_sha256": "4ed6b10bed6da0a7a6272f54409313fabd9a4ef1f53b369d2293ec2d31d4edb6",
+    "parameters": {
+      "useNNLS": 1,
+      "rollon": 0,
+      "tuningmode": 0,
+      "whitening": 1,
+      "s": 0.7,
+      "boostn": 0.1,
+      "Harte_syntax": 1
+    },
+    "runtime": "Native macOS arm64, single-thread algorithm, fresh process per case.",
+    "input": "Full original 44100 Hz mono PCM16 mixed WAV; no crop/resampling/retiming.",
+    "tail_policy": "Preserve raw final N event; no extrapolation beyond last event."
+  },
+  "provenance": {
+    "private_evaluation_report_sha256": "98ee2960fd2e6d133164e8a624e27dad1467c8f99ccc7b597e4414eee560819a",
+    "evaluator_sha256": "688881cd73e599d3ab493873c19e09ed37c7a21b4d5839cad4b5d37f7cba1355",
+    "protocol_sha256": "2d29cefab5a47eb69786a51bc5c61eb2c5740d6b40f2ece7defba1fc1a43d424",
+    "five_protocol_sha256": "bf1a6850a809fe8ec4b75562bfdba6f85bf853321183578bc902e1f4e9b0ba16",
+    "cohort_receipt_sha256": "7d4b23fcc864792cab93f6806572d88667c3a1f64869dd17f46e8a66bb4d9f6f",
+    "candidate_receipt_sha256": {
+      "tinashe-me-so-bad": "40b1cfa80783b10f7a742856462684ecc9fda6532f112c6c9ae600ddf8044f61",
+      "twice-fancy": "abda4a2ea0354c9614836a10675f59a12e076b4dfa49ab0699233db4c499a82f",
+      "green-day-american-idiot": "20dd3baf0182cac58c99f245d547017ef773c4b518f2d2a25dba45d7fc8fc03b",
+      "ham-boo-young-my-song": "916ef4e7414a6de93996bc33c3a973de62fd9ef6f84f78a90815c4ae8ae4d306",
+      "younha-event-horizon": "8d6ee82cc95d68a94163d44239c175f2a36de06c2a1f4ae5016a682ccebfd8db"
+    },
+    "library_versions": {
+      "mir_eval": "0.8.2",
+      "numpy": "1.26.4",
+      "python": "3.11.15 (main, Jun 23 2026, 15:46:51) [Clang 22.1.3 ]"
+    },
+    "runner_sha256": "a5e4c3047b0663368c4099c2fa59cfe8f0225344f1793c7be424d5374beb5dbf",
+    "wrapper_sha256": "da9ce661bd4b9c04d7763eceb81e7d7662724bf0add58b07ea42a616fb74035e"
+  },
+  "owned_synthetic_admission": {
+    "mir_eval": "0.8.2",
+    "results": {
+      "power": {
+        "exact_root_and_pitch_class_fraction": 1.0,
+        "power_label_fraction": 1.0,
+        "covered_fraction": 1.0,
+        "admitted": true
+      },
+      "major": {
+        "exact_root_and_pitch_class_fraction": 1.0,
+        "power_label_fraction": 0.0,
+        "covered_fraction": 1.0,
+        "admitted": true
+      },
+      "minor": {
+        "exact_root_and_pitch_class_fraction": 1.0,
+        "power_label_fraction": 0.0,
+        "covered_fraction": 1.0,
+        "admitted": true
+      }
+    },
+    "overall_admitted": true
+  },
+  "five_case_execution": {
+    "complete": true,
+    "freeze_unchanged": true,
+    "cases": [
+      {
+        "id": "tinashe-me-so-bad",
+        "valid": true,
+        "engine_exit": 0,
+        "input_sha256_before": "f39788b3075e9117661481470289c6e79ce25171f7a256936a2167bdae49fd65",
+        "input_sha256_after": "f39788b3075e9117661481470289c6e79ce25171f7a256936a2167bdae49fd65",
+        "duration_seconds": 210.51734693877552,
+        "raw_event_count": 122,
+        "lab_segment_count": 121,
+        "coverage_seconds": 210.326349206,
+        "coverage_fraction": 0.999092722117427,
+        "N_seconds": 14.953650794,
+        "power_label_seconds": 3.1579138320000197
+      },
+      {
+        "id": "twice-fancy",
+        "valid": true,
+        "engine_exit": 0,
+        "input_sha256_before": "5e1b5613b3863ea3babd2dc22bc9fa8ba62deb2ae44d48c8885f832ab56f01ec",
+        "input_sha256_after": "5e1b5613b3863ea3babd2dc22bc9fa8ba62deb2ae44d48c8885f832ab56f01ec",
+        "duration_seconds": 218.63911564625852,
+        "raw_event_count": 155,
+        "lab_segment_count": 154,
+        "coverage_seconds": 218.499773243,
+        "coverage_fraction": 0.9993626831006581,
+        "N_seconds": 1.3467573690000023,
+        "power_label_seconds": 29.396462583000005
+      },
+      {
+        "id": "green-day-american-idiot",
+        "valid": true,
+        "engine_exit": 0,
+        "input_sha256_before": "aedb875ba145c1f5cd21a0a86713d11dff1de9701512b8f1c7e4a40fa4fdf680",
+        "input_sha256_after": "aedb875ba145c1f5cd21a0a86713d11dff1de9701512b8f1c7e4a40fa4fdf680",
+        "duration_seconds": 174.32,
+        "raw_event_count": 127,
+        "lab_segment_count": 126,
+        "coverage_seconds": 174.288979592,
+        "coverage_fraction": 0.9998220490592016,
+        "N_seconds": 14.76789115600002,
+        "power_label_seconds": 4.365351473
+      },
+      {
+        "id": "ham-boo-young-my-song",
+        "valid": true,
+        "engine_exit": 0,
+        "input_sha256_before": "871118a06f5021b94f6e56c9066fca50670582f5e530bcee9290e2db270d8ac7",
+        "input_sha256_after": "871118a06f5021b94f6e56c9066fca50670582f5e530bcee9290e2db270d8ac7",
+        "duration_seconds": 309.7309977324263,
+        "raw_event_count": 177,
+        "lab_segment_count": 176,
+        "coverage_seconds": 309.521995465,
+        "coverage_fraction": 0.9993252135919347,
+        "N_seconds": 2.461315192999997,
+        "power_label_seconds": 24.93823129199998
+      },
+      {
+        "id": "younha-event-horizon",
+        "valid": true,
+        "engine_exit": 0,
+        "input_sha256_before": "2d84bd77253c96851db8bde4cd76de0b7bf7101cf07f79ff8dbf2d03f1d23dce",
+        "input_sha256_after": "2d84bd77253c96851db8bde4cd76de0b7bf7101cf07f79ff8dbf2d03f1d23dce",
+        "duration_seconds": 300.7866666666667,
+        "raw_event_count": 157,
+        "lab_segment_count": 156,
+        "coverage_seconds": 300.60553288,
+        "coverage_fraction": 0.9993977998138215,
+        "N_seconds": 0.046439909,
+        "power_label_seconds": 28.374784583000004
+      }
+    ]
+  },
+  "comparisons": {
+    "twice-fancy": {
+      "reference_sha256": [
+        "683622890e2379749da21ac3d171cc5ed6a6d039a50c75141b80be48098b7b1c",
+        "b5bb6d29d5799e19c3b24fd457da1be7e357cf6747e9bd43eadc706c4c1e1a83",
+        "f614cc12df7d7b34bc4c6cc1efc60da97b82e98edd95f8f881bdaa618a75d0b6",
+        "035d12107ba10780cd5db5f9085ebcc7b33a38585bb1001cec52c0268bdfc7df"
+      ],
+      "projections": {
+        "affine": {
+          "supported_reference_events": 63,
+          "unsupported_reference_events": 0,
+          "unsupported_reference_seconds": 0.0,
+          "adjacent_reference_overlap_seconds": 0.015623041023786755,
+          "arms": {
+            "sheetsage2": {
+              "reference_seconds": 85.67946102301354,
+              "no_chord_seconds": 0.0,
+              "uncovered_gap_seconds": 0.0,
+              "same_root_wrong_quality_seconds": 15.52333867345952,
+              "power_false_positive_on_major_minor_reference_seconds": 0.0,
+              "exact_pc_match_seconds": 50.17970012871474,
+              "exact_pc_agreement": 0.5856677846658775,
+              "metrics": {
+                "root": {
+                  "match_seconds": 65.70303880217426,
+                  "agreement": 0.7668470134811701
+                },
+                "triads": {
+                  "match_seconds": 62.39837478537921,
+                  "agreement": 0.7282769293870672
+                },
+                "sevenths": {
+                  "match_seconds": 50.17970012871474,
+                  "agreement": 0.5856677846658775
+                }
+              }
+            },
+            "lv_chordia": {
+              "reference_seconds": 85.67946102301354,
+              "no_chord_seconds": 0.0,
+              "uncovered_gap_seconds": 0.0,
+              "same_root_wrong_quality_seconds": 16.115992444074323,
+              "power_false_positive_on_major_minor_reference_seconds": 0.0,
+              "exact_pc_match_seconds": 60.179149109822745,
+              "exact_pc_agreement": 0.7023754397061228,
+              "metrics": {
+                "root": {
+                  "match_seconds": 76.29514155389707,
+                  "agreement": 0.8904717728488529
+                },
+                "triads": {
+                  "match_seconds": 75.16514155389707,
+                  "agreement": 0.8772830811074743
+                },
+                "sevenths": {
+                  "match_seconds": 60.179149109822745,
+                  "agreement": 0.7023754397061228
+                }
+              }
+            },
+            "chordino": {
+              "reference_seconds": 85.67946102301354,
+              "no_chord_seconds": 0.0013268297565218745,
+              "uncovered_gap_seconds": 0.0,
+              "same_root_wrong_quality_seconds": 40.05084994457479,
+              "power_false_positive_on_major_minor_reference_seconds": 11.571917600450213,
+              "exact_pc_match_seconds": 21.484982666297242,
+              "exact_pc_agreement": 0.2507600119067785,
+              "metrics": {
+                "root": {
+                  "match_seconds": 61.535832610872035,
+                  "agreement": 0.7182098472158162
+                },
+                "triads": {
+                  "match_seconds": 49.14698083867856,
+                  "agreement": 0.5736144958413972
+                },
+                "sevenths": {
+                  "match_seconds": 21.484982666297242,
+                  "agreement": 0.2507600119067785
+                }
+              }
+            }
+          }
+        },
+        "nominal": {
+          "supported_reference_events": 63,
+          "unsupported_reference_events": 0,
+          "unsupported_reference_seconds": 0.0,
+          "adjacent_reference_overlap_seconds": 0.015623041023786755,
+          "arms": {
+            "sheetsage2": {
+              "reference_seconds": 85.74191392417376,
+              "no_chord_seconds": 0.0,
+              "uncovered_gap_seconds": 0.0,
+              "same_root_wrong_quality_seconds": 15.489954285730235,
+              "power_false_positive_on_major_minor_reference_seconds": 0.0,
+              "exact_pc_match_seconds": 50.40783640256798,
+              "exact_pc_agreement": 0.587901926788646,
+              "metrics": {
+                "root": {
+                  "match_seconds": 65.89779068829822,
+                  "agreement": 0.7685598288204205
+                },
+                "triads": {
+                  "match_seconds": 62.63755356379903,
+                  "agreement": 0.730535985226465
+                },
+                "sevenths": {
+                  "match_seconds": 50.40783640256798,
+                  "agreement": 0.587901926788646
+                }
+              }
+            },
+            "lv_chordia": {
+              "reference_seconds": 85.74191392417376,
+              "no_chord_seconds": 0.0,
+              "uncovered_gap_seconds": 0.0,
+              "same_root_wrong_quality_seconds": 16.26153024626253,
+              "power_false_positive_on_major_minor_reference_seconds": 0.0,
+              "exact_pc_match_seconds": 61.400278158461546,
+              "exact_pc_agreement": 0.7161057567802972,
+              "metrics": {
+                "root": {
+                  "match_seconds": 77.66180840472407,
+                  "agreement": 0.9057624777702611
+                },
+                "triads": {
+                  "match_seconds": 76.53180840472407,
+                  "agreement": 0.8925833924398436
+                },
+                "sevenths": {
+                  "match_seconds": 61.400278158461546,
+                  "agreement": 0.7161057567802972
+                }
+              }
+            },
+            "chordino": {
+              "reference_seconds": 85.74191392417376,
+              "no_chord_seconds": 0.0013268297565218745,
+              "uncovered_gap_seconds": 0.0,
+              "same_root_wrong_quality_seconds": 40.049830595635186,
+              "power_false_positive_on_major_minor_reference_seconds": 11.618413427697995,
+              "exact_pc_match_seconds": 21.463502802026483,
+              "exact_pc_agreement": 0.25032684505978986,
+              "metrics": {
+                "root": {
+                  "match_seconds": 61.51333339766167,
+                  "agreement": 0.7174243095630132
+                },
+                "triads": {
+                  "match_seconds": 49.14449113091905,
+                  "agreement": 0.573167647906486
+                },
+                "sevenths": {
+                  "match_seconds": 21.463502802026483,
+                  "agreement": 0.25032684505978986
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "tinashe-me-so-bad": {
+      "reference_sha256": [
+        "6fa946d00531274adfdf118ac56abcd7a14973e322f187a8680706c1dae95533"
+      ],
+      "projections": {
+        "affine": {
+          "supported_reference_events": 11,
+          "unsupported_reference_events": 4,
+          "unsupported_reference_seconds": 5.073562469698601,
+          "adjacent_reference_overlap_seconds": 0.0,
+          "arms": {
+            "sheetsage2": {
+              "reference_seconds": 14.026908004460815,
+              "no_chord_seconds": 0.2303246887423569,
+              "uncovered_gap_seconds": 0.0,
+              "same_root_wrong_quality_seconds": 0.0,
+              "power_false_positive_on_major_minor_reference_seconds": 0.0,
+              "exact_pc_match_seconds": 12.309826010377606,
+              "exact_pc_agreement": 0.8775865647983757,
+              "metrics": {
+                "root": {
+                  "match_seconds": 12.309826010377606,
+                  "agreement": 0.8775865647983757
+                },
+                "triads": {
+                  "match_seconds": 12.309826010377606,
+                  "agreement": 0.8775865647983757
+                },
+                "sevenths": {
+                  "match_seconds": 12.309826010377606,
+                  "agreement": 0.8775865647983757
+                }
+              }
+            },
+            "lv_chordia": {
+              "reference_seconds": 14.026908004460815,
+              "no_chord_seconds": 0.0,
+              "uncovered_gap_seconds": 0.0,
+              "same_root_wrong_quality_seconds": 0.0,
+              "power_false_positive_on_major_minor_reference_seconds": 0.0,
+              "exact_pc_match_seconds": 11.839668970230342,
+              "exact_pc_agreement": 0.8440683411101798,
+              "metrics": {
+                "root": {
+                  "match_seconds": 11.839668970230342,
+                  "agreement": 0.8440683411101798
+                },
+                "triads": {
+                  "match_seconds": 11.839668970230342,
+                  "agreement": 0.8440683411101798
+                },
+                "sevenths": {
+                  "match_seconds": 11.839668970230342,
+                  "agreement": 0.8440683411101798
+                }
+              }
+            },
+            "chordino": {
+              "reference_seconds": 14.026908004460815,
+              "no_chord_seconds": 0.0,
+              "uncovered_gap_seconds": 0.0,
+              "same_root_wrong_quality_seconds": 1.4623428297423544,
+              "power_false_positive_on_major_minor_reference_seconds": 0.0,
+              "exact_pc_match_seconds": 10.01174360029048,
+              "exact_pc_agreement": 0.7137527099419602,
+              "metrics": {
+                "root": {
+                  "match_seconds": 11.474086430032834,
+                  "agreement": 0.818005395514383
+                },
+                "triads": {
+                  "match_seconds": 11.474086430032834,
+                  "agreement": 0.818005395514383
+                },
+                "sevenths": {
+                  "match_seconds": 10.01174360029048,
+                  "agreement": 0.7137527099419602
+                }
+              }
+            }
+          }
+        },
+        "nominal": {
+          "supported_reference_events": 11,
+          "unsupported_reference_events": 4,
+          "unsupported_reference_seconds": 5.000470474159421,
+          "adjacent_reference_overlap_seconds": 0.0,
+          "arms": {
+            "sheetsage2": {
+              "reference_seconds": 14.099999999999994,
+              "no_chord_seconds": 0.31741302385286474,
+              "uncovered_gap_seconds": 0.0,
+              "same_root_wrong_quality_seconds": 0.0,
+              "power_false_positive_on_major_minor_reference_seconds": 0.0,
+              "exact_pc_match_seconds": 12.07810883303,
+              "exact_pc_agreement": 0.8566034633354614,
+              "metrics": {
+                "root": {
+                  "match_seconds": 12.07810883303,
+                  "agreement": 0.8566034633354614
+                },
+                "triads": {
+                  "match_seconds": 12.07810883303,
+                  "agreement": 0.8566034633354614
+                },
+                "sevenths": {
+                  "match_seconds": 12.07810883303,
+                  "agreement": 0.8566034633354614
+                }
+              }
+            },
+            "lv_chordia": {
+              "reference_seconds": 14.099999999999994,
+              "no_chord_seconds": 0.0,
+              "uncovered_gap_seconds": 0.0,
+              "same_root_wrong_quality_seconds": 0.0,
+              "power_false_positive_on_major_minor_reference_seconds": 0.0,
+              "exact_pc_match_seconds": 12.144478143117126,
+              "exact_pc_agreement": 0.8613105066040518,
+              "metrics": {
+                "root": {
+                  "match_seconds": 12.144478143117126,
+                  "agreement": 0.8613105066040518
+                },
+                "triads": {
+                  "match_seconds": 12.144478143117126,
+                  "agreement": 0.8613105066040518
+                },
+                "sevenths": {
+                  "match_seconds": 12.144478143117126,
+                  "agreement": 0.8613105066040518
+                }
+              }
+            },
+            "chordino": {
+              "reference_seconds": 14.099999999999994,
+              "no_chord_seconds": 0.0,
+              "uncovered_gap_seconds": 0.0,
+              "same_root_wrong_quality_seconds": 1.5,
+              "power_false_positive_on_major_minor_reference_seconds": 0.0,
+              "exact_pc_match_seconds": 10.001141555588582,
+              "exact_pc_agreement": 0.7093008195452898,
+              "metrics": {
+                "root": {
+                  "match_seconds": 11.501141555588582,
+                  "agreement": 0.8156837982686941
+                },
+                "triads": {
+                  "match_seconds": 11.501141555588582,
+                  "agreement": 0.8156837982686941
+                },
+                "sevenths": {
+                  "match_seconds": 10.001141555588582,
+                  "agreement": 0.7093008195452898
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "green-day-american-idiot": {
+      "scope": "Strict authored rhythm-guitar power voicing with matching bass root; not whole-mix expert truth.",
+      "input_sha256": {
+        "events": "e9f825d2b94213b9799ec858419281b3c0a0e6bc7cf8bba3d9662129fcfd0995",
+        "alignment": "c913430ce704f1b0922ee3ac57c718f04c965a9e127fa12c2b1c8fe69ec4d4f4",
+        "gp5": "6bd02952e0324e4290825a7f98685563447696cb115c695a122f33a8ea82099e"
+      },
+      "arms": {
+        "sheetsage2": {
+          "reference_seconds": 42.73885245901639,
+          "no_chord_seconds": 1.1493114754097995,
+          "uncovered_gap_seconds": 0.0,
+          "same_root_wrong_quality_seconds": 26.67219672131144,
+          "exact_pc_match_seconds": 0.0,
+          "exact_pc_agreement": 0.0,
+          "root_agreement": 0.6240737686368214
+        },
+        "lv_chordia": {
+          "reference_seconds": 42.73885245901639,
+          "no_chord_seconds": 0.42081967213114524,
+          "uncovered_gap_seconds": 0.0,
+          "same_root_wrong_quality_seconds": 30.04137704918042,
+          "exact_pc_match_seconds": 0.0,
+          "exact_pc_agreement": 0.0,
+          "root_agreement": 0.7029055606485464
+        },
+        "chordino": {
+          "reference_seconds": 42.73885245901639,
+          "no_chord_seconds": 0.05292353418033002,
+          "uncovered_gap_seconds": 0.0,
+          "same_root_wrong_quality_seconds": 32.72575985547552,
+          "exact_pc_match_seconds": 0.262699379393446,
+          "exact_pc_agreement": 0.006146617521969187,
+          "root_agreement": 0.7718611365736275
+        }
+      }
+    }
+  },
+  "limits": [
+    "Five inference successes and ideal synthetic admission do not establish accuracy.",
+    "Community references and source synchronization are approximate development evidence.",
+    "No whole-song harmony reference for the Korean recordings or full WCSR/edit-time approval.",
+    "FANCY overlap is counted as separate authored observations for every arm.",
+    "Four suspended Me chorus chords excluded from the diatonic reference conversion.",
+    "Missing frozen American TheoryTab snapshots were not replaced.",
+    "No product defaults, model weights or published-song outputs changed for this rejected recipe."
+  ]
+}
