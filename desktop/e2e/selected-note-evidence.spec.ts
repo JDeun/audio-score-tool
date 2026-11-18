@@ -53,7 +53,9 @@ async function setup(page: Page, legacy = false) {
   }, setStatus: (value: typeof status) => { status = value; }, setSeek: (value: number | null) => { seek = value; }, hold: () => { delay = true; gate = new Promise<void>(resolve => { release = resolve; }); settled = new Promise<void>(resolve => { settle = resolve; }); }, release: () => release(), settled: () => settled };
 }
 
-test("explicit evidence query connects verified grid to owned audio", async ({ page }, testInfo) => {
+for (const [name, width, height] of [["desktop", 1240, 900], ["minimum", 920, 680]] as const) {
+test(`explicit evidence query connects verified grid to owned audio at ${name}`, async ({ page }, testInfo) => {
+  await page.setViewportSize({ width, height });
   const api = await setup(page);
   await page.locator(".note-list button").first().click();
   expect(api.queries).toHaveLength(0);
@@ -68,18 +70,16 @@ test("explicit evidence query connects verified grid to owned audio", async ({ p
   await review.getByRole("button", { name: "원음 불러오기" }).click();
   await expect(review).toContainText("확인 구간 0.70–2.30초");
   await expect(review.getByLabel("원음 재생")).toHaveJSProperty("paused", true);
-  for (const [name, width, height] of [["desktop", 1240, 900], ["minimum", 920, 680]] as const) {
-    await page.setViewportSize({ width, height });
-    const list = page.locator(".note-list");
-    expect(await list.evaluate(element => element.clientHeight)).toBeGreaterThanOrEqual(
-      await list.locator("button").first().evaluate(element => element.getBoundingClientRect().height) + 10);
-    await page.locator(".note-evidence").scrollIntoViewIfNeeded();
-    await page.screenshot({ path: testInfo.outputPath(`source-audio-selected-note-${name}.png`) });
-    await page.locator(".note-evidence").getByRole("button", { name: "원음 구간 확인" }).click();
-    await expect(review).toBeFocused();
-    await page.screenshot({ path: testInfo.outputPath(`source-audio-selected-note-${name}-player.png`) });
-  }
+  const list = page.locator(".note-list");
+  expect(await list.evaluate(element => element.clientHeight)).toBeGreaterThanOrEqual(
+    await list.locator("button").first().evaluate(element => element.getBoundingClientRect().height) + 10);
+  await page.locator(".note-evidence").scrollIntoViewIfNeeded();
+  await page.screenshot({ path: testInfo.outputPath(`source-audio-selected-note-${name}.png`) });
+  await page.locator(".note-evidence").getByRole("button", { name: "원음 구간 확인" }).click();
+  await expect(review).toBeFocused();
+  await page.screenshot({ path: testInfo.outputPath(`source-audio-selected-note-${name}-player.png`) });
 });
+}
 
 test("unavailable, unverified seek and stale response do not offer a clip", async ({ page }) => {
   const api = await setup(page);
