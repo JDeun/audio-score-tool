@@ -16,6 +16,7 @@ from audio_score_tool import (
     notation_export_api,
     publication_api_v2,
     revision_api_v2,
+    song_delete_api,
     song_routes,
 )
 from audio_score_tool.api import app
@@ -57,6 +58,29 @@ def _midi_fixture() -> bytes:
     return buffer.getvalue()
 
 
+def test_note_edit_rejects_stale_revision_and_score_hash(product):
+    client, _, songs, _ = product
+    uploaded = client.post("/api/import/notation", files={
+        "file": ("fixture.musicxml", SCORE_XML.encode(), "application/vnd.recordare.musicxml+xml")})
+    song_id = uploaded.json()["job_id"]
+    notes = client.get(f"/api/songs/{song_id}/notes").json()
+    note_id = notes["notes"][0]["note_id"]
+    path = f"/api/songs/{song_id}/notes/{note_id}/structure"
+    payload = {"step": "D", "expected_revision": notes["song"]["revision"],
+               "expected_score_sha256": notes["score_sha256"]}
+    assert client.patch(path, json={**payload, "expected_revision": 99}).status_code == 409
+    assert client.patch(path, json={**payload, "expected_score_sha256": "0" * 64}).status_code == 409
+    assert songs.get(song_id)["revision"] == notes["song"]["revision"]
+    changed_layout = songs.checkout_current(song_id)
+    changed_layout.write_text(changed_layout.read_text().replace("Owned fixture", "Layout changed"))
+    songs.replace_current_from_path(song_id, changed_layout)
+    assert client.patch(path, json=payload).status_code == 409
+    notes = client.get(f"/api/songs/{song_id}/notes").json()
+    payload["expected_score_sha256"] = notes["score_sha256"]
+    assert client.patch(path, json=payload).status_code == 200
+    assert client.patch(path, json=payload).status_code == 409
+
+
 @pytest.fixture
 def product(tmp_path: Path, monkeypatch):
     db = tmp_path / "canonical.sqlite3"
@@ -77,6 +101,8 @@ def product(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(song_routes, "_song_store", songs)
     monkeypatch.setattr(song_routes, "_publication_store", publication)
     monkeypatch.setattr(song_routes, "_tombstones", tombstones)
+    monkeypatch.setattr(song_delete_api, "_song_store", songs)
+    monkeypatch.setattr(song_delete_api, "_tombstones", tombstones)
     monkeypatch.setattr(notation_export_api, "_song_store", songs)
     monkeypatch.setattr(notation_export_api, "_publication_store", publication)
     monkeypatch.setattr(notation_export_api, "cache_dir", lambda: tmp_path / "cache")
@@ -559,3 +585,362 @@ def test_initial_layout_retires_exports_only_after_success(product):
     assert result.status_code == 200, result.text
     assert ET.parse(export / 'score.musicxml').find('./part/measure[@number="33"]/print').get('new-page') == 'yes'
     assert (export / 'score.pdf').read_bytes().startswith(b'%PDF')
+
+
+def _retained_vocal_fixture(product):
+    import hashlib
+    import json
+    import wave
+
+    client, _, songs, _ = product
+    xml = '''<score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Voice</part-name></score-part></part-list>
+    <part id="P1"><measure number="1"><attributes><divisions>1</divisions><time><beats>1</beats><beat-type>4</beat-type></time></attributes>
+    <direction><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>120</per-minute></metronome></direction-type><sound tempo="120"/></direction>
+    <note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><tie type="start"/><type>quarter</type><notations><tied type="start"/></notations></note></measure>
+    <measure number="2"><harmony><root><root-step>C</root-step></root><kind>major</kind></harmony><note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><tie type="stop"/><type>quarter</type><notations><tied type="stop"/></notations></note>
+    <direction><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>60</per-minute></metronome></direction-type><sound tempo="60"/></direction>
+    <note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note></measure></part></score-partwise>'''
+    response = client.post("/api/import/notation", files={"file": (
+        "fixture.musicxml", xml.encode(), "application/vnd.recordare.musicxml+xml")})
+    assert response.status_code == 202
+    song_id = response.json()["job_id"]
+    client.get(f"/api/songs/{song_id}/notes")
+    root = songs.asset_root / song_id / "model-evidence"
+    (root / "vocal").mkdir(parents=True)
+    midi = MidiFile(ticks_per_beat=480)
+    track = MidiTrack([
+        MetaMessage("set_tempo", tempo=500000, time=0),
+        Message("note_on", note=60, velocity=80, time=0),
+        Message("note_off", note=60, velocity=0, time=960),
+        MetaMessage("set_tempo", tempo=1000000, time=0),
+        Message("note_on", note=60, velocity=80, time=0),
+        Message("note_off", note=60, velocity=0, time=480),
+    ])
+    midi.tracks.append(track)
+    midi.save(root / "vocal/selected.mid")
+    (root / "score.musicxml").write_text(xml)
+    (root / "interpretation.json").write_text(json.dumps({
+        "algorithm": "dominant_overlap_on_audio_sixteenth_grid_v1",
+        "grid_audio_seconds": [0, .5, 1, 2], "source_note_indices": [0, 0, 1]}))
+    audio = root.parent / "original-audio.wav"
+    with wave.open(str(audio), "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(8000)
+        wav.writeframes(b"\0\0" * 16000)
+    audio_sha = hashlib.sha256(audio.read_bytes()).hexdigest()
+    (root / "beat.npz").write_bytes(b"owned beat fixture")
+    beat_sha = hashlib.sha256((root / "beat.npz").read_bytes()).hexdigest()
+    clock = {"source_sha256": audio_sha, "prediction_sha256": beat_sha}
+    (root / "beat.runtime.json").write_text(json.dumps({**clock, "source_frames": 16000,
+                                                       "source_sample_rate": 8000}))
+    (root / "context").mkdir()
+    (root / "native").mkdir()
+    (root / "context/music_structure.json").write_text('{"trimmed":false,"media_start_seconds":0}')
+    (root / "native/playback.json").write_text('{"duration":2}')
+    (root / "recipe.json").write_text(json.dumps({"recipe_version": 3,
+        "engine": "vocal_lead_v1", "status": "completed", "source_audio_sha256": audio_sha,
+        "model_audio_sha256": audio_sha, "model_audio_normalized": False, "beat_clock": clock}))
+    files = []
+    for name in ("score.musicxml", "vocal/selected.mid", "interpretation.json", "recipe.json",
+                 "beat.npz", "beat.runtime.json", "context/music_structure.json", "native/playback.json"):
+        data = (root / name).read_bytes()
+        files.append({"path": name, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()})
+    (root / "manifest.json").write_text(json.dumps({"schema_version": 1, "job_id": song_id,
+        "selection": {"transcription_engine": "vocal_lead_v1"}, "source_audio_sha256": audio_sha,
+        "files": files}))
+    from audio_score_tool.note_evidence import baseline, baseline_fingerprint, score_hash
+
+    links, rows, clock, manifest_hash = baseline(songs.asset_root, song_id)
+    fingerprint = baseline_fingerprint(links, rows, clock, manifest_hash)
+    with songs._connect() as conn:
+        conn.execute("""UPDATE note_evidence_state SET active=1, revision=1,
+            score_sha256=?, baseline_sha256=? WHERE song_id=?""",
+            (score_hash(songs.score_xml(song_id)), fingerprint, song_id))
+    return client, songs, song_id, root
+
+
+def _evidence_get(client, base, note_id, *, revision=None, score_sha256=None, generation=None):
+    notes = client.get(base + "/notes").json()
+    return client.get(base + f"/notes/{note_id}/evidence", params={
+        "expected_revision": revision if revision is not None else notes["song"]["revision"],
+        "expected_score_sha256": score_sha256 or notes["score_sha256"],
+        "expected_generation": generation if generation is not None else notes["evidence_generation"]})
+
+
+def test_vocal_note_evidence_edit_undo_and_branch(product):
+    client, songs, song_id, root = _retained_vocal_fixture(product)
+    base = f"/api/songs/{song_id}"
+    notes = client.get(base + "/notes").json()
+    evidence = _evidence_get(client, base, "p0-m0-n0").json()
+    assert evidence["status"] == "linked", evidence
+    assert evidence["evidence"]["source_audio_seek_seconds"] == 0
+    assert evidence["evidence"]["source_audio_seek_basis"] == "interpreted_grid"
+    assert evidence["evidence"]["locators"] == ["p0-m0-n0", "p0-m1-n0"]
+    assert evidence["evidence"]["grid_seconds"] == {"start": 0, "end": 1}
+    second = _evidence_get(client, base, "p0-m1-n1").json()
+    assert second["status"] == "linked", second
+    assert second["evidence"]["grid_seconds"] == {"start": 1, "end": 2}
+    before = {path.relative_to(root): path.read_bytes() for path in root.rglob("*") if path.is_file()}
+    patch = {"step": "D", "expected_revision": 1, "expected_score_sha256": notes["score_sha256"]}
+    assert client.patch(base + "/notes/p0-m1-n1/structure", json=patch).status_code == 200
+    edited = _evidence_get(client, base, "p0-m1-n1").json()
+    assert edited["status"] == "linked", edited
+    assert edited["evidence"] == second["evidence"]
+    assert edited["patch"]["before_sha256"] == notes["score_sha256"]
+    assert edited["patch"]["after_sha256"] == edited["score_sha256"]
+    assert edited["patch"]["after_generation"] == edited["patch"]["before_generation"] + 1
+    assert edited["patch"]["reason"] == "manual_pitch_edit"
+    next_notes = client.get(base + "/notes").json()
+    assert client.patch(base + "/notes/p0-m1-n1/structure", json={
+        "step": "E", "expected_revision": 2,
+        "expected_score_sha256": next_notes["score_sha256"]}).status_code == 200
+    assert _evidence_get(client, base, "p0-m1-n1").json()["status"] == "linked"
+    assert {path.relative_to(root): path.read_bytes() for path in root.rglob("*") if path.is_file()} == before
+    assert _evidence_get(client, base, "p0-m0-n0", revision=1).status_code == 409
+    assert client.post(base + "/undo").status_code == 200
+    assert client.post(base + "/undo").status_code == 200
+    assert _evidence_get(client, base, "p0-m0-n0").json()["status"] == "unavailable"
+    assert client.post(base + "/notes/p0-m1-n1/insert", json={"position": "before"}).status_code == 200
+    assert _evidence_get(client, base, "p0-m1-n1").json()["status"] == "unavailable"
+    with songs._connect() as conn:
+        assert conn.execute("SELECT count(*) FROM note_evidence_patches WHERE song_id=?", (song_id,)).fetchone()[0] == 2
+    assert client.delete(base).status_code == 200
+    with songs._connect() as conn:
+        assert conn.execute("SELECT count(*) FROM note_evidence_patches WHERE song_id=?", (song_id,)).fetchone()[0] == 0
+
+
+def test_untracked_pitch_edit_does_not_carry_evidence(product):
+    client, _, song_id, _ = _retained_vocal_fixture(product)
+    base = f"/api/songs/{song_id}"
+    assert client.patch(base + "/notes/p0-m1-n1/structure", json={"step": "D"}).status_code == 200
+    result = _evidence_get(client, base, "p0-m1-n1").json()
+    assert result["status"] == "unavailable" and result["reason"] == "lineage_unavailable"
+
+
+def test_vocal_note_evidence_patch_rollback(product):
+    client, songs, song_id, _ = _retained_vocal_fixture(product)
+    base = f"/api/songs/{song_id}"
+    notes = client.get(base + "/notes").json()
+    before = songs.score_xml(song_id)
+    _, before_state = songs.evidence_snapshot(song_id)
+    exports = songs.export_dir(song_id)
+    contents = {name: f"owned fixture {name}".encode() for name in
+                ("score.musicxml", "score.mid", "score.pdf", "receipt.json")}
+    for name, data in contents.items():
+        (exports / name).write_bytes(data)
+    external = product[3] / "external-copy.musicxml"
+    external.write_bytes(b"external fixture")
+    advertised = songs.get(song_id)["exports"]
+    with songs._connect() as conn:
+        conn.execute("CREATE TRIGGER fail_evidence BEFORE INSERT ON note_evidence_patches "
+                     "BEGIN SELECT RAISE(ABORT, 'fixture failure'); END")
+    response = client.patch(base + "/notes/p0-m1-n1/structure", json={
+        "step": "D", "expected_revision": notes["song"]["revision"],
+        "expected_score_sha256": notes["score_sha256"]})
+    assert response.status_code == 422
+    assert songs.score_xml(song_id) == before
+    assert songs.get(song_id)["revision"] == notes["song"]["revision"]
+    assert songs.evidence_snapshot(song_id)[1] == before_state
+    assert _evidence_get(client, base, "p0-m1-n1").json()["status"] == "linked"
+    assert songs.get(song_id)["exports"] == advertised
+    assert {name: (exports / name).read_bytes() for name in contents} == contents
+    assert external.read_bytes() == b"external fixture"
+    with songs._connect() as conn:
+        assert conn.execute("SELECT count(*) FROM note_evidence_patches").fetchone()[0] == 0
+
+
+def test_vocal_note_evidence_invalid_and_legacy_are_unavailable(product):
+    import hashlib
+    import json
+
+    client, _, song_id, root = _retained_vocal_fixture(product)
+    base = f"/api/songs/{song_id}"
+    manifest_path = root / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    interpretation_path = root / "interpretation.json"
+    interpretation = json.loads(interpretation_path.read_text())
+    interpretation["algorithm"] = "unknown_version"
+    interpretation_path.write_text(json.dumps(interpretation))
+    entry = next(entry for entry in manifest["files"] if entry["path"] == "interpretation.json")
+    data = interpretation_path.read_bytes()
+    entry.update(bytes=len(data), sha256=hashlib.sha256(data).hexdigest())
+    manifest_path.write_text(json.dumps(manifest))
+    result = _evidence_get(client, base, "p0-m1-n1").json()
+    assert result["status"] == "unavailable" and result["reason"] == "unsupported_interpretation"
+    interpretation_path.write_text("malformed")
+    assert _evidence_get(client, base, "p0-m1-n1").json()["status"] == "unavailable"
+    manifest_path.unlink()
+    assert _evidence_get(client, base, "p0-m1-n1").json()["status"] == "unavailable"
+    response = client.post("/api/import/notation", files={"file": (
+        "legacy.musicxml", SCORE_XML.encode(), "application/vnd.recordare.musicxml+xml")})
+    legacy_id = response.json()["job_id"]
+    legacy = _evidence_get(client, f"/api/songs/{legacy_id}", "p0-m0-n0").json()
+    assert legacy["status"] == "unavailable" and legacy["reason"] == "lineage_unavailable"
+
+
+def test_vocal_note_evidence_ambiguous_score_abstains(product):
+    import hashlib
+    import json
+
+    client, songs, song_id, root = _retained_vocal_fixture(product)
+    score_path = root / "score.musicxml"
+    tree = ET.fromstring(score_path.read_text())
+    part_list = tree.find("part-list")
+    part = tree.find("part")
+    assert part_list is not None and part is not None
+    duplicate = ET.fromstring(ET.tostring(part))
+    duplicate.set("id", "P2")
+    part_list.append(ET.fromstring('<score-part id="P2"><part-name>Voice 2</part-name></score-part>'))
+    tree.append(duplicate)
+    xml = ET.tostring(tree, encoding="unicode")
+    score_path.write_text(xml)
+    working = songs.checkout_current(song_id)
+    working.write_text(xml)
+    songs.replace_current_from_path(song_id, working)
+    manifest_path = root / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    entry = next(entry for entry in manifest["files"] if entry["path"] == "score.musicxml")
+    data = score_path.read_bytes()
+    entry.update(bytes=len(data), sha256=hashlib.sha256(data).hexdigest())
+    manifest_path.write_text(json.dumps(manifest))
+    from audio_score_tool.note_evidence import score_hash
+    with songs._connect() as conn:
+        conn.execute("UPDATE note_evidence_state SET active=1, score_sha256=? WHERE song_id=?",
+                     (score_hash(xml), song_id))
+    result = _evidence_get(client, f"/api/songs/{song_id}", "p0-m0-n0").json()
+    assert result["status"] == "ambiguous", result
+
+
+def test_evidence_rejects_orphaned_edge_and_identical_replacement(product):
+    client, _, song_id, _ = _retained_vocal_fixture(product)
+    base = f"/api/songs/{song_id}"
+    notes = client.get(base + "/notes").json()
+    patch = {"step": "D", "expected_revision": 1, "expected_score_sha256": notes["score_sha256"],
+             "expected_generation": notes["evidence_generation"]}
+    assert client.patch(base + "/notes/p0-m1-n1/structure", json=patch).status_code == 200
+    old = client.get(base + "/notes").json()
+    assert client.post(base + "/undo").status_code == 200
+    assert client.patch(base + "/notes/p0-m1-n1/structure", json={"step": "D"}).status_code == 200
+    current = client.get(base + "/notes").json()
+    assert current["score_sha256"] == old["score_sha256"]
+    assert current["evidence_generation"] != old["evidence_generation"]
+    assert _evidence_get(client, base, "p0-m1-n1").json()["status"] == "unavailable"
+    assert _evidence_get(client, base, "p0-m1-n1", revision=2,
+                         score_sha256=old["score_sha256"], generation=old["evidence_generation"]).status_code == 409
+    assert client.post(base + "/undo").status_code == 200
+    assert client.patch(base + "/notes/p0-m1-n1/structure", json={"step": "E"}).status_code == 200
+    assert _evidence_get(client, base, "p0-m1-n1", revision=2,
+                         score_sha256=old["score_sha256"]).status_code == 409
+
+    client2, _, song2, _ = _retained_vocal_fixture(product)
+    base2 = f"/api/songs/{song2}"
+    assert client2.post(base2 + "/notes/p0-m1-n1/insert", json={"position": "before", "step": "C"}).status_code == 200
+    assert client2.delete(base2 + "/notes/p0-m1-n2").status_code == 200
+    assert _evidence_get(client2, base2, "p0-m1-n1").json()["status"] == "unavailable"
+
+
+def test_direct_sql_score_write_invalidates_evidence_even_for_identical_bytes(product):
+    client, songs, song_id, _ = _retained_vocal_fixture(product)
+    base = f"/api/songs/{song_id}"
+    before = client.get(base + "/notes").json()
+    with songs._connect() as conn:
+        conn.execute("UPDATE songs SET current_score_xml=current_score_xml WHERE song_id=?", (song_id,))
+    after = client.get(base + "/notes").json()
+    assert before["score_sha256"] == after["score_sha256"]
+    assert after["evidence_generation"] > before["evidence_generation"]
+    assert _evidence_get(client, base, "p0-m1-n1").json()["status"] == "unavailable"
+
+
+def test_evidence_seek_requires_verified_source_and_beat(product):
+    import hashlib
+    import json
+
+    client, songs, song_id, root = _retained_vocal_fixture(product)
+    base = f"/api/songs/{song_id}"
+    assert _evidence_get(client, base, "p0-m1-n1").json()["evidence"]["source_audio_seek_seconds"] == 1
+    audio = root.parent / "original-audio.wav"
+    saved = audio.read_bytes()
+    audio.write_bytes(saved + b"changed")
+    result = _evidence_get(client, base, "p0-m1-n1").json()
+    assert result["status"] == "linked" and result["evidence"]["source_audio_seek_seconds"] is None
+    audio.write_bytes(saved)
+    receipt = root / "beat.runtime.json"
+    data = json.loads(receipt.read_text())
+    data["source_sha256"] = "0" * 64
+    receipt.write_text(json.dumps(data))
+    manifest_path = root / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    entry = next(e for e in manifest["files"] if e["path"] == "beat.runtime.json")
+    raw = receipt.read_bytes()
+    entry.update(bytes=len(raw), sha256=hashlib.sha256(raw).hexdigest())
+    manifest_path.write_text(json.dumps(manifest))
+    from audio_score_tool.note_evidence import baseline, baseline_fingerprint
+    links, rows, clock, digest = baseline(songs.asset_root, song_id)
+    with songs._connect() as conn:
+        conn.execute("UPDATE note_evidence_state SET baseline_sha256=? WHERE song_id=?",
+                     (baseline_fingerprint(links, rows, clock, digest), song_id))
+    result = _evidence_get(client, base, "p0-m1-n1").json()
+    assert result["status"] == "linked" and result["evidence"]["source_audio_seek_seconds"] is None
+
+
+def test_evidence_get_is_read_only_and_checks_snapshot(product, monkeypatch):
+    client, _, song_id, _ = _retained_vocal_fixture(product)
+    base = f"/api/songs/{song_id}"
+    notes = client.get(base + "/notes").json()
+    monkeypatch.setattr(song_routes, "_sync", lambda: pytest.fail("evidence GET must not sync"))
+    url = base + "/notes/p0-m1-n1/evidence"
+    params = {"expected_revision": notes["song"]["revision"],
+              "expected_score_sha256": notes["score_sha256"],
+              "expected_generation": notes["evidence_generation"]}
+    assert client.get(url, params=params).json()["status"] == "linked"
+    assert client.get(url, params={**params, "expected_score_sha256": "0" * 64}).status_code == 409
+    assert client.get(url, params={**params, "expected_revision": 0}).status_code == 422
+
+
+def test_verified_fixed_ingest_admits_lineage_and_first_layout(product, monkeypatch):
+    import json
+    import shutil
+
+    from audio_score_tool import song_store_v2
+
+    client, songs, _, root = _retained_vocal_fixture(product)
+    new_id = "owned-fixed-ingest"
+    destination = songs.asset_root / new_id
+    shutil.copytree(root.parent, destination)
+    receipt = destination / "model-evidence/manifest.json"
+    manifest = json.loads(receipt.read_text())
+    manifest["job_id"] = new_id
+    receipt.write_text(json.dumps(manifest))
+    score = destination / "model-evidence/score.musicxml"
+    job = {"job_id": new_id, "status": "done", "kind": "transcription", "filename": "fixture.wav",
+           "source_kind": "local", "score_mode": "lead_sheet", "transcription_engine": "vocal_lead_v1",
+           "result": {"musicxml": str(score)}}
+    monkeypatch.setattr(song_store_v2, "SettingsStore", lambda: type("Settings", (), {"read": lambda self: {}})())
+    assert songs.sync_completed_jobs([job]) == 1
+    snapshot, state = songs.evidence_snapshot(new_id)
+    assert state and state["active"] == 1
+    assert songs.initialize_publication(snapshot, {}, snapshot.current_score_xml)
+    _, state = songs.evidence_snapshot(new_id)
+    assert state and state["active"] == 1
+    assert _evidence_get(client, f"/api/songs/{new_id}", "p0-m1-n1").json()["status"] == "linked"
+
+
+def test_pitch_outside_evidence_range_still_saves(product):
+    client, songs, song_id, root = _retained_vocal_fixture(product)
+    base = f"/api/songs/{song_id}"
+    notes = client.get(base + "/notes").json()
+    original = {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()}
+    response = client.patch(base + "/notes/p0-m1-n1/structure", json={
+        "step": "B", "octave": 9, "expected_revision": notes["song"]["revision"],
+        "expected_score_sha256": notes["score_sha256"],
+        "expected_generation": notes["evidence_generation"]})
+    assert response.status_code == 200, response.text
+    assert songs.get(song_id)["revision"] == 2
+    updated = client.get(base + "/notes").json()
+    note = next(n for n in updated["notes"] if n["note_id"] == "p0-m1-n1")
+    assert note["step"] == "B" and note["octave"] == 9
+    assert _evidence_get(client, base, "p0-m1-n1").json()["status"] == "unavailable"
+    with songs._connect() as conn:
+        assert conn.execute("SELECT count(*) FROM note_evidence_patches WHERE song_id=?", (song_id,)).fetchone()[0] == 0
+    assert {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()} == original

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { expect, test } from "@playwright/test";
 
 const scoreXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -13,6 +14,7 @@ const scoreXml = `<?xml version="1.0" encoding="UTF-8"?>
 
 test("note editor avoids no-op requests and sends only actual pitch/lyric changes", async ({ page }) => {
   let revision = 1;
+  let generation = 1;
   let note = {
     note_id: "p0-m0-n0", part_id: "P1", part_name: "Piano",
     measure: "1", measure_index: 0, rest: false,
@@ -20,6 +22,10 @@ test("note editor avoids no-op requests and sends only actual pitch/lyric change
     lyric: "", ties: [], slurs: [], articulations: [], beam: "",
   };
   const requests: Record<string, unknown>[] = [];
+  const currentXml = () => scoreXml
+    .replace("<step>C</step>", `<step>${note.step}</step>`)
+    .replace("</type></note>", `</type>${note.lyric ? `<lyric><text>${note.lyric}</text></lyric>` : ""}</note>`);
+  const currentSha = () => createHash("sha256").update(currentXml()).digest("hex");
   const song = () => ({
     song_id: "song-1", title: "Demo", artist: "",
     source_kind: "notation", revision,
@@ -39,6 +45,7 @@ test("note editor avoids no-op requests and sends only actual pitch/lyric change
   await page.route("**/api/songs/song-1/notes", route => route.fulfill({
     json: {
       song: song(),
+      score_sha256: currentSha(), evidence_generation: generation,
       parts: [{ part_id: "P1", name: "Piano", notes: 1, measures: 1 }],
       notes: [note], chords: [],
     },
@@ -47,16 +54,22 @@ test("note editor avoids no-op requests and sends only actual pitch/lyric change
     json: { measures: [] },
   }));
   await page.route("**/api/songs/song-1/score", route => route.fulfill({
-    contentType: "application/xml", body: scoreXml,
+    contentType: "application/xml", body: currentXml(),
   }));
   await page.route("**/api/songs/song-1/publication", route => route.fulfill({
     json: { settings: {} },
   }));
   await page.route("**/api/songs/song-1/notes/p0-m0-n0/structure", async route => {
     const patch = route.request().postDataJSON() as Record<string, unknown>;
-    requests.push(patch);
-    note = { ...note, ...patch } as typeof note;
+    const changes = requests.length === 0 ? { lyric: "hello" } : { step: "D", lyric: "world" };
+    expect(patch).toEqual({ ...changes, expected_revision: revision,
+      expected_score_sha256: currentSha(), expected_generation: generation });
+    const { expected_revision, expected_score_sha256, expected_generation, ...noteChanges } = patch;
+    expect([expected_revision, expected_score_sha256, expected_generation]).toEqual([revision, currentSha(), generation]);
+    requests.push(noteChanges);
+    note = { ...note, ...noteChanges } as typeof note;
     revision += 1;
+    generation += 1;
     await route.fulfill({ json: { song: song(), result: { note_id: note.note_id } } });
   });
 

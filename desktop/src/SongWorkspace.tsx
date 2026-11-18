@@ -59,6 +59,8 @@ type ChordRow = {
 
 type ScoreData = {
   song: Song;
+  score_sha256: string;
+  evidence_generation: number | null;
   title?: string | null;
   parts: { part_id: string; name: string; measures: number; notes: number }[];
   notes: NoteRow[];
@@ -460,6 +462,10 @@ export default function SongWorkspace() {
         setMessage("변경된 노트 항목이 없습니다.");
         return;
       }
+      if (!score) throw new Error("악보를 다시 불러와 주세요.");
+      body.expected_revision = score.song.revision;
+      body.expected_score_sha256 = score.score_sha256;
+      if (score.evidence_generation !== null) body.expected_generation = score.evidence_generation;
       const response = await fetch(`${API}/api/songs/${song.song_id}/notes/${selectedNote.note_id}/structure`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },

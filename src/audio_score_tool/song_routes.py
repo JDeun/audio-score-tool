@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import hashlib
 import shutil
 import tempfile
 from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 
@@ -14,6 +15,13 @@ from .chord_listing import list_chords
 from .job_store import JobStore
 from .musicxml_editor import MusicXMLEditError, score_summary, set_score_title, update_note
 from .musicxml_parts import list_score_parts
+from .note_evidence import (
+    baseline,
+    baseline_fingerprint,
+    clock_signature,
+    score_hash,
+    written_notes,
+)
 from .publication_layout import apply_publication_layout, initial_publication_settings
 from .publication_store_v2 import PublicationStoreV2
 from .score_structure import (
@@ -25,7 +33,7 @@ from .score_structure import (
     structure_summary,
     update_note_structure,
 )
-from .song_store_v2 import SongStoreV2
+from .song_store_v2 import ConcurrentEditError, SongStoreV2
 from .song_tombstones import SongTombstoneStore
 
 router = APIRouter(prefix="/api/songs", tags=["songs-v2"])
@@ -79,6 +87,9 @@ NoteType = Literal["whole", "half", "quarter", "eighth", "16th", "32nd", "64th"]
 
 
 class NoteStructurePatch(BaseModel):
+    expected_revision: int | None = Field(default=None, ge=1)
+    expected_score_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    expected_generation: int | None = Field(default=None, ge=0)
     step: Literal["A", "B", "C", "D", "E", "F", "G"] | None = None
     alter: int | None = Field(default=None, ge=-2, le=2)
     octave: int | None = Field(default=None, ge=0, le=9)
@@ -215,17 +226,78 @@ def _refresh_layout(song: dict, path: Path | None = None) -> Path:
     return target
 
 
-def _mutate(song_id: str, operation) -> dict:
+def _evidence_links(song_id: str, revision: int, xml: str, state: dict | None) -> tuple[dict, str]:
+    if (not state or not state["active"] or state["revision"] != revision
+            or state["score_sha256"] != score_hash(xml)):
+        raise ValueError("lineage_unavailable")
+    links, original, clock, manifest_hash = baseline(_song_store.asset_root, song_id)
+    fingerprint = baseline_fingerprint(links, original, clock, manifest_hash)
+    if state["baseline_sha256"] != fingerprint:
+        raise ValueError("lineage_unavailable")
+    if clock_signature(xml) != clock:
+        raise ValueError("current_structure_changed")
+    return links, fingerprint
+
+
+def _mutate(song_id: str, operation, *, expected_revision: int | None = None,
+            expected_score_sha256: str | None = None, expected_generation: int | None = None,
+            evidence_note_id: str | None = None) -> dict:
     song = _require_song(song_id)
-    snapshot_revision = _snapshot_before_edit(song)
+    try:
+        snapshot_revision = _song_store.snapshot_revision(
+            song_id, _publication_store.read(song_id), expected_revision=expected_revision,
+            expected_score_sha256=expected_score_sha256, expected_generation=expected_generation)
+    except ConcurrentEditError as exc:
+        raise HTTPException(409, str(exc)) from exc
     path = _song_store.checkout_current(song_id)
     try:
+        before_xml = path.read_text(encoding="utf-8")
+        evidence = None
+        if (evidence_note_id and expected_revision is not None and expected_score_sha256 is not None
+                and score_hash(before_xml) == expected_score_sha256):
+            try:
+                snapshot, state = _song_store.evidence_snapshot(song_id)
+                if snapshot.revision != snapshot_revision or snapshot.current_score_xml != before_xml:
+                    raise ValueError("lineage_unavailable")
+                links, fingerprint = _evidence_links(song_id, snapshot_revision, before_xml, state)
+                row = next(row for row in written_notes(before_xml) if row["note_id"] == evidence_note_id)
+                link = links.get(evidence_note_id)
+                if link and len(link["locators"]) == 1 and not row["ties"]:
+                    evidence = (links, fingerprint, row, state["generation"])
+            except Exception:
+                pass
         result = operation(song, path)
         if result is None:
             _discard_snapshot(song_id, snapshot_revision)
             return {"song": _public(song), "result": None}
         _refresh_layout(song, path)
-        updated = _commit_score_change(song_id, path)
+        evidence_patch = None
+        if evidence:
+            links, fingerprint, before, generation = evidence
+            try:
+                before_rows, after_rows = written_notes(before_xml), written_notes(path.read_text(encoding="utf-8"))
+                after = next((row for row in after_rows if row["note_id"] == evidence_note_id), None)
+                if after and after["pitch"] is not None and after != before:
+                    comparable = [dict(row, pitch=before["pitch"], spelling=before["spelling"]) if row["note_id"] == evidence_note_id else row
+                                  for row in after_rows]
+                    if comparable == before_rows and clock_signature(before_xml) == clock_signature(path.read_text(encoding="utf-8")):
+                        evidence_patch = {"baseline_sha256": fingerprint, "locator": evidence_note_id,
+                                          "generation": generation,
+                                          "source_id": links[evidence_note_id]["source_id"],
+                                          "before_pitch": before["pitch"], "after_pitch": after["pitch"],
+                                          "before_spelling": before["spelling"], "after_spelling": after["spelling"],
+                                          "reason": "manual_pitch_edit"}
+            except ValueError:
+                pass
+        updated = _song_store.commit_edit_from_path(song_id, path, expected_revision=snapshot_revision,
+                                                    expected_score_sha256=expected_score_sha256,
+                                                    expected_generation=expected_generation,
+                                                    evidence_patch=evidence_patch)
+        if not updated:
+            raise HTTPException(404, "Song not found")
+    except ConcurrentEditError as exc:
+        _discard_snapshot(song_id, snapshot_revision)
+        raise HTTPException(409, str(exc)) from exc
     except (MusicXMLEditError, ChordEditError) as exc:
         _discard_snapshot(song_id, snapshot_revision)
         raise HTTPException(422, str(exc)) from exc
@@ -269,13 +341,60 @@ def get_score(song_id: str) -> Response:
 @router.get("/{song_id}/notes")
 def get_notes(song_id: str) -> dict:
     song = _require_song(song_id)
-    path = _song_store.checkout_current(song_id)
+    snapshot, state = _song_store.evidence_snapshot(song_id)
     try:
-        summary = score_summary(path)
-        chords = list_chords(path)
+        with tempfile.TemporaryDirectory(prefix="ast-notes-") as folder:
+            path = Path(folder) / "score.musicxml"
+            path.write_text(snapshot.current_score_xml, encoding="utf-8")
+            summary = score_summary(path)
+            chords = list_chords(path)
     except Exception as exc:
         raise HTTPException(422, f"Could not parse MusicXML: {exc}") from exc
-    return {"song": _public(song), **summary, "chords": chords}
+    song.update(title=snapshot.title, artist=snapshot.artist, revision=snapshot.revision,
+                updated_at=snapshot.updated_at)
+    return {"song": _public(song), **summary, "chords": chords,
+            "score_sha256": hashlib.sha256(snapshot.current_score_xml.encode()).hexdigest(),
+            "evidence_generation": state["generation"] if state else None}
+
+
+@router.get("/{song_id}/notes/{note_id}/evidence")
+def get_note_evidence(song_id: str, note_id: str,
+                      expected_revision: int = Query(ge=1),
+                      expected_score_sha256: str = Query(pattern=r"^[0-9a-f]{64}$"),
+                      expected_generation: int = Query(ge=0)) -> dict:
+    try:
+        snapshot, state = _song_store.evidence_snapshot(song_id)
+    except KeyError as exc:
+        raise HTTPException(404, "Song not found") from exc
+    if (snapshot.revision != expected_revision or score_hash(snapshot.current_score_xml) != expected_score_sha256
+            or not state or state["generation"] != expected_generation):
+        raise HTTPException(409, "Song changed. Reload and retry.")
+    result = {"schema_version": 1, "revision": snapshot.revision,
+              "score_sha256": score_hash(snapshot.current_score_xml), "note_id": note_id,
+              "status": "unavailable", "evidence": None,
+              "limits": ["Selected performed vocal layer; not independent musical ground truth.",
+                         "Source audio seek uses the interpreted grid, not a measured acoustic onset."]}
+    try:
+        links, _ = _evidence_links(song_id, snapshot.revision, snapshot.current_score_xml, state)
+        if note_id in links:
+            result.update(status="linked", evidence=links[note_id], reason=None)
+            patches = _song_store.evidence_patches(song_id, snapshot.revision, result["score_sha256"])
+            result["patch"] = next((patch for patch in reversed(patches)
+                                    if patch["locator"] == note_id
+                                    and patch.get("after_generation") == state["generation"]), None)
+        else:
+            result["reason"] = "no_represented_source_event"
+    except Exception as exc:
+        reasons = {"model_evidence_missing", "not_fixed_vocal_recipe", "incomplete_evidence",
+                   "unsupported_recipe", "unsupported_interpretation", "invalid_interpretation",
+                   "current_structure_changed", "ambiguous_mapping", "mapping_not_found",
+                   "repeated_source_run", "unsupported_score", "unsupported_polyphony",
+                   "unsupported_note", "invalid_divisions", "invalid_duration", "invalid_pitch",
+                   "invalid_tie", "broken_tie", "unsupported_clock", "unsupported_positions",
+                   "evidence_limit_exceeded", "lineage_unavailable"}
+        reason = str(exc) if str(exc) in reasons else "invalid_evidence"
+        result.update(status="ambiguous" if reason == "ambiguous_mapping" else "unavailable", reason=reason)
+    return result
 
 
 @router.patch("/{song_id}")
@@ -413,8 +532,18 @@ def get_structure(song_id: str) -> dict:
 @router.patch("/{song_id}/notes/{note_id}/structure")
 def patch_note_structure(song_id: str, note_id: str, payload: NoteStructurePatch) -> dict:
     patch = payload.model_dump(exclude_unset=True)
+    expected_revision = patch.pop("expected_revision", None)
+    expected_score_sha256 = patch.pop("expected_score_sha256", None)
+    expected_generation = patch.pop("expected_generation", None)
     if not patch:
-        return {"song": _public(_require_song(song_id)), "note_id": note_id}
+        song = _require_song(song_id)
+        snapshot, state = _song_store.evidence_snapshot(song_id)
+        if ((expected_revision is not None and expected_revision != snapshot.revision)
+                or (expected_score_sha256 is not None and expected_score_sha256 != score_hash(snapshot.current_score_xml))):
+            raise HTTPException(409, "Song changed. Reload and retry.")
+        if expected_generation is not None and (not state or state["generation"] != expected_generation):
+            raise HTTPException(409, "Song changed. Reload and retry.")
+        return {"song": _public(song), "note_id": note_id}
 
     def operation(_song: dict, path: Path) -> dict:
         structure_fields = {
@@ -436,7 +565,10 @@ def patch_note_structure(song_id: str, note_id: str, payload: NoteStructurePatch
                 update_note(path, note_id, basic_fields)
         return {"note_id": note_id}
 
-    return _mutate(song_id, operation)
+    return _mutate(song_id, operation, expected_revision=expected_revision,
+                   expected_score_sha256=expected_score_sha256,
+                   expected_generation=expected_generation,
+                   evidence_note_id=note_id if set(patch) <= {"step", "alter", "octave"} else None)
 
 
 @router.post("/{song_id}/notes/{note_id}/insert")
