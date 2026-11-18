@@ -61,7 +61,7 @@ test("explicit evidence query connects verified grid to owned audio", async ({ p
   for (const [name, width, height] of [["desktop", 1240, 900], ["minimum", 920, 680]] as const) {
     await page.setViewportSize({ width, height });
     await page.locator(".note-evidence").scrollIntoViewIfNeeded();
-    await page.screenshot({ path: testInfo.outputPath(`selected-note-${name}.png`) });
+    await page.screenshot({ path: testInfo.outputPath(`source-audio-selected-note-${name}.png`) });
   }
 });
 
