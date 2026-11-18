@@ -1,0 +1,520 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-18",
+  "quality_approved": false,
+  "change": "Separate fixed_beat_cmd and beat-preflight; DBN clock integration preserves provider observations and Song evidence.",
+  "build_receipt_sha256": "12de1d9f45e781261701bba4bce24420a60e72991135c49a203981ad50f51b40",
+  "build": {
+    "python": "3.11.15 (main, Jun 23 2026, 15:46:51) [Clang 22.1.3 ]",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "runtime": {
+      "beat-this": "1.1.0",
+      "torch": "2.7.1",
+      "torchaudio": "2.7.1",
+      "numpy": "1.26.4",
+      "soundfile": "0.14.0",
+      "madmom": "0.17.dev0",
+      "soxr": "1.1.0",
+      "scipy": "1.17.1",
+      "einops": "0.8.2",
+      "rotary-embedding-torch": "0.8.6",
+      "Cython": "0.29.37",
+      "setuptools": "69.5.1",
+      "wheel": "0.45.1",
+      "mido": "1.3.3",
+      "pytest-runner": "6.0.1"
+    },
+    "beat_this_revision": "b95c8ab0c58c2d9fcfd40508ae8dffbc05ac4f5c",
+    "beat_this_tree_sha256": "3f8d310da05e5b26fb455645dfcad5b835570b23a511003e351ce0f33b45fd04",
+    "madmom_revision": "27f032e8947204902c675e5e341a3faf5dc86dae",
+    "models_revision": "7e3dc1b0cad499792767074d03c38b194b9b0a79",
+    "models_initializer_git_blob": "aac941443fa08ca10aad1af5e8cb9dd664d42b09",
+    "madmom_tree_sha256": "28255419eddab6a2c801b240df2e8f418e4e8d2704d6caaa1146d41661f8167e",
+    "madmom_native_sha256": {
+      "audio/comb_filters.cpython-311-darwin.so": "a284bf2689224713117963c61e1a55036b810905a55d68096f416368efdb56b6",
+      "features/beats_crf.cpython-311-darwin.so": "9833289e81fa9ea58678fd7bdd3389f1c5b1b20d4a00bec867a186ed823db1d0",
+      "ml/hmm.cpython-311-darwin.so": "2805642168ba8e3690c40975ca97c020ba17a7e821d30fce8a5dba9b1bd1b397",
+      "ml/nn/layers.cpython-311-darwin.so": "01a1d023959a389c66dcc127811ad4bf7d19bcf0b7a0f4cf6427fc589e34ead9"
+    },
+    "madmom_pretrained_pkl_count": 0,
+    "beat_build_setuptools": "80.9.0",
+    "preflight": "passed",
+    "snapshot_checkpoint_sha256": "8c328b45f59d8dd3dff219253ff6a8d6482be57d0133a29140e2febbf8eb8331",
+    "adapter_sha256": "4293fa3bc49c21d88cee0e8d764ff3f682315b7de93cba3844347e2cc7690363"
+  },
+  "fresh_inference_report_sha256": "1b271495e75d5695b0093b2e607fc9d0f0fa2384af651f09d94b10e83320fb0b",
+  "fresh_inference": {
+    "complete": true,
+    "separate_runtime_preflight_passed": true,
+    "cases": [
+      {
+        "id": "tinashe-me-so-bad",
+        "source_sha256": "f39788b3075e9117661481470289c6e79ce25171f7a256936a2167bdae49fd65",
+        "receipt_sha256": "d669a4806007a0f8b9673dec71b35514e461f0580e5e02127c595a6226884b6d",
+        "prediction_sha256": "9e4934ad0ae4845a5b847f0192bae1b89b6330ba03a83859098ed7adc155399a",
+        "counts": {
+          "beats": 338,
+          "downbeats": 84
+        },
+        "same_decoded_arrays_as_prior": {
+          "beats": true,
+          "downbeats": true
+        },
+        "source_unchanged": true
+      },
+      {
+        "id": "twice-fancy",
+        "source_sha256": "5e1b5613b3863ea3babd2dc22bc9fa8ba62deb2ae44d48c8885f832ab56f01ec",
+        "receipt_sha256": "bce66a541cedec50a9eeceeeb61027592744a216db1a39b116dee1827dd0547f",
+        "prediction_sha256": "1a0cbc5cc09c562505d9870b80d0418fcd91d87314df4cc0055ff5b6c1dfd1b2",
+        "counts": {
+          "beats": 474,
+          "downbeats": 119
+        },
+        "same_decoded_arrays_as_prior": {
+          "beats": true,
+          "downbeats": true
+        },
+        "source_unchanged": true
+      },
+      {
+        "id": "green-day-american-idiot",
+        "source_sha256": "aedb875ba145c1f5cd21a0a86713d11dff1de9701512b8f1c7e4a40fa4fdf680",
+        "receipt_sha256": "f5e68febcacba6de469b29b9c20870d13fd020094f271b4207219bfc96f28b51",
+        "prediction_sha256": "39a1a6d781b63e47c8d8a679516f442c21ccfac831fcb51d767fdf4ee3201489",
+        "counts": {
+          "beats": 538,
+          "downbeats": 135
+        },
+        "same_decoded_arrays_as_prior": {
+          "beats": true,
+          "downbeats": true
+        },
+        "source_unchanged": true
+      },
+      {
+        "id": "ham-boo-young-my-song",
+        "source_sha256": "871118a06f5021b94f6e56c9066fca50670582f5e530bcee9290e2db270d8ac7",
+        "receipt_sha256": "da8b96f8f6998293bb8c24cbdee82e956f46e2b2bbc2b37d51d6ed6eb3573212",
+        "prediction_sha256": "e10a9f222f91e912d0bcd66417d6b161ab0b897b66536901e8f21cbd0f42e479",
+        "counts": {
+          "beats": 330,
+          "downbeats": 83
+        },
+        "same_decoded_arrays_as_prior": {
+          "beats": true,
+          "downbeats": true
+        },
+        "source_unchanged": true
+      },
+      {
+        "id": "younha-event-horizon",
+        "source_sha256": "2d84bd77253c96851db8bde4cd76de0b7bf7101cf07f79ff8dbf2d03f1d23dce",
+        "receipt_sha256": "c4934aed57a28225658acfe920c0db462b19152264e9c8b014c55df040866f04",
+        "prediction_sha256": "f401cd7f4be3d9bf24b4143db65057083e28a560849e69215298ebb8aa042501",
+        "counts": {
+          "beats": 487,
+          "downbeats": 122
+        },
+        "same_decoded_arrays_as_prior": {
+          "beats": true,
+          "downbeats": true
+        },
+        "source_unchanged": true
+      }
+    ]
+  },
+  "publication": {
+    "baseline": {
+      "private_report_sha256": "ef02e22bb08d83de06e420c493641093c67125e73fbe64195a4ad6f9738b45ff",
+      "source_commit": "b1fe9ddf89168ba7a5ff9caf88ba496889c7babe",
+      "source_unchanged": true,
+      "independent_musicxml_semantics_passed": true,
+      "cases": [
+        {
+          "id": "tinashe-me-so-bad",
+          "raw_notes": 564,
+          "represented_notes": 550,
+          "omitted_notes": 14,
+          "pdf_pages": 5,
+          "notation_counts": {
+            "printed_notes": 559,
+            "rests": 111,
+            "ties_start": 9,
+            "ties_stop": 9,
+            "tuplet_notes": 0
+          },
+          "canonical_harmony_count": 186,
+          "published_harmony_count": 186,
+          "collapsed_chord_events": [],
+          "source_unchanged": true,
+          "same_grid_and_source_mapping_as_prior_dbn": true,
+          "canonical_fidelity": {
+            "performed_notes": 550,
+            "max_time_difference_seconds": 1.8758328224066645e-12,
+            "tolerance_seconds": 0.002,
+            "pitch_adjustments": 0,
+            "matched_interpretation": true,
+            "original_song_accuracy": null
+          },
+          "published_fidelity": {
+            "performed_notes": 550,
+            "max_time_difference_seconds": 1.8758328224066645e-12,
+            "tolerance_seconds": 0.002,
+            "pitch_adjustments": 0,
+            "matched_interpretation": true,
+            "original_song_accuracy": null
+          }
+        },
+        {
+          "id": "twice-fancy",
+          "raw_notes": 710,
+          "represented_notes": 693,
+          "omitted_notes": 17,
+          "pdf_pages": 7,
+          "notation_counts": {
+            "printed_notes": 722,
+            "rests": 134,
+            "ties_start": 29,
+            "ties_stop": 29,
+            "tuplet_notes": 0
+          },
+          "canonical_harmony_count": 245,
+          "published_harmony_count": 245,
+          "collapsed_chord_events": [],
+          "source_unchanged": true,
+          "same_grid_and_source_mapping_as_prior_dbn": true,
+          "canonical_fidelity": {
+            "performed_notes": 693,
+            "max_time_difference_seconds": 3.0000000101892965e-06,
+            "tolerance_seconds": 0.002,
+            "pitch_adjustments": 0,
+            "matched_interpretation": true,
+            "original_song_accuracy": null
+          },
+          "published_fidelity": {
+            "performed_notes": 693,
+            "max_time_difference_seconds": 3.0000000101892965e-06,
+            "tolerance_seconds": 0.002,
+            "pitch_adjustments": 0,
+            "matched_interpretation": true,
+            "original_song_accuracy": null
+          }
+        },
+        {
+          "id": "green-day-american-idiot",
+          "raw_notes": 311,
+          "represented_notes": 308,
+          "omitted_notes": 3,
+          "pdf_pages": 7,
+          "notation_counts": {
+            "printed_notes": 365,
+            "rests": 134,
+            "ties_start": 57,
+            "ties_stop": 57,
+            "tuplet_notes": 0
+          },
+          "canonical_harmony_count": 297,
+          "published_harmony_count": 297,
+          "collapsed_chord_events": [],
+          "source_unchanged": true,
+          "same_grid_and_source_mapping_as_prior_dbn": true,
+          "canonical_fidelity": {
+            "performed_notes": 308,
+            "max_time_difference_seconds": 3.0000000101892965e-06,
+            "tolerance_seconds": 0.002,
+            "pitch_adjustments": 0,
+            "matched_interpretation": true,
+            "original_song_accuracy": null
+          },
+          "published_fidelity": {
+            "performed_notes": 308,
+            "max_time_difference_seconds": 3.0000000101892965e-06,
+            "tolerance_seconds": 0.002,
+            "pitch_adjustments": 0,
+            "matched_interpretation": true,
+            "original_song_accuracy": null
+          }
+        },
+        {
+          "id": "ham-boo-young-my-song",
+          "raw_notes": 605,
+          "represented_notes": 558,
+          "omitted_notes": 47,
+          "pdf_pages": 5,
+          "notation_counts": {
+            "printed_notes": 589,
+            "rests": 129,
+            "ties_start": 31,
+            "ties_stop": 31,
+            "tuplet_notes": 0
+          },
+          "canonical_harmony_count": 226,
+          "published_harmony_count": 226,
+          "collapsed_chord_events": [],
+          "source_unchanged": true,
+          "same_grid_and_source_mapping_as_prior_dbn": true,
+          "canonical_fidelity": {
+            "performed_notes": 558,
+            "max_time_difference_seconds": 2.0000023823740776e-06,
+            "tolerance_seconds": 0.002,
+            "pitch_adjustments": 0,
+            "matched_interpretation": true,
+            "original_song_accuracy": null
+          },
+          "published_fidelity": {
+            "performed_notes": 558,
+            "max_time_difference_seconds": 2.0000023823740776e-06,
+            "tolerance_seconds": 0.002,
+            "pitch_adjustments": 0,
+            "matched_interpretation": true,
+            "original_song_accuracy": null
+          }
+        },
+        {
+          "id": "younha-event-horizon",
+          "raw_notes": 623,
+          "represented_notes": 614,
+          "omitted_notes": 9,
+          "pdf_pages": 7,
+          "notation_counts": {
+            "printed_notes": 635,
+            "rests": 131,
+            "ties_start": 21,
+            "ties_stop": 21,
+            "tuplet_notes": 0
+          },
+          "canonical_harmony_count": 233,
+          "published_harmony_count": 233,
+          "collapsed_chord_events": [],
+          "source_unchanged": true,
+          "same_grid_and_source_mapping_as_prior_dbn": true,
+          "canonical_fidelity": {
+            "performed_notes": 614,
+            "max_time_difference_seconds": 3.0000019251019694e-06,
+            "tolerance_seconds": 0.002,
+            "pitch_adjustments": 0,
+            "matched_interpretation": true,
+            "original_song_accuracy": null
+          },
+          "published_fidelity": {
+            "performed_notes": 614,
+            "max_time_difference_seconds": 3.0000019251019694e-06,
+            "tolerance_seconds": 0.002,
+            "pitch_adjustments": 0,
+            "matched_interpretation": true,
+            "original_song_accuracy": null
+          }
+        }
+      ]
+    },
+    "lv": {
+      "private_report_sha256": "9e1f64ae5dbeb33b2f573b1bddc5fb763730d3d09b219ee56126a3b536aa921d",
+      "source_commit": "b1fe9ddf89168ba7a5ff9caf88ba496889c7babe",
+      "source_unchanged": true,
+      "independent_musicxml_semantics_passed": true,
+      "cases": [
+        {
+          "id": "tinashe-me-so-bad",
+          "raw_notes": 564,
+          "represented_notes": 550,
+          "omitted_notes": 14,
+          "pdf_pages": 5,
+          "notation_counts": {
+            "printed_notes": 559,
+            "rests": 111,
+            "ties_start": 9,
+            "ties_stop": 9,
+            "tuplet_notes": 0
+          },
+          "canonical_harmony_count": 158,
+          "published_harmony_count": 158,
+          "collapsed_chord_events": [],
+          "source_unchanged": true,
+          "same_grid_and_source_mapping_as_prior_dbn": true,
+          "canonical_fidelity": {
+            "performed_notes": 550,
+            "max_time_difference_seconds": 1.8758328224066645e-12,
+            "tolerance_seconds": 0.002,
+            "pitch_adjustments": 0,
+            "matched_interpretation": true,
+            "original_song_accuracy": null
+          },
+          "published_fidelity": {
+            "performed_notes": 550,
+            "max_time_difference_seconds": 1.8758328224066645e-12,
+            "tolerance_seconds": 0.002,
+            "pitch_adjustments": 0,
+            "matched_interpretation": true,
+            "original_song_accuracy": null
+          }
+        },
+        {
+          "id": "twice-fancy",
+          "raw_notes": 710,
+          "represented_notes": 693,
+          "omitted_notes": 17,
+          "pdf_pages": 7,
+          "notation_counts": {
+            "printed_notes": 722,
+            "rests": 134,
+            "ties_start": 29,
+            "ties_stop": 29,
+            "tuplet_notes": 0
+          },
+          "canonical_harmony_count": 192,
+          "published_harmony_count": 192,
+          "collapsed_chord_events": [],
+          "source_unchanged": true,
+          "same_grid_and_source_mapping_as_prior_dbn": true,
+          "canonical_fidelity": {
+            "performed_notes": 693,
+            "max_time_difference_seconds": 3.0000000101892965e-06,
+            "tolerance_seconds": 0.002,
+            "pitch_adjustments": 0,
+            "matched_interpretation": true,
+            "original_song_accuracy": null
+          },
+          "published_fidelity": {
+            "performed_notes": 693,
+            "max_time_difference_seconds": 3.0000000101892965e-06,
+            "tolerance_seconds": 0.002,
+            "pitch_adjustments": 0,
+            "matched_interpretation": true,
+            "original_song_accuracy": null
+          }
+        },
+        {
+          "id": "green-day-american-idiot",
+          "raw_notes": 311,
+          "represented_notes": 308,
+          "omitted_notes": 3,
+          "pdf_pages": 7,
+          "notation_counts": {
+            "printed_notes": 365,
+            "rests": 134,
+            "ties_start": 57,
+            "ties_stop": 57,
+            "tuplet_notes": 0
+          },
+          "canonical_harmony_count": 195,
+          "published_harmony_count": 195,
+          "collapsed_chord_events": [],
+          "source_unchanged": true,
+          "same_grid_and_source_mapping_as_prior_dbn": true,
+          "canonical_fidelity": {
+            "performed_notes": 308,
+            "max_time_difference_seconds": 3.0000000101892965e-06,
+            "tolerance_seconds": 0.002,
+            "pitch_adjustments": 0,
+            "matched_interpretation": true,
+            "original_song_accuracy": null
+          },
+          "published_fidelity": {
+            "performed_notes": 308,
+            "max_time_difference_seconds": 3.0000000101892965e-06,
+            "tolerance_seconds": 0.002,
+            "pitch_adjustments": 0,
+            "matched_interpretation": true,
+            "original_song_accuracy": null
+          }
+        },
+        {
+          "id": "ham-boo-young-my-song",
+          "raw_notes": 605,
+          "represented_notes": 558,
+          "omitted_notes": 47,
+          "pdf_pages": 5,
+          "notation_counts": {
+            "printed_notes": 589,
+            "rests": 129,
+            "ties_start": 31,
+            "ties_stop": 31,
+            "tuplet_notes": 0
+          },
+          "canonical_harmony_count": 158,
+          "published_harmony_count": 158,
+          "collapsed_chord_events": [],
+          "source_unchanged": true,
+          "same_grid_and_source_mapping_as_prior_dbn": true,
+          "canonical_fidelity": {
+            "performed_notes": 558,
+            "max_time_difference_seconds": 2.0000023823740776e-06,
+            "tolerance_seconds": 0.002,
+            "pitch_adjustments": 0,
+            "matched_interpretation": true,
+            "original_song_accuracy": null
+          },
+          "published_fidelity": {
+            "performed_notes": 558,
+            "max_time_difference_seconds": 2.0000023823740776e-06,
+            "tolerance_seconds": 0.002,
+            "pitch_adjustments": 0,
+            "matched_interpretation": true,
+            "original_song_accuracy": null
+          }
+        },
+        {
+          "id": "younha-event-horizon",
+          "raw_notes": 623,
+          "represented_notes": 614,
+          "omitted_notes": 9,
+          "pdf_pages": 7,
+          "notation_counts": {
+            "printed_notes": 635,
+            "rests": 131,
+            "ties_start": 21,
+            "ties_stop": 21,
+            "tuplet_notes": 0
+          },
+          "canonical_harmony_count": 153,
+          "published_harmony_count": 153,
+          "collapsed_chord_events": [],
+          "source_unchanged": true,
+          "same_grid_and_source_mapping_as_prior_dbn": true,
+          "canonical_fidelity": {
+            "performed_notes": 614,
+            "max_time_difference_seconds": 3.0000019251019694e-06,
+            "tolerance_seconds": 0.002,
+            "pitch_adjustments": 0,
+            "matched_interpretation": true,
+            "original_song_accuracy": null
+          },
+          "published_fidelity": {
+            "performed_notes": 614,
+            "max_time_difference_seconds": 3.0000019251019694e-06,
+            "tolerance_seconds": 0.002,
+            "pitch_adjustments": 0,
+            "matched_interpretation": true,
+            "original_song_accuracy": null
+          }
+        }
+      ]
+    }
+  },
+  "visual_review": {
+    "cohort": "lv",
+    "all_pages": 31,
+    "contact_sheets": 10,
+    "layout_quality_approved": false,
+    "findings": [
+      "Large lower-page whitespace and short final pages.",
+      "Dense short-note/rest subdivisions remain.",
+      "Extended chord labels render without prior hidden-degree text."
+    ]
+  },
+  "validation": {
+    "targeted_passed": 260,
+    "local_ffmpeg_dependent_skip": 1,
+    "ruff": "pass",
+    "local_locked_product_scope": "Not completed: PyPI DNS failed; escalation aborted.",
+    "required_ci": "Pending on published PR head."
+  },
+  "limits": [
+    "Only beat inference was fresh; YourMT3 vocals, separation and SheetSage2 context were frozen.",
+    "Publication used isolated Song stores, not five new end-to-end API Jobs.",
+    "Both harmony cohorts are regression controls, not user-selectable recipes or final harmony selection.",
+    "macOS arm64 native build verified; other platforms unverified.",
+    "No expert whole-song accuracy or human minimum-edit approval for the five songs."
+  ]
+}
