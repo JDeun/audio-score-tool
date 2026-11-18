@@ -1,0 +1,341 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-18",
+  "quality_approved": false,
+  "private_report_sha256": {
+    "american_written_and_boundary": "ccea79a742f888a7cfeae867a8ece6eeba696134e65674846e0e6c6fa119465b",
+    "phase_provenance": "5a29d638eacd4f71c17c7f6f79601d3fedf8328e26f718ae8571ba2db26be19f",
+    "me_chorus": "af3dad3814b4737c39316638a905be629743dabd66ff3bf1c28b0308f03559f8"
+  },
+  "american": {
+    "scope": "One community arrangement, drum-only source alignment 0.28 + 0.9838 * chart seconds; reference 310 vocal attacks.",
+    "input_sha256": {
+      "alignment": "c913430ce704f1b0922ee3ac57c718f04c965a9e127fa12c2b1c8fe69ec4d4f4",
+      "extracted": "e9f825d2b94213b9799ec858419281b3c0a0e6bc7cf8bba3d9662129fcfd0995",
+      "gp5": "6bd02952e0324e4290825a7f98685563447696cb115c695a122f33a8ea82099e",
+      "comparison": "2bacd4cffabe605e45fff91f0a699a7199356e662c7e1921f5c773d1b1022606",
+      "your_raw": "8742eed2010dbeb2eb7828f08fb8edbcd4ad4721c348af4ea9926dfca5d6c64d",
+      "s2_beats": "0d2c6414e5cd647682372f865b41997419ef1c6ea2a0b0dc6aa23ffc7797dc4f",
+      "s2_export": "c38523502aec4d5fcd1acc8324efc088acbb5c2f3e58c73661e3ce196165c1a7",
+      "dbn_export": "b98e883e2377633dbe9fb4583367210318dae820fde957f012be5590edbac594",
+      "s2_grid": "763e24c8f7e6d7a4ad2c04841dbc70a1c72107571f513cdb7f96f97e2bacc764",
+      "dbn_grid": "7f9ecc969568a88da03f854a747d7c67f96bad746e29993494e7cf76c58a8d3d",
+      "dbn_clock": "93b0759eafe3f39fc37259a4f40be4daf6af7def429b1b991181fd6733e67ad3",
+      "dbn_replay_grid": "536f774466f479b202b64cc97b63777917a13779590a0550497786dad5a422a2",
+      "dbn_replay_receipt": "ca48a8ffb4077c66f6e8c55bde2ba6bf73cb575470156f72e04d20378fb63b73",
+      "s2_replay_receipt": "ab531aeec4700238a36ea6d14643aae07ec5b729f49f6919d719dd279aac7765",
+      "s2_raw_copy": "8742eed2010dbeb2eb7828f08fb8edbcd4ad4721c348af4ea9926dfca5d6c64d",
+      "dbn_raw_copy": "8742eed2010dbeb2eb7828f08fb8edbcd4ad4721c348af4ea9926dfca5d6c64d",
+      "vocal_grid_source": "27e832932f90866584372918a19948567920c4571b1ad969c2abda27563fc388",
+      "s2_xml": "585beea9aff2c20a86504aaee6ee2a77898a1f30cdb57d19b035228bc108b92e",
+      "dbn_xml": "f92255f70b2b1a21587df66470ad139e02a52e796e9741a0e4205cc14a6a3b9c"
+    },
+    "beat_from_reference_comparison": {
+      "s2": {
+        "beat": {
+          "70ms": {
+            "reference": 536,
+            "predicted": 635,
+            "matched": 304,
+            "f1": 0.5192143467122118
+          },
+          "100ms": {
+            "reference": 536,
+            "predicted": 635,
+            "matched": 407,
+            "f1": 0.695132365499573
+          }
+        },
+        "downbeat": {
+          "70ms": {
+            "reference": 134,
+            "predicted": 162,
+            "matched": 45,
+            "f1": 0.30405405405405406
+          },
+          "100ms": {
+            "reference": 134,
+            "predicted": 162,
+            "matched": 55,
+            "f1": 0.3716216216216216
+          }
+        }
+      },
+      "dbn": {
+        "beat": {
+          "70ms": {
+            "reference": 536,
+            "predicted": 538,
+            "matched": 535,
+            "f1": 0.9962756052141527
+          },
+          "100ms": {
+            "reference": 536,
+            "predicted": 538,
+            "matched": 536,
+            "f1": 0.9981378026070763
+          }
+        },
+        "downbeat": {
+          "70ms": {
+            "reference": 134,
+            "predicted": 135,
+            "matched": 134,
+            "f1": 0.9962825278810409
+          },
+          "100ms": {
+            "reference": 134,
+            "predicted": 135,
+            "matched": 134,
+            "f1": 0.9962825278810409
+          }
+        }
+      }
+    },
+    "exact_written_rhythm_on_fixed_first_musical_downbeat": {
+      "s2_export": {
+        "first_musical_downbeat_source_seconds": 0.3,
+        "exact_pitch_and_written_start": 63,
+        "exact_pitch_start_duration": 39
+      },
+      "dbn_export": {
+        "first_musical_downbeat_source_seconds": 0.28,
+        "exact_pitch_and_written_start": 157,
+        "exact_pitch_start_duration": 95
+      }
+    },
+    "grid_replay": {
+      "s2_export": {
+        "fidelity_max_seconds": 3.000000447173079e-06,
+        "omitted_count": 3,
+        "attacks_not_at_nearest_raw_boundary_count": 0,
+        "offsets_not_at_nearest_raw_boundary_count": 0,
+        "cell_count": 2540,
+        "cell_width_ms": {
+          "0": 37.5,
+          "0.1": 60.0,
+          "0.5": 60.0,
+          "0.9": 82.5,
+          "1": 120.0
+        }
+      },
+      "dbn_export": {
+        "fidelity_max_seconds": 3.0000000101892965e-06,
+        "omitted_count": 3,
+        "attacks_not_at_nearest_raw_boundary_count": 0,
+        "offsets_not_at_nearest_raw_boundary_count": 0,
+        "cell_count": 2164,
+        "cell_width_ms": {
+          "0": 10.0,
+          "0.1": 80.0,
+          "0.5": 80.0,
+          "0.9": 85.0,
+          "1": 85.0
+        }
+      }
+    },
+    "same_omitted_source_ids": true,
+    "conclusion": "DBN improves written meter/rhythm here despite worse 50 ms performed-time matches. Keep the current quantizer; this case does not justify onset reassignment or a finer grid."
+  },
+  "phase_provenance": {
+    "method": "Replay pinned minimal peak decoder from cached logits. Map raw peaks and detected downbeats to nearest DBN beats using prior 80 ms association tolerance; count unique positions modulo four. The matrix counts events, retaining minimal and DBN indices separately.",
+    "limits": "Shared-network raw peak support does not independently validate DBN musical phase. S2 is a second model rather than a reference. No reference or model inference used.",
+    "correction": "Me [2,42,37,1] counts minimal decoder downbeats on its own beat list. It is not S2 evidence or DBN phase conflict; missing/extra beats change indices. Shared-network DBN agreement is not independent musical validation.",
+    "me_case": {
+      "id": "tinashe-me-so-bad",
+      "beat_counts": {
+        "minimal": 317,
+        "dbn": 338
+      },
+      "first_observed_dbn_beat_seconds": 7.52,
+      "minimal_beats_unmatched_to_dbn": 11,
+      "dbn_beats_unmatched_from_minimal": 32,
+      "minimal_self_phase_votes": [
+        2,
+        42,
+        37,
+        1
+      ],
+      "dbn_self_phase_votes": [
+        0,
+        0,
+        0,
+        84
+      ],
+      "raw_logit_peaks_projected_to_dbn": {
+        "phase_votes_mod4": [
+          0,
+          0,
+          0,
+          79
+        ],
+        "unmatched_events": 4
+      },
+      "minimal_snapped_downbeats_projected_to_dbn": {
+        "phase_votes_mod4": [
+          0,
+          2,
+          0,
+          75
+        ],
+        "unmatched_events": 5
+      },
+      "minimal_phase_to_dbn_phase_count_matrix": [
+        [
+          0,
+          2,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          39
+        ],
+        [
+          0,
+          0,
+          0,
+          36
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "s2_downbeats_projected_to_dbn": {
+        "phase_votes_mod4": [
+          4,
+          5,
+          5,
+          12
+        ],
+        "unmatched_events": 67
+      },
+      "source_notes_before_or_after_observed_dbn_coverage": 0,
+      "derived_leading_beats": 13
+    }
+  },
+  "me_chorus": {
+    "scope": "Eight community-authored chorus bar starts, numbered 1 through 29 by fours. Same video ID and frozen source WAV verified. Two approximate author sync interpretations are held fixed. No intro or whole-song phase labels, no model fit.",
+    "phase_method": "Nearest predicted quarter-note pulse index minus nearest predicted downbeat index on the same whole-song beat list. Zero means the nearest pulse is a downbeat. No phase optimization.",
+    "video_id": "VaGcPRMY5UM",
+    "input_sha256": {
+      "chart": "6fa946d00531274adfdf118ac56abcd7a14973e322f187a8680706c1dae95533",
+      "stream_sync_receipt": "1ef2ca3b64d75a5f918216c1aa4d13d185c4f8d81c81fd80813fbfd7a2b16bd5",
+      "frozen_projections": "e68db5d7765c8e55044a741cd59c15e715ba51cae31c0bfb1433e87d83673c08",
+      "source_receipt": "320809859c3d9f2b6204d207451962c0d6d31410c95afe6f2b2b4fabed4f6220",
+      "prior_beat_comparison": "427de57fdcfc16c716bccab093a4369a48b80b2675dc14913c1b2687459a214a",
+      "source_audio": "f39788b3075e9117661481470289c6e79ce25171f7a256936a2167bdae49fd65",
+      "beat_receipt": "b4df197abf834e0fc769e88288914d812447be8c800a3321b7a9e584426c4947",
+      "product_receipt": "949c15b6821bc62d16dbd5405da1f5862ac878742cf2ab36ad70478ebb80a8e8",
+      "sheet_sage": "a05b054aa885df53208d73877f3b4be605050673848c64ba44c73cdc607c8672",
+      "dbn": "d9b441d30cc6517ca80e328c3a2b32997f3a2764c1bbb924e155f57449e4a4e6",
+      "minimal": "0a2a2154280aa80a96202cda1db09ea41f9bb24bbfb91bcaba00c97e257e15e8"
+    },
+    "source_offset_seconds": 0,
+    "authored_bar_start_count": 8,
+    "projections": {
+      "authored_endpoints": {
+        "s2": {
+          "nearest_downbeat_error_ms": {
+            "median_abs": 100.089,
+            "max_abs": 230.325,
+            "signed_median": -71.192
+          },
+          "within_ms": {
+            "70": 3,
+            "80": 4,
+            "100": 4,
+            "150": 5
+          },
+          "nearest_quarter_is_downbeat_count": 8
+        },
+        "dbn": {
+          "nearest_downbeat_error_ms": {
+            "median_abs": 66.131,
+            "max_abs": 129.675,
+            "signed_median": 66.131
+          },
+          "within_ms": {
+            "70": 4,
+            "80": 5,
+            "100": 7,
+            "150": 8
+          },
+          "nearest_quarter_is_downbeat_count": 8
+        },
+        "minimal": {
+          "nearest_downbeat_error_ms": {
+            "median_abs": 62.352,
+            "max_abs": 129.675,
+            "signed_median": 62.352
+          },
+          "within_ms": {
+            "70": 5,
+            "80": 6,
+            "100": 7,
+            "150": 8
+          },
+          "nearest_quarter_is_downbeat_count": 8
+        }
+      },
+      "nominal_bpm": {
+        "s2": {
+          "nearest_downbeat_error_ms": {
+            "median_abs": 120.0,
+            "max_abs": 317.413,
+            "signed_median": -77.413
+          },
+          "within_ms": {
+            "70": 1,
+            "80": 4,
+            "100": 4,
+            "150": 4
+          },
+          "nearest_quarter_is_downbeat_count": 7
+        },
+        "dbn": {
+          "nearest_downbeat_error_ms": {
+            "median_abs": 22.587,
+            "max_abs": 42.587,
+            "signed_median": 22.587
+          },
+          "within_ms": {
+            "70": 8,
+            "80": 8,
+            "100": 8,
+            "150": 8
+          },
+          "nearest_quarter_is_downbeat_count": 8
+        },
+        "minimal": {
+          "nearest_downbeat_error_ms": {
+            "median_abs": 22.587,
+            "max_abs": 42.587,
+            "signed_median": 22.587
+          },
+          "within_ms": {
+            "70": 8,
+            "80": 8,
+            "100": 8,
+            "150": 8
+          },
+          "nearest_quarter_is_downbeat_count": 8
+        }
+      }
+    }
+  },
+  "decision": "Proceed with isolated DBN runtime integration for the fixed development recipe; no song-specific S2 guard derived from minimal indices, no final quality approval.",
+  "limits": [
+    "Frozen predictions replayed; no new inference in these audits.",
+    "Independent onset/offset performance metrics and written-duration metrics measure different errors.",
+    "First musical downbeat alignment is fixed from each clock, not optimized against vocal notes.",
+    "Community arrangement and approximate synchronization are not full expert recording truth.",
+    "Me intro has 13 derived leading beats before its first observed DBN beat at 7.52 s; chorus evidence does not validate the intro.",
+    "No expert whole-song reference or human minimum-edit KPI for all five songs."
+  ]
+}
