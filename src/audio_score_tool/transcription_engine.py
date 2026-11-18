@@ -443,12 +443,12 @@ class FixedVocalLeadEngine(SheetSage2Engine):
         root = self.settings.fixed_lead_snapshot
         return bool(not packaged_runtime() and root
                     and all(command_exists(command) for command in (
-                        self.settings.sheetsage2_cmd, self.settings.fixed_vocal_cmd,
+                        self.settings.sheetsage2_cmd, self.settings.fixed_vocal_cmd, self.settings.fixed_beat_cmd,
                         self.settings.ffmpeg_cmd))
                     and all((root / path).is_file() for path in (
                         "sheetsage2/model/model.safetensors", "sheetsage2/mert/model.safetensors",
                         Path("checkpoints") / YOUR_CHECKPOINT, Path("demucs") / DEMUCS_WEIGHT,
-                        "demucs/htdemucs.yaml")))
+                        "demucs/htdemucs.yaml", "beat-this/final0.ckpt")))
 
     def describe(self):
         return {**super().describe(),

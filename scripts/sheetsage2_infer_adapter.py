@@ -5,6 +5,7 @@ import argparse
 import json
 import math
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -139,7 +140,7 @@ def _validate_chord_rows(rows, duration):
             _parse_chord_symbol(row[2])
 
 
-def rebuild_vocal_notation(model_dir: Path, context: Path, vocal_midi: Path, output: Path) -> dict:
+def rebuild_vocal_notation(model_dir: Path, context: Path, vocal_midi: Path, output: Path, beat_track: Path | None = None) -> dict:
     """Use pinned notation code without loading MERT or running another model."""
     import shutil
 
@@ -168,7 +169,16 @@ def rebuild_vocal_notation(model_dir: Path, context: Path, vocal_midi: Path, out
     if type(duration) not in (int, float) or not math.isfinite(duration) or duration <= 0:
         raise ValueError("Invalid fixed-recipe source duration")
     _validate_chord_rows(rows["chords"], duration)
-    score = build_rebuilt_abc_score_from_data(pretty_midi.PrettyMIDI(), rows["beats"],
+    clock_info = None
+    mapped_beats = rows["beats"]
+    if beat_track is not None:
+        import numpy as np
+
+        from audio_score_tool.beat_clock import beat_rows
+
+        with np.load(beat_track, allow_pickle=False) as observed:
+            mapped_beats, clock_info = beat_rows(observed["beats"], observed["downbeats"], duration, rows["beats"])
+    score = build_rebuilt_abc_score_from_data(pretty_midi.PrettyMIDI(), mapped_beats,
                                              rows["chords"], rows["keys"], rows["structures"],
                                              melody_only=True)
     clipped = score.subbeat_times[-1] > duration
@@ -182,11 +192,17 @@ def rebuild_vocal_notation(model_dir: Path, context: Path, vocal_midi: Path, out
     score.voice_arrs["Vocal"] = cells
     report["grid_audio_seconds"] = score.subbeat_times.tolist()
     report["terminal_beat_clipped"] = bool(clipped)
+    if clock_info is not None:
+        report["beat_clock"] = clock_info
     melody = pretty_midi.PrettyMIDI(str(vocal_midi))
     for instrument in melody.instruments:
         instrument.name = "Vocal"
     playback, midis = build_playback(melody, rows["chords"], score, duration)
     text = score_to_abc(score)
+    if clock_info is not None:
+        text, count = re.subn(r'(?m)^Q:1/4=\d+$', f'Q:1/4={clock_info["nominal_tempo_bpm"]:.2f}', text)
+        if count != 1:
+            raise ValueError("Native ABC has no unique tempo declaration")
     output.mkdir(parents=True, exist_ok=False)
     (output / "score.abc").write_text(text)
     (output / "playback.json").write_text(json.dumps(playback, indent=2) + "\n")
@@ -196,6 +212,8 @@ def rebuild_vocal_notation(model_dir: Path, context: Path, vocal_midi: Path, out
     (output / "notation").mkdir()
     for name in rows:
         shutil.copy2(context / "notation" / f"song_{name}.txt", output / "notation")
+    if beat_track is not None:
+        (output / "notation/song_beats.txt").write_text("".join("\t".join(row) + "\n" for row in mapped_beats))
     report["production_quality_approved"] = False
     return report
 
@@ -212,6 +230,7 @@ def main() -> int:
     parser.add_argument("--base-model-dir", type=Path)
     parser.add_argument("--vocal-midi", type=Path)
     parser.add_argument("--context-dir", type=Path)
+    parser.add_argument("--beat-track", type=Path)
     args = parser.parse_args()
     if os.environ.get("AST_USAGE_MODE", "research").lower() == "commercial":
         parser.error("SheetSage2 public weights are noncommercial")
@@ -223,7 +242,7 @@ def main() -> int:
         if not (args.vocal_midi and args.context_dir and args.model_dir):
             parser.error("Vocal notation requires --vocal-midi, --context-dir and --model-dir")
         report = rebuild_vocal_notation(args.model_dir, args.context_dir, args.vocal_midi,
-                                       args.output.parent / "native")
+                                       args.output.parent / "native", args.beat_track)
         args.output.write_text(json.dumps(report, indent=2) + "\n")
         return 0
     if args.model_dir:

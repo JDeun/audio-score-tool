@@ -98,6 +98,7 @@ def runtime_settings(
         fixed_lead_snapshot=(Path(saved["fixed_lead_snapshot"]).expanduser()
                              if saved.get("fixed_lead_snapshot") else defaults.fixed_lead_snapshot),
         fixed_vocal_cmd=command_value("fixed_vocal_cmd", defaults.fixed_vocal_cmd),
+        fixed_beat_cmd=command_value("fixed_beat_cmd", defaults.fixed_beat_cmd),
         demucs_cmd=command_value("demucs_cmd", defaults.demucs_cmd),
         whisperx_cmd=command_value("whisperx_cmd", defaults.whisperx_cmd),
         yt_dlp_cmd=command_value("yt_dlp_cmd", defaults.yt_dlp_cmd),
