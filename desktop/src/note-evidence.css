@@ -1,2 +1,3 @@
 .note-evidence { display: grid; gap: 6px; }
 .note-evidence p { margin: 0; font-size: 12px; line-height: 1.5; }
+.score-inspector .note-list { flex-shrink: 0; }

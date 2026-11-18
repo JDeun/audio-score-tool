@@ -70,8 +70,14 @@ test("explicit evidence query connects verified grid to owned audio", async ({ p
   await expect(review.getByLabel("원음 재생")).toHaveJSProperty("paused", true);
   for (const [name, width, height] of [["desktop", 1240, 900], ["minimum", 920, 680]] as const) {
     await page.setViewportSize({ width, height });
+    const list = page.locator(".note-list");
+    expect(await list.evaluate(element => element.clientHeight)).toBeGreaterThanOrEqual(
+      await list.locator("button").first().evaluate(element => element.getBoundingClientRect().height) + 10);
     await page.locator(".note-evidence").scrollIntoViewIfNeeded();
     await page.screenshot({ path: testInfo.outputPath(`source-audio-selected-note-${name}.png`) });
+    await page.locator(".note-evidence").getByRole("button", { name: "원음 구간 확인" }).click();
+    await expect(review).toBeFocused();
+    await page.screenshot({ path: testInfo.outputPath(`source-audio-selected-note-${name}-player.png`) });
   }
 });
 
