@@ -1,0 +1,235 @@
+{
+  "schema_version": 1,
+  "source_commit": "6aee2a2139b28af871f4c9a878b7e18650c38226",
+  "scope": "One full development recording; community vocal arrangement and approximate drum-only alignment, not expert ground truth.",
+  "duration_seconds": 174.32,
+  "original_cli_completed": true,
+  "native_separation": true,
+  "separation_model": "htdemucs_6s",
+  "device": "cpu",
+  "seed": 0,
+  "torch_threads": 2,
+  "runtime_platform": "macOS arm64, Python 3.11 isolated environment; not an upstream lock",
+  "runtime_packages": {
+    "audioread": "3.1.0",
+    "scikit-learn": "1.9.1",
+    "soundfile": "0.14.0",
+    "cloudpickle": "3.1.2",
+    "kiwisolver": "1.5.1",
+    "httpcore2": "2.16.2",
+    "cattrs": "26.2.1",
+    "sphn": "0.2.1",
+    "einops": "0.8.2",
+    "packaging": "26.3",
+    "importlib_resources": "7.1.0",
+    "joblib": "1.6.0",
+    "protobuf": "7.36.2",
+    "basic-pitch": "0.4.0",
+    "verovio": "6.3.0",
+    "httpx2": "2.16.2",
+    "pyaml": "26.7.0",
+    "requests": "2.34.2",
+    "beat-this": "1.1.0",
+    "certifi": "2026.10.23",
+    "networkx": "3.6.1",
+    "demucs": "4.1.0",
+    "contourpy": "1.3.3",
+    "chardet": "7.7.0",
+    "filelock": "4.2.12",
+    "click": "8.5.1",
+    "torch": "2.7.1",
+    "onnxruntime": "1.32.0",
+    "numpy": "1.26.4",
+    "webcolors": "25.10.0",
+    "librosa": "0.11.0",
+    "pycparser": "3.12",
+    "pillow": "13.0.0",
+    "sympy": "1.14.0",
+    "pretty_midi": "0.2.11.post0",
+    "safetensors": "0.8.0",
+    "lazy-loader": "0.6",
+    "platformdirs": "4.14.7",
+    "numba": "0.68.1",
+    "tqdm": "4.70.1",
+    "pooch": "1.9.0",
+    "urllib3": "2.8.0",
+    "h11": "0.16.0",
+    "coremltools": "9.0",
+    "soxr": "1.1.0",
+    "mpmath": "1.3.0",
+    "PyYAML": "6.0.3",
+    "fsspec": "2026.9.0",
+    "setuptools": "69.5.1",
+    "mido": "1.3.3",
+    "matplotlib": "3.11.2",
+    "truststore": "0.10.5",
+    "narwhals": "2.29.0",
+    "cffi": "2.1.1",
+    "mir_eval": "0.8.2",
+    "llvmlite": "0.50.0",
+    "scipy": "1.17.1",
+    "cycler": "0.12.1",
+    "Jinja2": "3.1.6",
+    "julius": "0.2.8",
+    "torchaudio": "2.7.1",
+    "fonttools": "4.68.0",
+    "tzdata": "2026.6",
+    "flatbuffers": "25.12.19",
+    "anyio": "4.16.0",
+    "attrs": "26.1.0",
+    "jsonpickle": "4.1.4",
+    "more-itertools": "11.2.1",
+    "typing_extensions": "4.16.0",
+    "MarkupSafe": "3.0.4",
+    "decorator": "5.3.1",
+    "rotary-embedding-torch": "0.9.2",
+    "music21": "9.9.2",
+    "hf-xet": "1.8.0",
+    "python-dateutil": "4.0.0",
+    "resampy": "0.4.2",
+    "threadpoolctl": "3.8.0",
+    "lameenc": "1.9.0",
+    "huggingface_hub": "2.4.0",
+    "charset-normalizer": "3.5.2",
+    "msgpack": "1.2.4",
+    "pyparsing": "3.3.3",
+    "six": "1.17.0",
+    "idna": "3.20"
+  },
+  "runtime_packages_verified": 84,
+  "producer_frozen_inputs_unchanged": true,
+  "evaluation_metrics": {
+    "your_selected_midi": {
+      "50ms_onset": {
+        "reference": 310,
+        "predicted": 311,
+        "matches": 213,
+        "f1": 0.6859903381642513
+      },
+      "50ms_onoff": {
+        "reference": 310,
+        "predicted": 311,
+        "matches": 176,
+        "f1": 0.5668276972624798
+      },
+      "100ms_onset": {
+        "reference": 310,
+        "predicted": 311,
+        "matches": 226,
+        "f1": 0.7278582930756844
+      },
+      "100ms_onoff": {
+        "reference": 310,
+        "predicted": 311,
+        "matches": 186,
+        "f1": 0.5990338164251208
+      }
+    },
+    "song2sheet_native_filtered_midi": {
+      "50ms_onset": {
+        "reference": 310,
+        "predicted": 274,
+        "matches": 105,
+        "f1": 0.3595890410958904
+      },
+      "50ms_onoff": {
+        "reference": 310,
+        "predicted": 274,
+        "matches": 59,
+        "f1": 0.20205479452054795
+      },
+      "100ms_onset": {
+        "reference": 310,
+        "predicted": 274,
+        "matches": 146,
+        "f1": 0.5
+      },
+      "100ms_onoff": {
+        "reference": 310,
+        "predicted": 274,
+        "matches": 81,
+        "f1": 0.2773972602739726
+      }
+    }
+  },
+  "evaluation_policy": "Exact pitch within 50 cents; onset 50/100 ms, release gate max(50 ms, 20% reference duration). Song2Sheet native MIDI uses velocity >=45 and minimum duration 50 ms.",
+  "written_reference_accuracy": "unscorable: source beat/downbeat timestamps and conditional pickup shift missing",
+  "native_saved_pdf": false,
+  "harness_saved_returned_svg_pages": 2,
+  "other_four_recordings": "Exceed unmodified 180-second cap; no cropped substitute run.",
+  "human_edit_cost_measured": false,
+  "quality_approved": false,
+  "decision": "Do not adopt this fixed original vocal pipeline based on this comparison; do not generalize to the whole project.",
+  "source_receipt_sha256": {
+    "runtime_prerecord": "6cc74b15c66c454ccf4e85ea1771b3e4b5f663376f058ad0d07e33e07c9f18a9",
+    "license_audit": "14d94edc0f080189344d66c03e22cf3c202e3e1b4dc5eb1eb95e597b21433daf",
+    "run_protocol": "031ef8ab67bc37586bbaa595eaba7815021ee76d1cd16e998d7fb1bfb7adb975",
+    "run_report": "526defd9a302a72e3d23a4e9588b8b35f2c391e3b352187db5cad50455f5112d",
+    "evaluation_protocol": "de0fd3e98ccf6be49032dd443dc9f9f5cd6348d087122c8494701c565cab438a",
+    "evaluation_report": "d2df7d079f617331e4fb21a62a4d19e44cd3361c7ac76ec1358cf3e7128e39c8"
+  },
+  "model_sha256": {
+    "demucs_6s": "34c22ccb381c6f9fdbf324f04e1e2fe21aaaf293f5ded163a162697ff9a02ddd",
+    "beat_final0": "8c328b45f59d8dd3dff219253ff6a8d6482be57d0133a29140e2febbf8eb8331",
+    "stringnet": "6c516876596922aad0d9c978769d7f4f3673c7ab1337525f5ab49a9c425c9a41",
+    "basic_pitch_onnx": "2c3c1d144bfa61ad236e92e169c13535c880469a12a047d4e73451f2c059a0ec"
+  },
+  "input_audio_sha256": "aedb875ba145c1f5cd21a0a86713d11dff1de9701512b8f1c7e4a40fa4fdf680",
+  "alignment": {
+    "method": "independent drum-only fixed affine chart-to-source projection",
+    "offset_seconds": 0.28,
+    "scale": 0.9838,
+    "evaluation_duration_seconds": 174.32,
+    "model_note_alignment_or_tuning": false
+  },
+  "native_written_xml_aggregate": {
+    "parts": 1,
+    "measures_per_part": [
+      137
+    ],
+    "pitch_symbols": 324,
+    "rests": 275,
+    "simultaneous_pitch_followers": 23,
+    "tie_starts": 52,
+    "tuplet_marks": 0,
+    "harmony_symbols": 0,
+    "printed_tempos": [
+      187.0
+    ],
+    "time_signatures": [
+      [
+        "4",
+        "4"
+      ]
+    ],
+    "key_signatures": [
+      {
+        "fifths": "-5",
+        "mode": "minor"
+      }
+    ]
+  },
+  "native_midi_serialization": {
+    "tracks": 2,
+    "ppq": 220,
+    "tempo_map": [
+      {
+        "tick": 0,
+        "microseconds_per_quarter": 500000,
+        "milliseconds_per_tick": 2.2727272727272725
+      }
+    ],
+    "positive_note_ons": 274,
+    "lowest_written_velocity": 45,
+    "native_programs_zero_based": [
+      52
+    ],
+    "same_channel_pitch_overlapping_note_ons": 0
+  },
+  "comparison_scope": "Original end-to-end vocal artifacts with original six-stem separation versus AST fixed YourMT3 selected vocal MIDI; not an isolated AMT model comparison.",
+  "separate_common_renderer": {
+    "pdf_pages": 2,
+    "native": false,
+    "visual_observation": "large register jumps, chromatic accidentals and rests; accuracy not approved"
+  }
+}
