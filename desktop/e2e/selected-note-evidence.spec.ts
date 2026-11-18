@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
 
 const sha = "a".repeat(64);
@@ -11,6 +12,7 @@ function wav() {
   return data;
 }
 async function setup(page: Page, legacy = false) {
+  let scoreHash = sha, generation = 0, scoreXml = xml;
   let status: "linked" | "ambiguous" | "unavailable" | "conflict" = "linked";
   let seek: number | null = 1;
   let delay = false, release = () => {};
@@ -24,9 +26,9 @@ async function setup(page: Page, legacy = false) {
   await page.route("**/api/engines", r => r.fulfill({ json: { usage_mode: "personal", engines: [], recommendation: null } }));
   await page.route("**/api/songs", r => r.fulfill({ json: { songs: [song] } }));
   await page.route("**/api/songs/song-1", r => r.fulfill({ json: song }));
-  await page.route("**/api/songs/song-1/notes", r => r.fulfill({ json: { song, score_sha256: sha, evidence_generation: legacy ? null : 0, parts: [{ part_id: "P1", name: "Voice", measures: 1, notes: 2 }], notes, chords: [] } }));
+  await page.route("**/api/songs/song-1/notes", r => r.fulfill({ json: { song, score_sha256: scoreHash, evidence_generation: legacy ? null : generation, parts: [{ part_id: "P1", name: "Voice", measures: 1, notes: 2 }], notes, chords: [] } }));
   await page.route("**/api/songs/song-1/structure", r => r.fulfill({ json: { measures: [] } }));
-  await page.route("**/api/songs/song-1/score", r => r.fulfill({ contentType: "application/xml", body: xml }));
+  await page.route("**/api/songs/song-1/score", r => r.fulfill({ contentType: "application/xml", body: scoreXml }));
   await page.route("**/api/songs/song-1/publication", r => r.fulfill({ json: { settings: {} } }));
   await page.route("**/api/songs/song-1/source-audio?*", r => r.fulfill({ contentType: "audio/wav", body: wav() }));
   await page.route("**/api/songs/song-1/notes/*/evidence?*", async r => {
@@ -35,14 +37,20 @@ async function setup(page: Page, legacy = false) {
     queries.push(url.search);
     if (delay) { delay = false; await gate; }
     if (status === "conflict") { await r.fulfill({ status: 409 }); return; }
-    await r.fulfill({ json: { revision: 1, score_sha256: sha, note_id: noteId, status, patch: null,
+    await r.fulfill({ json: { revision: song.revision, score_sha256: scoreHash, note_id: noteId, status, patch: null,
       evidence: status === "linked" ? { performed_seconds: { start: .95, end: 1.9 }, grid_seconds: { start: 1, end: 2 }, source_audio_seek_seconds: seek, source_audio_seek_basis: seek === null ? null : "interpreted_grid" } : null } }).catch(() => undefined);
     settle();
   });
   await page.addInitScript(() => { localStorage.setItem("ast-onboarding-v1", "done"); localStorage.setItem("ast-setup-center-v2", "dismissed"); localStorage.setItem("ast-section", "songs"); });
   await page.goto("/");
   await expect(page.locator(".note-list button")).toHaveCount(2);
-  return { queries, setStatus: (value: typeof status) => { status = value; }, setSeek: (value: number | null) => { seek = value; }, hold: () => { delay = true; gate = new Promise<void>(resolve => { release = resolve; }); settled = new Promise<void>(resolve => { settle = resolve; }); }, release: () => release(), settled: () => settled };
+  return { queries, advance: () => {
+    song.revision = 2;
+    generation = 1;
+    scoreXml = xml.replace("</score-partwise>", "<!-- revision 2 --></score-partwise>");
+    scoreHash = createHash("sha256").update(scoreXml).digest("hex");
+    return scoreHash;
+  }, setStatus: (value: typeof status) => { status = value; }, setSeek: (value: number | null) => { seek = value; }, hold: () => { delay = true; gate = new Promise<void>(resolve => { release = resolve; }); settled = new Promise<void>(resolve => { settle = resolve; }); }, release: () => release(), settled: () => settled };
 }
 
 test("explicit evidence query connects verified grid to owned audio", async ({ page }, testInfo) => {
@@ -54,6 +62,8 @@ test("explicit evidence query connects verified grid to owned audio", async ({ p
   expect(new URLSearchParams(api.queries[0])).toEqual(new URLSearchParams({ expected_revision: "1", expected_score_sha256: sha, expected_generation: "0" }));
   await expect(page.locator(".note-evidence")).not.toContainText("수정했습니다");
   const review = page.locator(".score-workbench").getByLabel("원음 검수");
+  await expect(review).not.toContainText("원음을 불러오면 구간을 재생할 수 있습니다");
+  await page.locator(".note-evidence").getByRole("button", { name: "원음 구간 확인" }).click();
   await expect(review).toContainText("원음을 불러오면 구간을 재생할 수 있습니다");
   await review.getByRole("button", { name: "원음 불러오기" }).click();
   await expect(review).toContainText("확인 구간 0.70–2.30초");
@@ -107,10 +117,52 @@ test("completed evidence does not return after selecting another note and back",
   await page.getByRole("button", { name: "모델 근거 확인" }).click();
   await expect(page.locator(".note-evidence")).toContainText("모델 연주 시각");
   const review = page.locator(".score-workbench").getByLabel("원음 검수");
+  await expect(review).not.toContainText("원음을 불러오면 구간을 재생할 수 있습니다");
+  await page.locator(".note-evidence").getByRole("button", { name: "원음 구간 확인" }).click();
   await expect(review).toContainText("원음을 불러오면 구간을 재생할 수 있습니다");
   await notes.nth(1).click();
   await notes.first().click();
   await expect(page.locator(".note-evidence")).not.toContainText("모델 연주 시각");
   await expect(review).not.toContainText("원음을 불러오면 구간을 재생할 수 있습니다");
   expect(api.queries).toHaveLength(1);
+});
+
+
+test("refresh after conflict reloads selected score and sends new evidence stamps", async ({ page }) => {
+  const api = await setup(page);
+  await page.locator(".note-list button").first().click();
+  await page.getByRole("button", { name: "모델 근거 확인" }).click();
+  await expect(page.locator(".note-evidence")).toContainText("모델 연주 시각");
+  await page.locator(".note-evidence").getByRole("button", { name: "원음 구간 확인" }).click();
+  await expect(page.locator(".score-workbench").getByLabel("원음 검수")).toContainText("구간을 재생할 수 있습니다");
+  api.setStatus("conflict");
+  await page.getByRole("button", { name: "모델 근거 확인" }).click();
+  await expect(page.locator(".note-evidence")).toContainText("새로고침");
+  const nextHash = api.advance();
+  api.setStatus("linked");
+  await page.locator(".score-toolbar").getByRole("button", { name: "악보 새로고침", exact: true }).click();
+  await expect(page.locator(".score-toolbar")).toContainText("Revision 2");
+  await expect(page.locator(".score-workbench").getByLabel("원음 검수")).not.toContainText("구간을 재생할 수 있습니다");
+  await page.getByRole("button", { name: "모델 근거 확인" }).click();
+  await expect(page.locator(".note-evidence")).toContainText("모델 연주 시각");
+  expect(new URLSearchParams(api.queries.at(-1))).toEqual(new URLSearchParams({ expected_revision: "2", expected_score_sha256: nextHash, expected_generation: "1" }));
+});
+
+
+test("delayed evidence does not steal focus until the user requests the audio segment", async ({ page }) => {
+  const api = await setup(page);
+  await page.locator(".note-list button").first().click();
+  api.hold();
+  await page.getByRole("button", { name: "모델 근거 확인" }).click();
+  await expect.poll(() => api.queries.length).toBe(1);
+  const lyric = page.locator(".lyric-field input");
+  await lyric.focus();
+  api.release();
+  await api.settled();
+  await expect(page.locator(".note-evidence")).toContainText("모델 연주 시각");
+  await expect(lyric).toBeFocused();
+  const review = page.locator(".score-workbench").getByLabel("원음 검수");
+  await expect(review).not.toContainText("구간을 재생할 수 있습니다");
+  await page.locator(".note-evidence").getByRole("button", { name: "원음 구간 확인" }).click();
+  await expect(review).toBeFocused();
 });

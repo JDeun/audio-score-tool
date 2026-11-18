@@ -194,6 +194,7 @@ export default function SongWorkspace() {
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("note");
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [noteEvidence, setNoteEvidence] = useState<{ key: string; epoch: number; result?: NoteEvidence; message?: string; loading?: boolean } | null>(null);
+  const [selectedClip, setSelectedClip] = useState<{ key: string; epoch: number; clip: AudioClip } | null>(null);
   const evidenceRequest = useRef<AbortController | null>(null);
   const evidenceEpoch = useRef(0);
   const evidenceKeyRef = useRef("");
@@ -378,7 +379,7 @@ export default function SongWorkspace() {
   );
 
   const visibleEvidence = noteEvidence?.key === evidenceKey && noteEvidence.epoch === evidenceEpoch.current ? noteEvidence : null;
-  const sourceClip = useMemo<AudioClip | null>(() => {
+  const verifiedClip = useMemo<AudioClip | null>(() => {
     const evidence = visibleEvidence?.result?.status === "linked" ? visibleEvidence.result.evidence : null;
     const seek = evidence?.source_audio_seek_seconds;
     const grid = evidence?.grid_seconds;
@@ -387,6 +388,8 @@ export default function SongWorkspace() {
         || evidence?.source_audio_seek_basis !== "interpreted_grid" || seek !== grid.start || grid.end <= seek) return null;
     return { start_seconds: seek, end_seconds: grid.end };
   }, [visibleEvidence]);
+  const sourceClip = selectedClip?.key === evidenceKey && selectedClip.epoch === evidenceEpoch.current
+    ? selectedClip.clip : null;
 
   const loadNoteEvidence = async () => {
     if (!song || !score || !selectedNote || score.evidence_generation == null) return;
@@ -773,6 +776,7 @@ export default function SongWorkspace() {
                 <div><span className="eyebrow">CURRENT SCORE</span><h2>{song.title}</h2><span className="revision-pill">Revision {song.revision}</span></div>
                 <div className="score-actions">
                   <label className="zoom-control"><span>미리보기</span><input type="range" min="55" max="130" value={previewZoom} onChange={(event) => setPreviewZoom(Number(event.target.value))} /><strong>{previewZoom}%</strong></label>
+                  <button className="secondary" disabled={busy} onClick={() => void reload().catch((error) => setMessage(String(error)))}>악보 새로고침</button>
                   <button className="secondary" disabled={busy || song.revision <= 1} onClick={() => void postAction("undo")}>실행 취소</button>
                   <button className="secondary" disabled={busy} onClick={() => void postAction("restore")}>원본 복원</button>
                   <button className="run-button export-button" disabled={busy} onClick={() => void postAction("export")}>최종 파일 생성</button>
@@ -844,7 +848,8 @@ export default function SongWorkspace() {
                         <p>모델 연주 시각 {visibleEvidence.result.evidence.performed_seconds.start.toFixed(2)}–{visibleEvidence.result.evidence.performed_seconds.end.toFixed(2)}초</p>
                         <p>기보 시각 {visibleEvidence.result.evidence.grid_seconds.start.toFixed(2)}–{visibleEvidence.result.evidence.grid_seconds.end.toFixed(2)}초</p>
                         {visibleEvidence.result.patch && <p>이 버전에서 음표를 수정했습니다.</p>}
-                        <p>{sourceClip ? "원음 구간은 해석된 기보 시간이며 실제 음의 시작이나 정확도 판정이 아닙니다." : "원음 구간을 확인할 수 없어 재생 연결을 보류합니다."}</p>
+                        <p>{verifiedClip ? "원음 구간은 해석된 기보 시간이며 실제 음의 시작이나 정확도 판정이 아닙니다." : "원음 구간을 확인할 수 없어 재생 연결을 보류합니다."}</p>
+                        {verifiedClip && <button type="button" className="secondary" onClick={() => setSelectedClip({ key: evidenceKey, epoch: evidenceEpoch.current, clip: { ...verifiedClip } })}>원음 구간 확인</button>}
                       </div>)}
                   </div>
                   <label className="switch-row"><span>쉼표</span><input type="checkbox" checked={noteRest} onChange={(event) => setNoteRest(event.target.checked)} /></label>
