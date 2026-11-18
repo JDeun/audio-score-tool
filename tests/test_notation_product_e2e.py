@@ -14,6 +14,7 @@ from audio_score_tool import (
     direct_score_import_api,
     export_api_v2,
     notation_export_api,
+    publication_api_v2,
     revision_api_v2,
     song_routes,
 )
@@ -84,6 +85,8 @@ def product(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(revision_api_v2, "_song_store", songs)
     monkeypatch.setattr(credits_api, "_song_store", songs)
     monkeypatch.setattr(credits_api, "_publication_store", publication)
+    monkeypatch.setattr(publication_api_v2, "_song_store", songs)
+    monkeypatch.setattr(publication_api_v2, "_publication_store", publication)
 
     class InlineThread:
         def __init__(self, *, target, args, daemon):
@@ -399,3 +402,160 @@ def test_unchanged_rest_chord_preserves_revision_exports_and_telemetry(product, 
         assert conn.execute('SELECT count(*) FROM song_revisions WHERE song_id=?', (song_id,)).fetchone()[0] == 1
     assert read_edit_session(telemetry)['manual_chord_edits'] == 1
     assert read_edit_session(telemetry)['total_edit_actions'] == 1
+
+
+def test_direct_export_initializes_single_staff_layout_and_preserves_explicit_setting(product):
+    client, jobs, songs, _root = product
+    response = client.post('/api/import/notation', files={
+        'file': ('owned.musicxml', SCORE_XML.replace('<note><pitch>',
+            '<harmony><root><root-step>C</root-step></root><kind>major</kind></harmony>'
+            '<note><pitch>', 1).encode(), 'application/vnd.recordare.musicxml+xml')})
+    assert response.status_code == 202
+    song_id = response.json()['job_id']
+    assert jobs.get(song_id)['status'] == 'done'
+    # Export is the first Song request and therefore initializes publication.
+    result = client.post(f'/api/songs/{song_id}/export', json={'formats': ['musicxml', 'midi'],
+                                                               'expected_revision': 1})
+    assert result.status_code == 200, result.text
+    assert song_routes._publication_store.read(song_id)['systems_per_page'] == 8
+    assert songs.get(song_id)['revision'] == 1
+    xml = ET.fromstring(songs.score_xml(song_id))
+    assert xml.findtext('./part/measure/note/pitch/step') == 'C'
+    assert xml.findtext('./part/measure/note/duration') == '1920'
+    assert xml.findtext('./part/measure/harmony/root/root-step') == 'C'
+    result = client.patch(f'/api/songs/{song_id}/publication', json={'systems_per_page': 5})
+    assert result.status_code == 200, result.text
+    revision = songs.get(song_id)['revision']
+    result = client.post(f'/api/songs/{song_id}/export', json={'formats': ['musicxml'],
+                                                               'expected_revision': revision})
+    assert result.status_code == 200, result.text
+    assert song_routes._publication_store.read(song_id)['systems_per_page'] == 5
+    assert songs.get(song_id)['revision'] == revision
+    stale = client.post(f'/api/songs/{song_id}/export', json={'formats': ['musicxml'],
+                                                              'expected_revision': revision - 1})
+    assert stale.status_code == 409
+
+
+def test_initial_layout_cannot_overwrite_concurrent_publication_edit(product, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event, Lock
+
+    client, jobs, songs, _root = product
+    response = client.post('/api/import/notation', files={
+        'file': ('owned.musicxml', SCORE_XML.encode(), 'application/vnd.recordare.musicxml+xml')})
+    assert response.status_code == 202
+    song_id = response.json()['job_id']
+    assert jobs.get(song_id)['status'] == 'done'
+    reached, release, first = Event(), Event(), Lock()
+    original = song_routes.initial_publication_settings
+
+    def paused(path):
+        if first.acquire(blocking=False):
+            reached.set()
+            assert release.wait(10)
+        return original(path)
+
+    monkeypatch.setattr(song_routes, 'initial_publication_settings', paused)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        pending = pool.submit(client.get, '/api/songs')
+        assert reached.wait(10)
+        try:
+            changed = client.patch(f'/api/songs/{song_id}/publication', json={
+                'systems_per_page': 3, 'subtitle': 'owned-title'})
+            assert changed.status_code == 200, changed.text
+        finally:
+            release.set()
+        assert pending.result(timeout=10).status_code == 200
+    assert songs.get(song_id)['revision'] == 2
+    settings = song_routes._publication_store.read(song_id)
+    assert (settings['systems_per_page'], settings['subtitle']) == (3, 'owned-title')
+    assert 'owned-title' in songs.score_xml(song_id)
+
+
+def test_initial_publication_rejects_stale_xml_even_if_revision_is_same(product):
+    import sqlite3
+
+    client, _jobs, songs, _root = product
+    response = client.post('/api/import/notation', files={
+        'file': ('owned.musicxml', SCORE_XML.encode(), 'application/vnd.recordare.musicxml+xml')})
+    song_id = response.json()['job_id']
+    client.get('/api/songs')
+    with sqlite3.connect(songs.path) as conn:
+        conn.execute('DELETE FROM publication_settings WHERE song_id=?', (song_id,))
+    snapshot = songs.export_snapshot(song_id)
+    existing_export = songs.export_dir(song_id) / 'score.pdf'
+    existing_export.write_bytes(b'previous export')
+    updated = snapshot.current_score_xml.replace('<step>C</step>', '<step>D</step>')
+    assert updated != snapshot.current_score_xml
+    with sqlite3.connect(songs.path) as conn:
+        conn.execute('UPDATE songs SET current_score_xml=? WHERE song_id=?', (updated, song_id))
+    assert not songs.initialize_publication(snapshot, {'systems_per_page': 8}, snapshot.current_score_xml)
+    assert songs.score_xml(song_id) == updated
+    assert existing_export.read_bytes() == b'previous export'
+    assert not song_routes._publication_store.exists(song_id)
+
+
+def test_initial_layout_preserves_legacy_publication_settings(product):
+    import json
+
+    client, _jobs, songs, _root = product
+    response = client.post('/api/import/notation', files={
+        'file': ('owned.musicxml', SCORE_XML.encode(), 'application/vnd.recordare.musicxml+xml')})
+    song_id = response.json()['job_id']
+    legacy = song_routes._publication_store.legacy_root / song_id / 'publication.json'
+    legacy.parent.mkdir(parents=True)
+    legacy.write_text(json.dumps({'systems_per_page': 5, 'subtitle': 'legacy'}))
+    assert client.get('/api/songs').status_code == 200
+    assert song_routes._publication_store.read(song_id)['systems_per_page'] == 5
+    assert song_routes._publication_store.read(song_id)['subtitle'] == 'legacy'
+    assert songs.get(song_id)['revision'] == 1
+
+
+def test_initial_layout_retires_exports_only_after_success(product):
+    import copy
+    import sqlite3
+
+    client, _jobs, songs, _root = product
+    score = ET.fromstring(SCORE_XML)
+    part = score.find('part')
+    first = part.find('measure')
+    for number in range(2, 41):
+        measure = copy.deepcopy(first)
+        measure.set('number', str(number))
+        measure.remove(measure.find('attributes'))
+        part.append(measure)
+    response = client.post('/api/import/notation', files={
+        'file': ('owned.musicxml', ET.tostring(score), 'application/vnd.recordare.musicxml+xml')})
+    song_id = response.json()['job_id']
+    with sqlite3.connect(songs.path) as conn:
+        conn.execute("CREATE TRIGGER reject_initial_layout BEFORE UPDATE OF current_score_xml ON songs "
+                     "BEGIN SELECT RAISE(ABORT, 'layout fail'); END")
+    result = client.post(f'/api/songs/{song_id}/export', json={
+        'formats': ['musicxml', 'pdf'], 'expected_revision': 1})
+    assert result.status_code == 200, result.text
+    export = songs.export_root / song_id
+    old_xml = (export / 'score.musicxml').read_bytes()
+    old_pdf = (export / 'score.pdf').read_bytes()
+    assert not song_routes._publication_store.exists(song_id)
+    assert ET.fromstring(old_xml).find('./part/measure[@number="21"]/print').get('new-page') == 'yes'
+    # A failed retry must leave the existing export intact.
+    assert client.get(f'/api/songs/{song_id}').status_code == 200
+    assert (export / 'score.musicxml').read_bytes() == old_xml
+    assert (export / 'score.pdf').read_bytes() == old_pdf
+    with sqlite3.connect(songs.path) as conn:
+        conn.execute('DROP TRIGGER reject_initial_layout')
+    detail = client.get(f'/api/songs/{song_id}')
+    assert detail.status_code == 200
+    assert detail.json()['revision'] == 1
+    assert not any(detail.json()['exports'].values())
+    assert song_routes._publication_store.read(song_id)['systems_per_page'] == 8
+    assert client.get(f'/api/songs/{song_id}/files/pdf').status_code == 404
+    current = client.get(f'/api/songs/{song_id}/files/musicxml')
+    assert current.status_code == 200
+    assert ET.fromstring(current.content).find('./part/measure[@number="33"]/print').get('new-page') == 'yes'
+    assert not export.exists()
+    result = client.post(f'/api/songs/{song_id}/export', json={
+        'formats': ['musicxml', 'pdf'], 'expected_revision': 1})
+    assert result.status_code == 200, result.text
+    assert ET.parse(export / 'score.musicxml').find('./part/measure[@number="33"]/print').get('new-page') == 'yes'
+    assert (export / 'score.pdf').read_bytes().startswith(b'%PDF')

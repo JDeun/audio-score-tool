@@ -14,23 +14,7 @@ def _sync() -> None:
         batch_size=200,
         max_batches=1,
     )
-    # Preserve publication-default initialization from the original implementation.
-    for song in implementation._song_store.list():
-        if implementation._publication_store.exists(song["song_id"]):
-            continue
-        settings = implementation._publication_store.write(
-            song["song_id"], implementation.merged_publication_settings(None)
-        )
-        path = implementation._song_store.checkout_current(song["song_id"])
-        try:
-            implementation.apply_publication_layout(
-                path,
-                title=song["title"],
-                settings=settings,
-            )
-            implementation._song_store.replace_current_from_path(song["song_id"], path)
-        except Exception:
-            implementation._song_store.checkout_current(song["song_id"])
+    implementation._initialize_publications()
 
 
 # The implementation's route handlers resolve `_sync` from their module globals at
