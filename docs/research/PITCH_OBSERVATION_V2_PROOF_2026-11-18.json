@@ -1,0 +1,61 @@
+{
+  "source_commit": "d505567",
+  "private_report_sha256": "64ade5ab6b222ab2e9b02fc21bcf916b9c6b9a76d3e3d20b22cd1805b84ea502",
+  "protocol_sha256": "7a4c91c02cfd8a3f4642643e7c8578782b19a1ad3d5118d1edd968a434474832",
+  "complete": true,
+  "quality_approved": false,
+  "method": "Actual same-input old/new Tiny inference, version2 live validation and legacy read; filtered times/hz byte-identical.",
+  "runtime": {
+    "mt3-infer": "0.2.0",
+    "torch": "2.7.1",
+    "torchaudio": "2.7.1",
+    "transformers": "4.44.2",
+    "numpy": "2.4.6",
+    "soundfile": "0.14.0",
+    "torchcrepe": "0.0.24",
+    "resampy": "0.4.3",
+    "librosa": "0.11.0"
+  },
+  "checkpoint_sha256": "d4993eea36ed1a0ad9ac549c740dae5265b049ce72004f00c2f59e01c0be8432",
+  "adapter_sha256": "3233d011a5dc447871e1de753d22ca2bcd026f322b2caefc4e6348c182574cf7",
+  "cases": [
+    {
+      "id": "owned-tone-silence-noise",
+      "source_sha256": "996d3eb7dc7e24291f917bb0c3dfd1f9f7954eb0981edd58995d71c7bd0345a9",
+      "frames": 801,
+      "analysis_audio_frames_16khz": 128000,
+      "old_new_byte_identical": {
+        "times": true,
+        "hz": true
+      },
+      "raw_pitch_retained_frames": 801,
+      "filtered_positive_frames": 18,
+      "below_silence_threshold_frames": 681,
+      "below_periodicity_threshold_frames": 393,
+      "legacy_raw_evidence_unavailable": true,
+      "version2_live_validation_passed": true
+    },
+    {
+      "id": "american-vocal",
+      "source_sha256": "211993d2c985756402e418cfe6905a1107c665927ac483eb543d3e13a8316735",
+      "frames": 17433,
+      "analysis_audio_frames_16khz": 2789120,
+      "old_new_byte_identical": {
+        "times": true,
+        "hz": true
+      },
+      "raw_pitch_retained_frames": 17433,
+      "filtered_positive_frames": 5851,
+      "below_silence_threshold_frames": 8715,
+      "below_periodicity_threshold_frames": 8688,
+      "legacy_raw_evidence_unavailable": true,
+      "version2_live_validation_passed": true
+    }
+  ],
+  "source_and_inputs_unchanged": true,
+  "limits": [
+    "Owned signal plus one frozen real vocal stem; no claim of whole-song expert accuracy or final model approval.",
+    "No new separation, YourMT3, SheetSage2 or note-notation inference in this proof.",
+    "This is continuous pitch observation preservation, not complete issue300 schema/editor implementation."
+  ]
+}
