@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSelectedSong } from "./SelectedSongContext";
+import SourceAudioReview from "./SourceAudioReview";
 
 const API = "http://127.0.0.1:8080";
 
@@ -706,6 +707,7 @@ export default function SongWorkspace() {
                   <button className="run-button export-button" disabled={busy} onClick={() => void postAction("export")}>최종 파일 생성</button>
                 </div>
               </div>
+              <SourceAudioReview key={`${song.song_id}:${song.revision}`} songId={song.song_id} revision={song.revision} />
               {unresolvedMetadata && (
                 <div className="metadata-review-notice" role="status">
                   <div><strong>곡 정보 확인이 필요합니다.</strong><p>자동 식별되지 않은 항목은 Unknown으로 표시됩니다. 제목·가수·작곡·작사 등을 확인한 뒤 재조회할 수 있습니다.</p></div>

@@ -162,6 +162,15 @@ jobs:
         working-directory: desktop
         run: npm run test:e2e
 
+      - name: Preserve owned source audio review screenshots
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: source-audio-review-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: desktop/test-results/**/source-audio-*.png
+          if-no-files-found: warn
+          retention-days: 7
+
   tauri:
     name: tauri
     needs: changes
