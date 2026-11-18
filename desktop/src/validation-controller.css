@@ -25,7 +25,8 @@
 }
 
 .validation-modal {
-  width: min(880px, 96vw);
+  width: min(880px, 100%);
+  box-sizing: border-box;
   max-height: 88vh;
   overflow: auto;
   border-radius: 22px;

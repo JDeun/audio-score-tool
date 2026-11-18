@@ -47,11 +47,13 @@ export default function SourceAudioReview({ songId, revision, clip }: { songId: 
   const load = async () => {
     request.current?.abort();
     bounded.current = false; stopWatch(); audio.current?.pause();
+    if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
+    objectUrl.current = null; setUrl(null); setDuration(null);
     const controller = new AbortController(); request.current = controller;
     const requestedIdentity = currentIdentity;
     setLoading(true); setMessage("");
     try {
-      const response = await fetch(`${API}/api/songs/${encodeURIComponent(songId)}/source-audio?expected_revision=${revision}`, { signal: controller.signal });
+      const response = await fetch(`${API}/api/songs/${encodeURIComponent(songId)}/source-audio?expected_revision=${revision}`, { method: "GET", signal: controller.signal });
       if (response.status === 404) throw new Error("보존된 원음이 없습니다. 원음이 있는 곡을 선택하세요.");
       if (response.status === 409) throw new Error("악보가 변경되었습니다. 곡을 새로고침한 뒤 다시 불러오세요.");
       if (!response.ok) throw new Error("원음을 불러오지 못했습니다. 연결을 확인하고 다시 시도하세요.");
