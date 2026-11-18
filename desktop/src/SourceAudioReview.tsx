@@ -11,6 +11,7 @@ export default function SourceAudioReview({ songId, revision, clip }: { songId: 
   const [duration, setDuration] = useState<number | null>(null);
   const [repeat, setRepeat] = useState(false);
   const audio = useRef<HTMLAudioElement | null>(null);
+  const panel = useRef<HTMLElement | null>(null);
   const request = useRef<AbortController | null>(null);
   const objectUrl = useRef<string | null>(null);
   const frame = useRef<number | null>(null);
@@ -39,7 +40,13 @@ export default function SourceAudioReview({ songId, revision, clip }: { songId: 
       objectUrl.current = null;
     };
   }, [songId, revision]);
-  useEffect(() => { bounded.current = false; stopWatch(); audio.current?.pause(); }, [clip]);
+  useEffect(() => {
+    bounded.current = false; stopWatch(); audio.current?.pause();
+    if (clip) {
+      panel.current?.focus({ preventScroll: true });
+      panel.current?.scrollIntoView({ block: "nearest" });
+    }
+  }, [clip]);
   const start = clip && duration !== null ? Math.max(0, clip.start_seconds - .3) : null;
   const end = clip && duration !== null ? Math.min(duration, clip.end_seconds + .3) : null;
   const validClip = start !== null && end !== null && Number.isFinite(start) && Number.isFinite(end) && start < end;
@@ -82,10 +89,16 @@ export default function SourceAudioReview({ songId, revision, clip }: { songId: 
     };
     frame.current = requestAnimationFrame(tick);
   };
+  const pauseOthers = (player: HTMLAudioElement) => {
+    document.querySelectorAll<HTMLAudioElement>(".source-audio-review audio").forEach(other => {
+      if (other !== player) other.pause();
+    });
+  };
   const playClip = async () => {
     const player = audio.current;
     if (!player || !validClip) return;
     const requestedIdentity = currentIdentity;
+    pauseOthers(player);
     bounded.current = true; player.currentTime = start;
     try {
       await player.play();
@@ -95,10 +108,10 @@ export default function SourceAudioReview({ songId, revision, clip }: { songId: 
       if (audio.current === player && identity.current === requestedIdentity) { bounded.current = false; setMessage("원음을 재생할 수 없습니다. 브라우저에서 지원하는 음원인지 확인하세요."); }
     }
   };
-  return <section className="source-audio-review" aria-label="원음 검수">
+  return <section ref={panel} tabIndex={-1} className="source-audio-review" aria-label="원음 검수">
     <div className="source-audio-heading"><strong>원음 검수</strong><button type="button" className="secondary" disabled={loading} onClick={() => void load()}>{loading ? "불러오는 중…" : url ? "원음 다시 불러오기" : "원음 불러오기"}</button></div>
     {message && <p role="status">{message}</p>}
-    {url && <audio ref={setAudio} src={url} controls aria-label="원음 재생" onLoadedMetadata={(event) => { const value = event.currentTarget.duration; setDuration(Number.isFinite(value) && value > 0 ? value : null); }} onPlay={watch} onPause={stopWatch} onEnded={() => { stopWatch(); if (bounded.current && repeatRef.current && validClip && audio.current) { audio.current.currentTime = start; void audio.current.play().catch(() => setMessage("원음을 재생할 수 없습니다. 다시 시도하세요.")); } }} onError={() => setMessage("원음을 재생할 수 없습니다. 브라우저에서 지원하는 음원인지 확인하세요.")} />}
+    {url && <audio ref={setAudio} src={url} controls aria-label="원음 재생" onLoadedMetadata={(event) => { const value = event.currentTarget.duration; setDuration(Number.isFinite(value) && value > 0 ? value : null); }} onPlay={(event) => { pauseOthers(event.currentTarget); watch(); }} onPause={stopWatch} onEnded={() => { stopWatch(); if (bounded.current && repeatRef.current && validClip && audio.current) { audio.current.currentTime = start; void audio.current.play().catch(() => setMessage("원음을 재생할 수 없습니다. 다시 시도하세요.")); } }} onError={() => setMessage("원음을 재생할 수 없습니다. 브라우저에서 지원하는 음원인지 확인하세요.")} />}
     {clip && <div className="source-audio-clip"><p>악보 시간표로 찾은 구간으로 실제 시작점과 차이 날 수 있습니다.</p>{validClip ? <><span>확인 구간 {start.toFixed(2)}–{end.toFixed(2)}초</span><div className="source-audio-actions"><button type="button" className="secondary" onClick={() => void playClip()}>구간 재생</button><label><input type="checkbox" checked={repeat} onChange={(event) => { repeatRef.current = event.target.checked; setRepeat(event.target.checked); }} /> 반복</label></div></> : <span>{url ? "재생 가능한 구간이 없습니다." : "원음을 불러오면 구간을 재생할 수 있습니다."}</span>}</div>}
   </section>;
 }

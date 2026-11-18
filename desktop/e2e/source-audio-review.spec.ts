@@ -11,7 +11,7 @@ function wav() {
   data.writeUInt16LE(16, 34); data.write("data", 36); data.writeUInt32LE(size, 40);
   return data;
 }
-async function setup(page: Page) {
+async function setup(page: Page, manyIssues = false) {
   let audioStatus = 200;
   let holdValidate = false;
   let releaseValidation = () => {};
@@ -30,7 +30,7 @@ async function setup(page: Page) {
     const match = new URL(r.request().url()).pathname.match(/\/api\/songs\/(song-a|song-b)(?:\/(.*))?$/)!;
     const id = match[1], kind = match[2] ?? "detail";
     if (kind === "source-audio") { audioRequests++; if (holdAudio) { holdAudio = false; await audioGate; } await r.fulfill(audioStatus === 200 ? { status: 200, contentType: "audio/wav", body: wav() } : { status: audioStatus }).catch(() => undefined); }
-    else if (kind === "validate") { const order = ++validationRequests; if (holdValidate) { holdValidate = false; await gate; } await r.fulfill({ json: { song_id: id, revision: 1, ok: true, issues: [{ severity: "warning", source: "vocal_acoustic", category: "음역", message: `검토 ${order}`, start_seconds: 1, end_seconds: 2 }], policy: { llm_is_advisory: true, auto_edit: false } } }); }
+    else if (kind === "validate") { const order = ++validationRequests; if (holdValidate) { holdValidate = false; await gate; } await r.fulfill({ json: { song_id: id, revision: 1, ok: true, issues: Array.from({ length: manyIssues ? 12 : 1 }, (_, index) => ({ severity: "warning", source: "vocal_acoustic", category: "음역", message: `검토 ${order}-${index}`, start_seconds: 1, end_seconds: 2 })), policy: { llm_is_advisory: true, auto_edit: false } } }); }
     else if (kind === "notes") await r.fulfill({ json: { song: song(id), parts: [], notes: [], chords: [] } });
     else if (kind === "structure") await r.fulfill({ json: { measures: [] } });
     else if (kind === "score") await r.fulfill({ contentType: "application/xml", body: '<score-partwise><part-list><score-part id="P1"><part-name>Voice</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes><note><rest/><duration>4</duration><type>whole</type></note></measure></part></score-partwise>' });
@@ -108,13 +108,13 @@ test("old A validation cannot replace a newer A report after A-B-A", async ({ pa
   const modal = page.getByRole("dialog", { name: "악보 검증" });
   await modal.getByRole("button", { name: "현재 악보 검증" }).click();
   await expect(modal.locator(".validation-issue")).toHaveCount(1);
-  await expect(modal.locator(".validation-issue p")).toHaveText("검토 2");
+  await expect(modal.locator(".validation-issue p")).toHaveText("검토 2-0");
   await modal.getByRole("button", { name: "원음 구간 확인" }).click();
   const oldResponse = page.waitForResponse(/\/api\/songs\/song-a\/validate$/);
   api.release();
   await (await oldResponse).finished();
   await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())));
-  await expect(modal.locator(".validation-issue p")).toHaveText("검토 2");
+  await expect(modal.locator(".validation-issue p")).toHaveText("검토 2-0");
   await expect(modal).toContainText("악보 시간표로 찾은 구간");
 });
 
@@ -171,10 +171,12 @@ test("owned fixture screenshots", async ({ page }, testInfo) => {
     const modal = page.getByRole("dialog", { name: "악보 검증" });
     await modal.getByRole("button", { name: "현재 악보 검증" }).click();
     await modal.getByRole("button", { name: "원음 구간 확인" }).click();
+    await expect(modal.getByLabel("원음 검수")).toBeFocused();
+    await expect(modal.getByLabel("원음 검수")).toBeInViewport();
     await modal.getByRole("button", { name: "원음 불러오기" }).click();
     await expect(modal.getByLabel("원음 재생")).toBeVisible();
     await expect(modal).toContainText("확인 구간 0.70–2.30초");
-    await modal.getByLabel("원음 검수").scrollIntoViewIfNeeded();
+    await expect(modal.getByLabel("원음 검수")).toBeInViewport();
     const modalContrast = await modal.getByLabel("원음 검수").evaluate((element) => {
       const luminance = (color: string) => {
         const rgb = color.match(/\d+/g)!.slice(0, 3).map(Number).map(value => {
@@ -208,9 +210,10 @@ test("owned fixture screenshots", async ({ page }, testInfo) => {
   const modal = page.getByRole("dialog", { name: "악보 검증" });
   await modal.getByRole("button", { name: "현재 악보 검증" }).click();
   await modal.getByRole("button", { name: "원음 구간 확인" }).click();
+  await expect(modal.getByLabel("원음 검수")).toBeFocused();
   await modal.getByRole("button", { name: "원음 불러오기" }).click();
   await expect(modal.getByLabel("원음 재생")).toBeVisible();
-  await modal.getByLabel("원음 검수").scrollIntoViewIfNeeded();
+  await expect(modal.getByLabel("원음 검수")).toBeInViewport();
   const box = await modal.boundingBox();
   expect(box && box.x >= 0 && box.x + box.width <= 390).toBeTruthy();
   await page.screenshot({ path: testInfo.outputPath("source-audio-stress-success.png") });
@@ -255,4 +258,41 @@ test("failed reload clears the previous player and clip controls", async ({ page
   await expect(modal.getByRole("button", { name: "구간 재생" })).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => (window as any).__oldAudio.paused)).toBe(true);
   await expect.poll(() => page.evaluate((value) => (window as any).__revoked.includes(value), blob)).toBe(true);
+});
+
+
+test("last warning brings its source player into view without autoplay", async ({ page }) => {
+  await setup(page, true);
+  await page.getByRole("button", { name: "악보 검증" }).click();
+  const modal = page.getByRole("dialog", { name: "악보 검증" });
+  await modal.getByRole("button", { name: "현재 악보 검증" }).click();
+  const buttons = modal.getByRole("button", { name: "원음 구간 확인" });
+  await expect(buttons).toHaveCount(12);
+  await buttons.last().click();
+  const review = modal.getByLabel("원음 검수");
+  await expect(review).toBeFocused();
+  await expect(review).toBeInViewport();
+  await expect(review.getByLabel("원음 재생")).toHaveCount(0);
+});
+
+test("playing a clip pauses the workspace player and closing does not resume it", async ({ page }) => {
+  await setup(page);
+  const workspace = page.locator(".score-workbench").getByLabel("원음 검수");
+  await workspace.getByRole("button", { name: "원음 불러오기" }).click();
+  const original = workspace.getByLabel("원음 재생");
+  await original.evaluate((element: HTMLAudioElement) => element.play());
+  await expect.poll(() => original.evaluate((element: HTMLAudioElement) => element.paused)).toBe(false);
+  await page.getByRole("button", { name: "악보 검증" }).click();
+  const modal = page.getByRole("dialog", { name: "악보 검증" });
+  await modal.getByRole("button", { name: "현재 악보 검증" }).click();
+  await modal.getByRole("button", { name: "원음 구간 확인" }).click();
+  await modal.getByRole("button", { name: "원음 불러오기" }).click();
+  const clipped = modal.getByLabel("원음 재생");
+  await clipped.evaluate((element: HTMLAudioElement) => { (window as any).__clipAudio = element; });
+  await modal.getByRole("button", { name: "구간 재생" }).click();
+  await expect.poll(() => clipped.evaluate((element: HTMLAudioElement) => element.paused)).toBe(false);
+  await expect.poll(() => original.evaluate((element: HTMLAudioElement) => element.paused)).toBe(true);
+  await modal.getByRole("button", { name: "닫기" }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).__clipAudio.paused)).toBe(true);
+  await expect.poll(() => original.evaluate((element: HTMLAudioElement) => element.paused)).toBe(true);
 });
