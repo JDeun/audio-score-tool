@@ -1,0 +1,66 @@
+name: Research ARM Input Qualification
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - .github/workflows/research-arm-qualification.yml
+      - docs/research/ARM_INPUT_QUALIFICATION_2026-11-18.md
+
+jobs:
+  qualify:
+    name: unchanged input contract on native ARM
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d
+        with:
+          version: 0.12.10
+
+      - name: Compare frozen input identities without model inference
+        env:
+          QUALIFICATION_OUTPUT: ${{ runner.temp }}/research-arm-input-qualification.json
+        run: |
+          uv run --no-project --python 3.11.16 --with numpy==1.26.4 python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from scripts import research_numeric_qualification as qualification
+
+          report = qualification.qualify()
+          if report["status"] == "compatible":
+              report["mutation_contract"] = qualification.mutation_contract(report)
+          else:
+              report["mutation_contract"] = {
+                  "status": "not_run", "reason": "positive_environment_qualification_failed"}
+          Path(os.environ["QUALIFICATION_OUTPUT"]).write_text(
+              json.dumps(report, indent=2, allow_nan=False) + "\n")
+          print(json.dumps({key: report.get(key) for key in (
+              "status", "environment", "first_input_difference", "analytic_difference_paths",
+              "mutation_contract", "predictor_calls", "decoder_calls", "truth_or_reference_calls",
+              "scorer_calls", "frozen_sources")}, allow_nan=False))
+          assert report["environment"]["numpy_disable_cpu_features"] is None
+          assert all(report[key] == 0 for key in (
+              "predictor_calls", "decoder_calls", "truth_or_reference_calls", "scorer_calls"))
+          assert report["status"] == "compatible", "native ARM input identity is incompatible"
+          assert report["mutation_contract"]["specific_rejections_verified"] == 7
+          PY
+
+      - name: Preserve qualification including incompatible results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: research-arm-input-qualification-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/research-arm-input-qualification.json
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,9 @@
+# Native ARM input-only qualification
+
+Issue #302 records native x86 hosts whose unchanged NumPy 1.26.4 input generation differs from the frozen numerical contract. CPU model names alone do not identify compatibility. A standard public-repository `ubuntu-24.04-arm` runner is a separately defined native architecture to test once, not a retry of a failed x86 job or a search over CPU-feature overrides.
+
+Before execution, fix CPython 3.11.16, NumPy 1.26.4, the existing `research_numeric_qualification` v2 implementation, and its pinned 66-source manifest and original receipt. The standalone environment uses no project installation. It regenerates the original 245 and new 216 input identities, the independent 216 stress identities, and 20 analytic rows. It invokes no predictor, decoder, truth/reference reader or scorer. It records the actual binary/build/native dispatch and preserves a report even when incompatible. Seven specific mutation rejection locations are checked only after positive qualification.
+
+The dedicated workflow does not modify the required CI, historical sources, input hashes, assertions, numerical tolerance, score, threshold, or CPU features. An incompatible result rejects this native environment for the existing exact contract. A compatible result only justifies a subsequent unchanged full research-suite check on that environment; it does not by itself close #302 or establish musical quality. Missing runtime/dependency/report failures remain execution failures, not an input-compatibility verdict. Do not retry the same architecture just to obtain green.
+
+Runner availability: [GitHub-hosted runner reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners). GitHub documents standard ARM Linux runners as free for public repositories. No paid runner or server is provisioned by this workflow.
