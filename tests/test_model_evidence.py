@@ -355,6 +355,8 @@ def test_fixed_v2_requires_pitch_observation_and_preserves_after_job_removal(cas
 
 
 def test_fixed_v3_preserves_beat_observation_after_job_removal(case):
+    import numpy as np
+
     store, jobs, score, job = case
     job['transcription_engine'] = 'vocal_lead_v1'
     (score / 'structure').mkdir()
@@ -366,8 +368,10 @@ def test_fixed_v3_preserves_beat_observation_after_job_removal(case):
     for name in ('score.mid', 'selected.mid', 'score.runtime.json'):
         (score / 'vocal' / name).write_bytes(b'fixture')
     pitch = score / 'vocal/pitch.npz'
-    pitch.write_bytes(b'pitch')
-    (score / 'vocal/pitch.runtime.json').write_text(json.dumps({'prediction_sha256': hashlib.sha256(pitch.read_bytes()).hexdigest()}))
+    np.savez_compressed(pitch, times=np.array([0.]), hz=np.array([220.]), raw_hz=np.array([220.]),
+                        periodicity=np.array([.9]), loudness_db_a=np.array([-30.]))
+    pitch_bytes = pitch.read_bytes()
+    (score / 'vocal/pitch.runtime.json').write_text(json.dumps({'schema_version': 2, 'prediction_sha256': hashlib.sha256(pitch_bytes).hexdigest()}))
     beat = score / 'beat.npz'
     beat.write_bytes(b'beat')
     (score / 'beat.runtime.json').write_text(json.dumps({'prediction_sha256': 'wrong'}))
@@ -377,3 +381,4 @@ def test_fixed_v3_preserves_beat_observation_after_job_removal(case):
     shutil.rmtree(jobs / 'test-song')
     assert store.preserve_job_evidence(job)
     assert (store.asset_root / 'test-song/model-evidence/beat.npz').read_bytes() == b'beat'
+    assert (store.asset_root / 'test-song/model-evidence/vocal/pitch.npz').read_bytes() == pitch_bytes

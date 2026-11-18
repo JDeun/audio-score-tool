@@ -159,7 +159,6 @@ def fixed_tiny_pitch_track(source: Path, output: Path, *, settings, cancel_event
     """Run the pinned external verifier and validate its bounded observation."""
     import hashlib
     import json
-    import zipfile
 
     from .fixed_lead_recipe import YOUR_RUNTIME
     from .runner import run_command
@@ -186,13 +185,35 @@ def fixed_tiny_pitch_track(source: Path, output: Path, *, settings, cancel_event
             or any(receipt.get('runtime', {}).get(k) != v for k, v in {
                 **YOUR_RUNTIME, 'torchcrepe': '0.0.24', 'resampy': '0.4.3', 'librosa': '0.11.0'}.items())):
         raise ValueError('Fixed pitch observation provenance mismatch')
+    if type(receipt.get('schema_version')) is not int or receipt['schema_version'] != 2:
+        raise ValueError('Fixed pitch observation requires version 2')
+    arrays = read_tiny_pitch_observation(output, receipt)
+    times, hz = arrays['times'], arrays['hz']
+    pitches = np.full(hz.shape, np.nan, dtype=float)
+    voiced = hz > 0
+    pitches[voiced] = 69 + 12 * np.log2(hz[voiced] / 440)
+    return (times, pitches), receipt
+
+
+def read_tiny_pitch_observation(path: Path, receipt: dict) -> dict:
+    """Read a bounded historical or complete pitch archive without fabricating evidence."""
+    import zipfile
+
+    if (not isinstance(receipt, dict) or path.is_symlink() or not path.is_file()
+            or path.stat().st_size > 16 * 1024 * 1024):
+        raise ValueError('Missing or unsafe fixed pitch observation')
+    version = receipt.get('schema_version', 1)
+    if type(version) is not int or version not in (1, 2):
+        raise ValueError('Unknown fixed pitch observation version')
+    names = {'times', 'hz'} if version == 1 else {'times', 'hz', 'raw_hz', 'periodicity', 'loudness_db_a'}
     try:
-        with zipfile.ZipFile(output) as archive:
+        with zipfile.ZipFile(path) as archive:
             members = archive.infolist()
-            if sorted(x.filename for x in members) != ['hz.npy', 'times.npy'] or sum(x.file_size for x in members) > 32 * 1024 * 1024:
+            if sorted(x.filename for x in members) != sorted(f'{name}.npy' for name in names) or sum(x.file_size for x in members) > 32 * 1024 * 1024:
                 raise ValueError('Invalid or oversized fixed pitch arrays')
-        with np.load(output, allow_pickle=False) as data:
-            times, hz = np.asarray(data['times']), np.asarray(data['hz'])
+        with np.load(path, allow_pickle=False) as data:
+            arrays = {name: np.asarray(data[name]) for name in names}
+            times, hz = arrays['times'], arrays['hz']
     except (OSError, EOFError, zipfile.BadZipFile) as exc:
         raise ValueError('Invalid fixed pitch archive') from exc
     # torchcrepe uses 20-cent bins based at 1997.3794084376191 cents and ±20-cent dither.
@@ -204,11 +225,26 @@ def fixed_tiny_pitch_track(source: Path, output: Path, *, settings, cancel_event
     if (times.ndim != 1 or hz.ndim != 1 or times.shape != hz.shape or not len(times)
             or times.dtype.kind not in 'fi' or hz.dtype.kind not in 'fi'
             or not np.isfinite(times).all() or not np.isfinite(hz).all()
-            or not np.allclose(times, np.arange(len(times)) * .01, rtol=0, atol=1e-7)
+            or (not np.array_equal(times, np.arange(len(times)) * .01) if version == 2 else
+                not np.allclose(times, np.arange(len(times)) * .01, rtol=0, atol=1e-7))
             or np.any(hz < 0)
             or np.any((hz > 0) & ((hz < low_hz - 1e-4) | (hz > high_hz + 1e-4)))):
         raise ValueError('Invalid fixed pitch track')
-    pitches = np.full(hz.shape, np.nan, dtype=float)
-    voiced = hz > 0
-    pitches[voiced] = 69 + 12 * np.log2(hz[voiced] / 440)
-    return (times, pitches), receipt
+    if version == 2:
+        frames = receipt.get('source_frames')
+        if (type(frames) is not int or frames <= 0 or type(receipt.get('source_sample_rate')) is not int
+                or receipt['source_sample_rate'] != 16000 or type(receipt.get('hop')) is not int
+                or receipt['hop'] != 160 or len(times) != 1 + frames // 160):
+            raise ValueError('Invalid fixed pitch frame coverage')
+        raw, periodicity, loudness = (arrays[name] for name in ('raw_hz', 'periodicity', 'loudness_db_a'))
+        if any(x.ndim != 1 or x.shape != times.shape or x.dtype.kind not in 'fi'
+               or not np.isfinite(x).all() for x in (raw, periodicity, loudness)):
+            raise ValueError('Invalid fixed pitch track')
+        expected_hz = np.where((periodicity >= .21) & (loudness >= -60), raw, 0.0)
+        if (np.any((raw < low_hz - 1e-4) | (raw > high_hz + 1e-4))
+                or np.any((periodicity < 0) | (periodicity > 1))
+                or hz.dtype != expected_hz.dtype or hz.tobytes() != expected_hz.tobytes()):
+            raise ValueError('Invalid fixed pitch track')
+    else:
+        arrays.update(raw_hz=None, periodicity=None, loudness_db_a=None)
+    return arrays

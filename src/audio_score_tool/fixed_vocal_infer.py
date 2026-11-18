@@ -27,6 +27,12 @@ from audio_score_tool.fixed_lead_recipe import (
 )
 
 
+def _filter_pitch(pitch, periodicity, loudness):
+    import numpy as np
+
+    return np.where((periodicity >= .21) & (loudness >= -60) & np.isfinite(pitch), pitch, 0.0)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("stage", choices=["separate", "vocal", "pitch", "pitch-preflight", "beat", "beat-preflight"])
@@ -161,15 +167,17 @@ def main() -> int:
             pitch, periodicity = torchcrepe.predict(
                 tensor, sr, 160, 55, 880, "tiny", decoder=torchcrepe.decode.viterbi,
                 return_periodicity=True, batch_size=128, device="cpu", pad=True)
-            periodicity = torchcrepe.threshold.Silence(-60)(periodicity, tensor, sr, 160)
-        pitch, periodicity = pitch[0].cpu().numpy(), periodicity[0].cpu().numpy()
-        hz = np.where((periodicity >= .21) & np.isfinite(pitch), pitch, 0.0)
+            loudness = torchcrepe.loudness.a_weighted(tensor, sr, 160, True)
+        pitch, periodicity, loudness = (x[0].cpu().numpy() for x in (pitch, periodicity, loudness))
+        hz = _filter_pitch(pitch, periodicity, loudness)
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        np.savez_compressed(args.output, times=np.arange(len(hz), dtype=float) * .01, hz=hz)
+        np.savez_compressed(args.output, times=np.arange(len(hz), dtype=float) * .01, hz=hz,
+                            raw_hz=pitch, periodicity=periodicity, loudness_db_a=loudness)
         verify_weight(weight, "d4993eea36ed1a0ad9ac549c740dae5265b049ce72004f00c2f59e01c0be8432")
         if hashlib.sha256(args.audio.read_bytes()).hexdigest() != source_sha:
             raise ValueError("Vocal source changed during pitch inference")
         args.output.with_suffix(".runtime.json").write_text(json.dumps({
+            "schema_version": 2, "source_frames": len(samples), "source_sample_rate": sr,
             "provider": "torchcrepe", "model": "tiny", "source_sha256": source_sha,
             "prediction_sha256": hashlib.sha256(args.output.read_bytes()).hexdigest(),
             "checkpoint_sha256": "d4993eea36ed1a0ad9ac549c740dae5265b049ce72004f00c2f59e01c0be8432",
