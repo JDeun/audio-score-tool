@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSelectedSong } from "./SelectedSongContext";
-import SourceAudioReview from "./SourceAudioReview";
+import SourceAudioReview, { type AudioClip } from "./SourceAudioReview";
+import "./note-evidence.css";
 
 const API = "http://127.0.0.1:8080";
 
@@ -65,6 +66,16 @@ type ScoreData = {
   parts: { part_id: string; name: string; measures: number; notes: number }[];
   notes: NoteRow[];
   chords: ChordRow[];
+};
+
+type NoteEvidence = {
+  status: "linked" | "unavailable" | "ambiguous";
+  revision: number;
+  score_sha256: string;
+  note_id: string;
+  evidence: { performed_seconds: { start: number; end: number }; grid_seconds: { start: number; end: number };
+    source_audio_seek_seconds: number | null; source_audio_seek_basis: string | null } | null;
+  patch?: object | null;
 };
 
 type MeasureRow = {
@@ -182,6 +193,19 @@ export default function SongWorkspace() {
   const [publication, setPublication] = useState<PublicationSettings>(fallbackPublication);
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("note");
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const [noteEvidence, setNoteEvidence] = useState<{ key: string; epoch: number; result?: NoteEvidence; message?: string; loading?: boolean } | null>(null);
+  const evidenceRequest = useRef<AbortController | null>(null);
+  const evidenceEpoch = useRef(0);
+  const evidenceKeyRef = useRef("");
+  const evidenceKey = JSON.stringify([song?.song_id, selectedNoteId, score?.song.revision, score?.score_sha256, score?.evidence_generation]);
+  if (evidenceKeyRef.current !== evidenceKey) {
+    evidenceKeyRef.current = evidenceKey;
+    evidenceEpoch.current += 1;
+  }
+  useEffect(() => {
+    evidenceRequest.current?.abort();
+    return () => { evidenceRequest.current?.abort(); };
+  }, [evidenceKey]);
   const [partFilter, setPartFilter] = useState("all");
   const [measureFilter, setMeasureFilter] = useState("");
   const [title, setTitle] = useState("");
@@ -352,6 +376,47 @@ export default function SongWorkspace() {
     () => score?.notes.find((note) => note.note_id === selectedNoteId) ?? null,
     [score, selectedNoteId],
   );
+
+  const visibleEvidence = noteEvidence?.key === evidenceKey && noteEvidence.epoch === evidenceEpoch.current ? noteEvidence : null;
+  const sourceClip = useMemo<AudioClip | null>(() => {
+    const evidence = visibleEvidence?.result?.status === "linked" ? visibleEvidence.result.evidence : null;
+    const seek = evidence?.source_audio_seek_seconds;
+    const grid = evidence?.grid_seconds;
+    if (typeof seek !== "number" || !Number.isFinite(seek) || seek < 0 || !grid
+        || !Number.isFinite(grid.start) || !Number.isFinite(grid.end)
+        || evidence?.source_audio_seek_basis !== "interpreted_grid" || seek !== grid.start || grid.end <= seek) return null;
+    return { start_seconds: seek, end_seconds: grid.end };
+  }, [visibleEvidence]);
+
+  const loadNoteEvidence = async () => {
+    if (!song || !score || !selectedNote || score.evidence_generation == null) return;
+    evidenceRequest.current?.abort();
+    const controller = new AbortController();
+    evidenceRequest.current = controller;
+    const epoch = ++evidenceEpoch.current;
+    const key = evidenceKey;
+    setNoteEvidence({ key, epoch, loading: true });
+    const query = new URLSearchParams({ expected_revision: String(score.song.revision),
+      expected_score_sha256: score.score_sha256, expected_generation: String(score.evidence_generation) });
+    try {
+      const response = await fetch(`${API}/api/songs/${encodeURIComponent(song.song_id)}/notes/${encodeURIComponent(selectedNote.note_id)}/evidence?${query}`, { method: "GET", signal: controller.signal });
+      if (response.status === 409) throw new Error("악보가 변경되었습니다. 새로고침 후 다시 확인하세요.");
+      if (!response.ok) throw new Error("모델 근거를 불러오지 못했습니다. 다시 시도하세요.");
+      const result: NoteEvidence = await response.json();
+      if (result.note_id !== selectedNote.note_id || result.revision !== score.song.revision || result.score_sha256 !== score.score_sha256) throw new Error("악보가 변경되었습니다. 새로고침 후 다시 확인하세요.");
+      if (result.status === "linked" && result.evidence) {
+        const { performed_seconds: performed, grid_seconds: grid } = result.evidence;
+        if (!performed || !grid || !Number.isFinite(performed.start) || !Number.isFinite(performed.end)
+            || performed.start < 0 || performed.end <= performed.start || !Number.isFinite(grid.start)
+            || !Number.isFinite(grid.end) || grid.start < 0 || grid.end <= grid.start) {
+          throw new Error("모델 근거의 시간 정보를 확인할 수 없습니다.");
+        }
+      }
+      if (!controller.signal.aborted && epoch === evidenceEpoch.current && key === evidenceKeyRef.current) setNoteEvidence({ key, epoch, result });
+    } catch (error) {
+      if (!controller.signal.aborted && epoch === evidenceEpoch.current && key === evidenceKeyRef.current) setNoteEvidence({ key, epoch, message: error instanceof Error ? error.message : "모델 근거를 불러오지 못했습니다. 다시 시도하세요." });
+    }
+  };
 
   const unresolvedMetadata = Boolean(
     song && [
@@ -713,7 +778,7 @@ export default function SongWorkspace() {
                   <button className="run-button export-button" disabled={busy} onClick={() => void postAction("export")}>최종 파일 생성</button>
                 </div>
               </div>
-              <SourceAudioReview key={`${song.song_id}:${song.revision}`} songId={song.song_id} revision={song.revision} />
+              <SourceAudioReview key={`${song.song_id}:${song.revision}`} songId={song.song_id} revision={song.revision} clip={sourceClip} />
               {unresolvedMetadata && (
                 <div className="metadata-review-notice" role="status">
                   <div><strong>곡 정보 확인이 필요합니다.</strong><p>자동 식별되지 않은 항목은 Unknown으로 표시됩니다. 제목·가수·작곡·작사 등을 확인한 뒤 재조회할 수 있습니다.</p></div>
@@ -769,6 +834,19 @@ export default function SongWorkspace() {
               {selectedNote && (
                 <div className="note-editor advanced-note-editor">
                   <div className="note-editor-head"><strong>{selectedNote.part_name} · M{selectedNote.measure}</strong><code>{selectedNote.note_id}</code></div>
+                  <div className="note-evidence">
+                    <button type="button" className="secondary" disabled={visibleEvidence?.loading || score?.evidence_generation == null} onClick={() => void loadNoteEvidence()}>{visibleEvidence?.loading ? "근거 확인 중…" : "모델 근거 확인"}</button>
+                    {score?.evidence_generation == null && <p>이 악보에는 연결된 모델 근거가 없어 확인을 보류합니다.</p>}
+                    {visibleEvidence?.message && <p role="status">{visibleEvidence.message}</p>}
+                    {visibleEvidence?.result && (visibleEvidence.result.status !== "linked" || !visibleEvidence.result.evidence
+                      ? <p role="status">이 음표의 모델 근거를 확정할 수 없어 확인을 보류합니다.</p>
+                      : <div role="status">
+                        <p>모델 연주 시각 {visibleEvidence.result.evidence.performed_seconds.start.toFixed(2)}–{visibleEvidence.result.evidence.performed_seconds.end.toFixed(2)}초</p>
+                        <p>기보 시각 {visibleEvidence.result.evidence.grid_seconds.start.toFixed(2)}–{visibleEvidence.result.evidence.grid_seconds.end.toFixed(2)}초</p>
+                        {visibleEvidence.result.patch && <p>이 버전에서 음표를 수정했습니다.</p>}
+                        <p>{sourceClip ? "원음 구간은 해석된 기보 시간이며 실제 음의 시작이나 정확도 판정이 아닙니다." : "원음 구간을 확인할 수 없어 재생 연결을 보류합니다."}</p>
+                      </div>)}
+                  </div>
                   <label className="switch-row"><span>쉼표</span><input type="checkbox" checked={noteRest} onChange={(event) => setNoteRest(event.target.checked)} /></label>
                   {!noteRest && (
                     <div className="pitch-fields">
