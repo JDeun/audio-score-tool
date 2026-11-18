@@ -177,11 +177,6 @@ def _restore_timed_metadata(score, part, root: Path, duration: float) -> dict:
     if chord_rows is not None:
         parsed = [(start, end, None if label in {"N", "N.C.", "NC"} else _parse_chord_symbol(label))
                   for start, end, label in chord_rows]
-        bar_labels = [(starts[index], copy.deepcopy(symbol))
-                      for index, measure in enumerate(measures)
-                      for symbol in measure.recurse().getElementsByClass(harmony.ChordSymbol)
-                      if not isinstance(symbol, harmony.NoChord)
-                      and abs(float(symbol.getOffsetInHierarchy(measure))) < 1e-8]
         for old in list(part.recurse().getElementsByClass(harmony.Harmony)):
             old.activeSite.remove(old)
         previous = None
@@ -191,7 +186,9 @@ def _restore_timed_metadata(score, part, root: Path, duration: float) -> dict:
             if start > last_end + 1e-6 and previous is not None:
                 changes.append((last_end, None))
                 previous = None
-            identity = None if value is None else value.figure
+            identity = None if value is None else (value.figure, tuple(sorted(
+                (m.modType, m.degree, m.interval.chromatic.semitones)
+                for m in value.getChordStepModifications())))
             if identity != previous:
                 changes.append((start, value))
                 previous = identity
@@ -218,22 +215,14 @@ def _restore_timed_metadata(score, part, root: Path, duration: float) -> dict:
         for position, value, observation in placed:
             insert(position, value if value is not None else harmony.NoChord())
             receipt["chords"].append(observation)
-        def signature(symbol):
-            return (symbol.root().pitchClass, symbol.bass().pitchClass,
-                    tuple(sorted(p.pitchClass for p in symbol.pitches)))
-
         restored = 0
-        restored_positions = set()
-        for position, symbol in bar_labels:
-            if position in restored_positions:
-                continue
+        for position in starts:
             earlier = [(at, value) for at, value, _ in placed if at <= position + 1e-8]
             if not earlier or abs(earlier[-1][0] - position) < 1e-8:
                 continue
             current = earlier[-1][1]
-            if current is not None and signature(current) == signature(symbol):
-                insert(position, symbol)
-                restored_positions.add(position)
+            if current is not None:
+                insert(position, copy.deepcopy(current))
                 restored += 1
         receipt["restored_bar_chord_labels"] = restored
         receipt["initial_no_chord_implicit"] = parsed[0][2] is None or parsed[0][0] > 0
@@ -383,7 +372,7 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
     score.write("musicxml", fp=str(target))
     # music21 omits this flag on tempo marks; serialize MusicXML's print-object.
     tree = ET.parse(target)
-    normalize_suspended_seventh(tree.getroot())
+    normalize_suspended_seventh(tree.getroot(), generated=True)
     xml_measures = tree.getroot().findall("./part/measure")
     for xml_measure in xml_measures:
         for direction in xml_measure.findall("direction"):

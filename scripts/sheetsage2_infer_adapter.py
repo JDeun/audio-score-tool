@@ -118,6 +118,27 @@ def normalize_native_result(result: dict) -> dict:
     return payload
 
 
+def _validate_chord_rows(rows, duration):
+    from audio_score_tool.sheetsage_hybrid import _parse_chord_symbol
+
+    if not rows:
+        raise ValueError("Missing fixed-recipe chord rows")
+    last_end = 0.0
+    for row in rows:
+        if len(row) != 3 or not row[2].strip():
+            raise ValueError("Invalid fixed-recipe chord row")
+        try:
+            start, end = map(float, row[:2])
+        except ValueError as exc:
+            raise ValueError("Invalid fixed-recipe chord time") from exc
+        if not (math.isfinite(start) and math.isfinite(end) and 0 <= start < end
+                and start >= last_end - 1e-6 and end <= duration + 1e-6):
+            raise ValueError("Invalid fixed-recipe chord time")
+        last_end = end
+        if row[2] not in {"N", "N.C.", "NC"}:
+            _parse_chord_symbol(row[2])
+
+
 def rebuild_vocal_notation(model_dir: Path, context: Path, vocal_midi: Path, output: Path) -> dict:
     """Use pinned notation code without loading MERT or running another model."""
     import shutil
@@ -140,14 +161,16 @@ def rebuild_vocal_notation(model_dir: Path, context: Path, vocal_midi: Path, out
                 or path.stat().st_size > 16 * 1024 * 1024):
             raise ValueError("Missing or unsafe fixed-recipe notation context")
         rows[name] = [line.split("\t") for line in path.read_text().splitlines() if line.strip()]
-    score = build_rebuilt_abc_score_from_data(pretty_midi.PrettyMIDI(), rows["beats"],
-                                             rows["chords"], rows["keys"], rows["structures"])
     source = context / "playback.json"
     if source.is_symlink() or not source.is_file() or source.stat().st_size > 16 * 1024 * 1024:
         raise ValueError("Missing or unsafe fixed-recipe source clock")
     duration = json.loads(source.read_text())["duration"]
     if type(duration) not in (int, float) or not math.isfinite(duration) or duration <= 0:
         raise ValueError("Invalid fixed-recipe source duration")
+    _validate_chord_rows(rows["chords"], duration)
+    score = build_rebuilt_abc_score_from_data(pretty_midi.PrettyMIDI(), rows["beats"],
+                                             rows["chords"], rows["keys"], rows["structures"],
+                                             melody_only=True)
     clipped = score.subbeat_times[-1] > duration
     if clipped:
         start, end = score.beats[-2].time, score.beats[-1].time

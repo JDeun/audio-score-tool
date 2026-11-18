@@ -301,8 +301,8 @@ def test_legacy_suspended_seventh_listing_and_edit(tmp_path: Path):
     assert list_chords(score)[0]['symbol'] == 'E7sus4'
     set_chord_at_note(score, 'p0-m0-n0', 'F7sus4')
     tree = ET.parse(score)
-    assert tree.findtext('.//harmony/kind') == 'suspended-fourth'
-    assert tree.findtext('.//harmony/degree/degree-alter') == '-1'
+    assert tree.findtext('.//harmony/kind') == 'dominant'
+    assert [d.findtext('degree-value') for d in tree.findall('.//harmony/degree')] == ['3', '4']
 
 
 @pytest.mark.parametrize('symbol', ['N', 'NC', 'N.C.'])

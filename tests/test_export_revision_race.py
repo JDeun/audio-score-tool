@@ -334,7 +334,12 @@ def test_legacy_suspended_seventh_is_fixed_only_in_export_copy(state, monkeypatc
 
     from audio_score_tool.chord_listing import list_chords
     from audio_score_tool.metrics import midi_notes
-    from audio_score_tool.notation_backend import _verovio_toolkit, musicxml_to_midi, render_pdf
+    from audio_score_tool.notation_backend import (
+        _no_chord_render_copy,
+        _verovio_toolkit,
+        musicxml_to_midi,
+        render_pdf,
+    )
 
     client, songs, _worker, _publication, root = state
     synthetic = stream.Score()
@@ -360,21 +365,22 @@ def test_legacy_suspended_seventh_is_fixed_only_in_export_copy(state, monkeypatc
     exported = songs.export_root / 'song-1' / 'score.musicxml'
     tree = ET.parse(exported)
     assert not tree.findall('.//kind[.="suspended-fourth-seventh"]')
-    assert len(tree.findall('.//kind[.="suspended-fourth"]')) == 29
-    assert len(tree.findall('.//degree[degree-value="7"][degree-alter="-1"][degree-type="add"]')) == 29
+    assert len(tree.findall('.//kind[.="dominant"]')) == 29
+    assert len(tree.findall('.//degree[@print-object="no"][degree-value="3"][degree-type="subtract"]')) == 29
+    assert len(tree.findall('.//degree[@print-object="no"][degree-value="4"][degree-type="add"]')) == 29
     assert songs.score_xml('song-1') == before and songs.get('song-1')['revision'] == revision
     assert canonical.read_text() == original
     assert [(n.pitch, n.onset, n.offset) for n in midi_notes(old_midi)] == [
         (n.pitch, n.onset, n.offset) for n in midi_notes(songs.export_root / 'song-1' / 'score.mid')]
     assert (songs.export_root / 'song-1' / 'score.pdf').read_bytes().startswith(b'%PDF')
     toolkit = _verovio_toolkit()
-    assert toolkit.loadFile(str(exported))
+    assert toolkit.loadData(_no_chord_render_copy(exported))
     symbols = []
     for page in range(1, toolkit.getPageCount() + 1):
         svg = ET.fromstring(toolkit.renderToSVG(page))
         symbols.extend(''.join(''.join(e.itertext()).split()).replace('\uea64', '♭')
                        for e in svg.iter() if 'harm' in e.get('class', '').split())
-    assert symbols == ['Esus4(♭7)'] * 29
+    assert symbols == ['E7sus4'] * 29
 
 
 def test_no_chord_survives_export_without_changing_canonical(state):

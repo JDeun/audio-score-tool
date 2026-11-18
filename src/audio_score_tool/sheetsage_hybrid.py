@@ -10,7 +10,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from music21 import chord, converter, harmony, key, meter, note, pitch, stream
+from music21 import chord, converter, harmony, interval, key, meter, note, pitch, stream
 
 from .musicxml_metadata_projection import project_musicxml_annotations
 from .runner import CommandError, run_command
@@ -123,7 +123,7 @@ _HARTE_QUALITY_TO_MUSIC21 = {
     "minmin7": "m7",
     "maj7": "M7",
     "dim7": "dim7",
-    "hdim7": "m7b5",
+    "hdim7": "ø7",
     "minmaj7": "mM7",
     "aug7": "7+",
     "9": "9",
@@ -137,16 +137,6 @@ _HARTE_QUALITY_TO_MUSIC21 = {
     "min13": "m13",
 }
 
-_HARTE_BASS_INTERVALS = {
-    "2": "M2", "3": "M3", "b3": "m3", "5": "P5", "6": "M6", "7": "M7", "b7": "m7",
-}
-_SHEETSAGE_INVERSIONS = {
-    "maj": {"2", "3", "5"}, "min": {"2", "b3", "5"},
-    "maj7": {"3", "5", "7"}, "min7": {"b3", "5", "b7"},
-    "7": {"3", "5", "b7"},
-    "6": {"3", "5", "6"}, "maj6": {"3", "5", "6"},
-    "min6": {"b3", "5", "6"}, "minmaj7": {"b3", "5", "7"},
-}
 
 
 def _normalize_native_chord_figure(label: str) -> str:
@@ -156,25 +146,66 @@ def _normalize_native_chord_figure(label: str) -> str:
     root, quality, bass = match.groups()
     if quality == "m(maj7)":
         quality = "mM7"
+    elif quality in {"m7b5", "min7b5"}:
+        quality = "ø7"
     return root.replace("b", "-") + quality + ("/" + bass.replace("b", "-") if bass else "")
 
 
 def _parse_chord_symbol(label: str) -> harmony.ChordSymbol:
-    """Convert recognized Harte triad/seventh labels into music21 notation."""
+    """Convert supported Harte labels without dropping chord tones."""
     if ":" not in label:
         return harmony.ChordSymbol(_normalize_native_chord_figure(label))
     root, suffix = label.split(":", 1)
     quality, slash, bass = suffix.partition("/")
-    if not re.fullmatch(r"[A-G](?:#|b)?", root) or quality not in _HARTE_QUALITY_TO_MUSIC21:
+    match = re.fullmatch(r"([a-zA-Z0-9]+)(?:\(([^()]*)\))?", quality)
+    if not re.fullmatch(r"[A-G](?:#|b)?", root) or not match:
         raise SheetSageError(f"unsupported chord label: {label}")
-    if slash and bass not in _SHEETSAGE_INVERSIONS.get(quality, set()):
+    base, degrees = match.groups()
+    if base not in _HARTE_QUALITY_TO_MUSIC21 or (degrees is not None and not degrees):
         raise SheetSageError(f"unsupported chord label: {label}")
-    # music21 uses '-' rather than 'b' for a flat root (e.g. Bb -> B-).
-    figure = root.replace("b", "-") + _HARTE_QUALITY_TO_MUSIC21[quality]
+    degree_pattern = r"(bb|##|b|#|)([1-9]|1[0-3])"
+    if slash and not re.fullmatch(degree_pattern, bass):
+        raise SheetSageError(f"unsupported chord label: {label}")
+    figure = root.replace("b", "-") + _HARTE_QUALITY_TO_MUSIC21[base]
     if slash:
-        bass_pitch = pitch.Pitch(root.replace("b", "-")).transpose(_HARTE_BASS_INTERVALS[bass])
+        accidental, number = re.fullmatch(degree_pattern, bass).groups()
+        degree = (int(number) - 1) % 7 + 1
+        bass_pitch = pitch.Pitch(root.replace("b", "-")).transpose(
+            interval.Interval(("P1", "M2", "M3", "P4", "P5", "M6", "M7")[degree - 1]))
+        bass_pitch.accidental = pitch.Accidental(
+            (bass_pitch.accidental.alter if bass_pitch.accidental else 0)
+            + {"": 0, "b": -1, "#": 1, "bb": -2, "##": 2}[accidental])
         figure += "/" + bass_pitch.name
-    return harmony.ChordSymbol(figure)
+    symbol = harmony.ChordSymbol(figure)
+    if degrees is not None:
+        modifications = []
+        for degree in degrees.split(","):
+            degree_match = re.fullmatch(r"(\*)?" + degree_pattern, degree)
+            if not degree_match:
+                raise SheetSageError(f"unsupported chord label: {label}")
+            omit, accidental, number = degree_match.groups()
+            if not omit and number == "7" and not (base == "sus4" and accidental == "b"):
+                raise SheetSageError(f"unsupported chord label: {label}")
+            modifications.append((bool(omit), int(number), {"": 0, "b": -1, "#": 1, "bb": -2, "##": 2}[accidental]))
+        base_pitches = {p.pitchClass for p in harmony.ChordSymbol(
+            root.replace("b", "-") + _HARTE_QUALITY_TO_MUSIC21[base]).pitches}
+        expected = set(base_pitches)
+        for omit, number, alteration in sorted(modifications, key=lambda item: not item[0]):
+            semitones = (0, 2, 4, 5, 7, 9, 11)[(number - 1) % 7] + alteration
+            target = (symbol.root().pitchClass + semitones) % 12
+            if omit:
+                expected.discard(target)
+                if target not in base_pitches:
+                    continue
+            else:
+                expected.add(target)
+            symbol.addChordStepModification(harmony.ChordStepModification(
+                "subtract" if omit else "add", number, alteration))
+        if slash:
+            expected.add(bass_pitch.pitchClass)
+        if expected != {p.pitchClass for p in symbol.pitches}:
+            raise SheetSageError(f"unsupported chord label: {label}")
+    return symbol
 
 
 def _parse_key_label(label: str) -> key.Key:

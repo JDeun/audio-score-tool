@@ -159,7 +159,7 @@ def test_nonfinite_beat_is_rejected(tmp_path):
         ("F#:dim", "F#dim", "diminished"),
         ("D:min7", "Dm7", "minor-seventh"),
         ("G:7", "G7", "dominant-seventh"),
-        ("C:hdim7", "Cm7b5", "minor-seventh"),
+        ("C:hdim7", "Cø7", "half-diminished-seventh"),
     ],
 )
 def test_sheetsage_harte_chord_symbol_uses_music21_spelling(
@@ -172,8 +172,6 @@ def test_sheetsage_harte_chord_symbol_uses_music21_spelling(
     assert parsed.figure == expected_figure
     assert parsed.chordKind == expected_kind
     if label == "C:hdim7":
-        # Music21 represents m7b5 as minor-seventh + altered fifth, not a
-        # separate chordKind. Verify the actual half-diminished pitch classes.
         assert sorted(p.pitchClass for p in parsed.pitches) == [0, 3, 6, 10]
 
 
@@ -202,7 +200,7 @@ def test_sheetsage_merge_accepts_augmented_chord_from_real_model(tmp_path):
     assert len([item for item in parsed.recurse().notes if isinstance(item, note.Note)]) == 1
 
 
-@pytest.mark.parametrize("label", ["C:unrecognized", "Q:maj", "C:aug/3"])
+@pytest.mark.parametrize("label", ["C:unrecognized", "Q:maj", "C:aug/banana", "C:maj(b)", "C:maj()"])
 def test_sheetsage_rejects_unmappable_harte_chords(label):
     from audio_score_tool.sheetsage_hybrid import _parse_chord_symbol
 
@@ -216,6 +214,13 @@ def test_sheetsage_rejects_unmappable_harte_chords(label):
     ("G:7/b7", 7, 5, {7, 11, 2, 5}),
     ("F#:maj7/7", 6, 5, {6, 10, 1, 5}),
     ("C:sus4(b7)", 0, 0, {0, 5, 7, 10}),
+    ("Eb:maj/b7", 3, 1, {1, 3, 7, 10}),
+    ("C:min/4", 0, 5, {0, 3, 5, 7}),
+    ("C:aug/3", 0, 4, {0, 4, 8}),
+    ("Eb:sus4(b7,9)", 3, 3, {1, 3, 5, 8, 10}),
+    ("C:maj(*3,9)", 0, 0, {0, 2, 7}),
+    ("C:maj(*b3)", 0, 0, {0, 4, 7}),
+    ("C:maj/bb6", 0, 7, {0, 4, 7}),
 ])
 def test_native_sheetsage2_full_chord_vocabulary_preserves_inversions(label, root, bass, classes):
     from audio_score_tool.sheetsage_hybrid import _parse_chord_symbol
@@ -367,17 +372,17 @@ def test_suspended_seventh_harmony_is_standard_and_roundtrips(tmp_path):
     merge_sheetsage_musicxml(source, events, target, bpm=120)
     tree = ET.parse(target)
     h = tree.find('.//harmony')
-    assert h.findtext('kind') == 'suspended-fourth' and h.find('kind').get('text') == 'sus4'
+    assert h.findtext('kind') == 'dominant' and h.find('kind').get('text') == '7sus4'
     assert h.findtext('root/root-alter') == '1'
     assert [(d.findtext('degree-value'), d.findtext('degree-alter'), d.findtext('degree-type'))
-            for d in h.findall('degree')] == [('7', '-1', 'add')]
+            for d in h.findall('degree')] == [('3', '0', 'subtract'), ('4', '0', 'add')]
     parsed = converter.parse(target)
     chord = list(parsed.recurse().getElementsByClass(harmony.ChordSymbol))[0]
     assert {p.pitchClass for p in chord.pitches} == {1, 4, 6, 11}
     again = tmp_path / 'again.musicxml'
     parsed.write('musicxml', fp=str(again))
-    assert ET.parse(again).findtext('.//harmony/kind') == 'suspended-fourth'
-    assert ET.parse(again).findtext('.//harmony/degree/degree-alter') == '-1'
+    assert ET.parse(again).findtext('.//harmony/kind') == 'dominant'
+    assert ET.parse(again).findtext('.//harmony/degree/degree-alter') == '0'
 
 
 def test_suspended_seventh_preserves_existing_degrees():
@@ -393,8 +398,9 @@ def test_suspended_seventh_preserves_existing_degrees():
     normalize_suspended_seventh(root)
     harmony_xml = root.find('.//harmony')
     assert harmony_xml.findtext('bass/bass-alter') == '1'
+    assert harmony_xml.findtext('kind') == 'dominant'
     assert [(x.findtext('degree-value'), x.findtext('degree-alter'))
-            for x in harmony_xml.findall('degree')] == [('7', '-1'), ('9', '-1')]
+            for x in harmony_xml.findall('degree')] == [('3', '0'), ('4', '0'), ('9', '-1')]
 
 
 def test_suspended_seventh_preserves_custom_text_and_namespace():
@@ -410,7 +416,7 @@ def test_suspended_seventh_preserves_custom_text_and_namespace():
     normalize_suspended_seventh(root)
     assert ET.tostring(root) == before
     assert root.find('.//{urn:musicxml}kind').get('text') == 'custom'
-    assert root.findtext('.//{urn:musicxml}degree/{urn:musicxml}degree-alter') == '-1'
+    assert root.findtext('.//{urn:musicxml}degree/{urn:musicxml}degree-alter') == '0'
 
 
 def test_suspended_seventh_chord_listing_and_edit_preserve_degree():
@@ -419,8 +425,8 @@ def test_suspended_seventh_chord_listing_and_edit_preserve_degree():
     for spelling in ('F#7sus4/C#', 'F#sus4(b7)/C#'):
         harmony_xml = _build_harmony('', spelling)
         assert harmony_symbol(harmony_xml, '') == 'F♯7sus4/C♯'
-        assert harmony_xml.findtext('kind') == 'suspended-fourth'
-        assert harmony_xml.findtext('degree/degree-alter') == '-1'
+        assert harmony_xml.findtext('kind') == 'dominant'
+        assert [d.findtext('degree-value') for d in harmony_xml.findall('degree')] == ['3', '4']
 
 
 @pytest.mark.parametrize('symbol', ['B♭m(maj7)/D♭', 'B♭mM7/D♭', 'B♭m7b5/D♭'])
@@ -481,7 +487,109 @@ def test_unchanged_half_diminished_keeps_additional_degree(tmp_path):
     score.write('musicxml', fp=str(target))
     before = target.read_bytes()
     listed = list_chords(target)[0]
-    assert listed['symbol'] == 'Cm7b5'
+    assert listed['symbol'] == 'Cm7b5(add9)'
     set_chord_at_note(target, listed['note_id'], listed['symbol'])
     assert target.read_bytes() == before
     assert len(ET.parse(target).findall('.//harmony/degree')) == 2
+    set_chord_at_note(target, listed['note_id'], 'Dm7b5(add9)')
+    chord = list(converter.parse(target).recurse().getElementsByClass(harmony.ChordSymbol))[0]
+    assert {p.pitchClass for p in chord.pitches} == {2, 4, 5, 8, 0}
+
+@pytest.mark.parametrize(('label', 'expected'), [
+    ('F#:maj7/7', 'E#'), ('C:maj/b3', 'E-'), ('C:maj/##4', 'F##'),
+])
+def test_harte_bass_preserves_degree_spelling(label, expected):
+    from audio_score_tool.sheetsage_hybrid import _parse_chord_symbol
+
+    assert _parse_chord_symbol(label).bass().name == expected
+
+
+def test_ninth_suspension_import_list_and_edit(tmp_path):
+    from audio_score_tool.chord_editor import set_chord_at_note
+    from audio_score_tool.chord_listing import list_chords
+    from audio_score_tool.sheetsage_hybrid import _parse_chord_symbol
+
+    score = stream.Score()
+    part = stream.Part()
+    part.insert(0, _parse_chord_symbol('Eb:sus4(b7,9)/5'))
+    part.insert(0, note.Note('C4', quarterLength=4))
+    score.append(part)
+    target = tmp_path / 'score.musicxml'
+    score.write('musicxml', fp=str(target))
+    listed = list_chords(target)[0]
+    assert listed['symbol'] == 'E♭9sus4/B♭'
+    assert not set_chord_at_note(target, listed['note_id'], listed['symbol'])
+    assert set_chord_at_note(target, listed['note_id'], 'F9sus4/C')
+    chord = list(converter.parse(target).recurse().getElementsByClass(harmony.ChordSymbol))[0]
+    assert chord.root().pitchClass == 5
+    assert chord.bass().pitchClass == 0
+    assert {p.pitchClass for p in chord.pitches} == {0, 3, 5, 7, 10}
+    assert list_chords(target)[0]['symbol'] == 'F9sus4/C'
+
+@pytest.mark.parametrize('suffix', ['(add9,)', '(add0)', '(add14)', '(add999999)'])
+def test_invalid_degree_suffix_remains_custom(suffix):
+    from audio_score_tool.chord_editor import _build_harmony, harmony_symbol
+
+    chord = _build_harmony('', 'C' + suffix)
+    assert chord.findtext('kind') == 'other'
+    assert harmony_symbol(chord, '') == 'C' + suffix
+    assert chord.find('degree') is None
+
+
+def test_unicode_degree_accidental_matches_ascii():
+    from audio_score_tool.chord_editor import _build_harmony
+
+    for spelling in ('C(add♭9)', 'C(addb9)'):
+        chord = _build_harmony('', spelling)
+        assert chord.findtext('kind') == 'major'
+        assert chord.findtext('degree/degree-value') == '9'
+        assert chord.findtext('degree/degree-alter') == '-1'
+
+@pytest.mark.parametrize('label', ['C:11(b9)', 'C:11(b9,b13)', 'C:maj7(b7)/3', 'C:13(#11)'])
+def test_harte_rejects_lossy_degree_modifications(label):
+    from audio_score_tool.sheetsage_hybrid import _parse_chord_symbol
+
+    with pytest.raises(SheetSageError, match='unsupported chord label'):
+        _parse_chord_symbol(label)
+
+@pytest.mark.parametrize('label', ['C:maj(b7)', 'C:min7(b7)', 'C:sus2(b7)', 'C:sus4(7)'])
+def test_harte_unsupported_seventh_additions_fail_closed(label):
+    from audio_score_tool.sheetsage_hybrid import _parse_chord_symbol
+
+    with pytest.raises(SheetSageError, match='unsupported chord label'):
+        _parse_chord_symbol(label)
+
+
+def test_generated_suspension_standard_degrees_and_import_boundary():
+    import xml.etree.ElementTree as ET
+
+    from audio_score_tool.musicxml_metadata_projection import normalize_suspended_seventh
+
+    xml = '''<score><harmony><root><root-step>E</root-step><root-alter>-1</root-alter></root>
+        <kind text="sus4">suspended-fourth</kind><bass><bass-step>B</bass-step></bass>
+        <degree><degree-value>7</degree-value><degree-alter>-1</degree-alter><degree-type>add</degree-type></degree>
+        <degree><degree-value>9</degree-value><degree-alter>0</degree-alter><degree-type>add</degree-type></degree>
+        <degree><degree-value>13</degree-value><degree-alter>-1</degree-alter><degree-type>add</degree-type></degree>
+        </harmony></score>'''
+    root = ET.fromstring(xml)
+    normalize_suspended_seventh(root)
+    assert root.findtext('.//kind') == 'suspended-fourth'
+    normalize_suspended_seventh(root, generated=True)
+    h = root.find('harmony')
+    assert h.findtext('kind') == 'dominant-ninth' and h.find('kind').get('text') == '9sus4'
+    assert h.findtext('root/root-alter') == '-1' and h.findtext('bass/bass-step') == 'B'
+    assert [(d.get('print-object'), d.findtext('degree-value'), d.findtext('degree-alter'), d.findtext('degree-type'))
+            for d in h.findall('degree')] == [('no', '3', '0', 'subtract'), ('no', '4', '0', 'add'),
+                                               (None, '13', '-1', 'add')]
+
+
+def test_harte_half_diminished_exports_standard_kind():
+    import xml.etree.ElementTree as ET
+
+    from music21.musicxml.m21ToXml import GeneralObjectExporter
+
+    from audio_score_tool.sheetsage_hybrid import _parse_chord_symbol
+
+    root = ET.fromstring(GeneralObjectExporter(_parse_chord_symbol('C:hdim7')).parse())
+    assert root.findtext('.//harmony/kind') == 'half-diminished'
+    assert not root.findall('.//harmony/degree')
