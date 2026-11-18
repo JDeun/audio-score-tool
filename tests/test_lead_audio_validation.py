@@ -175,3 +175,116 @@ def test_no_chord_ends_previous_harmony_interval(tmp_path, monkeypatch):
                                      xml_text=xml, ffmpeg_cmd='ffmpeg')
     assert report['chords']['compared_intervals'] == 1
     assert report['chords']['spectral_warnings'] == 0
+
+
+def test_source_audio_http_is_authenticated_ranged_and_read_only(workspace, monkeypatch):
+    import io
+    import wave
+
+    from fastapi.testclient import TestClient
+
+    from audio_score_tool.api import app
+
+    store = workspace
+    buffer = io.BytesIO()
+    with wave.open(buffer, 'wb') as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(8000)
+        wav.writeframes(b'\x00\x00' * 80)
+    audio = buffer.getvalue()
+    path = store.asset_root / 'test/original-audio.wav'
+    path.write_bytes(audio)
+    before = (store.score_xml('test'), store.get('test')['revision'], store.analysis('test', 'music_structure'))
+    monkeypatch.setenv('AST_API_TOKEN', 'owned-test-token')
+    client = TestClient(app)
+    url = '/api/songs/test/source-audio?expected_revision=1'
+    assert client.get(url).status_code == 401
+    headers = {'X-AudioScore-Token': 'owned-test-token'}
+    response = client.get(url, headers=headers)
+    assert response.status_code == 200 and response.content == audio
+    assert response.headers['content-type'] == 'audio/wav'
+    assert response.headers['cache-control'] == 'private, no-store'
+    partial = client.get(url, headers={**headers, 'Range': 'bytes=4-11'})
+    assert partial.status_code == 206 and partial.content == audio[4:12]
+    assert partial.headers['content-range'] == f'bytes 4-11/{len(audio)}'
+    assert client.get('/api/songs/test/source-audio?expected_revision=2', headers=headers).status_code == 409
+    assert client.get('/api/songs/missing/source-audio?expected_revision=1', headers=headers).status_code == 404
+    assert client.get('/api/songs/test/source-audio', headers=headers).status_code == 422
+    assert client.get('/api/songs/test/source-audio?expected_revision=0', headers=headers).status_code == 422
+    assert (store.score_xml('test'), store.get('test')['revision'], store.analysis('test', 'music_structure')) == before
+
+
+def test_source_audio_http_rejects_missing_symlink_and_ambiguous(workspace, tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from audio_score_tool.api import app
+
+    monkeypatch.delenv('AST_API_TOKEN', raising=False)
+    client = TestClient(app)
+    owner = workspace.asset_root / 'test'
+    path = owner / 'original-audio.wav'
+    url = '/api/songs/test/source-audio?expected_revision=1'
+    (owner / 'original-audio.mp3').write_bytes(b'second')
+    assert client.get(url).status_code == 404
+    (owner / 'original-audio.mp3').unlink()
+    path.unlink()
+    assert client.get(url).status_code == 404
+    outside = tmp_path / 'outside.wav'
+    outside.write_bytes(b'external')
+    path.symlink_to(outside)
+    assert client.get(url).status_code == 404
+    (owner / 'original-audio.mp3').write_bytes(b'second')
+    assert client.get(url).status_code == 404
+
+
+def test_source_audio_does_not_serve_partial_copy(workspace, tmp_path, monkeypatch):
+    import io
+    import shutil
+    import wave
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+
+    from fastapi.testclient import TestClient
+
+    from audio_score_tool import song_store_v2
+    from audio_score_tool.api import app
+
+    owner = workspace.asset_root / 'test'
+    (owner / 'original-audio.wav').unlink()
+    jobs = tmp_path / 'jobs'
+    source = jobs / 'test/input.wav'
+    source.parent.mkdir(parents=True)
+    buffer = io.BytesIO()
+    with wave.open(buffer, 'wb') as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(8000)
+        wav.writeframes(b'\x00\x00' * 800)
+    source.write_bytes(buffer.getvalue())
+    monkeypatch.setattr(song_store_v2, 'jobs_dir', lambda: jobs)
+    real_copy = shutil.copyfileobj
+    started, release = Event(), Event()
+
+    def paused_copy(src, dst, *args, **kwargs):
+        if str(dst.name).endswith('.copying'):
+            dst.write(src.read(56))
+            dst.flush()
+            started.set()
+            assert release.wait(10)
+        return real_copy(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(song_store_v2.shutil, 'copyfileobj', paused_copy)
+    client = TestClient(app)
+    url = '/api/songs/test/source-audio?expected_revision=1'
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        pending = pool.submit(workspace._preserve_original_audio, 'test')
+        assert started.wait(10)
+        try:
+            assert client.get(url).status_code == 404
+        finally:
+            release.set()
+        assert pending.result(timeout=10) is not None
+    response = client.get(url)
+    assert response.status_code == 200 and response.content == source.read_bytes()
+    assert response.headers['content-type'] == 'audio/wav'

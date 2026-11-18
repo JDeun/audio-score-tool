@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./validation-controller.css";
 import { useSelectedSong } from "./SelectedSongContext";
+import SourceAudioReview, { type AudioClip } from "./SourceAudioReview";
 
 const API = "http://127.0.0.1:8080";
 
@@ -48,7 +49,13 @@ type ValidationSettings = {
 };
 
 export default function ValidationController() {
-  const { target } = useSelectedSong();
+  const { target, songChange } = useSelectedSong();
+  const current = useRef("");
+  const epoch = useRef(0);
+  const changeSequence = songChange?.songId === target?.songId ? songChange?.sequence : undefined;
+  const targetKey = `${target?.songId ?? ""}:${changeSequence ?? ""}`;
+  if (current.current !== targetKey) { current.current = targetKey; epoch.current += 1; }
+  const [clip, setClip] = useState<AudioClip | null>(null);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [report, setReport] = useState<ValidationReport | null>(null);
@@ -75,8 +82,10 @@ export default function ValidationController() {
     // Close a validation report when the selected score changes or disappears.
     setOpen(false);
     setReport(null);
+    setClip(null);
+    setBusy(false);
     setMessage("");
-  }, [target?.songId]);
+  }, [target?.songId, changeSequence]);
 
   useEffect(() => {
     if (!open) return;
@@ -109,22 +118,27 @@ export default function ValidationController() {
 
   const validate = async () => {
     if (!target || busy) return;
+    const requestKey = current.current;
+    const requestEpoch = ++epoch.current;
     setBusy(true);
     setMessage("");
     setReport(null);
+    setClip(null);
     try {
       await saveSettings();
+      if (requestKey !== current.current || requestEpoch !== epoch.current) return;
       const response = await fetch(`${API}/api/songs/${target.songId}/validate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ use_llm: useLlm, use_visual: useVisual, use_audio: useAudio }),
       });
       if (!response.ok) throw new Error(await response.text());
-      setReport(await response.json());
+      const body: ValidationReport = await response.json();
+      if (requestKey === current.current && requestEpoch === epoch.current && body.song_id === target.songId) setReport(body);
     } catch (error) {
-      setMessage(`검증 실패: ${String(error)}`);
+      if (requestKey === current.current && requestEpoch === epoch.current) setMessage(`검증 실패: ${String(error)}`);
     } finally {
-      setBusy(false);
+      if (requestKey === current.current && requestEpoch === epoch.current) setBusy(false);
     }
   };
 
@@ -188,6 +202,7 @@ export default function ValidationController() {
                   {report.acoustic?.issues_truncated && <small>음향 재검토 항목 총 {report.acoustic.total_issue_count}건 중 앞의 200건을 표시합니다.</small>}
                   {report.acoustic_skipped && <small>보컬·코드 대조 건너뜀: {report.acoustic_skipped}</small>}
                 </div>
+                <SourceAudioReview key={`${report.song_id}:${report.revision}`} songId={report.song_id} revision={report.revision} clip={clip} />
                 <div className="validation-issues">
                   {report.issues.length === 0 && <p>현재 검사에서 발견된 이상 항목이 없습니다.</p>}
                   {report.issues.map((issue, index) => (
@@ -196,6 +211,7 @@ export default function ValidationController() {
                       <p>{issue.message}</p>
                       {(issue.page || issue.part || issue.measure || typeof issue.start_seconds === "number") && <small>{issue.page ? `P${issue.page}` : ""}{issue.part ? `${issue.page ? " · " : ""}${issue.part}` : ""}{issue.measure ? ` · M${issue.measure}` : ""}{typeof issue.start_seconds === "number" ? ` · ${issue.start_seconds.toFixed(1)}–${(issue.end_seconds ?? issue.start_seconds).toFixed(1)}s` : ""}</small>}
                       {typeof issue.confidence === "number" && ["vision", "audio_symbol"].includes(issue.source ?? "") && <small>confidence {Math.round(issue.confidence * 100)}%</small>}
+                      {(["vocal_acoustic", "chord_acoustic"].includes(issue.source ?? "") && typeof issue.start_seconds === "number" && typeof issue.end_seconds === "number" && Number.isFinite(issue.start_seconds) && Number.isFinite(issue.end_seconds) && issue.start_seconds >= 0 && issue.end_seconds > issue.start_seconds) && <button type="button" className="secondary" onClick={() => setClip({ start_seconds: issue.start_seconds!, end_seconds: issue.end_seconds! })}>원음 구간 확인</button>}
                       {issue.suggested_action && <em>{issue.suggested_action}</em>}
                     </article>
                   ))}

@@ -4,7 +4,8 @@ import math
 from pathlib import Path
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, field_validator
 
 from .audio_symbol_validation import AudioSymbolValidationError, validate_audio_symbol
@@ -19,6 +20,11 @@ from .visual_validation import VisualValidationError, validate_omr_visual
 router = APIRouter(tags=["score-validation"])
 _store = SettingsStore()
 _songs = SongStoreV2()
+
+_AUDIO_MEDIA_TYPES = {".wav": "audio/wav", ".mp3": "audio/mpeg", ".flac": "audio/flac",
+                      ".m4a": "audio/mp4", ".mp4": "audio/mp4", ".aac": "audio/aac",
+                      ".ogg": "audio/ogg", ".opus": "audio/ogg", ".webm": "audio/webm",
+                      ".audio": "application/octet-stream"}
 
 _DEFAULT_BASE_URL = "http://127.0.0.1:11434/v1"
 _DEFAULT_MODEL = "qwen3.5:9b"
@@ -136,9 +142,27 @@ def _source_audio(song_id: str) -> Path | None:
     root = song_assets_dir() / song_id
     if root.is_symlink() or root.resolve().parent != song_assets_dir().resolve():
         return None
-    candidates = sorted(p for p in root.glob("original-audio.*")
-                        if p.is_file() and not p.is_symlink() and p.resolve().parent == root.resolve())
-    return candidates[0] if len(candidates) == 1 else None
+    candidates = [p for p in root.glob("original-audio.*") if p.suffix.lower() in _AUDIO_MEDIA_TYPES]
+    if len(candidates) != 1:
+        return None
+    candidate = candidates[0]
+    return candidate if (not candidate.is_symlink() and candidate.is_file()
+                         and candidate.resolve().parent == root.resolve()) else None
+
+
+@router.get("/api/songs/{song_id}/source-audio")
+def get_source_audio(song_id: str, expected_revision: int = Query(..., ge=1)) -> FileResponse:
+    song = _songs.get(song_id)
+    if not song:
+        raise HTTPException(404, "Song not found")
+    if song["revision"] != expected_revision:
+        raise HTTPException(409, "Song revision changed")
+    source = _source_audio(song_id)
+    if source is None:
+        raise HTTPException(404, "Original audio not found")
+    media_type = _AUDIO_MEDIA_TYPES[source.suffix.lower()]
+    # shortcut: a concurrent Song deletion can abort this read; retain a file snapshot if transfers must survive deletion.
+    return FileResponse(source, media_type=media_type, headers={"Cache-Control": "private, no-store"})
 
 
 @router.get("/api/validation/settings")
