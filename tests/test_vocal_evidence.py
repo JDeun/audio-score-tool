@@ -186,12 +186,14 @@ def test_fixed_tiny_observation_checks_provenance_and_rejects_invalid_arrays(tmp
     config = {'device': 'cpu', 'threads': 2, 'seed': 0, 'sample_rate': 16000, 'hop': 160,
               'fmin': 55, 'fmax': 880, 'decoder': 'viterbi', 'batch_size': 128, 'pad': True,
               'periodicity_threshold': .21, 'silence_db': -60}
-    state = {"hz": [54.169, 881.142], "times": [0., .01]}
+    state = {"hz": [54.169, 881.142], "times": [0., .01], "version": 2}
     def command(_cmd, _args, **_kwargs):
-        np.savez_compressed(output, times=np.array(state['times']), hz=np.array(state['hz']))
+        np.savez_compressed(output, times=np.array(state['times']), hz=np.array(state['hz']),
+                            raw_hz=np.array(state['hz']), periodicity=np.ones(2), loudness_db_a=np.zeros(2))
         from audio_score_tool import fixed_vocal_infer
         from audio_score_tool.fixed_lead_recipe import YOUR_RUNTIME
-        receipt = {'provider': 'torchcrepe', 'model': 'tiny', **config,
+        receipt = {'schema_version': state['version'], 'source_frames': 160, 'source_sample_rate': 16000,
+                   'provider': 'torchcrepe', 'model': 'tiny', **config,
                    'python': '3.11.15', 'adapter_sha256': hashlib.sha256(Path(fixed_vocal_infer.__file__).read_bytes()).hexdigest(),
                    'weights_source_revision': '19e2ec3d494c0797a5ff2a11408ec5838fba6681',
                    'runtime': {**YOUR_RUNTIME, 'torchcrepe': '0.0.24', 'resampy': '0.4.3', 'librosa': '0.11.0'},
@@ -205,8 +207,47 @@ def test_fixed_tiny_observation_checks_provenance_and_rejects_invalid_arrays(tmp
     assert times.tolist() == [0., .01] and np.isfinite(pitches).all()
     np.testing.assert_allclose(440 * 2 ** ((pitches - 69) / 12), state['hz'])
     assert receipt['model'] == 'tiny'
+    state['version'] = 1
+    with pytest.raises(ValueError, match='requires version 2'):
+        fixed_tiny_pitch_track(source, output, settings=settings)
+    state['version'] = 2
     for hz, times in (([53.8, 440], [0, .01]), ([440, 883.2], [0, .01]),
                       ([440, 440], [0, .02])):
         state.update(hz=hz, times=times)
         with pytest.raises(ValueError, match='Invalid fixed pitch track'):
             fixed_tiny_pitch_track(source, output, settings=settings)
+
+
+def test_pitch_observation_versions_and_validation(tmp_path):
+    path = tmp_path / 'pitch.npz'
+    times = np.arange(3) * .01
+    raw = np.array([220., 440., 330.], dtype=np.float32)
+    periodicity = np.array([.21, .20, .9], dtype=np.float32)
+    loudness = np.array([-60., -30., -60.01], dtype=np.float32)
+    from audio_score_tool.fixed_vocal_infer import _filter_pitch
+
+    hz = _filter_pitch(raw, periodicity, loudness)
+    assert hz.tolist() == [220., 0., 0.]
+    receipt = {'schema_version': 2, 'source_frames': 320, 'source_sample_rate': 16000, 'hop': 160}
+    arrays = dict(times=times, hz=hz, raw_hz=raw, periodicity=periodicity, loudness_db_a=loudness)
+    np.savez_compressed(path, **arrays)
+    loaded = ve.read_tiny_pitch_observation(path, receipt)
+    for key in arrays:
+        np.testing.assert_array_equal(loaded[key], arrays[key])
+    for invalid in (True, 0, 3, '2', None):
+        with pytest.raises(ValueError, match='version'):
+            ve.read_tiny_pitch_observation(path, {**receipt, 'schema_version': invalid})
+    for changed in ({'source_frames': 480}, {'source_frames': True}, {'hop': True}):
+        with pytest.raises(ValueError, match='coverage'):
+            ve.read_tiny_pitch_observation(path, {**receipt, **changed})
+    for key, value in [('hz', np.ones(3)), ('raw_hz', raw[:2]),
+                       ('periodicity', np.array([.5, 1.1, .5])),
+                       ('loudness_db_a', np.array([0., np.nan, 0.]))]:
+        np.savez_compressed(path, **{**arrays, key: value})
+        with pytest.raises(ValueError, match='Invalid fixed pitch track'):
+            ve.read_tiny_pitch_observation(path, receipt)
+    np.savez_compressed(path, times=times, hz=hz)
+    legacy = ve.read_tiny_pitch_observation(path, {})
+    assert legacy['raw_hz'] is legacy['periodicity'] is legacy['loudness_db_a'] is None
+    with pytest.raises(ValueError, match='arrays'):
+        ve.read_tiny_pitch_observation(path, receipt)

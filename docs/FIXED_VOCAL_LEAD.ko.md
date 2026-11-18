@@ -65,3 +65,7 @@ snapshot/
 현재 알려진 품질 문제는 전주·간주의 악기 누출, 보컬/코러스 역할, sixteenth grid의 장식음·triplet 누락, 전문가 정답이 없는 코드/키/박자 정확도다. [5곡 선행 실측](research/FIVE_SONG_FIXED_VOCAL_EXPERIMENT_2026-11-10.md)의 변환 보존 성공을 원곡 정확도로 승격하지 않는다. 이 경로를 통한 실제 전곡 인수와 수정 횟수·시간, 최종 모델/출판 품질 승인은 별도 미완료다.
 
 [전체 길이 5곡 제품 재시험](research/FIVE_SONG_FIXED_PRODUCT_2026-11-10.md)은 업로드·출력·독립 검수와 삭제 후 원본 보존을 통과했다. 다만 [vocadito 40개 격자 비교](research/FIXED_GRID_VOCADITO_ABLATION_2026-11-10.md)에서 동일한 raw 음표의 onset F1은 A1 기준 0.4957→0.4383, A2 기준 0.5907→0.5231로 하락했고 1,809음 중 44음이 생략됐다. 연주 시각 기준 F1과 기보 정답은 구분하되, 이 손실을 해결·검증하기 전 최종 모델이나 기본 경로로 승격하지 않는다.
+
+## 보컬 pitch 관측 보존
+
+새 `pitch.npz` 관측 버전 2는 기존 threshold 적용 `times`, `hz`와 함께 원래 `raw_hz`, `periodicity`, A-weighted `loudness_db_a`를 보존한다. receipt에는 16kHz로 디코딩한 프레임 수와 hop이 있으며 전체 프레임 범위와 threshold 일치를 검증한다. periodicity는 보정된 확률이나 정답이 아니다. 기존 버전 1(버전 필드 없음 포함)은 읽을 수 있지만 raw 배열과 전체 프레임 범위는 알 수 없으며 파일을 다시 쓰지 않는다. 기존 `hz`의 0은 무음, 무성음, 근거 부족 중 무엇인지 구별하지 못한다. 이 관측은 음표를 자동으로 수정하지 않는다.
