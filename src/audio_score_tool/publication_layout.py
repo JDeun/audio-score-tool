@@ -53,6 +53,37 @@ def _local_name(tag: str) -> str:
     return tag.rsplit("}", 1)[-1]
 
 
+def initial_publication_settings(path: Path) -> dict[str, Any]:
+    """Use denser pages only when a new score clearly has one staff."""
+    settings = merged_publication_settings(None)
+    try:
+        root = ET.parse(path).getroot()
+        ns = _namespace(root)
+        parts = root.findall(f"{ns}part")
+        declared = root.findall(f"{ns}part-list/{ns}score-part")
+        if (_local_name(root.tag) != "score-partwise" or len(parts) != 1 or len(declared) != 1
+                or not parts[0].get("id") or parts[0].get("id") != declared[0].get("id")
+                or not parts[0].findall(f"{ns}measure")
+                or not parts[0].findall(f"{ns}measure/{ns}note")):
+            return settings
+        for tag in ("staves", "staff"):
+            if any((node.text or "").strip() != "1" for node in parts[0].iter(f"{ns}{tag}")):
+                return settings
+        for tag in ("clef", "staff-details", "key", "time"):
+            if any(node.get("number", "1") != "1" for node in parts[0].iter(f"{ns}{tag}")):
+                return settings
+        notes = parts[0].findall(f"{ns}measure/{ns}note")
+        lyrics = [lyric for note in notes for lyric in note.findall(f"{ns}lyric")]
+        if (any(len(note.findall(f"{ns}lyric")) > 1 for note in notes)
+                or len({lyric.get("number") or "1" for lyric in lyrics}) > 1
+                or len({lyric.get("name") for lyric in lyrics if lyric.get("name")}) > 1):
+            return settings
+        settings["systems_per_page"] = 8
+    except (OSError, ET.ParseError):
+        pass
+    return settings
+
+
 def _set_text(parent: ET.Element, tag: str, value: str) -> ET.Element:
     child = parent.find(tag)
     if child is None:

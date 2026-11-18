@@ -464,6 +464,27 @@ class SongStoreV2:
         with closing(self._connect()) as conn:
             return self._read_export_snapshot(conn, song_id)
 
+    def initialize_publication(self, snapshot: SongExportSnapshot, settings: dict, xml: str) -> bool:
+        """Insert first settings and layout only while the source snapshot is current."""
+        text = _valid_score_xml(xml)
+        encoded = json.dumps(settings, ensure_ascii=False, separators=(",", ":"))
+        with closing(self._connect()) as conn, conn:
+            conn.execute("BEGIN IMMEDIATE")
+            try:
+                current = self._read_export_snapshot(conn, snapshot.song_id)
+            except KeyError:
+                return False
+            if current != snapshot or current.publication_json is not None:
+                return False
+            conn.execute("INSERT INTO publication_settings(song_id, settings_json, updated_at) VALUES(?,?,?)",
+                         (snapshot.song_id, encoded, _now()))
+            conn.execute("UPDATE songs SET current_score_xml=?, updated_at=? WHERE song_id=?",
+                         (text, _now(), snapshot.song_id))
+            retired = self._detach_exports(snapshot.song_id)
+        if retired is not None:
+            shutil.rmtree(retired, ignore_errors=True)
+        return True
+
     @contextmanager
     def guard_export_snapshot(self, snapshot: SongExportSnapshot) -> Iterator[None]:
         """Keep the final check and filesystem activation atomic with DB writers.

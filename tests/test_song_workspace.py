@@ -353,3 +353,33 @@ def test_no_chord_export_renders_without_adding_midi_notes(tmp_path: Path):
     assert 'N.C.' in ''.join(ET.fromstring(toolkit.renderToSVG(1)).itertext())
     render_pdf(utf16, tmp_path / 'utf16.pdf')
     assert utf16.read_bytes() == original
+
+
+@pytest.mark.parametrize(('namespace', 'extra', 'expected'), [
+    ('', '', 8),
+    (' xmlns="http://www.musicxml.org/ns/musicxml"', '', 8),
+    ('', '<attributes><staves>2</staves></attributes>', 5),
+    ('', '<note><rest/><duration>4</duration><staff>2</staff></note>', 5),
+    ('', '<attributes><staves>invalid</staves></attributes>', 5),
+    ('', '<attributes><clef number="2"/></attributes>', 5),
+    ('', '<note><rest/><duration>4</duration><lyric number="1"><text>one</text></lyric>'
+         '<lyric number="2"><text>two</text></lyric></note>', 5),
+    ('', '<note><rest/><duration>4</duration><lyric><text>implicit</text></lyric></note>'
+         '<note><rest/><duration>4</duration><lyric number="2"><text>two</text></lyric></note>', 5),
+    ('', '<note><rest/><duration>4</duration><lyric number="1"><text>one</text></lyric></note>'
+         '<note><rest/><duration>4</duration><lyric number="2"><text>two</text></lyric></note>', 5),
+])
+def test_initial_single_staff_publication_settings(tmp_path, namespace, extra, expected):
+    from audio_score_tool.publication_layout import initial_publication_settings
+
+    score = tmp_path / 'score.musicxml'
+    score.write_text(f'<score-partwise{namespace}><part-list><score-part id="P1"/></part-list>'
+                     f'<part id="P1"><measure>{extra}<note><rest/><duration>4</duration>'
+                     '</note></measure></part></score-partwise>')
+    settings = initial_publication_settings(score)
+    assert settings['systems_per_page'] == expected
+    assert settings['bars_per_system'] == 4 and settings['system_distance_mm'] == 10
+    score.write_text(score.read_text().replace('</score-partwise>', '<part id="P2"/></score-partwise>'))
+    assert initial_publication_settings(score)['systems_per_page'] == 5
+    score.write_text('<score-partwise>')
+    assert initial_publication_settings(score)['systems_per_page'] == 5

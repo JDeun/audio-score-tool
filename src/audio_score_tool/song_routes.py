@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import tempfile
 from pathlib import Path
 from typing import Literal
 
@@ -13,7 +14,7 @@ from .chord_listing import list_chords
 from .job_store import JobStore
 from .musicxml_editor import MusicXMLEditError, score_summary, set_score_title, update_note
 from .musicxml_parts import list_score_parts
-from .publication_layout import apply_publication_layout, merged_publication_settings
+from .publication_layout import apply_publication_layout, initial_publication_settings
 from .publication_store_v2 import PublicationStoreV2
 from .score_structure import (
     delete_measure,
@@ -116,16 +117,25 @@ def _sync() -> None:
         if not _tombstones.contains(job.get("job_id"))
     ]
     _song_store.sync_completed_jobs(jobs)
+    _initialize_publications()
+
+
+def _initialize_publications() -> None:
     for song in _song_store.list():
-        if _publication_store.exists(song["song_id"]):
+        song_id = song["song_id"]
+        if _publication_store.exists(song_id):
             continue
-        settings = _publication_store.write(song["song_id"], merged_publication_settings(None))
-        path = _song_store.checkout_current(song["song_id"])
         try:
-            apply_publication_layout(path, title=song["title"], settings=settings)
-            _song_store.replace_current_from_path(song["song_id"], path)
+            snapshot = _song_store.export_snapshot(song_id)
+            with tempfile.TemporaryDirectory(prefix="ast-publication-") as folder:
+                path = Path(folder) / "score.musicxml"
+                path.write_text(snapshot.current_score_xml, encoding="utf-8")
+                settings = initial_publication_settings(path)
+                apply_publication_layout(path, title=snapshot.title, settings=settings)
+                if not _publication_store.exists(song_id):
+                    _song_store.initialize_publication(snapshot, settings, path.read_text(encoding="utf-8"))
         except Exception:
-            _song_store.checkout_current(song["song_id"])
+            continue
 
 
 def _part_exports(song: dict, *, parts: list[dict] | None = None) -> list[dict]:
