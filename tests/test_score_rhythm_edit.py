@@ -77,6 +77,62 @@ def test_unaffected_lyric_and_tie_metadata_are_preserved(score):
     assert notes(score)[5].findtext("lyric/text") == "kept"
 
 
+@pytest.mark.parametrize("attribute", ['attack="1"', 'release="-1"'])
+@pytest.mark.parametrize("action,ids,kwargs", [
+    ("split", ["p0-m0-n0"], {"left_note_type": "eighth"}),
+    ("merge", ["p0-m0-n0", "p0-m0-n1"], {}),
+    ("boundary", ["p0-m0-n0", "p0-m0-n1"], {"left_note_type": "quarter"}),
+    ("delete", ["p0-m0-n0"], {}),
+])
+def test_rhythm_edit_rejects_target_playback_offsets(score, attribute, action, ids, kwargs):
+    score.write_text(XML.replace("<note>", f"<note {attribute}>", 1))
+    before = score.read_bytes()
+    with pytest.raises(MusicXMLEditError):
+        rhythm_edit(score, action, ids, **kwargs)
+    assert score.read_bytes() == before
+
+
+@pytest.mark.parametrize("action,kwargs", [
+    ("merge", {}),
+    ("boundary", {"left_note_type": "quarter", "left_dots": 1}),
+])
+@pytest.mark.parametrize("target", [0, 1])
+def test_rhythm_edit_rejects_styled_dot_without_writing(score, action, kwargs, target):
+    original = '<duration>4</duration><voice>1</voice><type>quarter</type>'
+    styled = '<duration>6</duration><voice>1</voice><type>quarter</type><dot placement="above"/>'
+    xml = XML
+    if target:
+        first, remainder = xml.split(original, 1)
+        xml = first + original + remainder.replace(original, styled, 1)
+    else:
+        xml = xml.replace(original, styled, 1)
+    score.write_text(xml)
+    before = score.read_bytes()
+    with pytest.raises(MusicXMLEditError):
+        rhythm_edit(score, action, ["p0-m0-n0", "p0-m0-n1"], **kwargs)
+    assert score.read_bytes() == before
+
+
+def test_rhythm_edit_preserves_unaffected_playback_offsets_and_styled_dot(score):
+    score.write_text(XML.replace('<note><pitch><step>D', '<note attack="1" release="-1"><pitch><step>D', 1)
+                     .replace('<step>D</step><octave>4</octave></pitch><duration>4</duration>',
+                              '<step>D</step><octave>4</octave></pitch><duration>6</duration>', 1)
+                     .replace('<step>D</step><octave>4</octave></pitch><duration>6</duration><voice>1</voice><type>quarter</type>',
+                              '<step>D</step><octave>4</octave></pitch><duration>6</duration><voice>1</voice><type>quarter</type><dot color="#ff0000"/>', 1))
+    rhythm_edit(score, "split", ["p0-m0-n0"], left_note_type="eighth")
+    unaffected = notes(score)[4]
+    assert unaffected.get("attack") == "1" and unaffected.get("release") == "-1"
+    assert unaffected.find("dot").get("color") == "#ff0000"
+
+
+def test_merge_rejects_first_note_repeat_playback_condition_without_writing(score):
+    score.write_text(XML.replace("<note>", '<note time-only="2">', 1))
+    before = score.read_bytes()
+    with pytest.raises(MusicXMLEditError):
+        rhythm_edit(score, "merge", ["p0-m0-n0", "p0-m0-n1"])
+    assert score.read_bytes() == before
+
+
 @pytest.mark.parametrize("change,action,ids,kwargs", [
     (('<voice>1</voice>', '<tie type="start"/><voice>1</voice>'), 'split', ['p0-m0-n0'], {'left_note_type': 'eighth'}),
     (('<voice>1</voice>', '<lyric><text>word</text></lyric><voice>1</voice>'), 'split', ['p0-m0-n0'], {'left_note_type': 'eighth'}),

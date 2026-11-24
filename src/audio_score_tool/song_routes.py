@@ -293,7 +293,13 @@ def _rhythm_patch(payload: RhythmEditRequest, result: dict, before_xml: str, aft
         if locator in targets:
             continue
         mapped = result["mapping"][locator]
-        if len(mapped) != 1 or after[mapped[0]] != dict(row, note_id=mapped[0]):
+        if len(mapped) != 1:
+            raise MusicXMLEditError("The rhythm edit would change a note outside the selected region.")
+        next_row = after[mapped[0]]
+        if (any(abs(next_row[key] - row[key]) > 1e-8 for key in ("start", "end"))
+                or {key: value for key, value in next_row.items() if key not in {"start", "end"}}
+                != {key: value for key, value in dict(row, note_id=mapped[0]).items()
+                    if key not in {"start", "end"}}):
             raise MusicXMLEditError("The rhythm edit would change a note outside the selected region.")
     if fingerprint is not None:
         resolve_lineage(successor, links, after_xml)

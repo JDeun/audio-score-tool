@@ -126,6 +126,38 @@ def product(tmp_path: Path, monkeypatch):
     return TestClient(app), store, songs, tmp_path
 
 
+def test_rhythm_edit_after_fractional_pickup_preserves_later_notes(product):
+    client, _, songs, _ = product
+    quarter = ('<note><pitch><step>C</step><octave>4</octave></pitch>'
+               '<duration>12</duration><type>quarter</type></note>')
+    xml = ('<score-partwise version="4.0"><part-list><score-part id="P1">'
+           '<part-name>Voice</part-name></score-part></part-list><part id="P1">'
+           '<measure number="0" implicit="yes"><attributes><divisions>12</divisions>'
+           '<time><beats>4</beats><beat-type>4</beat-type></time></attributes>'
+           '<note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration>'
+           '<type>32nd</type><time-modification><actual-notes>3</actual-notes>'
+           '<normal-notes>2</normal-notes></time-modification></note></measure>'
+           '<measure number="1">' + quarter * 4 + '</measure></part></score-partwise>')
+    imported = client.post("/api/import/notation", files={
+        "file": ("pickup.musicxml", xml.encode(), "application/vnd.recordare.musicxml+xml")})
+    assert imported.status_code == 202, imported.text
+    song_id = imported.json()["job_id"]
+    base = f"/api/songs/{song_id}"
+    tokens = _rhythm_tokens(client, base)
+    before = ET.fromstring(songs.score_xml(song_id))
+    result = client.post(base + "/notes/rhythm-edit", json={
+        **tokens, "action": "split", "note_ids": ["p0-m1-n0"],
+        "left_note_type": "eighth"})
+    assert result.status_code == 200, result.text
+    assert result.json()["result"]["mapping"]["p0-m1-n1"] == ["p0-m1-n2"]
+    after = ET.fromstring(songs.score_xml(song_id))
+    ET.indent(before)
+    ET.indent(after)
+    assert ET.tostring(before.find("./part/measure/note")) == ET.tostring(after.find("./part/measure/note"))
+    assert [note.findtext("duration") for note in after.findall("./part/measure")[1].findall("note")] == [
+        "6", "6", "12", "12", "12"]
+
+
 @pytest.mark.parametrize("input_kind", ["musicxml", "mid"])
 def test_import_library_edit_undo_and_real_publish_bundle(product, input_kind: str):
     client, jobs, songs, root = product
@@ -991,6 +1023,29 @@ def _rhythm_tokens(client, base):
     notes = client.get(base + "/notes").json()
     return {"expected_revision": notes["song"]["revision"], "expected_score_sha256": notes["score_sha256"],
             "expected_generation": notes["evidence_generation"]}
+
+
+def test_rhythm_edit_rejects_changed_unselected_pitch(rhythm_product, monkeypatch):
+    from audio_score_tool import song_routes
+
+    client, songs, song_id, _ = rhythm_product
+    base = f"/api/songs/{song_id}"
+    tokens = _rhythm_tokens(client, base)
+    before = songs.score_xml(song_id)
+    original_edit = song_routes.rhythm_edit
+
+    def change_unselected_pitch(path, *args, **kwargs):
+        result = original_edit(path, *args, **kwargs)
+        tree = ET.parse(path)
+        tree.getroot().findall("./part/measure/note")[2].find("pitch/step").text = "D"
+        tree.write(path, encoding="unicode")
+        return result
+
+    monkeypatch.setattr(song_routes, "rhythm_edit", change_unselected_pitch)
+    response = client.post(base + "/notes/rhythm-edit", json={
+        **tokens, "action": "split", "note_ids": ["p0-m0-n0"], "left_note_type": "eighth"})
+    assert response.status_code == 422
+    assert songs.score_xml(song_id) == before
 
 
 @pytest.mark.parametrize("method,path,body,query", [

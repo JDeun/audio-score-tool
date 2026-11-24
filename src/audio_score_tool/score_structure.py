@@ -633,6 +633,10 @@ def rhythm_edit(
     allowed = {f"{ns}{tag}" for tag in ("pitch", "rest", "duration", "voice", "type", "dot", "staff", "instrument")}
     instrument_refs = {}
     for note in targets:
+        if any(key in note.attrib for key in ("attack", "release")):
+            raise MusicXMLEditError("재생 타이밍 속성이 있는 음표는 편집할 수 없습니다.")
+        if any(dot.attrib for dot in note.findall(f"{ns}dot")):
+            raise MusicXMLEditError("서식이 있는 점음표는 편집할 수 없습니다.")
         if any(child.tag not in allowed for child in note):
             raise MusicXMLEditError("가사·이음줄·기호 등 손실될 수 있는 정보가 있습니다.")
         if (len(note.findall(f"{ns}duration")) != 1 or len(note.findall(f"{ns}type")) != 1
@@ -677,6 +681,8 @@ def rhythm_edit(
         raise MusicXMLEditError("음표 ID를 보존하며 삭제할 수 없습니다.")
     if action == "merge":
         second = targets[1]
+        if "time-only" in first.attrib:
+            raise MusicXMLEditError("반복 재생 조건이 있는 음표는 합칠 수 없습니다.")
         if any(element.attrib for element in second.iter() if element is not instrument_refs[second]):
             raise MusicXMLEditError("두 번째 음표의 속성을 보존할 수 없습니다.")
         first_ref = instrument_refs[first]

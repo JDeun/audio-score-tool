@@ -326,13 +326,16 @@ input:focus, select:focus, textarea:focus { border-color: #98a693; box-shadow: 0
 .validation-settings-grid input, .export-destination input { border-color: #d8d7d0; background: #fffefa; }
 
 @media (max-width: 1460px) {
-  .product-stage .song-layout { grid-template-columns: 210px minmax(500px, 1fr) 330px; }
+  .product-stage .song-layout { grid-template-columns: 210px minmax(0, 1fr) 330px; }
   .product-stage .score-canvas { padding-left: 24px; padding-right: 24px; }
+}
+
+@media (max-width: 1300px) {
+  .product-stage .song-layout { grid-template-columns: 190px minmax(0, 1fr); }
 }
 
 @media (max-width: 1180px) {
   .product-main { padding-left: 20px; padding-right: 20px; }
-  .product-stage .song-layout { grid-template-columns: 190px minmax(0, 1fr); }
   .product-stage .score-inspector {
     grid-column: 1 / -1;
     max-height: none;

@@ -859,10 +859,11 @@ class SongStoreV2:
         # current canonical revision. If another concurrent editor already committed and
         # advanced the song, that same snapshot is now the successful edit's Undo state.
         with self._lock, self._connect() as conn:
-            row = conn.execute("SELECT revision FROM songs WHERE song_id=?", (song_id,)).fetchone()
-            if not row or int(row["revision"]) != revision:
-                return
-            conn.execute("DELETE FROM song_revisions WHERE song_id=? AND revision=?", (song_id, revision))
+            conn.execute(
+                """DELETE FROM song_revisions WHERE song_id=? AND revision=?
+                   AND EXISTS (SELECT 1 FROM songs WHERE song_id=? AND revision=?)""",
+                (song_id, revision, song_id, revision),
+            )
 
     def restore_revision(self, song_id: str, revision: int) -> dict[str, Any] | None:
         retired_exports = None

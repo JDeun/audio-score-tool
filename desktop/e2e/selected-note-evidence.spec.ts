@@ -220,7 +220,7 @@ test("delayed evidence does not steal focus until the user requests the audio se
 });
 
 
-for (const [size, width, height] of [["desktop", 1240, 900], ["minimum", 920, 680]] as const) {
+for (const [size, width, height] of [["desktop", 1240, 900], ["minimum", 920, 680], ["boundary", 1301, 900]] as const) {
 test(`merged schema exposes each original source and separate explicit audio clips at ${size}`, async ({ page }, testInfo) => {
   await page.setViewportSize({ width, height });
   const api = await setup(page);
@@ -232,6 +232,7 @@ test(`merged schema exposes each original source and separate explicit audio cli
   await expect(evidence).toContainText("모델 연주 시각 0.95–1.90초");
   await expect(evidence).toContainText("모델 연주 시각 2.05–2.90초");
   await evidence.scrollIntoViewIfNeeded();
+  expect(await page.locator(".song-layout").evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath(`source-audio-rhythm-${size}-sources.png`) });
   const review = page.locator(".score-workbench").getByLabel("원음 검수");
   await evidence.getByRole("button", { name: "원음 구간 확인 1" }).click();
@@ -242,6 +243,7 @@ test(`merged schema exposes each original source and separate explicit audio cli
   await expect(review.getByLabel("원음 재생")).toHaveJSProperty("paused", true);
   const rhythm = page.locator(".note-rhythm-edit");
   await rhythm.scrollIntoViewIfNeeded();
+  expect(await page.locator(".song-layout").evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath(`source-audio-rhythm-${size}-controls.png`) });
   api.setEditStatus(422);
   await rhythm.getByRole("button", { name: "음표 나누기" }).click();
@@ -361,7 +363,7 @@ for (const responseStatus of [200, 422]) {
     releaseNotes();
     await expect(page.locator(".score-toolbar")).toContainText("Second owned score");
     await expect(page.locator(".note-rhythm-edit")).toHaveCount(0);
-    await expect(page.locator(".workspace-message")).not.toContainText("old error");
+    await expect(page.locator(".workspace-message").filter({ hasText: "old error" })).toHaveCount(0);
   });
 }
 
@@ -429,7 +431,7 @@ test("an auxiliary export reload during a pending rhythm edit still reconciles t
   releaseExport();
   await expect(modal).toContainText("저장 완료");
   await expect.poll(api.noteReads).toBeGreaterThan(readsBeforeExport);
-  await modal.getByRole("button", { name: "닫기", exact: true }).click();
+  await modal.locator("button.export-cancel").click();
   await expect(page.locator(".score-toolbar")).toContainText("Revision 1");
   await expect(page.getByRole("button", { name: "선택 음표 삭제" })).toBeDisabled();
 
