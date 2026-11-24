@@ -382,3 +382,56 @@ def test_fixed_v3_preserves_beat_observation_after_job_removal(case):
     assert store.preserve_job_evidence(job)
     assert (store.asset_root / 'test-song/model-evidence/beat.npz').read_bytes() == b'beat'
     assert (store.asset_root / 'test-song/model-evidence/vocal/pitch.npz').read_bytes() == pitch_bytes
+
+
+def test_declared_vocal_prefix_must_be_valid_before_job_disposal(case):
+    import mido
+    import numpy as np
+
+    from audio_score_tool.vocal_hypotheses import build, write
+
+    store, jobs, score, job = case
+    job['transcription_engine'] = 'vocal_lead_v1'
+    (score / 'structure').mkdir()
+    shutil.copytree(score / 'native', score / 'structure/native')
+    (score / 'structure/analysis.json').write_text('{}')
+    (score / 'interpretation.json').write_text('{}')
+    vocal = score / 'vocal'
+    vocal.mkdir()
+    midi = mido.MidiFile(ticks_per_beat=480)
+    track = mido.MidiTrack([mido.Message('note_on', note=60, velocity=80),
+                            mido.Message('note_off', note=60, time=480)])
+    midi.tracks.append(track)
+    midi.save(vocal / 'score.mid')
+    midi.save(vocal / 'selected.mid')
+    (vocal / 'score.runtime.json').write_text('{}')
+    hz = np.full(101, 440.)
+    np.savez(vocal / 'pitch.npz', times=np.arange(101) * .01, hz=hz, raw_hz=hz,
+             periodicity=np.ones(101), loudness_db_a=np.zeros(101))
+    receipt = {'schema_version': 2, 'source_frames': 16000, 'source_sample_rate': 16000, 'hop': 160,
+               'source_sha256': 'b' * 64,
+               'prediction_sha256': hashlib.sha256((vocal / 'pitch.npz').read_bytes()).hexdigest()}
+    (vocal / 'pitch.runtime.json').write_text(json.dumps(receipt))
+    prefix = build(vocal / 'score.mid', vocal / 'selected.mid', vocal / 'pitch.npz', receipt,
+                   receipt['source_sha256'], vocal / 'score.runtime.json', vocal / 'pitch.runtime.json')
+    sidecar = vocal / 'note-hypotheses.json'
+    sha = write(sidecar, prefix)
+    recipe = {'recipe_version': 2, 'vocal_hypotheses': {'schema_version': 1, 'sha256': sha},
+              'pitch_verifier': receipt, 'melody': {'runtime': {}}}
+    (score / 'recipe.json').write_text(json.dumps(recipe))
+    good = sidecar.read_bytes()
+    sidecar.unlink()
+    assert not store.preserve_job_evidence(job)
+    sidecar.write_bytes(b'corrupt')
+    assert not store.preserve_job_evidence(job)
+    sidecar.unlink()
+    outside = score.parent / 'foreign-prefix'
+    outside.write_bytes(good)
+    sidecar.symlink_to(outside)
+    assert not store.preserve_job_evidence(job)
+    sidecar.unlink()
+    sidecar.write_bytes(good)
+    assert store.preserve_job_evidence(job)
+    shutil.rmtree(jobs / 'test-song')
+    assert store.preserve_job_evidence(job)
+    assert (store.asset_root / 'test-song/model-evidence/vocal/note-hypotheses.json').read_bytes() == good

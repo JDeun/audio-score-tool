@@ -23,6 +23,9 @@ from .runner import run_command
 from .selected_stem_score import _main_part, _stem
 from .sheetsage2_score import CHECKPOINT_SHA256, MODEL_REVISION, import_native_lead_sheet
 from .vocal_evidence import fixed_tiny_pitch_track
+from .vocal_hypotheses import HypothesisLimit, HypothesisUnavailable, digest
+from .vocal_hypotheses import build as build_hypotheses
+from .vocal_hypotheses import write as write_hypotheses
 
 
 def transcribe_fixed_vocal_lead(audio_path, output_dir, *, settings, cancel_event=None):
@@ -69,20 +72,34 @@ def transcribe_fixed_vocal_lead(audio_path, output_dir, *, settings, cancel_even
     vocal_audio = _stem(stems, "vocals")
     raw = output_dir / "vocal"
     raw.mkdir()
+    stem_sha = digest(vocal_audio)
     pitch_track, pitch_receipt = fixed_tiny_pitch_track(vocal_audio, raw / "pitch.npz", settings=settings,
                                                        cancel_event=cancel_event)
+    if digest(vocal_audio) != stem_sha or pitch_receipt.get("source_sha256") != stem_sha:
+        raise ValueError("Fixed vocal stem changed during pitch inference")
     recipe["pitch_verifier"] = pitch_receipt
     raw_midi = raw / "score.mid"
     run_command(settings.fixed_vocal_cmd, ["vocal", vocal_audio, raw_midi,
                 "--snapshot", root], cancel_event=cancel_event,
                 timeout_seconds=1800, env={"PYTHONHASHSEED": "0", "OMP_NUM_THREADS": "2",
                                            "MKL_NUM_THREADS": "2"})
+    if digest(vocal_audio) != stem_sha:
+        raise ValueError("Fixed vocal stem changed during melody inference")
     midi_to_musicxml(raw_midi, raw / "score.musicxml")
     selected_xml = raw / "selected.musicxml"
     selected = _main_part(raw / "score.musicxml", selected_xml, part_name="Voice",
                           vocal_audio=vocal_audio, ffmpeg_cmd=settings.ffmpeg_cmd, pitch_track=pitch_track)
     selected_xml.write_bytes(ET.tostring(selected, encoding="utf-8", xml_declaration=True))
     selected_midi = musicxml_to_midi(selected_xml, raw / "selected.mid")
+    try:
+        hypotheses = build_hypotheses(raw_midi, selected_midi, raw / "pitch.npz", pitch_receipt,
+                                      stem_sha, raw / "score.runtime.json", raw / "pitch.runtime.json")
+        recipe["vocal_hypotheses"] = {"schema_version": 1,
+                                      "sha256": write_hypotheses(raw / "note-hypotheses.json", hypotheses)}
+    except HypothesisUnavailable as exc:
+        recipe["vocal_hypotheses"] = {"schema_version": 1, "status": "unavailable",
+                                      "reason": "limit_exceeded" if isinstance(exc, HypothesisLimit)
+                                      else "unsupported_event_order"}
     run_command(settings.sheetsage2_cmd, [model_audio, output_dir / "interpretation.json",
                 "--model-dir", root / "sheetsage2/model", "--vocal-midi", selected_midi,
                 "--context-dir", structure_dir / "native", "--beat-track", beat_file], cancel_event=cancel_event,

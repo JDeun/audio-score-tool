@@ -91,6 +91,8 @@ def preserve_model_evidence(job: dict, *, jobs_root: Path, asset_root: Path) -> 
         candidates += [score_dir / role / name for name in (
             "score.mid", "score.musicxml", "part-selection.json", "selected.mid",
             "selected.musicxml", "score.runtime.json", "pitch.npz", "pitch.runtime.json")]
+    if job.get('transcription_engine') == 'vocal_lead_v1':
+        candidates.append(score_dir / 'vocal/note-hypotheses.json')
     files = []
     total = 0
     for path in candidates:
@@ -125,6 +127,8 @@ def preserve_model_evidence(job: dict, *, jobs_root: Path, asset_root: Path) -> 
         recipe = json.loads(recipe_path.read_text())
         if not isinstance(recipe, dict) or type(recipe.get("recipe_version", 1)) is not int or recipe.get("recipe_version", 1) not in (1, 2, 3):
             raise ValueError("Invalid fixed vocal recipe version")
+        from .vocal_hypotheses import read
+        read(score_dir, recipe)
         if recipe.get("recipe_version", 1) in (2, 3):
             if not {score_dir / "vocal/pitch.npz", score_dir / "vocal/pitch.runtime.json"}.issubset(files):
                 raise ValueError("Incomplete fixed vocal pitch evidence")
@@ -174,6 +178,9 @@ def preserve_model_evidence(job: dict, *, jobs_root: Path, asset_root: Path) -> 
             if digest != _digest(source):
                 raise ValueError("Model evidence changed during copy")
             manifest["files"].append({"path": name, "bytes": target.stat().st_size, "sha256": digest})
+        if job.get('transcription_engine') == 'vocal_lead_v1':
+            from .vocal_hypotheses import read
+            read(stage, json.loads((stage / 'recipe.json').read_text()))
         (stage / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
         stage.rename(final)
     finally:
