@@ -1452,3 +1452,35 @@ def test_fresh_fixed_job_prefix_is_admitted_to_note_api(rhythm_product, tmp_path
     assert result['status'] == 'linked', result
     assert result['vocal_hypotheses']['sources'][0]['model_segments'][0]['pitch'] == 60
     assert result['evidence']['source_audio_seek_seconds'] == 0
+
+
+def test_imported_identification_order_is_valid_after_credits_and_export(product):
+    client, _, songs, _ = product
+    identity = '''<identification><encoding><software>Owned fixture</software></encoding>
+      <source>Fixture source</source><relation type="uri">fixture</relation>
+      <miscellaneous><miscellaneous-field name="provenance">preserved</miscellaneous-field></miscellaneous>
+      <creator type="editor">Original editor</creator></identification>'''
+    xml = SCORE_XML.replace('<movement-title>Owned fixture</movement-title>',
+                            '<movement-title>Owned fixture</movement-title>' + identity)
+    imported = client.post('/api/import/notation', files={
+        'file': ('fixture.musicxml', xml.encode(), 'application/vnd.recordare.musicxml+xml')})
+    assert imported.status_code == 202, imported.text
+    song_id = imported.json()['job_id']
+    base = f'/api/songs/{song_id}'
+    notes = client.get(base + '/notes').json()
+    updated = client.patch(base + '/credits', json={
+        'title': 'Owned fixture', 'artist': 'Singer', 'performer': 'Singer',
+        'rights': 'Fixture rights', 'expected_revision': notes['song']['revision']})
+    assert updated.status_code == 200, updated.text
+    exported = client.post(base + '/export', json={'formats': ['musicxml']})
+    assert exported.status_code == 200, exported.text
+    identification = ET.parse(songs.export_dir(song_id) / 'score.musicxml').getroot().find('identification')
+    assert identification is not None
+    assert [node.tag for node in identification] == [
+        'creator', 'creator', 'rights', 'encoding', 'source', 'relation', 'miscellaneous']
+    assert [(node.get('type'), node.text) for node in identification.findall('creator')] == [
+        ('editor', 'Original editor'), ('performer', 'Singer')]
+    assert identification.findtext('encoding/software') == 'Owned fixture'
+    assert identification.findtext('source') == 'Fixture source'
+    assert identification.findtext('relation') == 'fixture'
+    assert identification.findtext('miscellaneous/miscellaneous-field') == 'preserved'
