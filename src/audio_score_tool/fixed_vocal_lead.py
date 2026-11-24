@@ -88,7 +88,8 @@ def transcribe_fixed_vocal_lead(audio_path, output_dir, *, settings, cancel_even
                 "--context-dir", structure_dir / "native", "--beat-track", beat_file], cancel_event=cancel_event,
                 timeout_seconds=1800, env={"AST_USAGE_MODE": "personal", "AST_FIXED_LEAD_V1": "1"})
     xml = output_dir / "score.musicxml"
-    report = import_native_lead_sheet(output_dir / "native", xml)
+    interpretation = json.loads((output_dir / "interpretation.json").read_text())
+    report = import_native_lead_sheet(output_dir / "native", xml, interpretation=interpretation)
     report["notation_model_revision"] = report.pop("model_revision")
     report["notation_checkpoint_sha256"] = report.pop("checkpoint_sha256")
     report["clock_provider"] = "beat-this"
@@ -97,7 +98,6 @@ def transcribe_fixed_vocal_lead(audio_path, output_dir, *, settings, cancel_even
     report.update(melody_provider="yourmt3", melody_checkpoint_sha256=YOUR_SHA256)
     (output_dir / "notation-report.json").write_text(json.dumps(report, indent=2) + "\n")
     midi = musicxml_to_midi(xml, output_dir / "score.mid")
-    interpretation = json.loads((output_dir / "interpretation.json").read_text())
     recipe["notation_fidelity"] = verify_notated_midi(selected_midi, midi, interpretation)
     analysis = json.loads((structure_dir / "analysis.json").read_text())
     clock = interpretation["beat_clock"]
