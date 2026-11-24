@@ -1,4 +1,7 @@
 import { expect, test } from "@playwright/test";
+import { scoreSnapshot } from "./score-fixture";
+
+const scoreXml = '<score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><note><rest/><duration>1</duration><type>quarter</type></note></measure></part></score-partwise>';
 
 const song = {
   song_id: "song-1",
@@ -31,14 +34,14 @@ test("commercial mode permits local source identification without unrelated prov
     json: song,
   }));
   await page.route("**/api/songs/song-1/notes", route => route.fulfill({
-    json: { song, parts: [], notes: [], chords: [] },
+    json: { ...scoreSnapshot(song, scoreXml), parts: [], notes: [], chords: [] },
   }));
   await page.route("**/api/songs/song-1/structure", route => route.fulfill({
-    json: { measures: [] },
+    json: { ...scoreSnapshot(song, scoreXml), measures: [] },
   }));
   await page.route("**/api/songs/song-1/score", route => route.fulfill({
     contentType: "application/xml",
-    body: '<score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><note><rest/><duration>1</duration><type>quarter</type></note></measure></part></score-partwise>',
+    body: scoreXml,
   }));
   await page.route("**/api/songs/song-1/publication", route => route.fulfill({
     json: { settings: {} },

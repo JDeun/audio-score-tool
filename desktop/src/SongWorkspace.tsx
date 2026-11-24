@@ -68,13 +68,40 @@ type ScoreData = {
   chords: ChordRow[];
 };
 
+type RhythmStatus = {
+  songId: string;
+  noteId: string;
+  revision: number;
+  generation: number;
+  scoreHash: string;
+  message: string;
+};
+
+type RhythmOutcome = {
+  id: number;
+  noteId: string;
+  revision: number;
+  generation: number;
+  scoreHash: string;
+  result: { noteIds: unknown } | { error: string };
+};
+
+type StableNoteEdit = { noteId: string; selection: number; committedRevision: number | null };
+
+type EvidenceSource = {
+  performed_seconds: { start: number; end: number };
+  grid_seconds: { start: number; end: number };
+  source_audio_seek_seconds: number | null;
+  source_audio_seek_basis: string | null;
+};
 type NoteEvidence = {
+  schema_version: 1 | 2;
   status: "linked" | "unavailable" | "ambiguous";
   revision: number;
   score_sha256: string;
   note_id: string;
-  evidence: { performed_seconds: { start: number; end: number }; grid_seconds: { start: number; end: number };
-    source_audio_seek_seconds: number | null; source_audio_seek_basis: string | null } | null;
+  evidence: (Partial<EvidenceSource> & { sources?: EvidenceSource[];
+    written_quarters?: { start: number; end: number } }) | null;
   patch?: object | null;
 };
 
@@ -183,7 +210,7 @@ function toggleValue(values: string[], value: string) {
 
 export default function SongWorkspace() {
   const { setTarget: setSelectedSong, songChange, openMetadataEditor,
-    jobSongRequest, finishJobSongRequest } = useSelectedSong();
+    jobSongRequest, finishJobSongRequest, rhythmEdits, getRhythmEdit, beginRhythmEdit } = useSelectedSong();
   const [songs, setSongs] = useState<Song[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [song, setSong] = useState<Song | null>(null);
@@ -216,6 +243,13 @@ export default function SongWorkspace() {
   const [noteOctave, setNoteOctave] = useState("4");
   const [noteLyric, setNoteLyric] = useState("");
   const [noteType, setNoteType] = useState<NoteType>("quarter");
+  const [leftType, setLeftType] = useState<NoteType>("eighth");
+  const [leftDots, setLeftDots] = useState(0);
+  const [rhythmStatus, setRhythmStatus] = useState<RhythmStatus | null>(null);
+  const [rhythmSnapshotId, setRhythmSnapshotId] = useState<number | null>(null);
+  const [scoreLoadFailed, setScoreLoadFailed] = useState(false);
+  const rhythmOutcome = useRef<RhythmOutcome | null>(null);
+  const rhythmSelection = useRef(0);
   const [noteDots, setNoteDots] = useState(0);
   const [noteRest, setNoteRest] = useState(false);
   const [noteArticulations, setNoteArticulations] = useState<string[]>([]);
@@ -224,13 +258,19 @@ export default function SongWorkspace() {
   const [noteBeam, setNoteBeam] = useState("");
   const [insertPosition, setInsertPosition] = useState<"before" | "after">("after");
   const [chordSymbol, setChordSymbol] = useState("");
-  const [selectedMeasureIndex, setSelectedMeasureIndex] = useState(0);
+  const [selectedMeasureIndex, setSelectedMeasureIndex] = useState<number | null>(0);
   const [keyFifths, setKeyFifths] = useState(0);
   const [keyMode, setKeyMode] = useState<"major" | "minor">("major");
   const [beats, setBeats] = useState(4);
   const [beatType, setBeatType] = useState(4);
   const [previewZoom, setPreviewZoom] = useState(90);
-  const [busy, setBusy] = useState(false);
+  const [otherBusy, setBusy] = useState(false);
+  const rhythmEdit = selectedId ? rhythmEdits.get(selectedId) : undefined;
+  const rhythmBusy = rhythmEdit?.pending ?? false;
+  const settledRhythmId = rhythmEdit?.settledId ?? null;
+  const rhythmNeedsReload = rhythmSnapshotId !== settledRhythmId;
+  const scoreLocked = rhythmBusy || rhythmNeedsReload || scoreLoadFailed;
+  const busy = otherBusy || scoreLocked;
   const [message, setMessage] = useState("");
   const scoreRef = useRef<HTMLDivElement>(null);
   const activeSongId = useRef<string | null>(null);
@@ -246,6 +286,11 @@ export default function SongWorkspace() {
     if (nextId !== null && nextId === activeSongId.current) return;
     // Invalidate any pending response before React starts rendering the new song.
     activeSongId.current = nextId;
+    rhythmSelection.current += 1;
+    rhythmOutcome.current = null;
+    setRhythmStatus(null);
+    setRhythmSnapshotId(null);
+    setScoreLoadFailed(false);
     loadVersion.current += 1;
     listVersion.current += 1;
     selectionResolved.current = nextId !== null;
@@ -261,6 +306,7 @@ export default function SongWorkspace() {
     setMeasures([]);
     setXml("");
     setSelectedNoteId(null);
+    setSelectedMeasureIndex(0);
     setMessage("");
   };
 
@@ -287,32 +333,99 @@ export default function SongWorkspace() {
     }
   };
 
-  const loadSong = async (songId: string) => {
+  const loadSong = async (songId: string, stableNoteEdit?: StableNoteEdit) => {
+    if (activeSongId.current !== songId) return;
     const requestVersion = ++loadVersion.current;
-    const [songResponse, notesResponse, structureResponse, scoreResponse, publicationResponse] = await Promise.all([
-      fetch(`${API}/api/songs/${songId}`),
-      fetch(`${API}/api/songs/${songId}/notes`),
-      fetch(`${API}/api/songs/${songId}/structure`),
-      fetch(`${API}/api/songs/${songId}/score`),
-      fetch(`${API}/api/songs/${songId}/publication`),
-    ]);
-    if (![songResponse, notesResponse, structureResponse, scoreResponse, publicationResponse].every((response) => response.ok)) {
-      throw new Error("곡 작업공간을 불러오지 못했습니다.");
+    const editId = getRhythmEdit(songId)?.settledId ?? null;
+    const current = () => requestVersion === loadVersion.current && activeSongId.current === songId
+      && editId === (getRhythmEdit(songId)?.settledId ?? null);
+    try {
+      const responses = await Promise.all([
+        fetch(`${API}/api/songs/${encodeURIComponent(songId)}`, { method: "GET", cache: "no-store" }),
+        fetch(`${API}/api/songs/${encodeURIComponent(songId)}/notes`, { method: "GET", cache: "no-store" }),
+        fetch(`${API}/api/songs/${encodeURIComponent(songId)}/structure`, { method: "GET", cache: "no-store" }),
+        fetch(`${API}/api/songs/${encodeURIComponent(songId)}/score`, { method: "GET", cache: "no-store" }),
+        fetch(`${API}/api/songs/${encodeURIComponent(songId)}/publication`, { method: "GET", cache: "no-store" }),
+      ]);
+      if (responses.some(response => !response.ok)) throw new Error("곡 작업공간을 불러오지 못했습니다.");
+      const [songResponse, notesResponse, structureResponse, scoreResponse, publicationResponse] = responses;
+      const [nextSong, nextScore, structureBody, scoreBytes, publicationBody]: [
+        Song, ScoreData, { song: Song; score_sha256: string; measures: MeasureRow[] }, ArrayBuffer, { settings?: Partial<PublicationSettings> },
+      ] = await Promise.all([songResponse.json(), notesResponse.json(), structureResponse.json(), scoreResponse.arrayBuffer(), publicationResponse.json()]);
+      if (!current()) return;
+      const digest = await crypto.subtle.digest("SHA-256", scoreBytes);
+      const previewHash = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+      if (!current()) return;
+      const hash = nextScore.score_sha256;
+      if (nextSong.song_id !== songId || nextScore.song.song_id !== songId
+          || nextSong.revision !== nextScore.song.revision
+          || structureBody.song?.song_id !== songId || structureBody.song.revision !== nextSong.revision
+          || structureBody.score_sha256 !== hash || previewHash !== hash) {
+        throw new Error("악보를 불러오는 중 변경되었습니다.");
+      }
+      setScoreLoadFailed(false);
+      if (scoreLoadFailed) setMessage("");
+      setRhythmSnapshotId(editId);
+      setSong(nextSong);
+      setScore(nextScore);
+      setMeasures(structureBody.measures ?? []);
+      setXml(new TextDecoder().decode(scoreBytes));
+      setPublication({ ...fallbackPublication, ...(publicationBody.settings ?? {}) });
+      setTitle(nextSong.title);
+      setArtist(nextSong.artist ?? "");
+
+      const hasNote = (id: unknown): id is string => typeof id === "string" && nextScore.notes.some(note => note.note_id === id);
+      if (editId === rhythmSnapshotId) {
+        const snapshotChanged = score && (nextSong.revision !== score.song.revision
+          || hash !== score.score_sha256 || nextScore.evidence_generation !== score.evidence_generation);
+        if (snapshotChanged) {
+          const noteId = stableNoteEdit && stableNoteEdit.selection === rhythmSelection.current
+            && stableNoteEdit.committedRevision === nextSong.revision && nextSong.revision === score.song.revision + 1
+            && score.evidence_generation != null && nextScore.evidence_generation === score.evidence_generation + 1
+            && hasNote(stableNoteEdit.noteId) ? stableNoteEdit.noteId : null;
+          setSelectedNoteId(noteId);
+          if (!noteId) setSelectedMeasureIndex(null);
+        } else {
+          setSelectedNoteId(noteId => hasNote(noteId) ? noteId : null);
+        }
+        return nextScore;
+      }
+
+      const outcome = rhythmOutcome.current;
+      rhythmOutcome.current = null;
+      let noteId: string | null = null;
+      let status = "";
+      if (outcome?.id === editId) {
+        if ("error" in outcome.result) {
+          if (nextSong.revision === outcome.revision && nextScore.evidence_generation === outcome.generation
+              && hash === outcome.scoreHash && hasNote(outcome.noteId)) {
+            noteId = outcome.noteId;
+            status = outcome.result.error;
+          } else {
+            setMessage(outcome.result.error);
+          }
+        } else if (nextSong.revision === outcome.revision + 1
+            && nextScore.evidence_generation === outcome.generation + 1 && Array.isArray(outcome.result.noteIds)) {
+          noteId = outcome.result.noteIds.find(hasNote) ?? null;
+          status = "리듬 편집을 적용했습니다.";
+        }
+      }
+      setSelectedNoteId(noteId);
+      if (!noteId) setSelectedMeasureIndex(null);
+      setRhythmStatus(noteId && nextScore.evidence_generation != null ? {
+        songId, noteId, revision: nextSong.revision, generation: nextScore.evidence_generation, scoreHash: hash, message: status,
+      } : null);
+      return nextScore;
+    } catch (error) {
+      if (!current()) return;
+      rhythmSelection.current += 1;
+      rhythmOutcome.current = null;
+      setSelectedNoteId(null);
+      setSelectedMeasureIndex(null);
+      setRhythmStatus(null);
+      setScoreLoadFailed(true);
+      throw error;
     }
-    const nextSong: Song = await songResponse.json();
-    const nextScore: ScoreData = await notesResponse.json();
-    const structureBody = await structureResponse.json();
-    const nextXml = await scoreResponse.text();
-    const publicationBody = await publicationResponse.json();
-    if (requestVersion !== loadVersion.current || activeSongId.current !== songId) return;
-    setSong(nextSong);
-    setScore(nextScore);
-    setMeasures(structureBody.measures ?? []);
-    setXml(nextXml);
-    setPublication({ ...fallbackPublication, ...(publicationBody.settings ?? {}) });
-    setTitle(nextSong.title);
-    setArtist(nextSong.artist ?? "");
-    setSelectedNoteId((current) => current && nextScore.notes.some((note) => note.note_id === current) ? current : null);
   };
 
   useEffect(() => {
@@ -329,10 +442,11 @@ export default function SongWorkspace() {
 
   useEffect(() => {
     if (!selectedId) return;
-    void loadSong(selectedId).catch((error) => {
+    const load = settledRhythmId ? reload() : loadSong(selectedId);
+    void load.catch((error) => {
       if (activeSongId.current === selectedId) setMessage(String(error));
     });
-  }, [selectedId]);
+  }, [selectedId, settledRhythmId]);
 
   useEffect(() => {
     const current = song?.song_id === selectedId ? song : null;
@@ -379,20 +493,24 @@ export default function SongWorkspace() {
   );
 
   const visibleEvidence = noteEvidence?.key === evidenceKey && noteEvidence.epoch === evidenceEpoch.current ? noteEvidence : null;
-  const verifiedClip = useMemo<AudioClip | null>(() => {
-    const evidence = visibleEvidence?.result?.status === "linked" ? visibleEvidence.result.evidence : null;
-    const seek = evidence?.source_audio_seek_seconds;
-    const grid = evidence?.grid_seconds;
+  const evidenceSources = useMemo(() => {
+    const result = visibleEvidence?.result;
+    if (result?.status !== "linked" || !result.evidence) return [];
+    return result.schema_version === 2 ? result.evidence.sources ?? [] : [result.evidence as EvidenceSource];
+  }, [visibleEvidence]);
+  const verifiedClips = useMemo(() => evidenceSources.map((evidence): AudioClip | null => {
+    const seek = evidence.source_audio_seek_seconds;
+    const grid = evidence.grid_seconds;
     if (typeof seek !== "number" || !Number.isFinite(seek) || seek < 0 || !grid
         || !Number.isFinite(grid.start) || !Number.isFinite(grid.end)
-        || evidence?.source_audio_seek_basis !== "interpreted_grid" || seek !== grid.start || grid.end <= seek) return null;
+        || evidence.source_audio_seek_basis !== "interpreted_grid" || seek !== grid.start || grid.end <= seek) return null;
     return { start_seconds: seek, end_seconds: grid.end };
-  }, [visibleEvidence]);
+  }), [evidenceSources]);
   const sourceClip = selectedClip?.key === evidenceKey && selectedClip.epoch === evidenceEpoch.current
     ? selectedClip.clip : null;
 
   const loadNoteEvidence = async () => {
-    if (!song || !score || !selectedNote || score.evidence_generation == null) return;
+    if (!song || !score || !selectedNote || scoreLocked || score.evidence_generation == null) return;
     evidenceRequest.current?.abort();
     const controller = new AbortController();
     evidenceRequest.current = controller;
@@ -408,10 +526,16 @@ export default function SongWorkspace() {
       const result: NoteEvidence = await response.json();
       if (result.note_id !== selectedNote.note_id || result.revision !== score.song.revision || result.score_sha256 !== score.score_sha256) throw new Error("악보가 변경되었습니다. 새로고침 후 다시 확인하세요.");
       if (result.status === "linked" && result.evidence) {
-        const { performed_seconds: performed, grid_seconds: grid } = result.evidence;
-        if (!performed || !grid || !Number.isFinite(performed.start) || !Number.isFinite(performed.end)
-            || performed.start < 0 || performed.end <= performed.start || !Number.isFinite(grid.start)
-            || !Number.isFinite(grid.end) || grid.start < 0 || grid.end <= grid.start) {
+        if (result.schema_version !== 1 && result.schema_version !== 2) throw new Error("지원하지 않는 모델 근거 형식입니다.");
+        const sources = result.schema_version === 2 ? result.evidence.sources : [result.evidence];
+        const written = result.evidence.written_quarters;
+        if (!sources?.length || (result.schema_version === 2 && (!written || !Number.isFinite(written.start)
+            || !Number.isFinite(written.end) || written.start < 0 || written.end <= written.start))
+            || sources.some(source => !source.performed_seconds || !source.grid_seconds
+              || !Number.isFinite(source.performed_seconds.start) || !Number.isFinite(source.performed_seconds.end)
+              || source.performed_seconds.start < 0 || source.performed_seconds.end <= source.performed_seconds.start
+              || !Number.isFinite(source.grid_seconds.start) || !Number.isFinite(source.grid_seconds.end)
+              || source.grid_seconds.start < 0 || source.grid_seconds.end <= source.grid_seconds.start)) {
           throw new Error("모델 근거의 시간 정보를 확인할 수 없습니다.");
         }
       }
@@ -474,9 +598,71 @@ export default function SongWorkspace() {
     });
   }, [score, partFilter, measureFilter]);
 
-  const reload = async () => {
+  const reload = async (stableNoteEdit?: StableNoteEdit) => {
     if (!selectedId) return;
-    await Promise.all([loadSong(selectedId), refreshSongs()]);
+    const [updated] = await Promise.all([loadSong(selectedId, stableNoteEdit), refreshSongs()]);
+    return updated;
+  };
+
+  const refreshScore = () => {
+    setMessage("");
+    void reload().catch((error) => {
+      if (activeSongId.current === selectedId) setMessage(String(error));
+    });
+  };
+
+  const nextRhythmNote = useMemo(() => {
+    if (!score || !selectedNote) return null;
+    const index = score.notes.findIndex(note => note.note_id === selectedNote.note_id);
+    const next = score.notes[index + 1];
+    return next && next.part_id === selectedNote.part_id && next.measure_index === selectedNote.measure_index ? next : null;
+  }, [score, selectedNote]);
+
+  const chooseNote = (noteId: string) => {
+    if (busy) return;
+    rhythmSelection.current += 1;
+    setRhythmStatus(null);
+    setSelectedNoteId(noteId);
+  };
+
+  const editRhythm = async (action: "split" | "merge" | "boundary" | "delete") => {
+    if (!song || !score || !selectedNote || score.evidence_generation == null || busy) return;
+    if ((action === "merge" || action === "boundary") && !nextRhythmNote) return;
+    const songId = song.song_id;
+    const attempt = beginRhythmEdit(songId);
+    if (!attempt) return;
+    const noteId = selectedNote.note_id;
+    const revision = score.song.revision;
+    const generation = score.evidence_generation;
+    const selection = rhythmSelection.current;
+    const noteIds = [noteId, ...((action === "merge" || action === "boundary") ? [nextRhythmNote!.note_id] : [])];
+    evidenceRequest.current?.abort();
+    evidenceEpoch.current += 1;
+    setNoteEvidence(null);
+    setRhythmStatus(null);
+    let result: RhythmOutcome["result"];
+    try {
+      const body = { action, note_ids: noteIds, expected_revision: revision,
+        expected_score_sha256: score.score_sha256, expected_generation: generation,
+        ...((action === "split" || action === "boundary") ? { left_note_type: leftType, left_dots: leftDots } : {}) };
+      const response = await fetch(`${API}/api/songs/${encodeURIComponent(songId)}/notes/rhythm-edit`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+      });
+      if (response.status === 409) throw new Error("악보가 변경되었습니다. 악보 새로고침 후 다시 시도하세요.");
+      if (!response.ok) {
+        const detail = await response.json().catch(() => null);
+        throw new Error(response.status === 422 && typeof detail?.detail === "string"
+          ? `리듬 편집을 적용할 수 없습니다: ${detail.detail}` : "리듬 편집을 적용할 수 없습니다.");
+      }
+      const bodyResult = await response.json();
+      result = { noteIds: bodyResult.result?.result_note_ids };
+    } catch (error) {
+      result = { error: error instanceof Error ? error.message : "리듬 편집을 적용할 수 없습니다." };
+    }
+    if (selection === rhythmSelection.current && activeSongId.current === songId) {
+      rhythmOutcome.current = { id: attempt.id, noteId, revision, generation, scoreHash: score.score_sha256, result };
+    }
+    attempt.settle();
   };
 
   useEffect(() => {
@@ -490,19 +676,51 @@ export default function SongWorkspace() {
   }, [songChange]);
 
   const withBusy = async (operation: () => Promise<void>) => {
+    const edit = selectedId ? getRhythmEdit(selectedId) : undefined;
+    if (busy || edit?.pending || rhythmSnapshotId !== (edit?.settledId ?? null)) return;
     setBusy(true);
     setMessage("");
     try {
       await operation();
     } catch (error) {
-      setMessage(String(error));
+      if (activeSongId.current === selectedId) setMessage(String(error));
     } finally {
       setBusy(false);
     }
   };
 
+  const scoreStamp = score && {
+    expected_revision: score.song.revision,
+    expected_score_sha256: score.score_sha256,
+    ...(score.evidence_generation == null ? {} : { expected_generation: score.evidence_generation }),
+  };
+  const scoreQuery = scoreStamp && new URLSearchParams(
+    Object.entries(scoreStamp).map(([key, value]) => [key, String(value)]),
+  );
+
+  const checkPositionalEdit = async (response: Response) => {
+    if (response.status === 409) {
+      if (activeSongId.current === selectedId) {
+        setSelectedNoteId(null);
+        setSelectedMeasureIndex(null);
+        await reload();
+      }
+      throw new Error("악보가 변경되었습니다. 음표나 마디를 다시 선택하세요.");
+    }
+    if (!response.ok) throw new Error(await response.text());
+  };
+
+  const reloadStableNoteEdit = async (response: Response, noteId: string, selection: number) => {
+    await checkPositionalEdit(response);
+    const receipt = await response.json().catch(() => null);
+    const revision: unknown = receipt?.song?.revision;
+    const committedRevision = receipt?.song?.song_id === selectedId && typeof revision === "number" ? revision : null;
+    await reload({ noteId, selection, committedRevision });
+  };
+
   const saveNote = async () => {
-    if (!song || !selectedNote) return;
+    if (!song || !selectedNote || !scoreStamp) return;
+    const selection = rhythmSelection.current;
     await withBusy(async () => {
       // A sparse patch represents the *actual* changed correction dimensions.
       // Sending the entire inspector form on every save incorrectly inflated
@@ -530,23 +748,18 @@ export default function SongWorkspace() {
         setMessage("변경된 노트 항목이 없습니다.");
         return;
       }
-      if (!score) throw new Error("악보를 다시 불러와 주세요.");
-      body.expected_revision = score.song.revision;
-      body.expected_score_sha256 = score.score_sha256;
-      if (score.evidence_generation !== null) body.expected_generation = score.evidence_generation;
       const response = await fetch(`${API}/api/songs/${song.song_id}/notes/${selectedNote.note_id}/structure`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ...body, ...scoreStamp }),
       });
-      if (!response.ok) throw new Error(await response.text());
-      await reload();
+      await reloadStableNoteEdit(response, selectedNote.note_id, selection);
       setMessage(`${selectedNote.part_name} M${selectedNote.measure}의 노트·리듬·표현을 저장했습니다.`);
     });
   };
 
   const insertSelectedNote = async () => {
-    if (!song || !selectedNote) return;
+    if (!song || !selectedNote || !scoreStamp) return;
     await withBusy(async () => {
       const response = await fetch(`${API}/api/songs/${song.song_id}/notes/${selectedNote.note_id}/insert`, {
         method: "POST",
@@ -560,22 +773,25 @@ export default function SongWorkspace() {
           type: noteType,
           dots: noteDots,
           lyric: noteLyric,
+          ...scoreStamp,
         }),
       });
-      if (!response.ok) throw new Error(await response.text());
+      await checkPositionalEdit(response);
       const body = await response.json();
-      await reload();
-      setSelectedNoteId(body.result?.note_id ?? null);
+      const updated = await reload();
+      const id: unknown = body.result?.note_id;
+      if (updated) setSelectedNoteId(updated.song.revision === scoreStamp.expected_revision + 1
+        && typeof id === "string" && updated.notes.some(note => note.note_id === id) ? id : null);
       setMessage("선택한 설정으로 새 음표/쉼표를 삽입했습니다.");
     });
   };
 
   const deleteSelectedNote = async () => {
-    if (!song || !selectedNote) return;
+    if (!song || !selectedNote || !scoreQuery || busy) return;
     if (!window.confirm(`${selectedNote.part_name} M${selectedNote.measure}의 선택 음표를 삭제할까요?`)) return;
     await withBusy(async () => {
-      const response = await fetch(`${API}/api/songs/${song.song_id}/notes/${selectedNote.note_id}`, { method: "DELETE" });
-      if (!response.ok) throw new Error(await response.text());
+      const response = await fetch(`${API}/api/songs/${song.song_id}/notes/${selectedNote.note_id}?${scoreQuery}`, { method: "DELETE" });
+      await checkPositionalEdit(response);
       setSelectedNoteId(null);
       await reload();
       setMessage("선택 음표를 삭제했습니다.");
@@ -583,53 +799,54 @@ export default function SongWorkspace() {
   };
 
   const saveChord = async (symbol = chordSymbol) => {
-    if (!song || !selectedNote) return;
+    if (!song || !selectedNote || !scoreStamp) return;
+    const selection = rhythmSelection.current;
     await withBusy(async () => {
       const response = await fetch(`${API}/api/songs/${song.song_id}/notes/${selectedNote.note_id}/chord`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ symbol }),
+        body: JSON.stringify({ symbol, ...scoreStamp }),
       });
-      if (!response.ok) throw new Error(await response.text());
-      await reload();
+      await reloadStableNoteEdit(response, selectedNote.note_id, selection);
       setMessage(symbol.trim() ? `${symbol} 코드를 악보에 표시했습니다.` : "선택 위치의 코드를 삭제했습니다.");
     });
   };
 
   const saveSignature = async () => {
-    if (!song) return;
+    if (!song || !scoreStamp || selectedMeasureIndex === null) return;
     await withBusy(async () => {
       const response = await fetch(`${API}/api/songs/${song.song_id}/measures/${selectedMeasureIndex}/signature`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key_fifths: keyFifths, key_mode: keyMode, beats, beat_type: beatType }),
+        body: JSON.stringify({ key_fifths: keyFifths, key_mode: keyMode, beats, beat_type: beatType, ...scoreStamp }),
       });
-      if (!response.ok) throw new Error(await response.text());
+      await checkPositionalEdit(response);
       await reload();
       setMessage(`M${selectedMeasureIndex + 1}부터 표시할 조표·박자표를 적용했습니다.`);
     });
   };
 
   const insertMeasureAfter = async () => {
-    if (!song) return;
+    if (!song || !scoreStamp || !scoreQuery || selectedMeasureIndex === null) return;
     await withBusy(async () => {
-      const response = await fetch(`${API}/api/songs/${song.song_id}/measures/${selectedMeasureIndex}/insert-after`, { method: "POST" });
-      if (!response.ok) throw new Error(await response.text());
+      const response = await fetch(`${API}/api/songs/${song.song_id}/measures/${selectedMeasureIndex}/insert-after?${scoreQuery}`, { method: "POST" });
+      await checkPositionalEdit(response);
       const body = await response.json();
-      await reload();
-      setSelectedMeasureIndex(body.result?.measure_index ?? selectedMeasureIndex + 1);
+      const updated = await reload();
+      if (updated?.song.revision === scoreStamp.expected_revision + 1) {
+        setSelectedMeasureIndex(body.result?.measure_index ?? selectedMeasureIndex + 1);
+      }
       setMessage("모든 파트에 새 마디를 삽입했습니다.");
     });
   };
 
   const removeMeasure = async () => {
-    if (!song) return;
+    if (!song || !scoreQuery || selectedMeasureIndex === null || busy) return;
     if (!window.confirm(`모든 파트에서 M${selectedMeasureIndex + 1}을 삭제할까요?`)) return;
     await withBusy(async () => {
-      const response = await fetch(`${API}/api/songs/${song.song_id}/measures/${selectedMeasureIndex}`, { method: "DELETE" });
-      if (!response.ok) throw new Error(await response.text());
+      const response = await fetch(`${API}/api/songs/${song.song_id}/measures/${selectedMeasureIndex}?${scoreQuery}`, { method: "DELETE" });
+      await checkPositionalEdit(response);
       setSelectedNoteId(null);
-      setSelectedMeasureIndex(Math.max(0, selectedMeasureIndex - 1));
       await reload();
       setMessage("선택 마디를 모든 파트에서 삭제했습니다.");
     });
@@ -769,19 +986,31 @@ export default function SongWorkspace() {
 
         <section className="score-workbench card">
           {!song ? (
-            <div className="empty-score"><span className="music-icon">♫</span><h2>편집할 곡을 선택하세요</h2><p className="muted">완료된 채보는 자동으로 곡 라이브러리에 등록됩니다.</p></div>
+            <div className="empty-score">
+              <span className="music-icon">♫</span>
+              {selectedId && scoreLoadFailed ? (
+                <><h2>악보를 불러오지 못했습니다.</h2><button className="secondary" disabled={rhythmBusy} onClick={refreshScore}>악보 새로고침</button></>
+              ) : (
+                <><h2>편집할 곡을 선택하세요</h2><p className="muted">완료된 채보는 자동으로 곡 라이브러리에 등록됩니다.</p></>
+              )}
+            </div>
           ) : (
             <>
               <div className="score-toolbar">
                 <div><span className="eyebrow">CURRENT SCORE</span><h2>{song.title}</h2><span className="revision-pill">Revision {song.revision}</span></div>
                 <div className="score-actions">
                   <label className="zoom-control"><span>미리보기</span><input type="range" min="55" max="130" value={previewZoom} onChange={(event) => setPreviewZoom(Number(event.target.value))} /><strong>{previewZoom}%</strong></label>
-                  <button className="secondary" disabled={busy} onClick={() => void reload().catch((error) => setMessage(String(error)))}>악보 새로고침</button>
+                  <button className="secondary" disabled={otherBusy || rhythmBusy} onClick={refreshScore}>악보 새로고침</button>
                   <button className="secondary" disabled={busy || song.revision <= 1} onClick={() => void postAction("undo")}>실행 취소</button>
                   <button className="secondary" disabled={busy} onClick={() => void postAction("restore")}>원본 복원</button>
                   <button className="run-button export-button" disabled={busy} onClick={() => void postAction("export")}>최종 파일 생성</button>
                 </div>
               </div>
+              {rhythmBusy && <p role="status">리듬을 수정하고 있습니다…</p>}
+              {!rhythmBusy && rhythmNeedsReload && !scoreLoadFailed && <p role="status">수정한 악보를 불러오고 있습니다…</p>}
+              {!rhythmBusy && scoreLoadFailed && <p role="status">{rhythmNeedsReload
+                ? "수정 결과를 확인하려면 악보 새로고침을 눌러 주세요."
+                : "편집을 계속하려면 악보 새로고침을 눌러 주세요."}</p>}
               <SourceAudioReview key={`${song.song_id}:${song.revision}`} songId={song.song_id} revision={song.revision} clip={sourceClip} />
               {unresolvedMetadata && (
                 <div className="metadata-review-notice" role="status">
@@ -830,7 +1059,7 @@ export default function SongWorkspace() {
               {filters}
               <div className="note-list">
                 {filteredNotes.slice(0, 1000).map((note) => (
-                  <button key={note.note_id} className={selectedNoteId === note.note_id ? "active" : ""} onClick={() => setSelectedNoteId(note.note_id)}>
+                  <button key={note.note_id} className={selectedNoteId === note.note_id ? "active" : ""} disabled={busy} onClick={() => chooseNote(note.note_id)}>
                     <span>M{note.measure}</span><strong>{pitchLabel(note)}</strong><small>{note.type ?? "?"}{note.dots ? ` · dot×${note.dots}` : ""} · {note.lyric || "—"}</small>
                   </button>
                 ))}
@@ -839,18 +1068,41 @@ export default function SongWorkspace() {
                 <div className="note-editor advanced-note-editor">
                   <div className="note-editor-head"><strong>{selectedNote.part_name} · M{selectedNote.measure}</strong><code>{selectedNote.note_id}</code></div>
                   <div className="note-evidence">
-                    <button type="button" className="secondary" disabled={visibleEvidence?.loading || score?.evidence_generation == null} onClick={() => void loadNoteEvidence()}>{visibleEvidence?.loading ? "근거 확인 중…" : "모델 근거 확인"}</button>
+                    <button type="button" className="secondary" disabled={scoreLocked || visibleEvidence?.loading || score?.evidence_generation == null} onClick={() => void loadNoteEvidence()}>{visibleEvidence?.loading ? "근거 확인 중…" : "모델 근거 확인"}</button>
                     {score?.evidence_generation == null && <p>이 악보에는 연결된 모델 근거가 없어 확인을 보류합니다.</p>}
                     {visibleEvidence?.message && <p role="status">{visibleEvidence.message}</p>}
                     {visibleEvidence?.result && (visibleEvidence.result.status !== "linked" || !visibleEvidence.result.evidence
                       ? <p role="status">이 음표의 모델 근거를 확정할 수 없어 확인을 보류합니다.</p>
                       : <div role="status">
-                        <p>모델 연주 시각 {visibleEvidence.result.evidence.performed_seconds.start.toFixed(2)}–{visibleEvidence.result.evidence.performed_seconds.end.toFixed(2)}초</p>
-                        <p>기보 시각 {visibleEvidence.result.evidence.grid_seconds.start.toFixed(2)}–{visibleEvidence.result.evidence.grid_seconds.end.toFixed(2)}초</p>
+                        {visibleEvidence.result.evidence.written_quarters && <p>현재 기보 위치 (4분음표 기준) {visibleEvidence.result.evidence.written_quarters.start.toFixed(2)}–{visibleEvidence.result.evidence.written_quarters.end.toFixed(2)}</p>}
                         {visibleEvidence.result.patch && <p>이 버전에서 음표를 수정했습니다.</p>}
-                        <p>{verifiedClip ? "원음 구간은 해석된 기보 시간이며 실제 음의 시작이나 정확도 판정이 아닙니다." : "원음 구간을 확인할 수 없어 재생 연결을 보류합니다."}</p>
-                        {verifiedClip && <button type="button" className="secondary" onClick={() => setSelectedClip({ key: evidenceKey, epoch: evidenceEpoch.current, clip: { ...verifiedClip } })}>원음 구간 확인</button>}
+                        {evidenceSources.map((source, index) => <div key={index} className="note-evidence-source">
+                          {evidenceSources.length > 1 && <strong>원본 {index + 1}</strong>}
+                          <p>모델 연주 시각 {source.performed_seconds.start.toFixed(2)}–{source.performed_seconds.end.toFixed(2)}초</p>
+                          <p>원본 기보 격자 시각 {source.grid_seconds.start.toFixed(2)}–{source.grid_seconds.end.toFixed(2)}초</p>
+                          <p>{verifiedClips[index] ? "원음 구간은 해석된 기보 시간이며 실제 음의 시작이나 정확도 판정이 아닙니다." : "원음 구간을 확인할 수 없어 재생 연결을 보류합니다."}</p>
+                          {verifiedClips[index] && <button type="button" className="secondary" onClick={() => setSelectedClip({ key: evidenceKey, epoch: evidenceEpoch.current, clip: { ...verifiedClips[index]! } })}>{evidenceSources.length > 1 ? `원음 구간 확인 ${index + 1}` : "원음 구간 확인"}</button>}
+                        </div>)}
                       </div>)}
+                  </div>
+                  <div className="note-rhythm-edit">
+                    <strong>구간 리듬 수정</strong>
+                    <p>{nextRhythmNote ? `합치기·경계 이동은 현재와 같은 마디의 바로 다음 M${nextRhythmNote.measure} ${pitchLabel(nextRhythmNote)}를 대상으로 합니다.` : "같은 마디에 바로 다음 음표나 쉼표가 없습니다."}</p>
+                    <div className="layout-two">
+                      <label><span>왼쪽 길이</span><select aria-label="왼쪽 길이" value={leftType} onChange={(event) => setLeftType(event.target.value as NoteType)}>{noteTypes.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+                      <label><span>왼쪽 점</span><select aria-label="왼쪽 점" value={leftDots} onChange={(event) => setLeftDots(Number(event.target.value))}><option value={0}>없음</option><option value={1}>1점</option><option value={2}>2점</option></select></label>
+                    </div>
+                    {score?.evidence_generation == null && <p>이 악보의 리듬 편집 상태를 확인할 수 없습니다. 새로고침 후 다시 시도하세요.</p>}
+                    {rhythmStatus && rhythmStatus.songId === song.song_id && rhythmStatus.noteId === selectedNote.note_id
+                      && rhythmStatus.revision === score?.song.revision && rhythmStatus.generation === score.evidence_generation
+                      && rhythmStatus.scoreHash === score.score_sha256
+                      && <p role="status">{rhythmStatus.message}</p>}
+                    <div className="note-rhythm-actions">
+                      <button type="button" className="secondary" disabled={busy || selectedNote.rest || score?.evidence_generation == null} onClick={() => void editRhythm("split")}>음표 나누기</button>
+                      <button type="button" className="secondary" disabled={busy || !nextRhythmNote || score?.evidence_generation == null} onClick={() => void editRhythm("merge")}>다음과 합치기</button>
+                      <button type="button" className="secondary" disabled={busy || !nextRhythmNote || score?.evidence_generation == null} onClick={() => void editRhythm("boundary")}>경계 옮기기</button>
+                      <button type="button" className="secondary" disabled={busy || selectedNote.rest || score?.evidence_generation == null} onClick={() => void editRhythm("delete")}>같은 길이 쉼표로 바꾸기</button>
+                    </div>
                   </div>
                   <label className="switch-row"><span>쉼표</span><input type="checkbox" checked={noteRest} onChange={(event) => setNoteRest(event.target.checked)} /></label>
                   {!noteRest && (
@@ -900,7 +1152,7 @@ export default function SongWorkspace() {
               {filters}
               <div className="note-list chord-note-list">
                 {filteredNotes.slice(0, 1000).map((note) => (
-                  <button key={note.note_id} className={selectedNoteId === note.note_id ? "active" : ""} onClick={() => setSelectedNoteId(note.note_id)}><span>M{note.measure}</span><strong>{chordMap.get(note.note_id) || "·"}</strong><small>{pitchLabel(note)} {note.lyric || ""}</small></button>
+                  <button key={note.note_id} className={selectedNoteId === note.note_id ? "active" : ""} disabled={busy} onClick={() => chooseNote(note.note_id)}><span>M{note.measure}</span><strong>{chordMap.get(note.note_id) || "·"}</strong><small>{pitchLabel(note)} {note.lyric || ""}</small></button>
                 ))}
               </div>
               {selectedNote && (
@@ -917,7 +1169,7 @@ export default function SongWorkspace() {
           {song && inspectorTab === "structure" && (
             <div className="publication-editor structure-editor">
               <div className="inspector-intro"><strong>마디 · 조표 · 박자표</strong><p>이 탭의 마디 삽입/삭제와 조표·박자 변경은 Full Score의 모든 파트에 동일하게 적용됩니다.</p></div>
-              <label><span>편집 마디</span><select value={selectedMeasureIndex} onChange={(event) => setSelectedMeasureIndex(Number(event.target.value))}>{measures.map((measure) => <option key={measure.measure_index} value={measure.measure_index}>M{measure.number}</option>)}</select></label>
+              <label><span>편집 마디</span><select value={selectedMeasureIndex ?? ""} disabled={busy} onChange={(event) => setSelectedMeasureIndex(Number(event.target.value))}><option value="" disabled>마디 선택</option>{measures.map((measure) => <option key={measure.measure_index} value={measure.measure_index}>M{measure.number}</option>)}</select></label>
               <div className="layout-two">
                 <label><span>조표</span><select value={keyFifths} onChange={(event) => setKeyFifths(Number(event.target.value))}>{Object.entries(keyNames).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
                 <label><span>조성</span><select value={keyMode} onChange={(event) => setKeyMode(event.target.value as "major" | "minor")}><option value="major">Major</option><option value="minor">Minor</option></select></label>
@@ -926,14 +1178,14 @@ export default function SongWorkspace() {
                 <label><span>박자 분자</span><input type="number" min="1" max="32" value={beats} onChange={(event) => setBeats(Number(event.target.value))} /></label>
                 <label><span>박자 분모</span><select value={beatType} onChange={(event) => setBeatType(Number(event.target.value))}>{[1,2,4,8,16,32].map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
               </div>
-              <button className="run-button" disabled={busy} onClick={() => void saveSignature()}>조표·박자표 적용</button>
+              <button className="run-button" disabled={busy || selectedMeasureIndex === null || measures.length === 0} onClick={() => void saveSignature()}>조표·박자표 적용</button>
               <div className="inspector-divider" />
               <span className="field-section-title">마디 구조</span>
               <div className="measure-actions">
-                <button className="secondary" disabled={busy || measures.length === 0} onClick={() => void insertMeasureAfter()}>이 마디 뒤에 새 마디</button>
-                <button className="delete-song-button compact-delete" disabled={busy || measures.length <= 1} onClick={() => void removeMeasure()}>이 마디 삭제</button>
+                <button className="secondary" disabled={busy || selectedMeasureIndex === null || measures.length === 0} onClick={() => void insertMeasureAfter()}>이 마디 뒤에 새 마디</button>
+                <button className="delete-song-button compact-delete" disabled={busy || selectedMeasureIndex === null || measures.length <= 1} onClick={() => void removeMeasure()}>이 마디 삭제</button>
               </div>
-              <div className="layout-summary">현재 {measures.length}마디 · M{selectedMeasureIndex + 1}: {beats}/{beatType}, {keyNames[keyFifths]} {keyMode}</div>
+              <div className="layout-summary">현재 {measures.length}마디{selectedMeasureIndex !== null && ` · M${selectedMeasureIndex + 1}: ${beats}/${beatType}, ${keyNames[keyFifths]} ${keyMode}`}</div>
             </div>
           )}
 

@@ -926,6 +926,323 @@ def test_verified_fixed_ingest_admits_lineage_and_first_layout(product, monkeypa
     assert _evidence_get(client, f"/api/songs/{new_id}", "p0-m1-n1").json()["status"] == "linked"
 
 
+@pytest.fixture
+def rhythm_product(product):
+    import hashlib
+    import json
+    import wave
+
+    client, _, songs, _ = product
+    song_id = "owned-rhythm"
+    asset = songs.asset_root / song_id
+    model = asset / "model-evidence"
+    (model / "vocal").mkdir(parents=True)
+    (model / "context").mkdir()
+    (model / "native").mkdir()
+    score = model / "score.musicxml"
+    score.write_text("""<score-partwise version="4.0">
+      <part-list><score-part id="P1"><part-name>Voice</part-name></score-part></part-list>
+      <part id="P1"><measure number="1">
+        <attributes><divisions>4</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+        <direction><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>120</per-minute>
+        </metronome></direction-type><sound tempo="120"/></direction>
+        <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><type>quarter</type></note>
+        <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><type>quarter</type></note>
+        <note><pitch><step>E</step><octave>4</octave></pitch><duration>4</duration><type>quarter</type></note>
+        <note><rest/><duration>4</duration><type>quarter</type></note>
+      </measure></part></score-partwise>""")
+    midi = MidiFile(ticks_per_beat=480)
+    track = MidiTrack([MetaMessage("set_tempo", tempo=500000)])
+    for pitch in (60, 60, 64):
+        track.append(Message("note_on", note=pitch, velocity=72))
+        track.append(Message("note_off", note=pitch, time=480))
+    midi.tracks.append(track)
+    midi.save(model / "vocal/selected.mid")
+    (model / "interpretation.json").write_text(json.dumps({
+        "algorithm": "dominant_overlap_on_audio_sixteenth_grid_v1",
+        "grid_audio_seconds": [0, .5, 1, 1.5, 2], "source_note_indices": [0, 1, 2, -1]}))
+    audio = asset / "original-audio.wav"
+    with wave.open(str(audio), "wb") as wav:
+        wav.setparams((1, 2, 8000, 0, "NONE", "not compressed"))
+        wav.writeframes(bytes(32000))
+    source_sha = hashlib.sha256(audio.read_bytes()).hexdigest()
+    (model / "recipe.json").write_text(json.dumps({
+        "recipe_version": 1, "engine": "vocal_lead_v1", "status": "completed",
+        "source_audio_sha256": source_sha, "model_audio_sha256": source_sha, "model_audio_normalized": False}))
+    (model / "context/music_structure.json").write_text('{"trimmed":false,"media_start_seconds":0}')
+    (model / "native/playback.json").write_text('{"duration":2}')
+    files = []
+    for path in sorted(model.rglob("*")):
+        if path.is_file():
+            data = path.read_bytes()
+            files.append({"path": path.relative_to(model).as_posix(),
+                          "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()})
+    (model / "manifest.json").write_text(json.dumps({
+        "schema_version": 1, "job_id": song_id, "source_audio_sha256": source_sha,
+        "selection": {"transcription_engine": "vocal_lead_v1"}, "files": files}))
+    job = {"job_id": song_id, "status": "done", "kind": "transcription", "filename": "fixture.wav",
+           "source_kind": "local", "score_mode": "lead_sheet", "transcription_engine": "vocal_lead_v1",
+           "result": {"musicxml": str(score)}}
+    assert songs.sync_completed_jobs([job]) == 1
+    return client, songs, song_id, asset
+
+
+def _rhythm_tokens(client, base):
+    notes = client.get(base + "/notes").json()
+    return {"expected_revision": notes["song"]["revision"], "expected_score_sha256": notes["score_sha256"],
+            "expected_generation": notes["evidence_generation"]}
+
+
+@pytest.mark.parametrize("method,path,body,query", [
+    ("PATCH", "/notes/p0-m0-n0/chord", {"symbol": "C"}, False),
+    ("POST", "/notes/p0-m0-n0/insert", {"type": "eighth"}, False),
+    ("DELETE", "/notes/p0-m0-n0", None, True),
+    ("PATCH", "/measures/0/signature", {"key_fifths": 1}, False),
+    ("POST", "/measures/0/insert-after", None, True),
+    ("DELETE", "/measures/1", None, True),
+])
+def test_positional_edits_check_preconditions(rhythm_product, method, path, body, query):
+    client, songs, song_id, _ = rhythm_product
+    base = f"/api/songs/{song_id}"
+    if path == "/measures/1":
+        assert client.post(base + "/measures/0/insert-after").status_code == 200
+    tokens = _rhythm_tokens(client, base)
+    before = songs.score_xml(song_id)
+    structure = client.get(base + "/structure").json()
+    score = client.get(base + "/score")
+    assert structure["song"]["revision"] == tokens["expected_revision"]
+    assert structure["score_sha256"] == tokens["expected_score_sha256"]
+    assert score.headers["etag"] == f'"{tokens["expected_score_sha256"]}"'
+    assert score.headers["access-control-expose-headers"] == "ETag"
+    target = songs.export_dir(song_id) / "score.mid"
+    target.write_bytes(b"owned-export")
+
+    def edit(expected):
+        return client.request(method, base + path, **({"params": expected} if query else {"json": {**body, **expected}}))
+
+    for field, value in (("expected_revision", tokens["expected_revision"] + 1),
+                         ("expected_score_sha256", "0" * 64),
+                         ("expected_generation", tokens["expected_generation"] + 1)):
+        assert edit({**tokens, field: value}).status_code == 409
+    assert edit({**tokens, "expected_score_sha256": "bad"}).status_code == 422
+    assert songs.score_xml(song_id) == before
+    assert target.read_bytes() == b"owned-export"
+    assert edit(tokens).status_code == 200
+
+
+def test_rhythm_undo_survives_failed_concurrent_edit(rhythm_product, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+
+    from fastapi import FastAPI
+
+    client, songs, song_id, asset = rhythm_product
+    # Separate workers do not share the application's in-process mutation lane.
+    separate_worker = FastAPI()
+    separate_worker.include_router(song_routes.router)
+    client = TestClient(separate_worker)
+    base = f"/api/songs/{song_id}"
+    tokens = _rhythm_tokens(client, base)
+    songs.update_metadata(song_id, title="Before edit", artist="Original artist")
+    publication = song_routes._publication_store.write(song_id, {"subtitle": "Before edit"})
+    before_xml = songs.score_xml(song_id)
+    before_song = songs.get(song_id)
+    artifacts = {p: p.read_bytes() for p in asset.rglob("*") if p.is_file()}
+    reached, release = Event(), Event()
+    commit = songs.commit_edit_from_path
+    other_store = SongStoreV2(path=songs.path, cache_root=songs.cache_root,
+                              asset_root=songs.asset_root, export_root=songs.export_root)
+
+    def paused_commit(*args, **kwargs):
+        reached.set()
+        assert release.wait(10)
+        return commit(*args, **kwargs)
+
+    monkeypatch.setattr(songs, "commit_edit_from_path", paused_commit)
+    monkeypatch.setattr(song_routes, "_discard_snapshot", other_store.discard_snapshot)
+    payload = {**tokens, "action": "split", "note_ids": ["p0-m0-n0"], "left_note_type": "eighth"}
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(client.post, base + "/notes/rhythm-edit", json=payload)
+        try:
+            assert reached.wait(10)
+            failed = client.post(base + "/notes/rhythm-edit", json={**payload, "left_note_type": "half"})
+            assert failed.status_code == 422, failed.text
+            with songs._connect() as conn:
+                assert conn.execute("SELECT count(*) FROM song_revisions WHERE song_id=?", (song_id,)).fetchone()[0] == 0
+        finally:
+            release.set()
+        result = future.result(timeout=10)
+    assert result.status_code == 200, result.text
+    assert songs.get(song_id)["revision"] == tokens["expected_revision"] + 1
+    assert client.post(base + "/undo").status_code == 200
+    restored = songs.get(song_id)
+    assert restored["revision"] == tokens["expected_revision"]
+    assert (restored["title"], restored["artist"]) == ("Before edit", "Original artist")
+    assert songs.score_xml(song_id) == before_xml
+    assert song_routes._publication_store.read(song_id) == publication
+    assert restored["source_kind"] == before_song["source_kind"]
+    assert all(path.read_bytes() == contents for path, contents in artifacts.items())
+
+
+def test_rhythm_edits_preserve_source_topology_and_export_timing(rhythm_product):
+    from audio_score_tool.metrics import midi_notes
+
+    client, songs, song_id, asset = rhythm_product
+    base = f"/api/songs/{song_id}"
+    url = base + "/notes/rhythm-edit"
+    artifacts = {p: p.read_bytes() for p in asset.rglob("*") if p.is_file()}
+    first, second, third, fourth = [f"p0-m0-n{i}" for i in range(4)]
+    source_ids = [_evidence_get(client, base, note).json()["evidence"]["source_id"]
+                  for note in (first, second, third)]
+    assert len(set(source_ids)) == 3
+
+    def edit(action, note_ids, **duration):
+        previous = _rhythm_tokens(client, base)
+        payload = {**previous, "action": action, "note_ids": note_ids, **duration}
+        response = client.post(url, json=payload)
+        assert response.status_code == 200, response.text
+        assert client.post(url, json=payload).status_code == 409
+        return response.json()["result"]
+
+    split = edit("split", [first], left_note_type="eighth")
+    assert split["mapping"][first] == [first, second]
+    assert split["mapping"][second] == [third]
+    assert split["mapping"][third] == [fourth]
+    child_a = _evidence_get(client, base, first).json()
+    child_b = _evidence_get(client, base, second).json()
+    assert child_a["schema_version"] == child_b["schema_version"] == 2
+    assert child_a["evidence"]["source_ids"] == child_b["evidence"]["source_ids"] == [source_ids[0]]
+    assert child_a["evidence"]["performed_seconds"] == child_b["evidence"]["performed_seconds"] == {"start": 0, "end": .5}
+    assert child_b["evidence"]["written_quarters"] == {"start": .5, "end": 1}
+    assert child_b["patch"]["operation"] == "split"
+
+    merge = edit("merge", [second, third])
+    assert merge["mapping"][second] == merge["mapping"][third] == [second]
+    assert merge["mapping"][fourth] == [third]
+    merged = _evidence_get(client, base, second).json()["evidence"]
+    assert merged["source_ids"] == source_ids[:2]
+    assert merged["source_id"] is None and merged["source_audio_seek_seconds"] is None
+    assert [source["source_audio_seek_seconds"] for source in merged["sources"]] == [0, .5]
+    assert merged["written_quarters"] == {"start": .5, "end": 2}
+
+    boundary = edit("boundary", [third, fourth], left_note_type="eighth")
+    assert boundary["edit"]["outputs"][0]["written_quarters"] == {"start": 2, "end": 2.5}
+    moved = _evidence_get(client, base, third).json()["evidence"]
+    assert moved["grid_seconds"] == {"start": 1, "end": 1.5}
+    assert moved["source_ids"] == [source_ids[2]]
+    assert moved["written_quarters"] == {"start": 2, "end": 2.5}
+
+    pitch = client.patch(base + f"/notes/{second}/structure",
+                         json={**_rhythm_tokens(client, base), "step": "D"})
+    assert pitch.status_code == 200, pitch.text
+    pitched = _evidence_get(client, base, second).json()
+    assert pitched["evidence"]["source_ids"] == pitched["patch"]["source_ids"] == source_ids[:2]
+    assert pitched["patch"]["after_pitch"] == 62
+    assert _evidence_get(client, base, first).json()["evidence"]["source_ids"] == [source_ids[0]]
+
+    deleted = edit("delete", [third])
+    assert deleted["mapping"][third] == []
+    removed = _evidence_get(client, base, third).json()
+    assert removed["status"] == "unavailable"
+    assert removed["patch"]["inputs"][0]["source_ids"] == [source_ids[2]]
+    assert removed["patch"]["outputs"][0]["source_ids"] == []
+    assert removed["patch"]["outputs"][0]["pitch"] is None
+    assert _evidence_get(client, base, second).json()["evidence"]["source_ids"] == source_ids[:2]
+
+    final_tokens = _rhythm_tokens(client, base)
+    result = client.post(base + "/export", json={"formats": ["midi"],
+                         "expected_revision": final_tokens["expected_revision"]})
+    assert result.status_code == 200, result.text
+    output = midi_notes(songs.export_root / song_id / "score.mid")
+    assert [(n.pitch, n.onset, n.offset) for n in output] == [(60, 0, .25), (62, .25, 1)]
+    assert sum(int(n.text) for n in ET.fromstring(songs.score_xml(song_id)).findall("./part/measure/note/duration")) == 16
+    assert all(path.read_bytes() == contents for path, contents in artifacts.items())
+
+    assert client.post(base + "/undo").status_code == 200
+    old = client.get(base + f"/notes/{second}/evidence", params=final_tokens)
+    assert old.status_code == 409
+    assert _evidence_get(client, base, second).json()["status"] == "unavailable"
+    with songs._connect() as conn:
+        assert conn.execute("SELECT count(*) FROM note_evidence_patches WHERE song_id=?", (song_id,)).fetchone()[0] == 5
+
+
+def test_rhythm_edit_inner_failure_and_malformed_lineage(rhythm_product):
+    client, songs, song_id, _ = rhythm_product
+    base = f"/api/songs/{song_id}"
+    url = base + "/notes/rhythm-edit"
+    token = _rhythm_tokens(client, base)
+    note_id = "p0-m0-n0"
+    payload = {**token, "action": "split", "note_ids": [note_id], "left_note_type": "eighth"}
+    target = songs.export_dir(song_id) / "score.mid"
+    target.write_bytes(b"owned-export")
+    assert client.post(url, json={**payload, "expected_generation": token["expected_generation"] + 1}).status_code == 409
+    assert client.post(url, json={**payload, "note_ids": [note_id, note_id]}).status_code == 422
+    assert client.post(url, json={**payload, "left_note_type": "half"}).status_code == 422
+    assert target.read_bytes() == b"owned-export"
+    before = songs.evidence_snapshot(song_id)
+    with songs._connect() as conn:
+        conn.execute("CREATE TRIGGER fail_rhythm BEFORE INSERT ON note_evidence_patches "
+                     "BEGIN SELECT RAISE(ABORT, 'owned failure'); END")
+    response = client.post(url, json=payload)
+    assert response.status_code == 422 and "owned failure" in response.text
+    assert songs.evidence_snapshot(song_id) == before
+    assert target.read_bytes() == b"owned-export"
+    with songs._connect() as conn:
+        assert conn.execute("SELECT count(*) FROM note_evidence_patches").fetchone()[0] == 0
+        assert conn.execute("SELECT count(*) FROM song_revisions WHERE song_id=?", (song_id,)).fetchone()[0] == 0
+        conn.execute("DROP TRIGGER fail_rhythm")
+    assert client.post(url, json=payload).status_code == 200
+    after = _rhythm_tokens(client, base)
+    for value, reason in (('{"schema_version":99,"locators":{}}', "unsupported_lineage"),
+                          ('{"schema_version":1,"locators":{"p0-m0-n0":["absent"]}}', "invalid_lineage"),
+                          ('{"schema_version":1,"locators":', "invalid_lineage")):
+        with songs._connect() as conn:
+            conn.execute("UPDATE note_evidence_state SET lineage_json=? WHERE song_id=?", (value, song_id))
+        response = _evidence_get(client, base, note_id)
+        assert response.json()["status"] == "unavailable" and response.json()["reason"] == reason
+        stable = songs.evidence_snapshot(song_id)
+        assert client.post(url, json={**payload, **after}).status_code == 422
+        assert songs.evidence_snapshot(song_id) == stable
+
+
+@pytest.mark.parametrize("input_kind", ["musicxml", "mid"])
+def test_legacy_rhythm_edit_keeps_missing_sources_explicit(product, input_kind):
+    client, _, songs, _ = product
+    source = ((SCORE_XML.encode(), "application/vnd.recordare.musicxml+xml")
+              if input_kind == "musicxml" else (_midi_fixture(), "audio/midi"))
+    imported = client.post("/api/import/notation", files={"file": (f"legacy.{input_kind}", *source)})
+    assert imported.status_code == 202, imported.text
+    song_id = imported.json()["job_id"]
+    base = f"/api/songs/{song_id}"
+    result = client.post(base + "/notes/rhythm-edit", json={
+        **_rhythm_tokens(client, base), "action": "split", "note_ids": ["p0-m0-n0"], "left_note_type": "half"})
+    assert result.status_code == 200, result.text
+    evidence = _evidence_get(client, base, "p0-m0-n1").json()
+    assert evidence["status"] == "unavailable" and evidence["reason"] == "lineage_unavailable"
+    assert evidence["patch"]["operation"] == "split"
+    assert all(not entry["source_ids"] for entry in evidence["patch"]["outputs"])
+    _, state = songs.evidence_snapshot(song_id)
+    assert not state["active"] and state["lineage_json"] is None
+    if input_kind == "mid":
+        written = ET.fromstring(songs.score_xml(song_id)).findall("./part/measure/note")
+        assert len(written) == 2
+        assert written[0].find("instrument").get("id") == written[1].find("instrument").get("id")
+        assert written[0].get("dynamics") == written[1].get("dynamics")
+
+
+def test_rhythm_lineage_migration_keeps_admitted_baseline(rhythm_product):
+    client, songs, song_id, _ = rhythm_product
+    base = f"/api/songs/{song_id}"
+    before, state = songs.evidence_snapshot(song_id)
+    with songs._connect() as conn:
+        conn.execute("ALTER TABLE note_evidence_state DROP COLUMN lineage_json")
+    reopened = SongStoreV2(path=songs.path, cache_root=songs.cache_root,
+                           asset_root=songs.asset_root, export_root=songs.export_root)
+    assert reopened.evidence_snapshot(song_id) == (before, state)
+    evidence = _evidence_get(client, base, "p0-m0-n0").json()
+    assert evidence["status"] == "linked" and evidence["schema_version"] == 1
+
+
 def test_pitch_outside_evidence_range_still_saves(product):
     client, songs, song_id, root = _retained_vocal_fixture(product)
     base = f"/api/songs/{song_id}"

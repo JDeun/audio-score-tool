@@ -21,14 +21,14 @@ def score_hash(xml: str) -> str:
     return hashlib.sha256(xml.encode("utf-8")).hexdigest()
 
 
-def clock_signature(xml: str) -> tuple:
+def clock_signature(xml: str, *, require_explicit: bool = True) -> tuple:
     score = converter.parseData(xml, format="musicxml")
     marks = []
     for mark in score.recurse().getElementsByClass(tempo.MetronomeMark):
         bpm = mark.getQuarterBPM()
         if bpm is not None:
             marks.append((float(mark.getOffsetInHierarchy(score)), float(bpm)))
-    if not marks or min(position for position, _ in marks) != 0:
+    if require_explicit and (not marks or min(position for position, _ in marks) != 0):
         raise ValueError("unsupported_clock")
     score_time_clocks(score)
     return score_audio_origin(score), tuple(sorted(set(marks)))
@@ -302,3 +302,71 @@ def baseline_fingerprint(links: dict, rows: list, clock: tuple, manifest_hash: s
                              if key not in {"source_audio_seek_seconds", "source_audio_seek_basis"}}
                     for locator, link in links.items()}
     return hashlib.sha256(json.dumps([stable_links, rows, clock, manifest_hash], sort_keys=True).encode()).hexdigest()
+
+
+def linked_source_ids(link: dict) -> list[str]:
+    if "source_ids" in link:
+        return link["source_ids"]
+    return [link["source_id"]]
+
+
+def resolve_lineage(lineage: dict, previous_links: dict, xml: str) -> dict:
+    """Read the source IDs explicitly carried into this score by a committed edit."""
+    if not isinstance(lineage, dict) or type(lineage.get("schema_version")) is not int:
+        raise ValueError("invalid_lineage")
+    if lineage["schema_version"] != 1:
+        raise ValueError("unsupported_lineage")
+    mapping = lineage.get("locators")
+    if not isinstance(mapping, dict):
+        raise ValueError("invalid_lineage")
+    sources = {source["source_id"]: source for link in previous_links.values()
+               for source in link.get("sources", [link])}
+    rows = written_notes(xml)
+    pitched = {row["note_id"] for row in rows if row["pitch"] is not None}
+    for locator, source_ids in mapping.items():
+        if (locator not in pitched or not isinstance(source_ids, list) or not source_ids
+                or any(not isinstance(source, str) or source not in sources for source in source_ids)
+                or len(set(source_ids)) != len(source_ids)):
+            raise ValueError("invalid_lineage")
+    links = {}
+    for chain in _chains(rows):
+        locators = [row["note_id"] for row in chain]
+        source_ids = mapping.get(locators[0], [])
+        if any(mapping.get(locator, []) != source_ids for locator in locators):
+            raise ValueError("invalid_lineage")
+        if not source_ids:
+            continue
+        observations = [sources[source] for source in source_ids]
+        if len(source_ids) == 1:
+            link = dict(observations[0])
+        else:
+            link = {"source_id": None, "performed_seconds": None, "grid_seconds": None,
+                    "source_audio_seek_seconds": None, "source_audio_seek_basis": None}
+        link.update(source_ids=source_ids, sources=observations, locators=locators,
+                    written_quarters={"start": chain[0]["start"], "end": chain[-1]["end"]})
+        for locator in locators:
+            links[locator] = link
+    return links
+
+
+def rhythm_lineage(before: dict, after: dict, links: dict, mapping: dict) -> dict:
+    """Move source IDs using the XML operation's explicit before/after locator map."""
+    if set(before) != set(mapping):
+        raise ValueError("Rhythm edit did not account for every original locator")
+    parents: dict[str, list[str]] = {}
+    for old, targets in mapping.items():
+        for new in targets:
+            if new not in after:
+                raise ValueError("Rhythm edit produced an invalid successor locator")
+            parents.setdefault(new, []).append(old)
+    locators = {}
+    for new, old in parents.items():
+        if after[new]["pitch"] is None:
+            continue
+        # A known parent does not establish the lineage of an unknown merged note.
+        if any(parent not in links for parent in old):
+            continue
+        locators[new] = list(dict.fromkeys(
+            source for parent in old for source in linked_source_ids(links[parent])
+        ))
+    return {"schema_version": 1, "locators": locators}

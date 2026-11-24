@@ -565,3 +565,229 @@ def structure_summary(path: Path) -> dict[str, Any]:
             }
         )
     return {"measures": measures}
+
+
+def rhythm_edit(
+    path: Path,
+    action: str,
+    note_ids: list[str],
+    *,
+    left_note_type: str | None = None,
+    left_dots: int = 0,
+) -> dict[str, Any]:
+    """Edit one rhythmic region without moving later events or inventing identity."""
+    from fractions import Fraction
+
+    if action not in {"split", "merge", "boundary", "delete"}:
+        raise MusicXMLEditError("지원하지 않는 리듬 편집입니다.")
+    if type(left_dots) is not int:
+        raise MusicXMLEditError("점음표 수가 올바르지 않습니다.")
+    expected_count = 2 if action in {"merge", "boundary"} else 1
+    if len(note_ids) != expected_count or len(set(note_ids)) != expected_count:
+        raise MusicXMLEditError("리듬 편집의 음표 수가 올바르지 않습니다.")
+    if action in {"split", "boundary"}:
+        if left_note_type is None:
+            raise MusicXMLEditError("왼쪽 음표 길이가 필요합니다.")
+    elif left_note_type is not None or left_dots != 0:
+        raise MusicXMLEditError("이 편집에는 왼쪽 음표 길이를 지정할 수 없습니다.")
+
+    tree = ET.parse(path)
+    root = tree.getroot()
+    ns = _namespace(root)
+    if root.tag != f"{ns}score-partwise":
+        raise MusicXMLEditError("지원하지 않는 악보 형식입니다.")
+
+    def locators() -> dict[str, ET.Element]:
+        return {f"p{p}-m{m}-n{n}": note
+                for p, part in enumerate(root.findall(f"{ns}part"))
+                for m, measure in enumerate(part.findall(f"{ns}measure"))
+                for n, note in enumerate(measure.findall(f"{ns}note"))}
+
+    old = locators()
+    if any(note_id not in old for note_id in note_ids):
+        raise MusicXMLEditError("음표 위치가 올바르지 않습니다.")
+    contexts = [_find_note_context(root, note_id) for note_id in note_ids]
+    part, measure, first, _p, mi, _ni, _ns = contexts[0]
+    targets = [context[2] for context in contexts]
+    if any(context[0] is not part or context[1] is not measure for context in contexts):
+        raise MusicXMLEditError("같은 파트와 마디의 음표만 편집할 수 있습니다.")
+    if len(targets) == 2:
+        children = list(measure)
+        if children.index(targets[1]) != children.index(first) + 1:
+            raise MusicXMLEditError("인접한 음표만 편집할 수 있습니다.")
+    # shortcut: a single linear voice only; support simultaneous voices with explicit timing proof.
+    notes = measure.findall(f"{ns}note")
+    voices = {(note.findtext(f"{ns}voice") or "1", note.findtext(f"{ns}staff") or "1") for note in notes}
+    if (len(voices) != 1 or measure.find(f"{ns}backup") is not None
+            or measure.find(f"{ns}forward") is not None
+            or any(note.find(f"{ns}chord") is not None or note.find(f"{ns}grace") is not None
+                   or note.find(f"{ns}time-modification") is not None
+                   or note.find(f"{ns}notations/{ns}tuplet") is not None for note in notes)):
+        raise MusicXMLEditError("다성부·겹음·꾸밈음·잇단음표는 지원하지 않습니다.")
+    instrument_tag = f"{ns}instrument"
+    declared_instruments = {
+        instrument.get("id") for score_part in root.findall(f"{ns}part-list/{ns}score-part")
+        if score_part.get("id") == part.get("id")
+        for instrument in score_part.findall(f"{ns}score-instrument") if instrument.get("id")
+    }
+    allowed = {f"{ns}{tag}" for tag in ("pitch", "rest", "duration", "voice", "type", "dot", "staff", "instrument")}
+    instrument_refs = {}
+    for note in targets:
+        if any(child.tag not in allowed for child in note):
+            raise MusicXMLEditError("가사·이음줄·기호 등 손실될 수 있는 정보가 있습니다.")
+        if (len(note.findall(f"{ns}duration")) != 1 or len(note.findall(f"{ns}type")) != 1
+                or len(note.findall(f"{ns}voice")) > 1 or len(note.findall(f"{ns}staff")) > 1
+                or len(note.findall(f"{ns}pitch")) > 1 or len(note.findall(f"{ns}rest")) > 1):
+            raise MusicXMLEditError("음표 구조가 올바르지 않습니다.")
+        if (note.find(f"{ns}pitch") is None) == (note.find(f"{ns}rest") is None):
+            raise MusicXMLEditError("음표 또는 쉼표가 올바르지 않습니다.")
+        instruments = note.findall(instrument_tag)
+        if (len(instruments) > 1 or any(set(ref.attrib) != {"id"} or ref.get("id") not in declared_instruments
+                                        or len(ref) or (ref.text or "").strip() for ref in instruments)):
+            raise MusicXMLEditError("선언된 악기 참조를 확인할 수 없습니다.")
+        instrument_refs[note] = instruments[0] if instruments else None
+        rest = note.find(f"{ns}rest")
+        if rest is not None and rest.attrib:
+            raise MusicXMLEditError("특수 쉼표는 편집할 수 없습니다.")
+        pitch = note.find(f"{ns}pitch")
+        if pitch is not None and (pitch.attrib or any(child.tag not in {
+                f"{ns}step", f"{ns}alter", f"{ns}octave"} for child in pitch)):
+            raise MusicXMLEditError("지원하지 않는 음높이 표현입니다.")
+        if pitch is not None:
+            try:
+                step = pitch.findtext(f"{ns}step")
+                alter = int(pitch.findtext(f"{ns}alter", "0"))
+                octave = int(pitch.findtext(f"{ns}octave", ""))
+                if (step not in {"A", "B", "C", "D", "E", "F", "G"}
+                        or not -2 <= alter <= 2 or not 0 <= octave <= 9
+                        or len(pitch.findall(f"{ns}step")) != 1
+                        or len(pitch.findall(f"{ns}alter")) > 1
+                        or len(pitch.findall(f"{ns}octave")) != 1):
+                    raise ValueError
+            except ValueError as exc:
+                raise MusicXMLEditError("음높이 정보가 올바르지 않습니다.") from exc
+    if action == "split" and first.find(f"{ns}pitch") is None:
+        raise MusicXMLEditError("쉼표는 음표로 나눌 수 없습니다.")
+    if action == "split" and any(element.attrib for element in first.iter()
+                                 if element is not first and element is not instrument_refs[first]):
+        raise MusicXMLEditError("음표의 하위 속성은 안전하게 복제할 수 없습니다.")
+    if action == "delete" and first.find(f"{ns}pitch") is None:
+        raise MusicXMLEditError("쉼표를 다시 삭제할 수 없습니다.")
+    if action == "delete" and any(key in first.attrib for key in ("id", "{http://www.w3.org/XML/1998/namespace}id")):
+        raise MusicXMLEditError("음표 ID를 보존하며 삭제할 수 없습니다.")
+    if action == "merge":
+        second = targets[1]
+        if any(element.attrib for element in second.iter() if element is not instrument_refs[second]):
+            raise MusicXMLEditError("두 번째 음표의 속성을 보존할 수 없습니다.")
+        first_ref = instrument_refs[first]
+        second_ref = instrument_refs[second]
+        if (first_ref.attrib if first_ref is not None else {}) != (second_ref.attrib if second_ref is not None else {}):
+            raise MusicXMLEditError("서로 다른 악기 참조는 합칠 수 없습니다.")
+        def pitch_value(note: ET.Element) -> tuple[str, str, str] | None:
+            pitch = note.find(f"{ns}pitch")
+            if pitch is None:
+                return None
+            return (pitch.findtext(f"{ns}step", ""), pitch.findtext(f"{ns}alter", "0"),
+                    pitch.findtext(f"{ns}octave", ""))
+        if pitch_value(first) is None or pitch_value(first) != pitch_value(second):
+            raise MusicXMLEditError("같은 음높이의 인접한 음표만 합칠 수 있습니다.")
+        if any(first.findtext(f"{ns}{tag}") != second.findtext(f"{ns}{tag}") for tag in ("voice", "staff")):
+            raise MusicXMLEditError("서로 다른 성부 또는 보표 정보는 합칠 수 없습니다.")
+
+    attrs = _effective_attributes(part, mi, ns)
+    divisions = int(attrs["divisions"])
+    found_divisions = None
+    for prior in part.findall(f"{ns}measure")[:mi + 1]:
+        for element in prior.findall(f"{ns}attributes/{ns}divisions"):
+            try:
+                found_divisions = int(element.text or "")
+            except ValueError as exc:
+                raise MusicXMLEditError("divisions 값이 올바르지 않습니다.") from exc
+            if found_divisions <= 0:
+                raise MusicXMLEditError("divisions 값이 올바르지 않습니다.")
+    if found_divisions != divisions:
+        raise MusicXMLEditError("현재 divisions를 확인할 수 없습니다.")
+    # Division changes within a measure would make integer durations incomparable.
+    attributes = measure.findall(f"{ns}attributes")
+    if len(attributes) > 1 or (attributes and list(measure).index(attributes[0]) > list(measure).index(notes[0])):
+        raise MusicXMLEditError("마디 중간의 속성 변경은 지원하지 않습니다.")
+    for note in notes:
+        try:
+            if int(note.findtext(f"{ns}duration", "")) <= 0:
+                raise ValueError
+        except ValueError as exc:
+            raise MusicXMLEditError("마디의 음표 길이가 올바르지 않습니다.") from exc
+
+    def duration_for(note_type: str, dots: int) -> int:
+        value = _duration_for_type(divisions, note_type, dots)
+        exact = Fraction(str(_NOTE_QUARTERS[note_type])) * divisions * (2 - Fraction(1, 2**dots))
+        if exact.denominator != 1 or exact.numerator != value:
+            raise MusicXMLEditError("현재 divisions로 음표 길이를 정확히 표현할 수 없습니다.")
+        return value
+
+    def represent(duration: int) -> tuple[str, int]:
+        for note_type in _NOTE_QUARTERS:
+            for dots in range(3):
+                try:
+                    if duration_for(note_type, dots) == duration:
+                        return note_type, dots
+                except MusicXMLEditError:
+                    continue
+        raise MusicXMLEditError("남은 음표 길이를 정확히 표기할 수 없습니다.")
+
+    durations = []
+    for note in targets:
+        try:
+            duration = int(note.findtext(f"{ns}duration", ""))
+        except ValueError as exc:
+            raise MusicXMLEditError("음표 길이가 올바르지 않습니다.") from exc
+        note_type = note.findtext(f"{ns}type") or ""
+        dots = len(note.findall(f"{ns}dot"))
+        if duration <= 0 or duration_for(note_type, dots) != duration:
+            raise MusicXMLEditError("음표 길이와 표기가 일치하지 않습니다.")
+        durations.append(duration)
+
+    def set_duration(note: ET.Element, spec: tuple[str, int]) -> None:
+        _set_note_type_and_dots(note, ns, divisions=divisions, note_type=spec[0], dots=spec[1])
+
+    replacements: dict[ET.Element, list[ET.Element]] = {}
+    if action == "split":
+        left = duration_for(left_note_type or "", left_dots)
+        right_spec = represent(durations[0] - left)
+        new = copy.deepcopy(first)
+        for key in ("id", "{http://www.w3.org/XML/1998/namespace}id",
+                    "default-x", "default-y", "relative-x", "relative-y"):
+            new.attrib.pop(key, None)
+        set_duration(first, (left_note_type or "", left_dots))
+        set_duration(new, right_spec)
+        measure.insert(list(measure).index(first) + 1, new)
+        replacements[first] = [first, new]
+        outputs = [first, new]
+    elif action == "merge":
+        spec = represent(sum(durations))
+        set_duration(first, spec)
+        measure.remove(targets[1])
+        replacements[targets[1]] = [first]
+        outputs = [first]
+    elif action == "boundary":
+        left = duration_for(left_note_type or "", left_dots)
+        right_spec = represent(sum(durations) - left)
+        set_duration(first, (left_note_type or "", left_dots))
+        set_duration(targets[1], right_spec)
+        outputs = targets
+    else:
+        new = copy.deepcopy(first)
+        new.attrib.pop("id", None)
+        _set_pitch_or_rest(new, ns, rest=True)
+        index = list(measure).index(first)
+        measure.remove(first)
+        measure.insert(index, new)
+        replacements[first] = []
+        outputs = [new]
+
+    new_ids = {node: locator for locator, node in locators().items()}
+    mapping = {locator: [new_ids[node] for node in replacements.get(old_node, [old_node])]
+               for locator, old_node in old.items()}
+    result = {"mapping": mapping, "result_note_ids": [new_ids[node] for node in outputs]}
+    _write(tree, path)
+    return result

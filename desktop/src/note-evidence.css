@@ -1,3 +1,8 @@
 .note-evidence { display: grid; gap: 6px; }
 .note-evidence p { margin: 0; font-size: 12px; line-height: 1.5; }
 .score-inspector .note-list { flex-shrink: 0; }
+
+.note-rhythm-edit { display: grid; gap: 6px; }
+.note-rhythm-edit p { margin: 0; font-size: 12px; line-height: 1.5; }
+.note-rhythm-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.note-evidence-source { display: grid; gap: 4px; }

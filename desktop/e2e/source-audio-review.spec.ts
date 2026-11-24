@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
+import { scoreSnapshot } from "./score-fixture";
+
+const scoreXml = '<score-partwise><part-list><score-part id="P1"><part-name>Voice</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes><note><rest/><duration>4</duration><type>whole</type></note></measure></part></score-partwise>';
 
 function wav() {
   const rate = 8000, size = rate * 4 * 2;
@@ -31,9 +34,9 @@ async function setup(page: Page, manyIssues = false) {
     const id = match[1], kind = match[2] ?? "detail";
     if (kind === "source-audio") { audioRequests++; if (holdAudio) { holdAudio = false; await audioGate; } await r.fulfill(audioStatus === 200 ? { status: 200, contentType: "audio/wav", body: wav() } : { status: audioStatus }).catch(() => undefined); }
     else if (kind === "validate") { const order = ++validationRequests; if (holdValidate) { holdValidate = false; await gate; } await r.fulfill({ json: { song_id: id, revision: 1, ok: true, issues: Array.from({ length: manyIssues ? 12 : 1 }, (_, index) => ({ severity: "warning", source: "vocal_acoustic", category: "음역", message: `검토 ${order}-${index}`, start_seconds: 1, end_seconds: 2 })), policy: { llm_is_advisory: true, auto_edit: false } } }); }
-    else if (kind === "notes") await r.fulfill({ json: { song: song(id), parts: [], notes: [], chords: [] } });
-    else if (kind === "structure") await r.fulfill({ json: { measures: [] } });
-    else if (kind === "score") await r.fulfill({ contentType: "application/xml", body: '<score-partwise><part-list><score-part id="P1"><part-name>Voice</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes><note><rest/><duration>4</duration><type>whole</type></note></measure></part></score-partwise>' });
+    else if (kind === "notes") await r.fulfill({ json: { ...scoreSnapshot(song(id), scoreXml), parts: [], notes: [], chords: [] } });
+    else if (kind === "structure") await r.fulfill({ json: { ...scoreSnapshot(song(id), scoreXml), measures: [] } });
+    else if (kind === "score") await r.fulfill({ contentType: "application/xml", body: scoreXml });
     else if (kind === "publication") await r.fulfill({ json: { settings: {} } });
     else await r.fulfill({ json: song(id) });
   });

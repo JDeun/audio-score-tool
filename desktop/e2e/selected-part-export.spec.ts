@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { scoreSnapshot } from "./score-fixture";
 
 const PARTS = [
   { part_id: "P1", index: 1, name: "Voice" },
@@ -32,9 +33,9 @@ async function prepare(page: Page, rejectStale = false) {
     if (path === "/api/songs/ensemble") return route.fulfill({ json: song() });
     if (path.endsWith("/score")) return route.fulfill({ body: SCORE, contentType: "application/xml" });
     if (path.endsWith("/notes")) return route.fulfill({ json: {
-      song: song(), parts: PARTS.map(part => ({ ...part, notes: 1, measures: 1 })), notes: [], chords: [],
+      ...scoreSnapshot(song(), SCORE), parts: PARTS.map(part => ({ ...part, notes: 1, measures: 1 })), notes: [], chords: [],
     } });
-    if (path.endsWith("/structure")) return route.fulfill({ json: { measures: [] } });
+    if (path.endsWith("/structure")) return route.fulfill({ json: { ...scoreSnapshot(song(), SCORE), measures: [] } });
     if (path.endsWith("/publication")) return route.fulfill({ json: { settings: {} } });
     if (path.endsWith("/export-to")) {
       const body = route.request().postDataJSON() as Record<string, unknown>;

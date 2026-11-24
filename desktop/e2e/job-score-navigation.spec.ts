@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { scoreSnapshot } from "./score-fixture";
 
 type FixtureJob = {
   job_id: string;
@@ -57,8 +58,8 @@ async function prepare(page: Page, options: {
     const song = SONGS.find((item) => item.song_id === songId);
     if (!song) return route.fulfill({ status: 404, json: {} });
     if (kind === "score") return route.fulfill({ contentType: "application/xml", body: SCORE_XML });
-    if (kind === "notes") return route.fulfill({ json: { song, parts: [], notes: [], chords: [] } });
-    if (kind === "structure") return route.fulfill({ json: { measures: [] } });
+    if (kind === "notes") return route.fulfill({ json: { ...scoreSnapshot(song, SCORE_XML), parts: [], notes: [], chords: [] } });
+    if (kind === "structure") return route.fulfill({ json: { ...scoreSnapshot(song, SCORE_XML), measures: [] } });
     if (kind === "publication") return route.fulfill({ json: { settings: {} } });
     return route.fulfill({ json: song });
   });
