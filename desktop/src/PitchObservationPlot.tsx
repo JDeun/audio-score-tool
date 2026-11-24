@@ -42,6 +42,7 @@ export function parsePitchObservation(value: unknown, generation: unknown, expec
       const frame = source.frames[i];
       if (!object(frame) || frame.index !== source.start_frame + i || !finite(frame.time_seconds)
           || Math.abs(frame.time_seconds - frame.index * .01) > 1e-6 || !finite(frame.raw_hz) || frame.raw_hz <= 0
+          || !Number.isFinite(69 + 12 * Math.log2(frame.raw_hz / 440))
           || !finite(frame.hz) || !finite(frame.periodicity) || frame.periodicity < 0 || frame.periodicity > 1
           || !finite(frame.loudness_db_a)
           || (frame.hz !== 0 && frame.hz !== frame.raw_hz)) return invalid;
@@ -77,7 +78,7 @@ export default function PitchObservationPlot({ window, writtenMidi }: { window: 
     <p>분리 보컬 기준 상대 시간의 모델 관측이며 정확도는 확정되지 않았습니다. 원은 검출 조건 통과, 엑스는 제외된 관측입니다. 실제 음향·인지 시작 시각은 측정하지 않았습니다.</p>
     <svg viewBox="0 0 300 126" role="img" aria-labelledby={`${id}-title ${id}-desc`}>
       <title id={`${id}-title`}>분리 보컬 음높이 관측과 현재 기보 음높이</title>
-      <desc id={`${id}-desc`}>세로축은 음 이름과 옥타브, 가로축은 분리 보컬 기준 초입니다. 강조 영역은 원본 모델 음표 구간이며, 원은 검출 조건 통과, 엑스는 제외된 관측, 점선은 현재 기보 음높이입니다.</desc>
+      <desc id={`${id}-desc`}>세로축은 음 이름과 옥타브, 가로축은 분리 보컬 기준 초입니다. 강조 영역은 원본 선택 MIDI 이벤트에 포함되는 관측 프레임 범위이며, 원은 검출 조건 통과, 엑스는 제외된 관측, 점선은 현재 기보 음높이입니다.</desc>
       <rect x={x(window.note_frame_start)} y="20" width={x(window.note_frame_end_exclusive) - x(window.note_frame_start)} height="80" className="pitch-note-range" />
       <line x1="38" x2="284" y1="100" y2="100" className="pitch-axis" />
       <line x1="38" x2="38" y1="20" y2="100" className="pitch-axis" />
@@ -88,7 +89,7 @@ export default function PitchObservationPlot({ window, writtenMidi }: { window: 
       <text x="38" y="119">{window.frames[0].time_seconds.toFixed(2)}초</text>
       <text x="284" y="119" textAnchor="end">{(window.end_frame_exclusive * .01).toFixed(2)}초</text>
     </svg>
-    <p>강조 범위는 원본 모델 음표 구간입니다 ({(window.note_frame_start * .01).toFixed(2)}초 이상, {(window.note_frame_end_exclusive * .01).toFixed(2)}초 미만). 현재 편집 음표의 실제 발성 경계가 아닙니다.</p>
+    <p>강조 범위는 원본 선택 MIDI 이벤트에 포함되는 관측 프레임 범위입니다 ({(window.note_frame_start * .01).toFixed(2)}초 이상, {(window.note_frame_end_exclusive * .01).toFixed(2)}초 미만). 모델 연주 시각과 구분되며 실제 발성 경계가 아닙니다.</p>
     <p>통과 {accepted}개 · 제외 {window.frames.length - accepted}개{writtenMidi !== null && ` · 점선은 현재 기보 ${pitchName(writtenMidi)}`}</p>
   </div>;
 }

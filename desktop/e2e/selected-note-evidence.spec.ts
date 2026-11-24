@@ -157,7 +157,7 @@ test(`pitch observation maps merged sources without overflow at ${width}`, async
   await expect(sources.first().locator(".pitch-observation")).toHaveAttribute("data-source-id", sourceIds[0]);
   await expect(sources.nth(1).locator(".pitch-observation")).toHaveAttribute("data-source-id", sourceIds[1]);
   await expect(sources.first()).toContainText("통과 1개 · 제외 2개");
-  await expect(sources.first()).toContainText("강조 범위는 원본 모델 음표 구간");
+  await expect(sources.first()).toContainText("강조 범위는 원본 선택 MIDI 이벤트에 포함되는 관측 프레임 범위");
   await expect(sources.first()).toContainText("점선은 현재 기보 C4");
   await expect(sources.first().locator(".pitch-note-range")).toHaveCount(1);
   await expect(sources.first().locator(".pitch-accepted")).toHaveCount(1);
@@ -192,6 +192,19 @@ test("invalid written pitch does not produce invalid SVG coordinates", async ({ 
   await expect(plot.locator("svg")).toHaveCount(1);
   await expect(plot.locator(".pitch-written")).toHaveCount(0);
   await expect(plot).not.toContainText("Infinity");
+});
+
+test("unrepresentable pitch frequency hides only the optional plot", async ({ page }) => {
+  const api = await setup(page);
+  const pitch = pitchFixture();
+  pitch.sources[0].frames[0].raw_hz = Number.MIN_VALUE;
+  api.setPitch(pitch);
+  await page.locator(".note-list button").first().click();
+  await page.getByRole("button", { name: "모델 근거 확인" }).click();
+  await expect(page.locator(".note-evidence")).toContainText("형식을 확인할 수 없어");
+  await expect(page.locator(".note-evidence")).toContainText("모델 연주 시각");
+  await expect(page.getByRole("button", { name: "원음 구간 확인" })).toBeVisible();
+  await expect(page.locator(".pitch-observation svg")).toHaveCount(0);
 });
 
 test("optional pitch data fails closed without hiding linked evidence", async ({ page }) => {
