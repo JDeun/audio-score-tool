@@ -10,6 +10,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import mido
+import numpy as np
 import pytest
 
 from audio_score_tool import fixed_vocal_lead as lead
@@ -47,7 +48,8 @@ def snapshot(tmp_path):
 
 
 @pytest.mark.parametrize("container", [False, True])
-def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path, monkeypatch, container):
+@pytest.mark.parametrize("changed", [None, 'tiny', 'vocal', 'limit'])
+def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path, monkeypatch, container, changed):
     from audio_score_tool.sheetsage2_score import CHECKPOINT_SHA256, MODEL_REVISION
 
     root = snapshot(tmp_path)
@@ -117,6 +119,8 @@ def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path,
                 track.append(mido.Message("note_off", note=pitch, time=480))
             midi.save(args[2])
             args[2].with_suffix(".runtime.json").write_text(json.dumps({"checkpoint_sha256": YOUR_SHA256}))
+            if changed == 'vocal':
+                args[1].write_bytes(b'changed stem')
             observed.append("vocal inference")
         else:
             assert command == "structure-fixture"
@@ -133,9 +137,29 @@ def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path,
             observed.append("vocal notation")
 
     monkeypatch.setattr(lead, "fixed_beat_track", lambda *a, **k: {"source_revision": "fixture", "checkpoint_sha256": "fixture"})
-    monkeypatch.setattr(lead, "fixed_tiny_pitch_track", lambda *a, **k: (([], []), {"model": "tiny"}))
+    def tiny(source, target, **kwargs):
+        raw = np.full(151, 440.0)
+        np.savez(target, times=np.arange(151) * .01, hz=raw, raw_hz=raw,
+                 periodicity=np.ones(151), loudness_db_a=np.zeros(151))
+        receipt = {'model': 'tiny', 'schema_version': 2, 'source_frames': 24000,
+                   'source_sample_rate': 16000, 'hop': 160,
+                   'source_sha256': hashlib.sha256(source.read_bytes()).hexdigest(),
+                   'prediction_sha256': hashlib.sha256(target.read_bytes()).hexdigest()}
+        target.with_suffix('.runtime.json').write_text(json.dumps(receipt))
+        if changed == 'tiny':
+            source.write_bytes(b'changed stem')
+        return ([], []), receipt
+    monkeypatch.setattr(lead, "fixed_tiny_pitch_track", tiny)
     monkeypatch.setattr(lead, "run_command", command)
     output = tmp_path / "result"
+    if changed == 'limit':
+        from audio_score_tool import vocal_hypotheses
+        monkeypatch.setattr(vocal_hypotheses, 'LIMIT', 1)
+    if changed in {'tiny', 'vocal'}:
+        with pytest.raises(ValueError, match="stem changed"):
+            lead.transcribe_fixed_vocal_lead(audio, output, settings=settings)
+        assert not (output / 'vocal/note-hypotheses.json').exists()
+        return
     result = lead.transcribe_fixed_vocal_lead(audio, output, settings=settings)
     assert [x for x in observed if isinstance(x, str)] == [
         "pitch preflight", "beat preflight", "whole-mix structure", "separate", "vocal inference", "vocal notation"]
@@ -146,6 +170,13 @@ def test_one_recipe_preserves_provider_outputs_and_uses_selected_vocal(tmp_path,
     receipt = json.loads((output / "recipe.json").read_text())
     assert receipt["status"] == "completed" and receipt["quality_approved"] is False
     assert receipt["recipe_version"] == 3 and receipt["pitch_verifier"]["model"] == "tiny"
+    from audio_score_tool.vocal_hypotheses import read
+    hypotheses = read(output, receipt)
+    if changed == 'limit':
+        assert hypotheses is None and receipt['vocal_hypotheses']['reason'] == 'limit_exceeded'
+    else:
+        assert len(hypotheses['candidates']) == 3
+        assert [row['status'] for row in hypotheses['mappings']] == ['linked'] * 3
     assert receipt["notation_fidelity"]["matched_interpretation"] is True
     assert receipt["source_audio_sha256"] == hashlib.sha256(audio.read_bytes()).hexdigest()
     assert receipt["model_audio_sha256"] == next(item[1] for item in observed if isinstance(item, tuple) and item[0] == "model audio hash")

@@ -262,7 +262,7 @@ def _refresh_layout(song: dict, path: Path | None = None) -> Path:
     return target
 
 
-def _evidence_links(song_id: str, revision: int, xml: str, state: dict | None) -> tuple[dict, str]:
+def _evidence_links(song_id: str, revision: int, xml: str, state: dict | None, *, with_manifest=False):
     if (not state or not state["active"] or state["revision"] != revision
             or state["score_sha256"] != score_hash(xml)):
         raise ValueError("lineage_unavailable")
@@ -278,7 +278,7 @@ def _evidence_links(song_id: str, revision: int, xml: str, state: dict | None) -
         except (ValueError, TypeError) as exc:
             raise ValueError("invalid_lineage") from exc
         links = resolve_lineage(lineage, links, xml)
-    return links, fingerprint
+    return (links, fingerprint, manifest_hash) if with_manifest else (links, fingerprint)
 
 
 def _rhythm_patch(payload: RhythmEditRequest, result: dict, before_xml: str, after_xml: str,
@@ -473,9 +473,37 @@ def get_note_evidence(song_id: str, note_id: str,
               "limits": ["Selected performed vocal layer; not independent musical ground truth.",
                          "Source audio seek uses the interpreted grid, not a measured acoustic onset."]}
     try:
-        links, _ = _evidence_links(song_id, snapshot.revision, snapshot.current_score_xml, state)
+        links, _, manifest_hash = _evidence_links(song_id, snapshot.revision, snapshot.current_score_xml, state,
+                                                  with_manifest=True)
         if note_id in links:
             result.update(status="linked", evidence=links[note_id], reason=None)
+            # Prefix observations are independently versioned and do not enter lineage fingerprints.
+            from .vocal_hypotheses import read_archived
+            root = _song_store.asset_root / song_id / 'model-evidence'
+            try:
+                prefix, recipe = read_archived(root, manifest_hash)
+                if prefix is not None:
+                    by_id = {row['selected_id']: row for row in prefix['mappings']}
+                    candidates = {row['id']: row for row in prefix['candidates']}
+                    source_ids = linked_source_ids(links[note_id])
+                    result['vocal_hypotheses'] = {
+                        'schema_version': 1, 'frame_clock': 'stem_local',
+                        'model_segment_clock': 'model_input', 'advisory': True,
+                        'kind': 'decoder_model_segments_and_cotemporal_tiny_frames',
+                        'join_basis': 'unique_exact_performed_event_equivalence',
+                        'frame_interval_seconds': .01,
+                        'pitch_sha256': prefix['pitch_sha256'], 'frame_count': prefix['frame_count'],
+                        'sources': [{**by_id[source], 'model_segments': [candidates[candidate]
+                                    for candidate in by_id[source]['candidate_ids']]}
+                                    for source in source_ids],
+                    }
+                else:
+                    declaration = recipe.get('vocal_hypotheses') or {}
+                    result['vocal_hypotheses'] = {'schema_version': 1, 'status': 'unavailable',
+                                                  'reason': declaration.get('reason', 'legacy')}
+            except Exception as exc:
+                reason = 'unsupported' if str(exc) == 'Unsupported vocal hypothesis declaration' else 'invalid'
+                result['vocal_hypotheses'] = {'schema_version': 1, 'status': 'unavailable', 'reason': reason}
         else:
             result["reason"] = "no_represented_source_event"
     except Exception as exc:

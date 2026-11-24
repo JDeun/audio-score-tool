@@ -1316,3 +1316,139 @@ def test_pitch_outside_evidence_range_still_saves(product):
     with songs._connect() as conn:
         assert conn.execute("SELECT count(*) FROM note_evidence_patches WHERE song_id=?", (song_id,)).fetchone()[0] == 0
     assert {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()} == original
+
+
+def test_vocal_prefix_survives_split_merge_and_preserves_baseline(rhythm_product):
+    import hashlib
+    import json
+    import shutil
+
+    import numpy as np
+
+    from audio_score_tool.note_evidence import baseline, baseline_fingerprint
+    from audio_score_tool.vocal_hypotheses import build, write
+
+    client, songs, song_id, asset = rhythm_product
+    root = asset / 'model-evidence'
+    base = f'/api/songs/{song_id}'
+    before = _evidence_get(client, base, 'p0-m0-n0').json()
+    vocal = root / 'vocal'
+    shutil.copyfile(vocal / 'selected.mid', vocal / 'score.mid')
+    (vocal / 'score.runtime.json').write_text('{}')
+    hz = np.full(201, 440.)
+    np.savez(vocal / 'pitch.npz', times=np.arange(201) * .01, hz=hz, raw_hz=hz,
+             periodicity=np.ones(201), loudness_db_a=np.zeros(201))
+    receipt = {'schema_version': 2, 'source_frames': 32000, 'source_sample_rate': 16000, 'hop': 160,
+               'source_sha256': 'a' * 64,
+               'prediction_sha256': hashlib.sha256((vocal / 'pitch.npz').read_bytes()).hexdigest()}
+    (vocal / 'pitch.runtime.json').write_text(json.dumps(receipt))
+    prefix = build(vocal / 'score.mid', vocal / 'selected.mid', vocal / 'pitch.npz', receipt,
+                   receipt['source_sha256'], vocal / 'score.runtime.json', vocal / 'pitch.runtime.json')
+    sha = write(vocal / 'note-hypotheses.json', prefix)
+    recipe = json.loads((root / 'recipe.json').read_text())
+    recipe.update(vocal_hypotheses={'schema_version': 1, 'sha256': sha}, pitch_verifier=receipt,
+                  melody={'runtime': {}})
+    (root / 'recipe.json').write_text(json.dumps(recipe))
+    def refresh_manifest():
+        manifest = json.loads((root / 'manifest.json').read_text())
+        manifest['files'] = []
+        for path in sorted(root.rglob('*')):
+            if path.is_file() and path.name != 'manifest.json':
+                data = path.read_bytes()
+                manifest['files'].append({'path': path.relative_to(root).as_posix(), 'bytes': len(data),
+                                          'sha256': hashlib.sha256(data).hexdigest()})
+        (root / 'manifest.json').write_text(json.dumps(manifest))
+        links, rows, clock, manifest_hash = baseline(songs.asset_root, song_id)
+        with songs._connect() as conn:
+            conn.execute('UPDATE note_evidence_state SET baseline_sha256=? WHERE song_id=?',
+                         (baseline_fingerprint(links, rows, clock, manifest_hash), song_id))
+    refresh_manifest()
+    after = _evidence_get(client, base, 'p0-m0-n0').json()
+    assert after['evidence'] == before['evidence']
+    source = after['vocal_hypotheses']['sources'][0]
+    assert source['status'] == 'linked' and source['model_segments'][0]['release_seconds'] == .5
+    # A well-hashed unsupported extension cannot invalidate the established baseline.
+    recipe['vocal_hypotheses']['schema_version'] = 9
+    (root / 'recipe.json').write_text(json.dumps(recipe))
+    refresh_manifest()
+    unknown = _evidence_get(client, base, 'p0-m0-n0').json()
+    assert unknown['evidence'] == before['evidence']
+    assert unknown['vocal_hypotheses']['status'] == 'unavailable'
+    recipe['vocal_hypotheses']['schema_version'] = 1
+    (root / 'recipe.json').write_text(json.dumps(recipe))
+    refresh_manifest()
+    url = base + '/notes/rhythm-edit'
+    split = client.post(url, json={**_rhythm_tokens(client, base), 'action': 'split',
+                                  'note_ids': ['p0-m0-n0'], 'left_note_type': 'eighth'})
+    assert split.status_code == 200, split.text
+    assert _evidence_get(client, base, 'p0-m0-n1').json()['vocal_hypotheses']['sources'][0] == source
+    merge = client.post(url, json={**_rhythm_tokens(client, base), 'action': 'merge',
+                                  'note_ids': ['p0-m0-n1', 'p0-m0-n2']})
+    assert merge.status_code == 200, merge.text
+    merged = _evidence_get(client, base, 'p0-m0-n1').json()
+    assert len(merged['vocal_hypotheses']['sources']) == 2
+    assert merged['evidence']['source_audio_seek_seconds'] is None
+    assert client.post(base + '/undo').status_code == 200
+    assert _evidence_get(client, base, 'p0-m0-n0').json()['status'] == 'unavailable'
+
+
+def test_fresh_fixed_job_prefix_is_admitted_to_note_api(rhythm_product, tmp_path, monkeypatch):
+    import hashlib
+    import json
+    import shutil
+
+    import numpy as np
+
+    from audio_score_tool import song_store_v2
+    from audio_score_tool.vocal_hypotheses import build, write
+
+    client, songs, _, asset = rhythm_product
+    jobs = tmp_path / 'fresh-jobs'
+    song_id = 'fresh-vocal-prefix'
+    job_root = jobs / song_id
+    score = job_root / 'outputs/input/score'
+    vocal = score / 'vocal'
+    vocal.mkdir(parents=True)
+    source = asset / 'model-evidence'
+    for name in ('score.musicxml', 'interpretation.json'):
+        shutil.copyfile(source / name, score / name)
+    for name in ('score.mid', 'selected.mid'):
+        shutil.copyfile(source / 'vocal/selected.mid', vocal / name)
+    shutil.copyfile(vocal / 'selected.mid', score / 'score.mid')
+    shutil.copyfile(asset / 'original-audio.wav', job_root / 'input.wav')
+    shutil.copyfile(source / 'context/music_structure.json', score.parent / 'music_structure.json')
+    for folder in ('native', 'structure/native'):
+        target = score / folder
+        target.mkdir(parents=True)
+        (target / 'score.abc').write_text('X:1\nK:C\nC|')
+    (score / 'native/playback.json').write_text('{"duration":2}')
+    (score / 'structure/native/melody_vocal.mid').write_bytes(b'fixture')
+    (score / 'structure/analysis.json').write_text('{}')
+    (vocal / 'score.runtime.json').write_text('{}')
+    hz = np.full(201, 440.)
+    np.savez(vocal / 'pitch.npz', times=np.arange(201) * .01, hz=hz, raw_hz=hz,
+             periodicity=np.ones(201), loudness_db_a=np.zeros(201))
+    tiny = {'schema_version': 2, 'source_frames': 32000, 'source_sample_rate': 16000, 'hop': 160,
+            'source_sha256': 'a' * 64,
+            'prediction_sha256': hashlib.sha256((vocal / 'pitch.npz').read_bytes()).hexdigest()}
+    (vocal / 'pitch.runtime.json').write_text(json.dumps(tiny))
+    prefix = build(vocal / 'score.mid', vocal / 'selected.mid', vocal / 'pitch.npz', tiny,
+                   tiny['source_sha256'], vocal / 'score.runtime.json', vocal / 'pitch.runtime.json')
+    sha = write(vocal / 'note-hypotheses.json', prefix)
+    audio_sha = hashlib.sha256((job_root / 'input.wav').read_bytes()).hexdigest()
+    recipe = {'recipe_version': 2, 'engine': 'vocal_lead_v1', 'status': 'completed',
+              'source_audio_sha256': audio_sha, 'model_audio_sha256': audio_sha, 'model_audio_normalized': False,
+              'pitch_verifier': tiny, 'melody': {'runtime': {}},
+              'vocal_hypotheses': {'schema_version': 1, 'sha256': sha}}
+    (score / 'recipe.json').write_text(json.dumps(recipe))
+    monkeypatch.setattr(song_store_v2, 'jobs_dir', lambda: jobs)
+    job = {'job_id': song_id, 'status': 'done', 'kind': 'transcription', 'filename': 'fixture.wav',
+           'source_kind': 'local', 'score_mode': 'lead_sheet', 'transcription_engine': 'vocal_lead_v1',
+           'result': {'score_dir': str(score), 'musicxml': str(score / 'score.musicxml'),
+                      'midi': str(score / 'score.mid')}}
+    assert songs.sync_completed_jobs([job]) == 1
+    shutil.rmtree(job_root)
+    result = _evidence_get(client, f'/api/songs/{song_id}', 'p0-m0-n0').json()
+    assert result['status'] == 'linked', result
+    assert result['vocal_hypotheses']['sources'][0]['model_segments'][0]['pitch'] == 60
+    assert result['evidence']['source_audio_seek_seconds'] == 0
