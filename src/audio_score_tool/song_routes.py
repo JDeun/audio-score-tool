@@ -458,7 +458,8 @@ def get_notes(song_id: str) -> dict:
 def get_note_evidence(song_id: str, note_id: str,
                       expected_revision: int = Query(ge=1),
                       expected_score_sha256: str = Query(pattern=r"^[0-9a-f]{64}$"),
-                      expected_generation: int = Query(ge=0)) -> dict:
+                      expected_generation: int = Query(ge=0),
+                      include_pitch_observations: bool = False) -> dict:
     try:
         snapshot, state = _song_store.evidence_snapshot(song_id)
     except KeyError as exc:
@@ -468,10 +469,14 @@ def get_note_evidence(song_id: str, note_id: str,
         raise HTTPException(409, "Song changed. Reload and retry.")
     result = {"schema_version": 2 if state["active"] and state["lineage_json"] is not None else 1,
               "revision": snapshot.revision,
+              "evidence_generation": state["generation"],
               "score_sha256": score_hash(snapshot.current_score_xml), "note_id": note_id,
               "status": "unavailable", "evidence": None,
               "limits": ["Selected performed vocal layer; not independent musical ground truth.",
                          "Source audio seek uses the interpreted grid, not a measured acoustic onset."]}
+    if include_pitch_observations:
+        from .pitch_observation_window import unavailable
+        result['pitch_observations'] = unavailable('no_source')
     try:
         links, _, manifest_hash = _evidence_links(song_id, snapshot.revision, snapshot.current_score_xml, state,
                                                   with_manifest=True)
@@ -497,13 +502,20 @@ def get_note_evidence(song_id: str, note_id: str,
                                     for candidate in by_id[source]['candidate_ids']]}
                                     for source in source_ids],
                     }
+                    if include_pitch_observations:
+                        from .pitch_observation_window import pitch_observation_window
+                        result['pitch_observations'] = pitch_observation_window(root, prefix, source_ids)
                 else:
                     declaration = recipe.get('vocal_hypotheses') or {}
                     result['vocal_hypotheses'] = {'schema_version': 1, 'status': 'unavailable',
                                                   'reason': declaration.get('reason', 'legacy')}
+                    if include_pitch_observations:
+                        result['pitch_observations'] = unavailable('unavailable')
             except Exception as exc:
                 reason = 'unsupported' if str(exc) == 'Unsupported vocal hypothesis declaration' else 'invalid'
                 result['vocal_hypotheses'] = {'schema_version': 1, 'status': 'unavailable', 'reason': reason}
+                if include_pitch_observations:
+                    result['pitch_observations'] = unavailable(reason)
         else:
             result["reason"] = "no_represented_source_event"
     except Exception as exc:
@@ -516,6 +528,8 @@ def get_note_evidence(song_id: str, note_id: str,
                    "evidence_limit_exceeded", "lineage_unavailable", "invalid_lineage", "unsupported_lineage"}
         reason = str(exc) if str(exc) in reasons else "invalid_evidence"
         result.update(status="ambiguous" if reason == "ambiguous_mapping" else "unavailable", reason=reason)
+        if include_pitch_observations:
+            result['pitch_observations'] = unavailable('no_source')
     patches = _song_store.evidence_patches(song_id, snapshot.revision, result["score_sha256"])
     result["patch"] = next((patch for patch in reversed(patches)
                             if patch.get("after_generation") == state["generation"]

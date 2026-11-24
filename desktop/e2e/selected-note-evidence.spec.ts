@@ -3,6 +3,20 @@ import { scoreSha256, scoreSnapshot } from "./score-fixture";
 
 const xml = `<?xml version="1.0"?><score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Voice</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes><note><pitch><step>C</step><octave>4</octave></pitch><duration>2</duration><type>half</type></note><note><pitch><step>D</step><octave>4</octave></pitch><duration>2</duration><type>half</type></note></measure></part></score-partwise>`;
 const sha = scoreSha256(xml);
+const sourceIds = ["selected-midi-v1:" + "a".repeat(64) + ":0", "selected-midi-v1:" + "a".repeat(64) + ":1"];
+function pitchFixture(ids = [sourceIds[0]]) {
+  return { schema_version: 1, status: "available", frame_clock: "stem_local", advisory: true,
+    algorithm: "tiny-frame-window-v1", pitch_sha256: "a".repeat(64), stem_sha256: "b".repeat(64),
+    pitch_runtime_sha256: "c".repeat(64), frame_interval_seconds: .01,
+    thresholds: { periodicity: .21, loudness_db_a: -60 }, acoustic_onset: { status: "not_measured" },
+    perceptual_onset: { status: "not_measured" }, sources: ids.map((source_id, n) => ({ source_id,
+      start_frame: 0, end_frame_exclusive: 3, note_frame_start: 1, note_frame_end_exclusive: 2,
+      frames: [{ index: 0, time_seconds: 0, raw_hz: 220 + n * 20, hz: 0, periodicity: .1, loudness_db_a: -30 },
+        { index: 1, time_seconds: .01, raw_hz: 220 + n * 20, hz: 220 + n * 20, periodicity: Math.fround(.21), loudness_db_a: -30 },
+        { index: 2, time_seconds: .02, raw_hz: 220 + n * 20, hz: 0, periodicity: .1, loudness_db_a: -30 }],
+      gate_transitions: [{ kind: "accepted", left_frame: 0, right_frame: 1, from_seconds: 0, to_seconds: .01 },
+        { kind: "rejected", left_frame: 1, right_frame: 2, from_seconds: .01, to_seconds: .02 }] })) };
+}
 const revisedXml = (revision: number) => xml.replace("</score-partwise>", `<!-- revision ${revision} --></score-partwise>`);
 function wav() {
   const length = 8000 * 4 * 2, data = Buffer.alloc(44 + length);
@@ -12,11 +26,13 @@ function wav() {
   data.writeUInt16LE(16, 34); data.write("data", 36); data.writeUInt32LE(length, 40);
   return data;
 }
-async function setup(page: Page, legacy = false) {
+async function setup(page: Page, legacy = false, octave = 4) {
   let scoreHash = sha, generation = 0, scoreXml = xml;
   let status: "linked" | "ambiguous" | "unavailable" | "conflict" = "linked";
   let seek: number | null = 1;
   let multi = false;
+  let pitch: unknown = undefined;
+  let pitchGeneration: number | undefined;
   let delay = false, release = () => {};
   let gate = Promise.resolve();
   let settle = () => {};
@@ -27,7 +43,7 @@ async function setup(page: Page, legacy = false) {
   let editStatus = 200;
   let editGate = Promise.resolve();
   const song = { song_id: "song-1", title: "Owned score", source_kind: "notation", revision: 1, exports: { pdf: false, midi: false, musicxml: false }, parts: [] };
-  const notes = ["C", "D"].map((step, index) => ({ note_id: `p0-m0-n${index}`, part_id: "P1", part_name: "Voice", measure: "1", measure_index: 0, rest: false, step, alter: 0, octave: 4, type: "half", dots: 0, lyric: "", ties: [], slurs: [], articulations: [], beam: "" }));
+  const notes = ["C", "D"].map((step, index) => ({ note_id: `p0-m0-n${index}`, part_id: "P1", part_name: "Voice", measure: "1", measure_index: 0, rest: false, step, alter: 0, octave, type: "half", dots: 0, lyric: "", ties: [], slurs: [], articulations: [], beam: "" }));
   const measures = [{ measure_index: 0, number: "1", divisions: 1, key_fifths: 0, key_mode: "major", beats: 4, beat_type: 4 }];
   await page.route("**/api/health", r => r.fulfill({ json: { status: "ok", device_plan: {}, preflight: { ok: true, missing: [], tools: {} }, presets: { recommended: "quality", presets: [] }, system: {} } }));
   await page.route("**/api/engines", r => r.fulfill({ json: { usage_mode: "personal", engines: [], recommendation: null } }));
@@ -64,16 +80,17 @@ async function setup(page: Page, legacy = false) {
     if (delay) { delay = false; await gate; }
     if (status === "conflict") { await r.fulfill({ status: 409 }); return; }
     await r.fulfill({ json: { schema_version: multi ? 2 : 1, revision: song.revision, score_sha256: scoreHash, note_id: noteId, status, patch: null,
+      ...(pitch === undefined ? {} : { pitch_observations: pitch, evidence_generation: pitchGeneration ?? generation }),
       evidence: status === "linked" ? (multi ? { performed_seconds: null, grid_seconds: null, source_audio_seek_seconds: null, source_audio_seek_basis: null, written_quarters: { start: .5, end: 2 }, sources: [
-        { performed_seconds: { start: .95, end: 1.9 }, grid_seconds: { start: 1, end: 2 }, source_audio_seek_seconds: 1, source_audio_seek_basis: "interpreted_grid" },
-        { performed_seconds: { start: 2.05, end: 2.9 }, grid_seconds: { start: 2, end: 3 }, source_audio_seek_seconds: 2, source_audio_seek_basis: "interpreted_grid" },
-      ] } : { performed_seconds: { start: .95, end: 1.9 }, grid_seconds: { start: 1, end: 2 }, source_audio_seek_seconds: seek, source_audio_seek_basis: seek === null ? null : "interpreted_grid" }) : null } }).catch(() => undefined);
+        { source_id: sourceIds[0], performed_seconds: { start: .95, end: 1.9 }, grid_seconds: { start: 1, end: 2 }, source_audio_seek_seconds: 1, source_audio_seek_basis: "interpreted_grid" },
+        { source_id: sourceIds[1], performed_seconds: { start: 2.05, end: 2.9 }, grid_seconds: { start: 2, end: 3 }, source_audio_seek_seconds: 2, source_audio_seek_basis: "interpreted_grid" },
+      ] } : { source_id: sourceIds[0], performed_seconds: { start: .95, end: 1.9 }, grid_seconds: { start: 1, end: 2 }, source_audio_seek_seconds: seek, source_audio_seek_basis: seek === null ? null : "interpreted_grid" }) : null } }).catch(() => undefined);
     settle();
   });
   await page.addInitScript(() => { localStorage.setItem("ast-onboarding-v1", "done"); localStorage.setItem("ast-setup-center-v2", "dismissed"); localStorage.setItem("ast-section", "songs"); });
   await page.goto("/");
   await expect(page.locator(".note-list button")).toHaveCount(2);
-  return { song, queries, edits, noteReads: () => noteReads, holdEdit: () => {
+  return { song, queries, edits, setPitch: (value: unknown, stamp?: number) => { pitch = value; pitchGeneration = stamp; }, noteReads: () => noteReads, holdEdit: () => {
     let releaseEdit!: () => void;
     editGate = new Promise<void>(resolve => { releaseEdit = resolve; });
     return releaseEdit;
@@ -105,7 +122,7 @@ test(`explicit evidence query connects verified grid to owned audio at ${name}`,
   expect(api.queries).toHaveLength(0);
   await page.getByRole("button", { name: "모델 근거 확인" }).click();
   await expect(page.locator(".note-evidence")).toContainText("모델 연주 시각 0.95–1.90초");
-  expect(new URLSearchParams(api.queries[0])).toEqual(new URLSearchParams({ expected_revision: "1", expected_score_sha256: sha, expected_generation: "0" }));
+  expect(new URLSearchParams(api.queries[0])).toEqual(new URLSearchParams({ expected_revision: "1", expected_score_sha256: sha, expected_generation: "0", include_pitch_observations: "true" }));
   await expect(page.locator(".note-evidence")).not.toContainText("수정했습니다");
   const review = page.locator(".score-workbench").getByLabel("원음 검수");
   await expect(review).not.toContainText("원음을 불러오면 구간을 재생할 수 있습니다");
@@ -125,6 +142,92 @@ test(`explicit evidence query connects verified grid to owned audio at ${name}`,
 });
 }
 
+for (const width of [920, 1240, 1301]) {
+test(`pitch observation maps merged sources without overflow at ${width}`, async ({ page }, testInfo) => {
+  await page.setViewportSize({ width, height: 900 });
+  const api = await setup(page);
+  api.setMulti();
+  api.setPitch(pitchFixture([sourceIds[1], sourceIds[0]]));
+  await page.locator(".note-list button").first().click();
+  await page.getByRole("button", { name: "모델 근거 확인" }).click();
+  const sources = page.locator(".note-evidence-source");
+  await expect(sources).toHaveCount(2);
+  await expect(sources.first().locator(".pitch-observation svg")).toHaveCount(1);
+  await expect(sources.nth(1).locator(".pitch-observation svg")).toHaveCount(1);
+  await expect(sources.first().locator(".pitch-observation")).toHaveAttribute("data-source-id", sourceIds[0]);
+  await expect(sources.nth(1).locator(".pitch-observation")).toHaveAttribute("data-source-id", sourceIds[1]);
+  await expect(sources.first()).toContainText("통과 1개 · 제외 2개");
+  await expect(sources.first()).toContainText("강조 범위는 원본 선택 MIDI 이벤트에 포함되는 관측 프레임 범위");
+  await expect(sources.first()).toContainText("점선은 현재 기보 C4");
+  await expect(sources.first().locator(".pitch-note-range")).toHaveCount(1);
+  await expect(sources.first().locator(".pitch-accepted")).toHaveCount(1);
+  await expect(sources.first().locator(".pitch-rejected")).toHaveCount(2);
+  const graph = sources.first().locator(".pitch-observation");
+  await graph.scrollIntoViewIfNeeded();
+  expect(await page.locator(".song-layout").evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath(`source-audio-pitch-observation-${width}.png`) });
+});
+}
+
+test("retained rejected boundary from a separate float64 payload remains available", async ({ page }) => {
+  const api = await setup(page);
+  const pitch = pitchFixture();
+  pitch.sources[0].frames[1].hz = 0;
+  pitch.sources[0].gate_transitions = [];
+  api.setPitch(pitch);
+  await page.locator(".note-list button").first().click();
+  await page.getByRole("button", { name: "모델 근거 확인" }).click();
+  const plot = page.locator(".pitch-observation");
+  await expect(plot).toContainText("통과 0개 · 제외 3개");
+  await expect(plot.locator(".pitch-accepted")).toHaveCount(0);
+  await expect(plot.locator(".pitch-rejected")).toHaveCount(3);
+});
+
+test("invalid written pitch does not produce invalid SVG coordinates", async ({ page }) => {
+  const api = await setup(page, false, 1e308);
+  api.setPitch(pitchFixture());
+  await page.locator(".note-list button").first().click();
+  await page.getByRole("button", { name: "모델 근거 확인" }).click();
+  const plot = page.locator(".pitch-observation");
+  await expect(plot.locator("svg")).toHaveCount(1);
+  await expect(plot.locator(".pitch-written")).toHaveCount(0);
+  await expect(plot).not.toContainText("Infinity");
+});
+
+test("unrepresentable pitch frequency hides only the optional plot", async ({ page }) => {
+  const api = await setup(page);
+  const pitch = pitchFixture();
+  pitch.sources[0].frames[0].raw_hz = Number.MIN_VALUE;
+  api.setPitch(pitch);
+  await page.locator(".note-list button").first().click();
+  await page.getByRole("button", { name: "모델 근거 확인" }).click();
+  await expect(page.locator(".note-evidence")).toContainText("형식을 확인할 수 없어");
+  await expect(page.locator(".note-evidence")).toContainText("모델 연주 시각");
+  await expect(page.getByRole("button", { name: "원음 구간 확인" })).toBeVisible();
+  await expect(page.locator(".pitch-observation svg")).toHaveCount(0);
+});
+
+test("optional pitch data fails closed without hiding linked evidence", async ({ page }) => {
+  const api = await setup(page);
+  await page.locator(".note-list button").first().click();
+  for (const value of [{ schema_version: 1, status: "unavailable", reason: "no_source" },
+    { ...pitchFixture(), schema_version: 2 }, { ...pitchFixture(), sources: [{ ...pitchFixture().sources[0], frames: [] }] },
+    pitchFixture(["unproven"])]) {
+    api.setPitch(value);
+    await page.getByRole("button", { name: "모델 근거 확인" }).click();
+    await expect(page.locator(".note-evidence")).toContainText("모델 연주 시각");
+    await expect(page.locator(".note-evidence")).toContainText("표시하지 않");
+    await expect(page.locator(".pitch-observation svg")).toHaveCount(0);
+  }
+  api.setPitch(pitchFixture(), 1);
+  await page.getByRole("button", { name: "모델 근거 확인" }).click();
+  await expect(page.locator(".note-evidence")).toContainText("형식을 확인할 수 없어");
+  await expect(page.locator(".pitch-observation svg")).toHaveCount(0);
+  api.setPitch(undefined);
+  await page.getByRole("button", { name: "모델 근거 확인" }).click();
+  await expect(page.locator(".note-evidence")).not.toContainText("표시하지 않");
+});
+
 test("unavailable, unverified seek and stale response do not offer a clip", async ({ page }) => {
   const api = await setup(page);
   await page.locator(".note-list button").first().click();
@@ -140,7 +243,7 @@ test("unavailable, unverified seek and stale response do not offer a clip", asyn
   api.setStatus("conflict");
   await page.getByRole("button", { name: "모델 근거 확인" }).click();
   await expect(page.locator(".note-evidence")).toContainText("새로고침");
-  api.setStatus("linked"); api.setSeek(1); api.hold();
+  api.setStatus("linked"); api.setSeek(1); api.setPitch(pitchFixture()); api.hold();
   await page.getByRole("button", { name: "모델 근거 확인" }).click();
   await expect.poll(() => api.queries.length).toBe(5);
   await page.locator(".note-list button").nth(1).click();
@@ -148,6 +251,7 @@ test("unavailable, unverified seek and stale response do not offer a clip", asyn
   api.release();
   await api.settled();
   await expect(page.locator(".note-evidence")).not.toContainText("모델 연주 시각");
+  await expect(page.locator(".pitch-observation svg")).toHaveCount(0);
   await expect(page.locator(".score-workbench").getByLabel("원음 검수")).not.toContainText("확인 구간");
 });
 
@@ -197,7 +301,7 @@ test("refresh after conflict clears selection and a new evidence request uses fr
   await page.locator(".note-list button").first().click();
   await page.getByRole("button", { name: "모델 근거 확인" }).click();
   await expect(page.locator(".note-evidence")).toContainText("모델 연주 시각");
-  expect(new URLSearchParams(api.queries.at(-1))).toEqual(new URLSearchParams({ expected_revision: "2", expected_score_sha256: nextHash, expected_generation: "1" }));
+  expect(new URLSearchParams(api.queries.at(-1))).toEqual(new URLSearchParams({ expected_revision: "2", expected_score_sha256: nextHash, expected_generation: "1", include_pitch_observations: "true" }));
 });
 
 

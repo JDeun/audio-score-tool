@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSelectedSong } from "./SelectedSongContext";
 import SourceAudioReview, { type AudioClip } from "./SourceAudioReview";
+import PitchObservationPlot, { parsePitchObservation } from "./PitchObservationPlot";
 import "./note-evidence.css";
 
 const API = "http://127.0.0.1:8080";
@@ -89,6 +90,7 @@ type RhythmOutcome = {
 type StableNoteEdit = { noteId: string; selection: number; committedRevision: number | null };
 
 type EvidenceSource = {
+  source_id?: string;
   performed_seconds: { start: number; end: number };
   grid_seconds: { start: number; end: number };
   source_audio_seek_seconds: number | null;
@@ -100,6 +102,8 @@ type NoteEvidence = {
   revision: number;
   score_sha256: string;
   note_id: string;
+  evidence_generation?: number;
+  pitch_observations?: unknown;
   evidence: (Partial<EvidenceSource> & { sources?: EvidenceSource[];
     written_quarters?: { start: number; end: number } }) | null;
   patch?: object | null;
@@ -506,6 +510,16 @@ export default function SongWorkspace() {
         || evidence.source_audio_seek_basis !== "interpreted_grid" || seek !== grid.start || grid.end <= seek) return null;
     return { start_seconds: seek, end_seconds: grid.end };
   }), [evidenceSources]);
+  const pitchObservation = useMemo(() => parsePitchObservation(visibleEvidence?.result?.pitch_observations,
+    visibleEvidence?.result?.evidence_generation, score?.evidence_generation ?? null,
+    evidenceSources.map(source => source.source_id)), [visibleEvidence, score?.evidence_generation, evidenceSources]);
+  const pitchClasses: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+  const writtenMidiCandidate = selectedNote && !selectedNote.rest && selectedNote.step != null
+    && pitchClasses[selectedNote.step] !== undefined && Number.isFinite(selectedNote.octave)
+    && Number.isFinite(selectedNote.alter ?? 0)
+    ? (selectedNote.octave! + 1) * 12 + pitchClasses[selectedNote.step] + (selectedNote.alter ?? 0) : null;
+  const writtenMidi = writtenMidiCandidate !== null && Number.isFinite(writtenMidiCandidate)
+    && writtenMidiCandidate >= 0 && writtenMidiCandidate <= 127 ? writtenMidiCandidate : null;
   const sourceClip = selectedClip?.key === evidenceKey && selectedClip.epoch === evidenceEpoch.current
     ? selectedClip.clip : null;
 
@@ -518,7 +532,8 @@ export default function SongWorkspace() {
     const key = evidenceKey;
     setNoteEvidence({ key, epoch, loading: true });
     const query = new URLSearchParams({ expected_revision: String(score.song.revision),
-      expected_score_sha256: score.score_sha256, expected_generation: String(score.evidence_generation) });
+      expected_score_sha256: score.score_sha256, expected_generation: String(score.evidence_generation),
+      include_pitch_observations: "true" });
     try {
       const response = await fetch(`${API}/api/songs/${encodeURIComponent(song.song_id)}/notes/${encodeURIComponent(selectedNote.note_id)}/evidence?${query}`, { method: "GET", signal: controller.signal });
       if (response.status === 409) throw new Error("악보가 변경되었습니다. 새로고침 후 다시 확인하세요.");
@@ -1071,6 +1086,7 @@ export default function SongWorkspace() {
                     <button type="button" className="secondary" disabled={scoreLocked || visibleEvidence?.loading || score?.evidence_generation == null} onClick={() => void loadNoteEvidence()}>{visibleEvidence?.loading ? "근거 확인 중…" : "모델 근거 확인"}</button>
                     {score?.evidence_generation == null && <p>이 악보에는 연결된 모델 근거가 없어 확인을 보류합니다.</p>}
                     {visibleEvidence?.message && <p role="status">{visibleEvidence.message}</p>}
+                    {pitchObservation.message && <p role="status">{pitchObservation.message}</p>}
                     {visibleEvidence?.result && (visibleEvidence.result.status !== "linked" || !visibleEvidence.result.evidence
                       ? <p role="status">이 음표의 모델 근거를 확정할 수 없어 확인을 보류합니다.</p>
                       : <div role="status">
@@ -1080,6 +1096,7 @@ export default function SongWorkspace() {
                           {evidenceSources.length > 1 && <strong>원본 {index + 1}</strong>}
                           <p>모델 연주 시각 {source.performed_seconds.start.toFixed(2)}–{source.performed_seconds.end.toFixed(2)}초</p>
                           <p>원본 기보 격자 시각 {source.grid_seconds.start.toFixed(2)}–{source.grid_seconds.end.toFixed(2)}초</p>
+                          {source.source_id && pitchObservation.windows?.has(source.source_id) && <PitchObservationPlot window={pitchObservation.windows.get(source.source_id)!} writtenMidi={writtenMidi} />}
                           <p>{verifiedClips[index] ? "원음 구간은 해석된 기보 시간이며 실제 음의 시작이나 정확도 판정이 아닙니다." : "원음 구간을 확인할 수 없어 재생 연결을 보류합니다."}</p>
                           {verifiedClips[index] && <button type="button" className="secondary" onClick={() => setSelectedClip({ key: evidenceKey, epoch: evidenceEpoch.current, clip: { ...verifiedClips[index]! } })}>{evidenceSources.length > 1 ? `원음 구간 확인 ${index + 1}` : "원음 구간 확인"}</button>}
                         </div>)}

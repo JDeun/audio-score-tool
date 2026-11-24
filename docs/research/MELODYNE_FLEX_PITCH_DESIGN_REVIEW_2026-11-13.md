@@ -294,6 +294,12 @@ Raw musical sources and private frame/event arrays are not republished merely
 because the research code is committed. Nothing in this source review changes
 dataset, software or model redistribution conditions.
 
+The subsequent [boundary and score review gates](../NOTE_EVIDENCE.md#boundary-and-score-review-gates)
+define separate acoustic-observation, blinded-listening, performed/written-reference,
+and actual human correction decisions, including their failure and deferral rules.
+They define later verification; pending references and listening/editing studies are
+not treated as completed by this design review.
+
 ## Primary sources
 
 The manuals are evidence for documented behavior, the patent for its disclosed

@@ -692,12 +692,14 @@ def _retained_vocal_fixture(product):
     return client, songs, song_id, root
 
 
-def _evidence_get(client, base, note_id, *, revision=None, score_sha256=None, generation=None):
+def _evidence_get(client, base, note_id, *, revision=None, score_sha256=None, generation=None,
+                  include_pitch_observations=False):
     notes = client.get(base + "/notes").json()
     return client.get(base + f"/notes/{note_id}/evidence", params={
         "expected_revision": revision if revision is not None else notes["song"]["revision"],
         "expected_score_sha256": score_sha256 or notes["score_sha256"],
-        "expected_generation": generation if generation is not None else notes["evidence_generation"]})
+        "expected_generation": generation if generation is not None else notes["evidence_generation"],
+        "include_pitch_observations": include_pitch_observations})
 
 
 def test_vocal_note_evidence_edit_undo_and_branch(product):
@@ -1365,15 +1367,21 @@ def test_vocal_prefix_survives_split_merge_and_preserves_baseline(rhythm_product
     refresh_manifest()
     after = _evidence_get(client, base, 'p0-m0-n0').json()
     assert after['evidence'] == before['evidence']
+    assert 'pitch_observations' not in after
+    viewed = _evidence_get(client, base, 'p0-m0-n0', include_pitch_observations=True).json()
+    assert viewed['evidence'] == after['evidence'] and viewed['evidence_generation'] == after['evidence_generation']
+    assert viewed['pitch_observations']['status'] == 'available'
+    original_window = viewed['pitch_observations']['sources'][0]
     source = after['vocal_hypotheses']['sources'][0]
     assert source['status'] == 'linked' and source['model_segments'][0]['release_seconds'] == .5
     # A well-hashed unsupported extension cannot invalidate the established baseline.
     recipe['vocal_hypotheses']['schema_version'] = 9
     (root / 'recipe.json').write_text(json.dumps(recipe))
     refresh_manifest()
-    unknown = _evidence_get(client, base, 'p0-m0-n0').json()
+    unknown = _evidence_get(client, base, 'p0-m0-n0', include_pitch_observations=True).json()
     assert unknown['evidence'] == before['evidence']
     assert unknown['vocal_hypotheses']['status'] == 'unavailable'
+    assert unknown['pitch_observations']['reason'] == 'unsupported'
     recipe['vocal_hypotheses']['schema_version'] = 1
     (root / 'recipe.json').write_text(json.dumps(recipe))
     refresh_manifest()
@@ -1382,14 +1390,18 @@ def test_vocal_prefix_survives_split_merge_and_preserves_baseline(rhythm_product
                                   'note_ids': ['p0-m0-n0'], 'left_note_type': 'eighth'})
     assert split.status_code == 200, split.text
     assert _evidence_get(client, base, 'p0-m0-n1').json()['vocal_hypotheses']['sources'][0] == source
+    split_window = _evidence_get(client, base, 'p0-m0-n1', include_pitch_observations=True).json()
+    assert split_window['pitch_observations']['sources'][0] == original_window
     merge = client.post(url, json={**_rhythm_tokens(client, base), 'action': 'merge',
                                   'note_ids': ['p0-m0-n1', 'p0-m0-n2']})
     assert merge.status_code == 200, merge.text
-    merged = _evidence_get(client, base, 'p0-m0-n1').json()
+    merged = _evidence_get(client, base, 'p0-m0-n1', include_pitch_observations=True).json()
     assert len(merged['vocal_hypotheses']['sources']) == 2
+    assert [row['source_id'] for row in merged['pitch_observations']['sources']] == merged['evidence']['source_ids']
     assert merged['evidence']['source_audio_seek_seconds'] is None
     assert client.post(base + '/undo').status_code == 200
-    assert _evidence_get(client, base, 'p0-m0-n0').json()['status'] == 'unavailable'
+    undone = _evidence_get(client, base, 'p0-m0-n0', include_pitch_observations=True).json()
+    assert undone['status'] == undone['pitch_observations']['status'] == 'unavailable'
 
 
 def test_fresh_fixed_job_prefix_is_admitted_to_note_api(rhythm_product, tmp_path, monkeypatch):
@@ -1448,7 +1460,18 @@ def test_fresh_fixed_job_prefix_is_admitted_to_note_api(rhythm_product, tmp_path
                       'midi': str(score / 'score.mid')}}
     assert songs.sync_completed_jobs([job]) == 1
     shutil.rmtree(job_root)
+    from audio_score_tool import pitch_observation_window
+    window_reader = pitch_observation_window.pitch_observation_window
+    monkeypatch.setattr(pitch_observation_window, 'pitch_observation_window',
+                        lambda *args: pytest.fail('default evidence must not read frame windows'))
     result = _evidence_get(client, f'/api/songs/{song_id}', 'p0-m0-n0').json()
     assert result['status'] == 'linked', result
     assert result['vocal_hypotheses']['sources'][0]['model_segments'][0]['pitch'] == 60
     assert result['evidence']['source_audio_seek_seconds'] == 0
+    assert 'pitch_observations' not in result
+    monkeypatch.setattr(pitch_observation_window, 'pitch_observation_window', window_reader)
+    viewed = _evidence_get(client, f'/api/songs/{song_id}', 'p0-m0-n0', include_pitch_observations=True).json()
+    assert viewed['evidence'] == result['evidence']
+    assert viewed['pitch_observations']['status'] == 'available'
+    assert _evidence_get(client, f'/api/songs/{song_id}', 'p0-m0-n0',
+                         generation=viewed['evidence_generation'] + 1, include_pitch_observations=True).status_code == 409
