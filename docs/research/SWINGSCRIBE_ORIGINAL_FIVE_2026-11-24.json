@@ -1,0 +1,629 @@
+{
+  "schema_version": 1,
+  "verified_date": "2026-11-24",
+  "candidate": {
+    "project": "elkayem/swingscribe",
+    "source_revision": "0a2d2ebb933d5ee190487a314a962d7355de394a",
+    "profile": {
+      "separator": "htdemucs four stems",
+      "beats": "final0 minimal decoder, dbn=false",
+      "vocal": "full CREPE with original Basic Pitch horn-fill",
+      "device": "CPU",
+      "seed": 0,
+      "torch_threads": 2,
+      "crop": null,
+      "tempo_or_meter_hints": false,
+      "settings_changed_after_predictions": false
+    }
+  },
+  "coverage": {
+    "planned": 5,
+    "passed": 5
+  },
+  "decision": {
+    "candidate_replaces_fixed_vocal_recipe": false,
+    "fixed_implementation_recipe": "vocal_lead_v1 recipe v3",
+    "components": {
+      "separation": "one pinned four-stem htdemucs checkpoint",
+      "melody": "one pinned YourMT3+ checkpoint",
+      "chords_and_key": "official SheetSage2",
+      "beat_clock": "Beat This! final0 with fixed DBN decoder",
+      "pitch_review": "one pinned Tiny setting, advisory only"
+    },
+    "musical_quality_approved": false,
+    "human_edit_cost_measured": false
+  },
+  "receipts": {
+    "producer_report_sha256": "4f85e134d4939478fa2abe53f72739764fa55aef84fe791d8955b196f41a81c5",
+    "producer_protocol_sha256": "f7fa7cc9251c85c4be6c00bd3f8d7f11f471f883b94a9d3245c7023a5e23b8ee",
+    "evaluation_report_sha256": "e281a50973cc5141d4a60e9b4b3cbda5329e0724c2f055f2e0420d931fc4d808",
+    "evaluation_protocol_sha256": "ad19e2ae06c536527082ec4501b2ae304d0c933c85337ac1d97ec89d34408a7a",
+    "evaluator_sha256": "f3c5b4d872ffc68ee029dc436e8f9f1fc51f44cdb92bf44945a01c592ed249a1"
+  },
+  "limits": [
+    "Full American community arrangement and approximate drum-only alignment are not expert ground truth.",
+    "Me and FANCY are community excerpts with two fixed time projections, not complete-song annotations.",
+    "Korean publisher previews score pitch order only and are model-clock assisted.",
+    "There is no valid five-song accuracy average or measured human edit cost.",
+    "Native Swing provides no chord symbols, playback tempo, or PDF in this run.",
+    "This decision rejects this fixed CPU profile, not all settings of the upstream project.",
+    "Code, checkpoint terms and packaged runtime acceptance remain independent shipping gates."
+  ],
+  "cases": {
+    "green-day-american-idiot": {
+      "status": "scored",
+      "source_sha256": "aedb875ba145c1f5cd21a0a86713d11dff1de9701512b8f1c7e4a40fa4fdf680",
+      "note_counts": {
+        "your_raw": 311,
+        "swing_raw_document": 359
+      },
+      "elapsed_seconds": 3796.379693916999,
+      "pipeline_proof": {
+        "original_stages_done": [
+          "ingest",
+          "beats",
+          "separate",
+          "transcribe",
+          "meter",
+          "swing",
+          "quantize",
+          "notate",
+          "export"
+        ],
+        "original_stages_cached": false,
+        "transcribe_final_document_notes_identical": true,
+        "basic_pitch_heard": 91,
+        "basic_pitch_gaps_filled": 4,
+        "source_note_counts": {
+          "vocals:crepe": 355,
+          "vocals:basic-pitch": 4
+        }
+      },
+      "native_musicxml": {
+        "parts": 1,
+        "measures": 126,
+        "printed_main_notes": 358,
+        "grace_notes": 5,
+        "rests": 168,
+        "ties_started": 16,
+        "tuplet_note_marks": 9,
+        "harmony_symbols": 0,
+        "playback_tempo_directions": 0,
+        "time_signatures_in_order": [
+          [
+            "4",
+            "4"
+          ]
+        ]
+      },
+      "full_chart_raw_performance": {
+        "your_raw": {
+          "50ms_onset": {
+            "reference": 310,
+            "predicted": 311,
+            "matches": 213,
+            "f1": 0.6859903381642513
+          },
+          "50ms_onoff": {
+            "reference": 310,
+            "predicted": 311,
+            "matches": 176,
+            "f1": 0.5668276972624798
+          },
+          "100ms_onset": {
+            "reference": 310,
+            "predicted": 311,
+            "matches": 226,
+            "f1": 0.7278582930756844
+          },
+          "100ms_onoff": {
+            "reference": 310,
+            "predicted": 311,
+            "matches": 186,
+            "f1": 0.5990338164251208
+          }
+        },
+        "swing_raw_document": {
+          "50ms_onset": {
+            "reference": 310,
+            "predicted": 359,
+            "matches": 130,
+            "f1": 0.38863976083707025
+          },
+          "50ms_onoff": {
+            "reference": 310,
+            "predicted": 359,
+            "matches": 48,
+            "f1": 0.14349775784753363
+          },
+          "100ms_onset": {
+            "reference": 310,
+            "predicted": 359,
+            "matches": 175,
+            "f1": 0.523168908819133
+          },
+          "100ms_onoff": {
+            "reference": 310,
+            "predicted": 359,
+            "matches": 71,
+            "f1": 0.21225710014947682
+          }
+        }
+      },
+      "full_chart_written": {
+        "status": "scored",
+        "written_attacks": 342,
+        "reference_attacks": 310,
+        "exact_pitch_start": 151,
+        "exact_pitch_start_duration": 78,
+        "previous_published_proof": {
+          "s2_export": {
+            "exact_pitch_and_written_start": 63,
+            "exact_pitch_start_duration": 39
+          },
+          "dbn_export": {
+            "exact_pitch_and_written_start": 157,
+            "exact_pitch_start_duration": 95
+          }
+        }
+      }
+    },
+    "tinashe-me-so-bad": {
+      "status": "scored",
+      "source_sha256": "f39788b3075e9117661481470289c6e79ce25171f7a256936a2167bdae49fd65",
+      "note_counts": {
+        "your_raw": 564,
+        "swing_raw_document": 749
+      },
+      "elapsed_seconds": 3623.1476991670206,
+      "pipeline_proof": {
+        "original_stages_done": [
+          "ingest",
+          "beats",
+          "separate",
+          "transcribe",
+          "meter",
+          "swing",
+          "quantize",
+          "notate",
+          "export"
+        ],
+        "original_stages_cached": false,
+        "transcribe_final_document_notes_identical": true,
+        "basic_pitch_heard": 448,
+        "basic_pitch_gaps_filled": 23,
+        "source_note_counts": {
+          "vocals:crepe": 726,
+          "vocals:basic-pitch": 23
+        }
+      },
+      "native_musicxml": {
+        "parts": 1,
+        "measures": 75,
+        "printed_main_notes": 733,
+        "grace_notes": 16,
+        "rests": 55,
+        "ties_started": 28,
+        "tuplet_note_marks": 93,
+        "harmony_symbols": 0,
+        "playback_tempo_directions": 0,
+        "time_signatures_in_order": [
+          [
+            "4",
+            "4"
+          ]
+        ]
+      },
+      "excerpts": {
+        "affine": {
+          "your_raw": {
+            "50ms_onset": {
+              "reference": 48,
+              "predicted": 47,
+              "matches": 6,
+              "f1": 0.12631578947368421
+            },
+            "50ms_onoff": {
+              "reference": 48,
+              "predicted": 47,
+              "matches": 4,
+              "f1": 0.08421052631578947
+            },
+            "100ms_onset": {
+              "reference": 48,
+              "predicted": 47,
+              "matches": 13,
+              "f1": 0.2736842105263158
+            },
+            "100ms_onoff": {
+              "reference": 48,
+              "predicted": 47,
+              "matches": 5,
+              "f1": 0.10526315789473684
+            }
+          },
+          "swing_raw_document": {
+            "50ms_onset": {
+              "reference": 48,
+              "predicted": 80,
+              "matches": 2,
+              "f1": 0.03125
+            },
+            "50ms_onoff": {
+              "reference": 48,
+              "predicted": 80,
+              "matches": 1,
+              "f1": 0.015625
+            },
+            "100ms_onset": {
+              "reference": 48,
+              "predicted": 80,
+              "matches": 8,
+              "f1": 0.125
+            },
+            "100ms_onoff": {
+              "reference": 48,
+              "predicted": 80,
+              "matches": 3,
+              "f1": 0.046875
+            }
+          }
+        },
+        "nominal": {
+          "your_raw": {
+            "50ms_onset": {
+              "reference": 48,
+              "predicted": 47,
+              "matches": 12,
+              "f1": 0.25263157894736843
+            },
+            "50ms_onoff": {
+              "reference": 48,
+              "predicted": 47,
+              "matches": 5,
+              "f1": 0.10526315789473684
+            },
+            "100ms_onset": {
+              "reference": 48,
+              "predicted": 47,
+              "matches": 26,
+              "f1": 0.5473684210526316
+            },
+            "100ms_onoff": {
+              "reference": 48,
+              "predicted": 47,
+              "matches": 10,
+              "f1": 0.21052631578947367
+            }
+          },
+          "swing_raw_document": {
+            "50ms_onset": {
+              "reference": 48,
+              "predicted": 80,
+              "matches": 3,
+              "f1": 0.046875
+            },
+            "50ms_onoff": {
+              "reference": 48,
+              "predicted": 80,
+              "matches": 0,
+              "f1": 0.0
+            },
+            "100ms_onset": {
+              "reference": 48,
+              "predicted": 80,
+              "matches": 13,
+              "f1": 0.203125
+            },
+            "100ms_onoff": {
+              "reference": 48,
+              "predicted": 80,
+              "matches": 5,
+              "f1": 0.078125
+            }
+          }
+        }
+      }
+    },
+    "twice-fancy": {
+      "status": "scored",
+      "source_sha256": "5e1b5613b3863ea3babd2dc22bc9fa8ba62deb2ae44d48c8885f832ab56f01ec",
+      "note_counts": {
+        "your_raw": 710,
+        "swing_raw_document": 905
+      },
+      "elapsed_seconds": 5176.2245866255835,
+      "pipeline_proof": {
+        "original_stages_done": [
+          "ingest",
+          "beats",
+          "separate",
+          "transcribe",
+          "meter",
+          "swing",
+          "quantize",
+          "notate",
+          "export"
+        ],
+        "original_stages_cached": false,
+        "transcribe_final_document_notes_identical": true,
+        "basic_pitch_heard": 514,
+        "basic_pitch_gaps_filled": 7,
+        "source_note_counts": {
+          "vocals:crepe": 898,
+          "vocals:basic-pitch": 7
+        }
+      },
+      "native_musicxml": {
+        "parts": 1,
+        "measures": 118,
+        "printed_main_notes": 893,
+        "grace_notes": 4,
+        "rests": 97,
+        "ties_started": 35,
+        "tuplet_note_marks": 108,
+        "harmony_symbols": 0,
+        "playback_tempo_directions": 0,
+        "time_signatures_in_order": [
+          [
+            "4",
+            "4"
+          ]
+        ]
+      },
+      "excerpts": {
+        "affine": {
+          "your_raw": {
+            "50ms_onset": {
+              "reference": 250,
+              "predicted": 311,
+              "matches": 30,
+              "f1": 0.10695187165775401
+            },
+            "50ms_onoff": {
+              "reference": 250,
+              "predicted": 311,
+              "matches": 16,
+              "f1": 0.0570409982174688
+            },
+            "100ms_onset": {
+              "reference": 250,
+              "predicted": 311,
+              "matches": 94,
+              "f1": 0.33511586452762926
+            },
+            "100ms_onoff": {
+              "reference": 250,
+              "predicted": 311,
+              "matches": 27,
+              "f1": 0.0962566844919786
+            }
+          },
+          "swing_raw_document": {
+            "50ms_onset": {
+              "reference": 250,
+              "predicted": 398,
+              "matches": 22,
+              "f1": 0.06790123456790123
+            },
+            "50ms_onoff": {
+              "reference": 250,
+              "predicted": 398,
+              "matches": 5,
+              "f1": 0.015432098765432098
+            },
+            "100ms_onset": {
+              "reference": 250,
+              "predicted": 398,
+              "matches": 75,
+              "f1": 0.23148148148148148
+            },
+            "100ms_onoff": {
+              "reference": 250,
+              "predicted": 398,
+              "matches": 23,
+              "f1": 0.07098765432098765
+            }
+          }
+        },
+        "nominal": {
+          "your_raw": {
+            "50ms_onset": {
+              "reference": 250,
+              "predicted": 311,
+              "matches": 68,
+              "f1": 0.24242424242424243
+            },
+            "50ms_onoff": {
+              "reference": 250,
+              "predicted": 311,
+              "matches": 40,
+              "f1": 0.14260249554367202
+            },
+            "100ms_onset": {
+              "reference": 250,
+              "predicted": 311,
+              "matches": 134,
+              "f1": 0.47771836007130125
+            },
+            "100ms_onoff": {
+              "reference": 250,
+              "predicted": 311,
+              "matches": 61,
+              "f1": 0.21746880570409982
+            }
+          },
+          "swing_raw_document": {
+            "50ms_onset": {
+              "reference": 250,
+              "predicted": 398,
+              "matches": 41,
+              "f1": 0.12654320987654322
+            },
+            "50ms_onoff": {
+              "reference": 250,
+              "predicted": 398,
+              "matches": 18,
+              "f1": 0.05555555555555555
+            },
+            "100ms_onset": {
+              "reference": 250,
+              "predicted": 398,
+              "matches": 101,
+              "f1": 0.3117283950617284
+            },
+            "100ms_onoff": {
+              "reference": 250,
+              "predicted": 398,
+              "matches": 42,
+              "f1": 0.12962962962962962
+            }
+          }
+        }
+      }
+    },
+    "ham-boo-young-my-song": {
+      "status": "scored",
+      "source_sha256": "871118a06f5021b94f6e56c9066fca50670582f5e530bcee9290e2db270d8ac7",
+      "note_counts": {
+        "your_raw": 605,
+        "swing_raw_document": 1184
+      },
+      "elapsed_seconds": 4314.064542207867,
+      "pipeline_proof": {
+        "original_stages_done": [
+          "ingest",
+          "beats",
+          "separate",
+          "transcribe",
+          "meter",
+          "swing",
+          "quantize",
+          "notate",
+          "export"
+        ],
+        "original_stages_cached": false,
+        "transcribe_final_document_notes_identical": true,
+        "basic_pitch_heard": 431,
+        "basic_pitch_gaps_filled": 28,
+        "source_note_counts": {
+          "vocals:crepe": 1156,
+          "vocals:basic-pitch": 28
+        }
+      },
+      "native_musicxml": {
+        "parts": 1,
+        "measures": 83,
+        "printed_main_notes": 1036,
+        "grace_notes": 62,
+        "rests": 88,
+        "ties_started": 51,
+        "tuplet_note_marks": 44,
+        "harmony_symbols": 0,
+        "playback_tempo_directions": 0,
+        "time_signatures_in_order": [
+          [
+            "4",
+            "4"
+          ]
+        ]
+      },
+      "pitch_order_only_publisher_windows": [
+        {
+          "window_index": 0,
+          "scores": {
+            "your_raw": {
+              "reference_attacks": 7,
+              "predicted_attacks": 10,
+              "exact_pitch_order_lcs": 5
+            },
+            "swing_raw_document": {
+              "reference_attacks": 7,
+              "predicted_attacks": 16,
+              "exact_pitch_order_lcs": 7
+            }
+          }
+        }
+      ]
+    },
+    "younha-event-horizon": {
+      "status": "scored",
+      "source_sha256": "2d84bd77253c96851db8bde4cd76de0b7bf7101cf07f79ff8dbf2d03f1d23dce",
+      "note_counts": {
+        "your_raw": 623,
+        "swing_raw_document": 714
+      },
+      "elapsed_seconds": 4580.64004699979,
+      "pipeline_proof": {
+        "original_stages_done": [
+          "ingest",
+          "beats",
+          "separate",
+          "transcribe",
+          "meter",
+          "swing",
+          "quantize",
+          "notate",
+          "export"
+        ],
+        "original_stages_cached": false,
+        "transcribe_final_document_notes_identical": true,
+        "basic_pitch_heard": 614,
+        "basic_pitch_gaps_filled": 21,
+        "source_note_counts": {
+          "vocals:crepe": 693,
+          "vocals:basic-pitch": 21
+        }
+      },
+      "native_musicxml": {
+        "parts": 1,
+        "measures": 114,
+        "printed_main_notes": 760,
+        "grace_notes": 1,
+        "rests": 89,
+        "ties_started": 63,
+        "tuplet_note_marks": 97,
+        "harmony_symbols": 0,
+        "playback_tempo_directions": 0,
+        "time_signatures_in_order": [
+          [
+            "4",
+            "4"
+          ]
+        ]
+      },
+      "pitch_order_only_publisher_windows": [
+        {
+          "window_index": 0,
+          "scores": {
+            "your_raw": {
+              "reference_attacks": 9,
+              "predicted_attacks": 10,
+              "exact_pitch_order_lcs": 8
+            },
+            "swing_raw_document": {
+              "reference_attacks": 9,
+              "predicted_attacks": 9,
+              "exact_pitch_order_lcs": 8
+            }
+          }
+        },
+        {
+          "window_index": 1,
+          "scores": {
+            "your_raw": {
+              "reference_attacks": 9,
+              "predicted_attacks": 8,
+              "exact_pitch_order_lcs": 8
+            },
+            "swing_raw_document": {
+              "reference_attacks": 9,
+              "predicted_attacks": 8,
+              "exact_pitch_order_lcs": 8
+            }
+          }
+        }
+      ]
+    }
+  }
+}
