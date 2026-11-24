@@ -486,7 +486,6 @@ def _apply_identification(root: ET.Element, ns: str, settings: dict[str, Any]) -
     elif rights is not None:
         identification.remove(rights)
 
-    # MusicXML identification order: creators, rights, relations, miscellaneous.
     miscellaneous = identification.find(f"{ns}miscellaneous")
     for field_name in ("album", "release_date"):
         value = str(settings.get(field_name) or "").strip()
@@ -505,6 +504,14 @@ def _apply_identification(root: ET.Element, ns: str, settings: dict[str, Any]) -
             field.text = value
         elif field is not None:
             miscellaneous.remove(field)
+
+    # MusicXML identification requires this order: https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/identification/
+    order = {f"{ns}{name}": index for index, name in enumerate(
+        ("creator", "rights", "encoding", "source", "relation", "miscellaneous")
+    )}
+    children = list(identification)
+    known = iter(sorted((child for child in children if child.tag in order), key=lambda child: order[child.tag]))
+    identification[:] = [next(known) if child.tag in order else child for child in children]
 
 
 def apply_publication_layout(

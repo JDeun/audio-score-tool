@@ -189,3 +189,39 @@ def test_invalid_credits_payload_is_rejected_before_writes(stores):
     assert response.status_code == 422
     assert store.get("song-1")["revision"] == 1
     assert publication.read("song-1")["composer"] == "Original"
+
+
+@pytest.mark.parametrize('namespace', ['', 'http://www.musicxml.org/ns/musicxml'])
+def test_identification_order_normalizes_without_losing_existing_metadata(namespace):
+    from audio_score_tool.publication_layout import _apply_identification
+
+    ns = f'{{{namespace}}}' if namespace else ''
+    root = ET.fromstring(f'''<score-partwise xmlns="{namespace}"><identification data-owned="yes">
+        <miscellaneous><miscellaneous-field name="other">keep</miscellaneous-field></miscellaneous>
+        <relation type="first">one</relation><source>original source</source>
+        <creator type="editor" id="e1">Editor one</creator>
+        <encoding><software>Original software</software></encoding>
+        <rights type="first">Old rights</rights><relation type="second">two</relation>
+        <creator type="composer" id="c1">Old composer</creator>
+        <creator type="editor" id="e2">Editor two</creator>
+        <creator type="composer" id="c2">Other composer</creator><rights type="second">Other rights</rights>
+    </identification></score-partwise>''')
+    settings = {'performer': 'Singer', 'composer': 'New composer', 'rights': 'New rights'}
+    _apply_identification(root, ns, settings)
+    identity = root.find(f'{ns}identification')
+    assert identity is not None and identity.attrib == {'data-owned': 'yes'}
+    assert [child.tag.removeprefix(ns) for child in identity] == [
+        'creator', 'creator', 'creator', 'creator', 'creator', 'rights', 'rights',
+        'encoding', 'source', 'relation', 'relation', 'miscellaneous']
+    assert [(node.get('type'), node.get('id'), node.text) for node in identity.findall(f'{ns}creator')] == [
+        ('editor', 'e1', 'Editor one'), ('composer', 'c1', 'New composer'),
+        ('editor', 'e2', 'Editor two'), ('composer', 'c2', 'Other composer'), ('performer', None, 'Singer')]
+    assert [(node.get('type'), node.text) for node in identity.findall(f'{ns}rights')] == [
+        ('first', 'New rights'), ('second', 'Other rights')]
+    assert identity.findtext(f'{ns}encoding/{ns}software') == 'Original software'
+    assert identity.findtext(f'{ns}source') == 'original source'
+    assert [node.text for node in identity.findall(f'{ns}relation')] == ['one', 'two']
+    assert identity.findtext(f'{ns}miscellaneous/{ns}miscellaneous-field') == 'keep'
+    before = ET.tostring(identity)
+    _apply_identification(root, ns, settings)
+    assert ET.tostring(identity) == before
