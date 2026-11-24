@@ -6,3 +6,11 @@
 .note-rhythm-edit p { margin: 0; font-size: 12px; line-height: 1.5; }
 .note-rhythm-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .note-evidence-source { display: grid; gap: 4px; }
+.pitch-observation { display: grid; gap: 4px; min-width: 0; margin: 4px 0; }
+.pitch-observation svg { display: block; width: 100%; height: auto; min-width: 0; background: #f5f6f2; }
+.pitch-observation svg text { font-size: 9px; fill: #343b34; }
+.pitch-axis { stroke: #697568; stroke-width: 1; }
+.pitch-note-range { fill: #dce9df; stroke: #71917a; stroke-width: .6; }
+.pitch-written { stroke: #754821; stroke-width: 1; stroke-dasharray: 4 3; }
+.pitch-accepted { fill: #135c45; }
+.pitch-rejected { stroke: #7a3531; stroke-width: 1; fill: none; }
