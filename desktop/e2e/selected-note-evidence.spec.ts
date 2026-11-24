@@ -165,7 +165,7 @@ test(`pitch observation maps merged sources without overflow at ${width}`, async
   const graph = sources.first().locator(".pitch-observation");
   await graph.scrollIntoViewIfNeeded();
   expect(await page.locator(".song-layout").evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
-  await page.screenshot({ path: testInfo.outputPath(`pitch-observation-${width}.png`) });
+  await page.screenshot({ path: testInfo.outputPath(`source-audio-pitch-observation-${width}.png`) });
 });
 }
 
