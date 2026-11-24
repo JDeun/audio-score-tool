@@ -62,6 +62,12 @@ snapshot/
 
 `structure/native`에 원래 SheetSage2 예측을, `beat.npz`에 DBN 검출과 원시 Beat This logits를, `vocal/score.mid`에 YourMT3+ 원본을, `vocal/selected.*`에 선택 결과를 보존한다. 합성한 초기 악보와 `recipe.json`, `interpretation.json`, 각 runtime/출처도 Song의 SHA 검증 model evidence로 복사한다. 누락·손상 시 Job 정리를 차단한다. 파형·weights는 이 복사 whitelist에 포함하지 않으며 원음은 기존 Song 소유 보존 경로를 쓴다.
 
+새 고정 경로 import는 DBN이 첫 관측 첫박 앞에 외삽한 한 박이 빈 첫 마디로 기보된 경우를 확인한다. 원본 보컬·격자·코드와 기보 정보가 모두 비어 있으면 새 악보에서 그 마디를 생략하고 첫 관측 첫박을 1마디로 표시한다. 원음 기준 첫박 시각은 MusicXML의 명시적 audio origin으로 저장하고 MIDI에도 반영한다. 생략한 원본 마디와 대응하는 첫 출력 마디의 원본 인덱스는 `notation-report.json`에 남긴다. 실제 못갖춘마디, 관측된 쉼표 마디, 끝마디와 기존 저장 악보는 보존한다.
+
+2026-11-24 보관된 DBN 5곡 결과를 새 코드로 읽어 2,723개 수행 음표의 격자 대응과 입력 불변을 확인했다. American Idiot와 사건의 지평선만 위 조건에 해당해 첫 빈 마디가 생략됐다. 나머지 3곡의 MIDI는 기존 파일과 byte-identical이다. 두 곡의 음표/코드 상대 기보 위치는 각각 308음/297기호, 614음/233기호 모두 유지됐고, 기존 MIDI와의 최대 시각 차이는 각각 약 8.952µs/1.016µs였다. 명시적 origin의 MIDI tick 반올림과 기존 padding epsilon 범위다. 코드 경계는 padding 제거 전 원래 clock에서 투영하므로 경계 중간점의 반올림도 보존한다.
+
+American Idiot는 새 Song의 정상 출력 함수로 PDF 5쪽·MusicXML·MIDI를 생성하고 첫 마디와 끝 쉼표 마디, 원음 시각을 검증했다. 전체 HTTP 흐름·기존 Song 자동 갱신·새 모델 추론·원곡 정확도 승인은 이 검증에 포함되지 않는다. 비공개 보고서 SHA `f13808e0a6d6edd02ed4aa3b14076c64d44ff3b091289d40bbea8d14b12e4bc2`, 모듈 경로와 5곡 재생성을 독립 확인한 집계 SHA `2811ecdb0106ed365162198c9cd6cc3df133076bd18197e1b0a4622ce11791a5`. 원음·음표/코드 trace·악보는 공개하지 않는다. 소유 예제 17개를 포함한 관련 검사 165개는 통과했으며 기존 FFmpeg 검사 1개는 로컬 환경에서 skip됐다.
+
 현재 알려진 품질 문제는 전주·간주의 악기 누출, 보컬/코러스 역할, sixteenth grid의 장식음·triplet 누락, 전문가 정답이 없는 코드/키/박자 정확도다. [5곡 선행 실측](research/FIVE_SONG_FIXED_VOCAL_EXPERIMENT_2026-11-10.md)의 변환 보존 성공을 원곡 정확도로 승격하지 않는다. 이 경로를 통한 실제 전곡 인수와 수정 횟수·시간, 최종 모델/출판 품질 승인은 별도 미완료다.
 
 [전체 길이 5곡 제품 재시험](research/FIVE_SONG_FIXED_PRODUCT_2026-11-10.md)은 업로드·출력·독립 검수와 삭제 후 원본 보존을 통과했다. 다만 [vocadito 40개 격자 비교](research/FIXED_GRID_VOCADITO_ABLATION_2026-11-10.md)에서 동일한 raw 음표의 onset F1은 A1 기준 0.4957→0.4383, A2 기준 0.5907→0.5231로 하락했고 1,809음 중 44음이 생략됐다. 연주 시각 기준 F1과 기보 정답은 구분하되, 이 손실을 해결·검증하기 전 최종 모델이나 기본 경로로 승격하지 않는다.

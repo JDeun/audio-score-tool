@@ -11,6 +11,7 @@ from fractions import Fraction
 from pathlib import Path
 
 from .musicxml_metadata_projection import normalize_suspended_seventh
+from .score_timing import AUDIO_ORIGIN_FIELD, score_time_clocks
 
 MODEL_REVISION = "b83c3d79a6d98bcffaf8f9ed112c90aa887887bc"
 CHECKPOINT_SHA256 = "b235f68091a5f5b644000f2b5acb57d1e70432aca2b34ab1b9cf27236e1f4274"
@@ -77,38 +78,39 @@ def vocal_abc(text: str) -> str:
     return "\n".join(expanded) + "\n"
 
 
-def _restore_timed_metadata(score, part, root: Path, duration: float) -> dict:
+def _read_timed_rows(root: Path, name: str, duration: float):
+    path = root / "notation" / f"song_{name}.txt"
+    if path.parent.is_symlink():
+        raise ValueError("Unsafe native timed metadata")
+    if not path.exists() and not path.is_symlink():
+        return None
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > 16 * 1024 * 1024:
+        raise ValueError("Unsafe native timed metadata")
+    rows = []
+    for line in path.read_text().splitlines():
+        columns = line.split("\t")
+        if len(columns) != 3:
+            raise ValueError("Invalid native timed metadata columns")
+        try:
+            start, end = float(columns[0]), float(columns[1])
+        except ValueError as exc:
+            raise ValueError("Invalid native timed metadata time") from exc
+        if (not math.isfinite(start) or not math.isfinite(end) or start < 0 or end <= start
+                or end > duration + 1e-3 or (rows and start < rows[-1][1] - 1e-6)):
+            raise ValueError("Invalid native timed metadata interval")
+        rows.append((start, end, columns[2].strip()))
+    if not rows:
+        raise ValueError("Empty native timed metadata")
+    return rows
+
+
+def _restore_timed_metadata(score, part, root: Path, duration: float, *, timed_rows=None) -> dict:
     from music21 import harmony, key, meter, note, stream
 
-    from .score_timing import score_time_clocks
     from .sheetsage_hybrid import _parse_chord_symbol, _parse_key_label
 
-    def read_rows(name):
-        path = root / "notation" / f"song_{name}.txt"
-        if path.parent.is_symlink():
-            raise ValueError("Unsafe native timed metadata")
-        if not path.exists() and not path.is_symlink():
-            return None
-        if path.is_symlink() or not path.is_file() or path.stat().st_size > 16 * 1024 * 1024:
-            raise ValueError("Unsafe native timed metadata")
-        rows = []
-        for line in path.read_text().splitlines():
-            columns = line.split("\t")
-            if len(columns) != 3:
-                raise ValueError("Invalid native timed metadata columns")
-            try:
-                start, end = float(columns[0]), float(columns[1])
-            except ValueError as exc:
-                raise ValueError("Invalid native timed metadata time") from exc
-            if (not math.isfinite(start) or not math.isfinite(end) or start < 0 or end <= start
-                    or end > duration + 1e-3 or (rows and start < rows[-1][1] - 1e-6)):
-                raise ValueError("Invalid native timed metadata interval")
-            rows.append((start, end, columns[2].strip()))
-        if not rows:
-            raise ValueError("Empty native timed metadata")
-        return rows
-
-    chord_rows, key_rows = read_rows("chords"), read_rows("keys")
+    chord_rows, key_rows = (timed_rows if timed_rows is not None else
+                            (_read_timed_rows(root, "chords", duration), _read_timed_rows(root, "keys", duration)))
     receipt = {"grid": "native_sixteenth", "keys": [], "chords": [], "collapsed_chord_events": []}
     if chord_rows is None and key_rows is None:
         return receipt
@@ -232,8 +234,65 @@ def _restore_timed_metadata(score, part, root: Path, duration: float) -> dict:
     return receipt
 
 
-def import_native_lead_sheet(root: Path, target: Path) -> dict:
-    from music21 import clef, converter, harmony, metadata, meter, note, stream, tempo
+def _empty_dbn_opening(root, text, measure, elements, mapping, opening_beats,
+                       interpretation, chord_rows, key_rows):
+    from music21 import clef, key, meter, note, tempo
+
+    if not isinstance(interpretation, dict) or len(mapping) < 2 or len(opening_beats) != 2:
+        return False
+    clock = interpretation.get("beat_clock")
+    if not isinstance(clock, dict) or clock.get("leading_derived_count") != 1:
+        return False
+    observed = clock.get("observed_beat_rows")
+    downbeats = clock.get("phase_compatible_downbeat_rows")
+    first, second = opening_beats
+    origin = mapping[0]["end"]
+    expected = {"time_seconds": origin, "beat": 1, "numerator": second[2], "denominator": second[3]}
+    if (not all(isinstance(rows, list) and rows and rows[0] == expected
+                for rows in (observed, downbeats))
+            or first[0] != 0 or first[1] != first[2] or first[2:] != second[2:]
+            or second[:2] != (origin, 1) or mapping[0]["start"] != 0
+            or mapping[1]["start"] != origin or not mapping[0].get("leading_rest")):
+        return False
+    grid = interpretation.get("grid_audio_seconds")
+    indices = interpretation.get("source_note_indices")
+    if (not isinstance(grid, list) or not isinstance(indices, list) or len(grid) < 5
+            or len(grid) != len(indices) + 1 or grid[0] != 0 or grid[4] != origin
+            or indices[:4] != [-1] * 4):
+        return False
+
+    # ABC import may discard a decoration. Require the source measure itself to contain only rests.
+    body = re.split(r"(?m)^K:[^\n]*\n", text, maxsplit=1)[1]
+    if (not re.match(r"\s*(?:z[0-9/]*\s*)+\|(?![\[\]|:])", body)
+            or measure.leftBarline is not None or measure.rightBarline is not None):
+        return False
+    for element in elements:
+        if isinstance(element, note.Rest):
+            if element.lyrics or element.expressions or element.articulations:
+                return False
+        elif not isinstance(element, (clef.Clef, key.KeySignature, meter.TimeSignature,
+                                      tempo.MetronomeMark)) or element.offset != 0:
+            return False
+    if (any(start < origin and label not in {"N", "N.C.", "NC"} for start, _, label in chord_rows or ())
+            or any(start < origin for start, _, _ in (key_rows or ())[1:])
+            or (key_rows and key_rows[0][1] <= origin)):
+        return False
+    try:
+        structure_rows = _read_timed_rows(root, "structures", float(mapping[-1]["end"]))
+    except ValueError:
+        return False
+    if any(start < origin and (start > 0 or end <= origin) for start, end, _ in structure_rows or ()):
+        return False
+    raw_vocal = root / "melody_vocal.mid"
+    if raw_vocal.is_symlink() or not raw_vocal.is_file() or raw_vocal.stat().st_size > 16 * 1024 * 1024:
+        return False
+    from .metrics import midi_notes
+
+    return not any(item.onset < origin for item in midi_notes(raw_vocal))
+
+
+def import_native_lead_sheet(root: Path, target: Path, *, interpretation: dict | None = None) -> dict:
+    from music21 import clef, converter, harmony, key, metadata, meter, note, stream, tempo
     from music21.exceptions21 import Music21Exception
 
     abc = root / "score.abc"
@@ -284,6 +343,7 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
         raise ValueError("ABC import changed the model's measure count")
     beat_file = root / "notation" / "song_beats.txt"
     beat_times = None
+    opening_beats = []
     if beat_file.exists() or beat_file.is_symlink():
         if (beat_file.parent.is_symlink() or beat_file.is_symlink()
                 or not beat_file.is_file() or beat_file.stat().st_size > 16 * 1024 * 1024):
@@ -299,9 +359,12 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
                     or (beat_times and at <= beat_times[-1])):
                 raise ValueError("Invalid native beat clock event")
             beat_times.append(at)
+            if len(opening_beats) < 2:
+                opening_beats.append((at, beat, numerator, denominator))
         if len(beat_times) < 2:
             raise ValueError("Incomplete native beat clock")
     original_marks = list(part.recurse().getElementsByClass(tempo.MetronomeMark))
+    opening_elements = tuple(measures[0])
     nominal_bpm = original_marks[0].getQuarterBPM() if original_marks else None
     for mark in original_marks:
         mark.activeSite.remove(mark)
@@ -361,13 +424,46 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
             padding.style.hideObjectOnPrint = True
             measure.insert(finish - begin - trailing, padding)
         previous_end = end
-    if initial_offset:
-        from .score_timing import AUDIO_ORIGIN_FIELD
+    duration = float(mapping[-1]["end"])
+    chord_rows = _read_timed_rows(root, "chords", duration)
+    key_rows = _read_timed_rows(root, "keys", duration)
+    remove_preroll = _empty_dbn_opening(root, text, measures[0], opening_elements, mapping, opening_beats,
+                                        interpretation, chord_rows, key_rows)
 
+    def set_audio_origin(seconds):
         if score.metadata is None:
             score.metadata = metadata.Metadata()
-        score.metadata.addCustom(AUDIO_ORIGIN_FIELD, str(initial_offset))
-    timed_metadata = _restore_timed_metadata(score, part, root, float(mapping[-1]["end"]))
+        score.metadata.addCustom(AUDIO_ORIGIN_FIELD, str(seconds))
+
+    if initial_offset:
+        set_audio_origin(initial_offset)
+    # Quantize timed metadata on the validated native clock before removing padding.
+    timed_metadata = _restore_timed_metadata(score, part, root, duration, timed_rows=(chord_rows, key_rows))
+    omitted_preroll = None
+    if remove_preroll:
+        omitted_measure, *measures = measures
+        omitted_preroll, *mapping = mapping
+        rebase = omitted_preroll["score_end"]
+        for attribute_type in (clef.Clef, key.KeySignature, meter.TimeSignature):
+            if any(item.offset == 0 for item in measures[0].getElementsByClass(attribute_type)):
+                continue
+            inherited = omitted_measure.getElementsByClass(attribute_type).first()
+            if inherited is not None:
+                measures[0].insert(0, copy.deepcopy(inherited))
+        part.remove(omitted_measure)
+        mapping = [dict(row, score_start=row["score_start"] - rebase,
+                        score_end=row["score_end"] - rebase) for row in mapping]
+        for index, (measure, row) in enumerate(zip(measures, mapping, strict=True), 1):
+            part.setElementOffset(measure, row["score_start"] * 4)
+            measure.number = index
+        initial_offset = float(mapping[0]["start"])
+        set_audio_origin(initial_offset)
+        to_seconds, _ = score_time_clocks(score)
+        for name in ("keys", "chords", "collapsed_chord_events"):
+            for event in timed_metadata[name]:
+                event["score_quarters"] = max(0., event["score_quarters"] - 4 * rebase)
+                if "residual_seconds" in event:
+                    event["residual_seconds"] = to_seconds(event["score_quarters"]) - event["source_seconds"]
     target.parent.mkdir(parents=True, exist_ok=True)
     score.write("musicxml", fp=str(target))
     # music21 omits this flag on tempo marks; serialize MusicXML's print-object.
@@ -406,6 +502,10 @@ def import_native_lead_sheet(root: Path, target: Path) -> dict:
             "timing": ("model_notation_with_per_beat_audio_clock" if beat_times is not None
                        else "model_notation_with_per_measure_audio_clock"),
             "initial_audio_offset_seconds": initial_offset,
+            **({"omitted_empty_preroll_measure": {"native_measure_index": 0,
+                                                  "native_measure": omitted_preroll,
+                                                  "first_published_native_measure_index": 1}}
+               if omitted_preroll is not None else {}),
             "padding_clock_epsilon_seconds_per_quarter": 1e-6,
             "visible_tempo_decimal_places": 2,
             "nominal_tempo_bpm": nominal_bpm,
