@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
 import { expect, test } from "@playwright/test";
+import { scoreSha256, scoreSnapshot } from "./score-fixture";
 
 const scoreXml = `<?xml version="1.0" encoding="UTF-8"?>
 <score-partwise version="4.0">
@@ -25,7 +25,7 @@ test("note editor avoids no-op requests and sends only actual pitch/lyric change
   const currentXml = () => scoreXml
     .replace("<step>C</step>", `<step>${note.step}</step>`)
     .replace("</type></note>", `</type>${note.lyric ? `<lyric><text>${note.lyric}</text></lyric>` : ""}</note>`);
-  const currentSha = () => createHash("sha256").update(currentXml()).digest("hex");
+  const currentSha = () => scoreSha256(currentXml());
   const song = () => ({
     song_id: "song-1", title: "Demo", artist: "",
     source_kind: "notation", revision,
@@ -51,7 +51,7 @@ test("note editor avoids no-op requests and sends only actual pitch/lyric change
     },
   }));
   await page.route("**/api/songs/song-1/structure", route => route.fulfill({
-    json: { measures: [] },
+    json: { ...scoreSnapshot(song(), currentXml()), measures: [] },
   }));
   await page.route("**/api/songs/song-1/score", route => route.fulfill({
     contentType: "application/xml", body: currentXml(),
@@ -95,6 +95,7 @@ test("note editor avoids no-op requests and sends only actual pitch/lyric change
   // The save action reloads canonical state asynchronously. Do not edit the
   // next value until the previous save/reload has committed to the inspector.
   await expect(page.locator(".workspace-message")).toContainText("노트·리듬·표현을 저장했습니다.");
+  await expect(page.locator(".note-list button.active")).toHaveCount(1);
   await expect(editor.locator(".lyric-field input")).toHaveValue("hello");
 
   await editor.locator(".pitch-fields select").first().selectOption("D");
@@ -102,21 +103,28 @@ test("note editor avoids no-op requests and sends only actual pitch/lyric change
   await editor.getByRole("button", { name: "노트 전체 저장" }).click();
   await expect.poll(() => requests.length).toBe(2);
   expect(requests[1]).toEqual({ step: "D", lyric: "world" });
+  await expect(page.locator(".note-list button.active")).toContainText("D4");
 });
 
 test("chord editor can edit a rest anchor", async ({ page }) => {
   const song = { song_id: "song-1", title: "Demo", artist: "", source_kind: "notation", revision: 1, exports: {}, parts: [] };
   const rest = { note_id: "p0-m0-n0", part_id: "P1", part_name: "Piano", measure: "1", measure_index: 0, rest: true, step: null, alter: null, octave: null, type: "quarter", dots: 0, lyric: "", ties: [], slurs: [], articulations: [], beam: "" };
+  let chord = "C";
+  const currentXml = () => scoreXml.replace("<pitch><step>C</step><octave>4</octave></pitch>", "<rest/>")
+    .replace("<note>", `<harmony><root><root-step>${chord[0]}</root-step></root><kind>${chord === "C" ? "major" : "minor-seventh"}</kind></harmony><note>`);
+  const originalHash = scoreSha256(currentXml());
   let request: unknown;
   await page.route("**/api/health", route => route.fulfill({ json: { status: "ok", device_plan: { muscriptor_device: "cpu" }, preflight: { ok: true, missing: [], tools: {} }, presets: { recommended: "quality", presets: [] }, system: { hf_authenticated: false, jobs_bytes: 0, disk_free_bytes: 1000 } } }));
   await page.route("**/api/songs", route => route.fulfill({ json: { songs: [song] } }));
   await page.route("**/api/songs/song-1", route => route.fulfill({ json: song }));
-  await page.route("**/api/songs/song-1/notes", route => route.fulfill({ json: { song, parts: [{ part_id: "P1", name: "Piano", notes: 1, measures: 1 }], notes: [rest], chords: [{ note_id: rest.note_id, symbol: "C" }] } }));
-  await page.route("**/api/songs/song-1/structure", route => route.fulfill({ json: { measures: [] } }));
-  await page.route("**/api/songs/song-1/score", route => route.fulfill({ contentType: "application/xml", body: scoreXml }));
+  await page.route("**/api/songs/song-1/notes", route => route.fulfill({ json: { ...scoreSnapshot(song, currentXml()), evidence_generation: song.revision - 1, parts: [{ part_id: "P1", name: "Piano", notes: 1, measures: 1 }], notes: [rest], chords: [{ note_id: rest.note_id, symbol: chord }] } }));
+  await page.route("**/api/songs/song-1/structure", route => route.fulfill({ json: { ...scoreSnapshot(song, currentXml()), measures: [] } }));
+  await page.route("**/api/songs/song-1/score", route => route.fulfill({ contentType: "application/xml", body: currentXml() }));
   await page.route("**/api/songs/song-1/publication", route => route.fulfill({ json: { settings: {} } }));
   await page.route("**/api/songs/song-1/notes/p0-m0-n0/chord", async route => {
     request = route.request().postDataJSON();
+    chord = "Am7";
+    song.revision += 1;
     await route.fulfill({ json: { song } });
   });
   await page.addInitScript(() => {
@@ -134,5 +142,7 @@ test("chord editor can edit a rest anchor", async ({ page }) => {
   await expect(editor.locator("input")).toHaveValue("C");
   await editor.locator("input").fill("Am7");
   await editor.getByRole("button", { name: "코드 적용" }).click();
-  await expect.poll(() => request).toEqual({ symbol: "Am7" });
+  await expect.poll(() => request).toEqual({ symbol: "Am7", expected_revision: 1, expected_score_sha256: originalHash, expected_generation: 0 });
+  await expect(page.locator(".revision-pill")).toHaveText("Revision 2");
+  await expect(page.locator(".chord-note-list button.active")).toContainText("Am7");
 });

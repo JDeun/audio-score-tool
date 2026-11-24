@@ -150,9 +150,11 @@ class SongStoreV2:
                 CREATE TABLE IF NOT EXISTS note_evidence_state (
                     song_id TEXT PRIMARY KEY, generation INTEGER NOT NULL,
                     active INTEGER NOT NULL, revision INTEGER NOT NULL,
-                    score_sha256 TEXT NOT NULL, baseline_sha256 TEXT NOT NULL
+                    score_sha256 TEXT NOT NULL, baseline_sha256 TEXT NOT NULL, lineage_json TEXT
                 )
             """)
+            if "lineage_json" not in self._columns(conn, "note_evidence_state"):
+                conn.execute("ALTER TABLE note_evidence_state ADD COLUMN lineage_json TEXT")
             conn.execute("""
                 CREATE TRIGGER IF NOT EXISTS invalidate_note_evidence
                 AFTER UPDATE OF current_score_xml, revision ON songs
@@ -162,6 +164,7 @@ class SongStoreV2:
                 END
             """)
             conn.execute("""INSERT OR IGNORE INTO note_evidence_state
+                (song_id, generation, active, revision, score_sha256, baseline_sha256)
                 SELECT song_id, 0, 0, revision, '', '' FROM songs""")
 
     @staticmethod
@@ -418,7 +421,9 @@ class SongStoreV2:
                 )
                 inserted = conn.total_changes > before
                 if inserted:
-                    conn.execute("INSERT INTO note_evidence_state VALUES(?,0,?,1,?,?)", (
+                    conn.execute("""INSERT INTO note_evidence_state
+                        (song_id, generation, active, revision, score_sha256, baseline_sha256)
+                        VALUES(?,0,?,1,?,?)""", (
                         job_id, int(bool(fingerprint)), hashlib.sha256(score_xml.encode()).hexdigest(), fingerprint or ""))
             if not inserted:
                 continue
@@ -608,6 +613,8 @@ class SongStoreV2:
         expected_score_sha256: str | None = None,
         expected_generation: int | None = None,
         evidence_patch: dict | None = None,
+        evidence_lineage: dict | None = None,
+        save_undo_snapshot: bool = False,
     ) -> dict[str, Any] | None:
         text = _valid_score_xml(path.read_text(encoding="utf-8"))
         if expected_revision is None:
@@ -616,21 +623,23 @@ class SongStoreV2:
         with self._lock, self._connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
             state = None
-            if expected_generation is not None:
+            if expected_generation is not None or evidence_patch is not None:
                 state = conn.execute("SELECT * FROM note_evidence_state WHERE song_id=?", (song_id,)).fetchone()
-                if not state or state["generation"] != expected_generation:
-                    raise ConcurrentEditError("Song lineage changed. Reload and retry.")
+            if expected_generation is not None and (not state or state["generation"] != expected_generation):
+                raise ConcurrentEditError("Song lineage changed. Reload and retry.")
+            activate = evidence_patch is not None and evidence_patch["baseline_sha256"] is not None
             if evidence_patch is not None:
-                state = conn.execute("SELECT * FROM note_evidence_state WHERE song_id=?", (song_id,)).fetchone()
-                if (not state or not state["active"] or state["revision"] != expected_revision
-                        or state["score_sha256"] != expected_score_sha256
-                        or state["baseline_sha256"] != evidence_patch["baseline_sha256"]
-                        or state["generation"] != evidence_patch["generation"]):
+                if (not state or state["generation"] != evidence_patch["generation"]
+                        or bool(state["active"]) != activate):
+                    raise ConcurrentEditError("Note evidence lineage changed. Reload and retry.")
+                if activate and (state["revision"] != expected_revision or state["score_sha256"] != expected_score_sha256
+                                 or state["baseline_sha256"] != evidence_patch["baseline_sha256"]):
                     raise ConcurrentEditError("Note evidence lineage changed. Reload and retry.")
             if expected_score_sha256 is not None:
                 row = conn.execute("SELECT current_score_xml FROM songs WHERE song_id=?", (song_id,)).fetchone()
                 if not row or hashlib.sha256((row[0] or "").encode()).hexdigest() != expected_score_sha256:
                     raise ConcurrentEditError("Song score changed while this edit was in progress. Reload and retry.")
+            before = self._read_export_snapshot(conn, song_id) if save_undo_snapshot else None
             if expected_revision is None:
                 cur = conn.execute(
                     "UPDATE songs SET current_score_xml=?, revision=revision+1, updated_at=? WHERE song_id=?",
@@ -653,6 +662,14 @@ class SongStoreV2:
                         )
             if cur.rowcount == 0:
                 return None
+            if before is not None:
+                conn.execute(
+                    """INSERT OR REPLACE INTO song_revisions(
+                        song_id, revision, musicxml, publication_json, title, artist, created_at
+                    ) VALUES(?,?,?,?,?,?,?)""",
+                    (song_id, before.revision, before.current_score_xml, before.publication_json or "{}",
+                     before.title, before.artist, _now()),
+                )
             if evidence_patch is not None:
                 if expected_revision is None or expected_score_sha256 is None:
                     raise ValueError("Evidence patches require exact preconditions")
@@ -666,8 +683,10 @@ class SongStoreV2:
                     VALUES(?,?,?,?,?,?,?)
                 """, (song_id, expected_revision, expected_revision + 1, expected_score_sha256,
                       after_sha256, json.dumps(evidence_patch), _now()))
-                conn.execute("""UPDATE note_evidence_state SET active=1, revision=?, score_sha256=?
-                    WHERE song_id=?""", (expected_revision + 1, after_sha256, song_id))
+                if activate:
+                    encoded_lineage = state["lineage_json"] if evidence_lineage is None else json.dumps(evidence_lineage)
+                    conn.execute("""UPDATE note_evidence_state SET active=1, revision=?, score_sha256=?, lineage_json=?
+                        WHERE song_id=?""", (expected_revision + 1, after_sha256, encoded_lineage, song_id))
             retired_exports = self._detach_exports(song_id)
         if retired_exports is not None:
             shutil.rmtree(retired_exports, ignore_errors=True)
@@ -840,10 +859,11 @@ class SongStoreV2:
         # current canonical revision. If another concurrent editor already committed and
         # advanced the song, that same snapshot is now the successful edit's Undo state.
         with self._lock, self._connect() as conn:
-            row = conn.execute("SELECT revision FROM songs WHERE song_id=?", (song_id,)).fetchone()
-            if not row or int(row["revision"]) != revision:
-                return
-            conn.execute("DELETE FROM song_revisions WHERE song_id=? AND revision=?", (song_id, revision))
+            conn.execute(
+                """DELETE FROM song_revisions WHERE song_id=? AND revision=?
+                   AND EXISTS (SELECT 1 FROM songs WHERE song_id=? AND revision=?)""",
+                (song_id, revision, song_id, revision),
+            )
 
     def restore_revision(self, song_id: str, revision: int) -> dict[str, Any] | None:
         retired_exports = None

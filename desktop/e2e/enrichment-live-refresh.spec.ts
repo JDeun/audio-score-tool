@@ -1,4 +1,7 @@
 import { expect, test } from "@playwright/test";
+import { scoreSnapshot } from "./score-fixture";
+
+const scoreXml = '<score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><note><rest/><duration>1</duration><type>quarter</type></note></measure></part></score-partwise>';
 
 // The metadata/lyrics dialog lives outside SongWorkspace. Committing through
 // its own endpoint must invalidate the canonical score editor and song list.
@@ -50,14 +53,14 @@ test("successful external enrichment refreshes the selected song without a manua
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith("/notes")) {
       noteReads += 1;
-      return route.fulfill({ json: { song: song(), parts: [], notes: [], chords: [] } });
+      return route.fulfill({ json: { ...scoreSnapshot(song(), scoreXml), parts: [], notes: [], chords: [] } });
     }
-    if (path.endsWith("/structure")) return route.fulfill({ json: { measures: [] } });
+    if (path.endsWith("/structure")) return route.fulfill({ json: { ...scoreSnapshot(song(), scoreXml), measures: [] } });
     if (path.endsWith("/publication")) return route.fulfill({ json: { settings: {} } });
     if (path.endsWith("/score")) {
       return route.fulfill({
         contentType: "application/xml",
-        body: '<score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><note><rest/><duration>1</duration><type>quarter</type></note></measure></part></score-partwise>',
+        body: scoreXml,
       });
     }
     return route.fulfill({ json: song() });

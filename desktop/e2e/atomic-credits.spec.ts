@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { scoreSnapshot } from "./score-fixture";
 
 const scoreXml = `<?xml version="1.0" encoding="UTF-8"?>
 <score-partwise version="4.0">
@@ -44,10 +45,10 @@ test("first-page credits submit one atomic mutation, not two independent PATCH c
     return route.fulfill({ json: song() });
   });
   await page.route("**/api/songs/song-1/notes", route => route.fulfill({
-    json: { song: song(), parts: [], notes: [], chords: [] },
+    json: { ...scoreSnapshot(song(), scoreXml), parts: [], notes: [], chords: [] },
   }));
   await page.route("**/api/songs/song-1/structure", route => route.fulfill({
-    json: { measures: [] },
+    json: { ...scoreSnapshot(song(), scoreXml), measures: [] },
   }));
   await page.route("**/api/songs/song-1/score", route => route.fulfill({
     contentType: "application/xml",

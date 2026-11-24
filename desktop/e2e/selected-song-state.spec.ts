@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { scoreSnapshot } from "./score-fixture";
 
 type SongId = "song-a" | "song-b";
 
@@ -61,6 +62,8 @@ test("rapid A→B selection ignores late A responses and targets the right song 
     if (!match) throw new Error(`Unexpected song route: ${path}`);
     const id = match[1] as SongId;
     const kind = match[2] ?? "detail";
+    const selectedSong = song(id);
+    const xml = scoreXml(selectedSong.title);
     if (id === "song-a") {
       pathsHeldForA.push(path);
       await holdA;
@@ -78,15 +81,15 @@ test("rapid A→B selection ignores late A responses and targets the right song 
         },
       });
     } else if (kind === "notes") {
-      await route.fulfill({ json: { song: song(id), parts: [], notes: [], chords: [] } });
+      await route.fulfill({ json: { ...scoreSnapshot(selectedSong, xml), parts: [], notes: [], chords: [] } });
     } else if (kind === "structure") {
-      await route.fulfill({ json: { measures: [] } });
+      await route.fulfill({ json: { ...scoreSnapshot(selectedSong, xml), measures: [] } });
     } else if (kind === "score") {
-      await route.fulfill({ contentType: "application/xml", body: scoreXml(song(id).title) });
+      await route.fulfill({ contentType: "application/xml", body: xml });
     } else if (kind === "publication") {
       await route.fulfill({ json: { settings: {} } });
     } else {
-      await route.fulfill({ json: song(id) });
+      await route.fulfill({ json: selectedSong });
     }
   });
 

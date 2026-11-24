@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import FileResponse, Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from .chord_editor import ChordEditError, set_chord_at_note
 from .chord_listing import list_chords
@@ -19,6 +20,9 @@ from .note_evidence import (
     baseline,
     baseline_fingerprint,
     clock_signature,
+    linked_source_ids,
+    resolve_lineage,
+    rhythm_lineage,
     score_hash,
     written_notes,
 )
@@ -29,6 +33,7 @@ from .score_structure import (
     delete_note,
     insert_measure,
     insert_note,
+    rhythm_edit,
     set_measure_signature,
     structure_summary,
     update_note_structure,
@@ -55,7 +60,16 @@ class NotePatch(BaseModel):
     lyric: str | None = None
 
 
-class ChordPatch(BaseModel):
+class EditPreconditions(BaseModel):
+    expected_revision: int | None = Field(default=None, ge=1)
+    expected_score_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    expected_generation: int | None = Field(default=None, ge=0)
+
+    def preconditions(self) -> dict:
+        return self.model_dump(include={"expected_revision", "expected_score_sha256", "expected_generation"})
+
+
+class ChordPatch(EditPreconditions):
     symbol: str | None = None
 
 
@@ -84,12 +98,34 @@ class PublicationPatch(BaseModel):
 
 
 NoteType = Literal["whole", "half", "quarter", "eighth", "16th", "32nd", "64th"]
+NoteLocator = Annotated[str, StringConstraints(pattern=r"^p(0|[1-9][0-9]*)-m(0|[1-9][0-9]*)-n(0|[1-9][0-9]*)$", max_length=40)]
 
 
-class NoteStructurePatch(BaseModel):
-    expected_revision: int | None = Field(default=None, ge=1)
-    expected_score_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
-    expected_generation: int | None = Field(default=None, ge=0)
+class RhythmEditRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    action: Literal["split", "merge", "boundary", "delete"]
+    note_ids: list[NoteLocator] = Field(min_length=1, max_length=2)
+    left_note_type: NoteType | None = None
+    left_dots: int = Field(default=0, ge=0, le=2)
+    expected_revision: int = Field(ge=1)
+    expected_score_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    expected_generation: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def validate_action(self):
+        count = 2 if self.action in {"merge", "boundary"} else 1
+        if len(self.note_ids) != count or len(set(self.note_ids)) != count:
+            raise ValueError("Supply the distinct note locators required by the operation.")
+        if self.action in {"split", "boundary"}:
+            if self.left_note_type is None:
+                raise ValueError("Specify the new left note type.")
+        elif self.left_note_type is not None or self.left_dots:
+            raise ValueError("Left note type and dots only apply to split or boundary.")
+        return self
+
+
+class NoteStructurePatch(EditPreconditions):
     step: Literal["A", "B", "C", "D", "E", "F", "G"] | None = None
     alter: int | None = Field(default=None, ge=-2, le=2)
     octave: int | None = Field(default=None, ge=0, le=9)
@@ -103,7 +139,7 @@ class NoteStructurePatch(BaseModel):
     beam: Literal["begin", "continue", "end", "forward hook", "backward hook"] | None = None
 
 
-class InsertNotePayload(BaseModel):
+class InsertNotePayload(EditPreconditions):
     position: Literal["before", "after"] = "after"
     rest: bool = False
     step: Literal["A", "B", "C", "D", "E", "F", "G"] = "C"
@@ -114,7 +150,7 @@ class InsertNotePayload(BaseModel):
     lyric: str = Field(default="", max_length=200)
 
 
-class SignaturePatch(BaseModel):
+class SignaturePatch(EditPreconditions):
     key_fifths: int | None = Field(default=None, ge=-7, le=7)
     key_mode: Literal["major", "minor"] | None = None
     beats: int | None = Field(default=None, ge=1, le=32)
@@ -236,12 +272,55 @@ def _evidence_links(song_id: str, revision: int, xml: str, state: dict | None) -
         raise ValueError("lineage_unavailable")
     if clock_signature(xml) != clock:
         raise ValueError("current_structure_changed")
+    if state["lineage_json"] is not None:
+        try:
+            lineage = json.loads(state["lineage_json"])
+        except (ValueError, TypeError) as exc:
+            raise ValueError("invalid_lineage") from exc
+        links = resolve_lineage(lineage, links, xml)
     return links, fingerprint
+
+
+def _rhythm_patch(payload: RhythmEditRequest, result: dict, before_xml: str, after_xml: str,
+                  links: dict, fingerprint: str | None) -> tuple[dict, dict | None]:
+    before = {row["note_id"]: row for row in written_notes(before_xml)}
+    after = {row["note_id"]: row for row in written_notes(after_xml)}
+    if clock_signature(before_xml, require_explicit=False) != clock_signature(after_xml, require_explicit=False):
+        raise MusicXMLEditError("The rhythm edit would change the score clock.")
+    successor = rhythm_lineage(before, after, links, result["mapping"])
+    targets = set(payload.note_ids)
+    for locator, row in before.items():
+        if locator in targets:
+            continue
+        mapped = result["mapping"][locator]
+        if len(mapped) != 1:
+            raise MusicXMLEditError("The rhythm edit would change a note outside the selected region.")
+        next_row = after[mapped[0]]
+        if (any(abs(next_row[key] - row[key]) > 1e-8 for key in ("start", "end"))
+                or {key: value for key, value in next_row.items() if key not in {"start", "end"}}
+                != {key: value for key, value in dict(row, note_id=mapped[0]).items()
+                    if key not in {"start", "end"}}):
+            raise MusicXMLEditError("The rhythm edit would change a note outside the selected region.")
+    if fingerprint is not None:
+        resolve_lineage(successor, links, after_xml)
+
+    def entries(note_ids, rows, sources):
+        return [{"locator": locator, "source_ids": sources.get(locator, []), "pitch": rows[locator]["pitch"],
+                 "written_quarters": {"start": rows[locator]["start"], "end": rows[locator]["end"]}}
+                for locator in note_ids]
+
+    origin_ids = {locator: linked_source_ids(link) for locator, link in links.items()}
+    patch = {"schema_version": 2, "operation": payload.action, "reason": "manual_rhythm_edit",
+             "generation": payload.expected_generation, "baseline_sha256": fingerprint,
+             "inputs": entries(payload.note_ids, before, origin_ids),
+             "outputs": entries(result["result_note_ids"], after, successor["locators"]),
+             **result}
+    return patch, successor if fingerprint is not None else None
 
 
 def _mutate(song_id: str, operation, *, expected_revision: int | None = None,
             expected_score_sha256: str | None = None, expected_generation: int | None = None,
-            evidence_note_id: str | None = None) -> dict:
+            evidence_note_id: str | None = None, rhythm: RhythmEditRequest | None = None) -> dict:
     song = _require_song(song_id)
     try:
         snapshot_revision = _song_store.snapshot_revision(
@@ -253,6 +332,14 @@ def _mutate(song_id: str, operation, *, expected_revision: int | None = None,
     try:
         before_xml = path.read_text(encoding="utf-8")
         evidence = None
+        if rhythm:
+            snapshot, state = _song_store.evidence_snapshot(song_id)
+            if (not state or state["generation"] != expected_generation or snapshot.revision != snapshot_revision
+                    or snapshot.current_score_xml != before_xml or score_hash(before_xml) != expected_score_sha256):
+                raise ConcurrentEditError("Song changed. Reload and retry.")
+            rhythm_links, rhythm_fingerprint = (
+                _evidence_links(song_id, snapshot_revision, before_xml, state) if state["active"] else ({}, None)
+            )
         if (evidence_note_id and expected_revision is not None and expected_score_sha256 is not None
                 and score_hash(before_xml) == expected_score_sha256):
             try:
@@ -272,6 +359,13 @@ def _mutate(song_id: str, operation, *, expected_revision: int | None = None,
             return {"song": _public(song), "result": None}
         _refresh_layout(song, path)
         evidence_patch = None
+        evidence_lineage = None
+        if rhythm:
+            after_xml = path.read_text(encoding="utf-8")
+            evidence_patch, evidence_lineage = _rhythm_patch(
+                rhythm, result, before_xml, after_xml, rhythm_links, rhythm_fingerprint)
+            result["edit"] = {key: value for key, value in evidence_patch.items()
+                              if key not in {"baseline_sha256", "generation", "mapping", "result_note_ids"}}
         if evidence:
             links, fingerprint, before, generation = evidence
             try:
@@ -284,6 +378,7 @@ def _mutate(song_id: str, operation, *, expected_revision: int | None = None,
                         evidence_patch = {"baseline_sha256": fingerprint, "locator": evidence_note_id,
                                           "generation": generation,
                                           "source_id": links[evidence_note_id]["source_id"],
+                                          "source_ids": linked_source_ids(links[evidence_note_id]),
                                           "before_pitch": before["pitch"], "after_pitch": after["pitch"],
                                           "before_spelling": before["spelling"], "after_spelling": after["spelling"],
                                           "reason": "manual_pitch_edit"}
@@ -292,7 +387,8 @@ def _mutate(song_id: str, operation, *, expected_revision: int | None = None,
         updated = _song_store.commit_edit_from_path(song_id, path, expected_revision=snapshot_revision,
                                                     expected_score_sha256=expected_score_sha256,
                                                     expected_generation=expected_generation,
-                                                    evidence_patch=evidence_patch)
+                                                    evidence_patch=evidence_patch, evidence_lineage=evidence_lineage,
+                                                    save_undo_snapshot=True)
         if not updated:
             raise HTTPException(404, "Song not found")
     except ConcurrentEditError as exc:
@@ -335,7 +431,8 @@ def get_score(song_id: str) -> Response:
         content = _song_store.score_xml(song_id)
     except KeyError as exc:
         raise HTTPException(404, "Current MusicXML is missing") from exc
-    return Response(content=content, media_type="application/vnd.recordare.musicxml+xml")
+    return Response(content=content, media_type="application/vnd.recordare.musicxml+xml",
+                    headers={"ETag": f'"{score_hash(content)}"', "Access-Control-Expose-Headers": "ETag"})
 
 
 @router.get("/{song_id}/notes")
@@ -369,7 +466,8 @@ def get_note_evidence(song_id: str, note_id: str,
     if (snapshot.revision != expected_revision or score_hash(snapshot.current_score_xml) != expected_score_sha256
             or not state or state["generation"] != expected_generation):
         raise HTTPException(409, "Song changed. Reload and retry.")
-    result = {"schema_version": 1, "revision": snapshot.revision,
+    result = {"schema_version": 2 if state["active"] and state["lineage_json"] is not None else 1,
+              "revision": snapshot.revision,
               "score_sha256": score_hash(snapshot.current_score_xml), "note_id": note_id,
               "status": "unavailable", "evidence": None,
               "limits": ["Selected performed vocal layer; not independent musical ground truth.",
@@ -378,10 +476,6 @@ def get_note_evidence(song_id: str, note_id: str,
         links, _ = _evidence_links(song_id, snapshot.revision, snapshot.current_score_xml, state)
         if note_id in links:
             result.update(status="linked", evidence=links[note_id], reason=None)
-            patches = _song_store.evidence_patches(song_id, snapshot.revision, result["score_sha256"])
-            result["patch"] = next((patch for patch in reversed(patches)
-                                    if patch["locator"] == note_id
-                                    and patch.get("after_generation") == state["generation"]), None)
         else:
             result["reason"] = "no_represented_source_event"
     except Exception as exc:
@@ -391,9 +485,13 @@ def get_note_evidence(song_id: str, note_id: str,
                    "repeated_source_run", "unsupported_score", "unsupported_polyphony",
                    "unsupported_note", "invalid_divisions", "invalid_duration", "invalid_pitch",
                    "invalid_tie", "broken_tie", "unsupported_clock", "unsupported_positions",
-                   "evidence_limit_exceeded", "lineage_unavailable"}
+                   "evidence_limit_exceeded", "lineage_unavailable", "invalid_lineage", "unsupported_lineage"}
         reason = str(exc) if str(exc) in reasons else "invalid_evidence"
         result.update(status="ambiguous" if reason == "ambiguous_mapping" else "unavailable", reason=reason)
+    patches = _song_store.evidence_patches(song_id, snapshot.revision, result["score_sha256"])
+    result["patch"] = next((patch for patch in reversed(patches)
+                            if patch.get("after_generation") == state["generation"]
+                            and (patch.get("locator") == note_id or note_id in patch.get("result_note_ids", []))), None)
     return result
 
 
@@ -450,7 +548,7 @@ def patch_chord(song_id: str, note_id: str, payload: ChordPatch, request: Reques
             return None
         return {"note_id": note_id, "symbol": payload.symbol or ""}
 
-    response = _mutate(song_id, operation)
+    response = _mutate(song_id, operation, **payload.preconditions())
     if response["result"] is None:
         request.state.song_edit_unchanged = True
     return {
@@ -526,7 +624,14 @@ def restore_original(song_id: str) -> dict:
 @router.get("/{song_id}/structure")
 def get_structure(song_id: str) -> dict:
     song = _require_song(song_id)
-    return {"song": _public(song), **structure_summary(_song_store.checkout_current(song_id))}
+    snapshot, _ = _song_store.evidence_snapshot(song_id)
+    with tempfile.TemporaryDirectory(prefix="ast-structure-") as folder:
+        path = Path(folder) / "score.musicxml"
+        path.write_text(snapshot.current_score_xml, encoding="utf-8")
+        summary = structure_summary(path)
+    song.update(title=snapshot.title, artist=snapshot.artist, revision=snapshot.revision,
+                updated_at=snapshot.updated_at)
+    return {"song": _public(song), **summary, "score_sha256": score_hash(snapshot.current_score_xml)}
 
 
 @router.patch("/{song_id}/notes/{note_id}/structure")
@@ -571,6 +676,17 @@ def patch_note_structure(song_id: str, note_id: str, payload: NoteStructurePatch
                    evidence_note_id=note_id if set(patch) <= {"step", "alter", "octave"} else None)
 
 
+@router.post("/{song_id}/notes/rhythm-edit")
+def edit_note_rhythm(song_id: str, payload: RhythmEditRequest) -> dict:
+    def operation(_song: dict, path: Path) -> dict:
+        return rhythm_edit(path, payload.action, payload.note_ids,
+                           left_note_type=payload.left_note_type, left_dots=payload.left_dots)
+
+    return _mutate(song_id, operation, expected_revision=payload.expected_revision,
+                   expected_score_sha256=payload.expected_score_sha256,
+                   expected_generation=payload.expected_generation, rhythm=payload)
+
+
 @router.post("/{song_id}/notes/{note_id}/insert")
 def insert_score_note(song_id: str, note_id: str, payload: InsertNotePayload) -> dict:
     def operation(_song: dict, path: Path) -> dict:
@@ -588,40 +704,53 @@ def insert_score_note(song_id: str, note_id: str, payload: InsertNotePayload) ->
         )
         return {"note_id": new_id}
 
-    return _mutate(song_id, operation)
+    return _mutate(song_id, operation, **payload.preconditions())
 
 
 @router.delete("/{song_id}/notes/{note_id}")
-def delete_score_note(song_id: str, note_id: str) -> dict:
+def delete_score_note(song_id: str, note_id: str,
+                      expected_revision: int | None = Query(default=None, ge=1),
+                      expected_score_sha256: str | None = Query(default=None, pattern=r"^[0-9a-f]{64}$"),
+                      expected_generation: int | None = Query(default=None, ge=0)) -> dict:
     def operation(_song: dict, path: Path) -> dict:
         delete_note(path, note_id)
         return {"deleted_note_id": note_id}
 
-    return _mutate(song_id, operation)
+    return _mutate(song_id, operation, expected_revision=expected_revision,
+                   expected_score_sha256=expected_score_sha256, expected_generation=expected_generation)
 
 
 @router.post("/{song_id}/measures/{measure_index}/insert-after")
-def insert_score_measure(song_id: str, measure_index: int) -> dict:
+def insert_score_measure(song_id: str, measure_index: int,
+                         expected_revision: int | None = Query(default=None, ge=1),
+                         expected_score_sha256: str | None = Query(default=None, pattern=r"^[0-9a-f]{64}$"),
+                         expected_generation: int | None = Query(default=None, ge=0)) -> dict:
     def operation(_song: dict, path: Path) -> dict:
         return {"measure_index": insert_measure(path, measure_index)}
 
-    return _mutate(song_id, operation)
+    return _mutate(song_id, operation, expected_revision=expected_revision,
+                   expected_score_sha256=expected_score_sha256, expected_generation=expected_generation)
 
 
 @router.delete("/{song_id}/measures/{measure_index}")
-def delete_score_measure(song_id: str, measure_index: int) -> dict:
+def delete_score_measure(song_id: str, measure_index: int,
+                         expected_revision: int | None = Query(default=None, ge=1),
+                         expected_score_sha256: str | None = Query(default=None, pattern=r"^[0-9a-f]{64}$"),
+                         expected_generation: int | None = Query(default=None, ge=0)) -> dict:
     def operation(_song: dict, path: Path) -> dict:
         delete_measure(path, measure_index)
         return {"deleted_measure_index": measure_index}
 
-    return _mutate(song_id, operation)
+    return _mutate(song_id, operation, expected_revision=expected_revision,
+                   expected_score_sha256=expected_score_sha256, expected_generation=expected_generation)
 
 
 @router.patch("/{song_id}/measures/{measure_index}/signature")
 def patch_measure_signature(song_id: str, measure_index: int, payload: SignaturePatch) -> dict:
-    patch = payload.model_dump(exclude_unset=True)
+    patch = payload.model_dump(exclude_unset=True, exclude=set(payload.preconditions()))
     if not patch:
-        return {"song": _public(_require_song(song_id)), "measure_index": measure_index}
+        result = _mutate(song_id, lambda _song, _path: None, **payload.preconditions())
+        return {"song": result["song"], "measure_index": measure_index}
 
     def operation(_song: dict, path: Path) -> dict:
         set_measure_signature(
@@ -634,7 +763,7 @@ def patch_measure_signature(song_id: str, measure_index: int, payload: Signature
         )
         return {"measure_index": measure_index}
 
-    return _mutate(song_id, operation)
+    return _mutate(song_id, operation, **payload.preconditions())
 
 
 @router.get("/{song_id}/files/parts/{slug}/{kind}")

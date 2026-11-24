@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { scoreSnapshot } from "./score-fixture";
 
 const SCORE_XML = `<?xml version="1.0" encoding="utf-8"?>
 <score-partwise version="4.0">
@@ -15,6 +16,11 @@ test("import MusicXML → library → lyric edit → Undo → final export uses 
   let imported = false;
   let lyric = "";
   let revision = 1;
+  let generation = 0;
+  const currentXml = () => SCORE_XML.replace(
+    "</note>",
+    `${lyric ? `<lyric><text>${lyric}</text></lyric>` : ""}</note>`,
+  );
   const uploadCalls: string[] = [];
   const exported: Record<string, unknown>[] = [];
   const song = () => ({
@@ -64,7 +70,8 @@ test("import MusicXML → library → lyric edit → Undo → final export uses 
   }));
   await page.route("**/api/songs/owned-fixture-job/notes", route => route.fulfill({
     json: {
-      song: song(),
+      ...scoreSnapshot(song(), currentXml()),
+      evidence_generation: generation,
       parts: [{ part_id: "P1", name: "Piano", notes: 1, measures: 1 }],
       notes: [{
         note_id: "p0-m0-n0", part_id: "P1", part_name: "Piano",
@@ -76,14 +83,11 @@ test("import MusicXML → library → lyric edit → Undo → final export uses 
     },
   }));
   await page.route("**/api/songs/owned-fixture-job/structure", route => route.fulfill({
-    json: { measures: [] },
+    json: { ...scoreSnapshot(song(), currentXml()), measures: [] },
   }));
   await page.route("**/api/songs/owned-fixture-job/score", route => route.fulfill({
     contentType: "application/xml",
-    body: SCORE_XML.replace(
-      "</note>",
-      `${lyric ? `<lyric><text>${lyric}</text></lyric>` : ""}</note>`,
-    ),
+    body: currentXml(),
   }));
   await page.route("**/api/songs/owned-fixture-job/publication", route => route.fulfill({
     json: { settings: {} },
@@ -91,11 +95,13 @@ test("import MusicXML → library → lyric edit → Undo → final export uses 
   await page.route("**/api/songs/owned-fixture-job/notes/p0-m0-n0/structure", route => {
     lyric = String((route.request().postDataJSON() as { lyric?: string }).lyric ?? "");
     revision += 1;
+    generation += 1;
     return route.fulfill({ json: { song: song(), result: { note_id: "p0-m0-n0" } } });
   });
   await page.route("**/api/songs/owned-fixture-job/undo", route => {
     lyric = "";
     revision = 1;
+    generation += 1;
     return route.fulfill({ json: song() });
   });
   await page.route("**/api/songs/owned-fixture-job/export-to", route => {
@@ -137,6 +143,8 @@ test("import MusicXML → library → lyric edit → Undo → final export uses 
 
   await page.getByRole("button", { name: "실행 취소" }).click();
   await expect(page.locator(".revision-pill")).toHaveText("Revision 1");
+  await expect(page.locator(".note-list button.active")).toHaveCount(0);
+  await page.locator(".note-list button").first().click();
   await expect(editor.locator(".lyric-field input")).toHaveValue("");
 
   await page.getByRole("button", { name: "최종 파일 생성" }).click();

@@ -134,6 +134,50 @@ def test_losing_concurrent_edit_does_not_delete_winner_undo_snapshot(tmp_path: P
     assert "<step>C</step>" in store.score_xml("song-1")
 
 
+def test_discard_snapshot_cannot_delete_concurrent_winner_undo(tmp_path: Path, monkeypatch):
+    loser = make_store(tmp_path)
+    _ingest_demo(loser, tmp_path)
+    winner = make_store(tmp_path)
+    PublicationStoreV2(path=loser.path, legacy_root=tmp_path / "legacy")
+    assert loser.snapshot_revision("song-1", {}) == 1
+    edited = tmp_path / "winner.musicxml"
+    edited.write_text(MUSICXML.replace("<step>C</step>", "<step>D</step>"), encoding="utf-8")
+    connect = loser._connect
+    committed = False
+
+    class InterleavedConnection:
+        def __init__(self):
+            self.conn = connect()
+
+        def __enter__(self):
+            self.conn.__enter__()
+            return self
+
+        def __exit__(self, *args):
+            return self.conn.__exit__(*args)
+
+        def execute(self, sql, parameters=()):
+            nonlocal committed
+            if sql.lstrip().upper().startswith("DELETE FROM SONG_REVISIONS"):
+                winner.commit_edit_from_path("song-1", edited, expected_revision=1, save_undo_snapshot=True)
+                committed = True
+            return self.conn.execute(sql, parameters)
+
+    monkeypatch.setattr(loser, "_connect", InterleavedConnection)
+    loser.discard_snapshot("song-1", 1)
+    assert committed
+    assert winner.restore_revision("song-1", 1) == {}
+    assert "<step>C</step>" in winner.score_xml("song-1")
+
+
+def test_discard_snapshot_removes_uncommitted_legacy_snapshot(tmp_path: Path):
+    store = make_store(tmp_path)
+    _ingest_demo(store, tmp_path)
+    assert store.snapshot_revision("song-1", {"bars_per_system": 4}) == 1
+    store.discard_snapshot("song-1", 1)
+    assert store.restore_revision("song-1", 1) is None
+
+
 def test_omr_jobs_keep_omr_source_provenance(tmp_path: Path):
     source = tmp_path / "generated.musicxml"
     source.write_text(MUSICXML, encoding="utf-8")

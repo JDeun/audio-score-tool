@@ -1,4 +1,7 @@
 import { expect, test } from "@playwright/test";
+import { scoreSnapshot } from "./score-fixture";
+
+const restScoreXml = '<score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Voice</part-name></score-part></part-list><part id="P1"><measure number="1"><note><rest/><duration>1</duration><type>quarter</type></note></measure></part></score-partwise>';
 
 // A user can recover an unidentified score without leaving the editor:
 // Unknown -> edit verified names -> atomic save -> exact-match API lookup.
@@ -44,10 +47,10 @@ test("Unknown score metadata can be saved in the manager and re-queried without 
     json: song(),
   }));
   await page.route("**/api/songs/unidentified/notes", (route) => route.fulfill({
-    json: { song: song(), parts: [], notes: [], chords: [] },
+    json: { ...scoreSnapshot(song(), scoreXml()), parts: [], notes: [], chords: [] },
   }));
   await page.route("**/api/songs/unidentified/structure", (route) => route.fulfill({
-    json: { measures: [] },
+    json: { ...scoreSnapshot(song(), scoreXml()), measures: [] },
   }));
   await page.route("**/api/songs/unidentified/score", (route) => route.fulfill({
     contentType: "application/xml", body: scoreXml(),
@@ -160,11 +163,11 @@ test("unsaved edits are saved before external metadata re-query", async ({ page 
   await page.route("**/api/songs", (route) => route.fulfill({ json: { songs: [song()] } }));
   await page.route("**/api/engines", (route) => route.fulfill({ json: { usage_mode: "personal", engines: [] } }));
   await page.route("**/api/songs/track", (route) => route.fulfill({ json: song() }));
-  await page.route("**/api/songs/track/notes", (route) => route.fulfill({ json: { song: song(), parts: [], notes: [], chords: [] } }));
-  await page.route("**/api/songs/track/structure", (route) => route.fulfill({ json: { measures: [] } }));
+  await page.route("**/api/songs/track/notes", (route) => route.fulfill({ json: { ...scoreSnapshot(song(), restScoreXml), parts: [], notes: [], chords: [] } }));
+  await page.route("**/api/songs/track/structure", (route) => route.fulfill({ json: { ...scoreSnapshot(song(), restScoreXml), measures: [] } }));
   await page.route("**/api/songs/track/score", (route) => route.fulfill({
     contentType: "application/xml",
-    body: '<score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Voice</part-name></score-part></part-list><part id="P1"><measure number="1"><note><rest/><duration>1</duration><type>quarter</type></note></measure></part></score-partwise>',
+    body: restScoreXml,
   }));
   await page.route("**/api/songs/track/publication", (route) => route.fulfill({ json: { settings: {} } }));
   await page.route("**/api/songs/track/credits", (route) => {
@@ -236,17 +239,14 @@ test("ambiguous recordings are shown as distinct album options and a chosen edit
     json: song(),
   }));
   await page.route("**/api/songs/versions/notes", (route) => route.fulfill({
-    json: { song: song(), parts: [], notes: [], chords: [] },
+    json: { ...scoreSnapshot(song(), restScoreXml), parts: [], notes: [], chords: [] },
   }));
   await page.route("**/api/songs/versions/structure", (route) => route.fulfill({
-    json: { measures: [] },
+    json: { ...scoreSnapshot(song(), restScoreXml), measures: [] },
   }));
   await page.route("**/api/songs/versions/score", (route) => route.fulfill({
     contentType: "application/xml",
-    body: '<score-partwise version="4.0"><part-list><score-part id="P1">' +
-      '<part-name>Voice</part-name></score-part></part-list>' +
-      '<part id="P1"><measure number="1"><note><rest/><duration>1</duration>' +
-      '<type>quarter</type></note></measure></part></score-partwise>',
+    body: restScoreXml,
   }));
   await page.route("**/api/songs/versions/publication", (route) => route.fulfill({
     json: { settings: { album, composer, performer: "Green Day", lyricist: "Unknown" } },
